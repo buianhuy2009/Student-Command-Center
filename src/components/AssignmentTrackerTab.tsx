@@ -279,8 +279,20 @@ export const AssignmentTrackerTab: React.FC<AssignmentTrackerTabProps> = ({
     return { filteredAssignments: filtered, oldCompletedCount: oldDone };
   }, [assignments, searchQuery, filterSubject, filterStatus, filterPriority, showArchived, sortByAIFocus, effortEstimates]);
 
-  const doneCount = assignments.filter((a) => a.status === 'Done').length;
-  const highCount = assignments.filter((a) => a.priority === 'High' && a.status !== 'Done').length;
+  // Bolt Performance Optimization: Compute doneCount and highCount in a single pass over assignments
+  const { doneCount, highCount } = useMemo(() => {
+    let done = 0;
+    let high = 0;
+    for (let i = 0; i < assignments.length; i++) {
+      const a = assignments[i];
+      if (a.status === 'Done') {
+        done++;
+      } else if (a.priority === 'High') {
+        high++;
+      }
+    }
+    return { doneCount: done, highCount: high };
+  }, [assignments]);
 
   const handleSyncClick = () => {
     if (!isGoogleConnected) {
