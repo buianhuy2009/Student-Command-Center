@@ -80,6 +80,7 @@ export default defineConfig(() => {
       cssMinify: true,
       // brotli size reporting enabled; Vercel serves brotli — warn at 600k to surface 827k risk earlier
       rollupOptions: {
+        external: ['web-vitals'],
         output: {
           manualChunks: {
             vendor: ['react','react-dom','zustand'],
