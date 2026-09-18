@@ -78,6 +78,8 @@ function loadSavedDecks(): CardDeck[] {
 function saveDecks(decks: CardDeck[]) {
   try {
     localStorage.setItem(LOCAL_DECKS_KEY, JSON.stringify(decks));
+    // Dispatch custom event so hooks like useBadgeCounts update instantly without polling
+    window.dispatchEvent(new CustomEvent('scc_flashcards_updated'));
   } catch (e) {
     console.error('Error saving card decks:', e);
   }
