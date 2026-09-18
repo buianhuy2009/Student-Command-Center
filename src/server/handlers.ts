@@ -157,7 +157,8 @@ export async function handleCanvasProxy(req: any, res: any) {
     }
   } catch (err: any) {
     console.error("Canvas proxy error:", err);
-    res.status(500).json({ error: err.message || "Failed to fetch from Canvas" });
+    // Sanitize error message to prevent leaking internal exception details
+    res.status(500).json({ error: "Failed to fetch from Canvas" });
   }
 }
 

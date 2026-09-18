@@ -66,6 +66,7 @@ export default async function handler(req, res) {
     }
   } catch (err) {
     console.error("Canvas proxy error:", err);
-    res.status(500).json({ error: err.message || "Failed to fetch from Canvas" });
+    // Sanitize error message to prevent leaking internal exception details
+    res.status(500).json({ error: "Failed to fetch from Canvas" });
   }
 }
