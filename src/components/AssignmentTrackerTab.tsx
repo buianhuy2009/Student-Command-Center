@@ -279,8 +279,36 @@ export const AssignmentTrackerTab: React.FC<AssignmentTrackerTabProps> = ({
     return { filteredAssignments: filtered, oldCompletedCount: oldDone };
   }, [assignments, searchQuery, filterSubject, filterStatus, filterPriority, showArchived, sortByAIFocus, effortEstimates]);
 
-  const doneCount = assignments.filter((a) => a.status === 'Done').length;
-  const highCount = assignments.filter((a) => a.priority === 'High' && a.status !== 'Done').length;
+  // Performance optimization: Single pass memoization for summary counts to prevent O(2N) filtering on every render/keystroke
+  const { doneCount, highCount } = useMemo(() => {
+    let done = 0;
+    let high = 0;
+    for (let i = 0; i < assignments.length; i++) {
+      const a = assignments[i];
+      if (a.status === 'Done') {
+        done++;
+      } else if (a.priority === 'High') {
+        high++;
+      }
+    }
+    return { doneCount: done, highCount: high };
+  }, [assignments]);
+
+  // Performance optimization: Group tasks by status in a single pass memoized on filteredAssignments to prevent repeated filtering in Kanban view
+  const kanbanTasksByStatus = useMemo(() => {
+    const groups: Record<AssignmentStatus, Assignment[]> = {
+      'Not Started': [],
+      'In Progress': [],
+      'Done': [],
+    };
+    for (let i = 0; i < filteredAssignments.length; i++) {
+      const a = filteredAssignments[i];
+      if (groups[a.status]) {
+        groups[a.status].push(a);
+      }
+    }
+    return groups;
+  }, [filteredAssignments]);
 
   const handleSyncClick = () => {
     if (!isGoogleConnected) {
@@ -566,7 +594,7 @@ export const AssignmentTrackerTab: React.FC<AssignmentTrackerTabProps> = ({
               { id: 'Done', label: t('tracker_col_done'), color: 'border-emerald-200 dark:border-emerald-900/60' },
             ] as { id: 'Not Started' | 'In Progress' | 'Done'; label: string; color: string }[]
           ).map((col) => {
-            const colTasks = filteredAssignments.filter((a) => a.status === col.id);
+            const colTasks = kanbanTasksByStatus[col.id] || [];
 
             return (
               <div
