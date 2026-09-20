@@ -1,0 +1,3 @@
+## 2025-09-20 - Precomputing Derived Urgency States in Assignment Filtering
+**Learning:** Calling `getUrgency` / `getUrgencyInfo` (which parses dates, evaluates regex, and creates `Date` objects) inside render loops for every item across multiple views (Table, Mobile Card, Kanban Board) creates cumulative CPU overhead during re-renders. Precomputing and caching `UrgencyState` in a `Map<string, UrgencyState>` during the `useMemo` filtering & sorting pass eliminates redundant date calculations across views.
+**Action:** When filtering or sorting lists in React components, precompute derived item metadata (such as urgency or status chips) inside the memoized filter pass to avoid repeated computation in JSX render loops.

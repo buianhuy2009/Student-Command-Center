@@ -169,7 +169,12 @@ export const AssignmentTrackerTab: React.FC<AssignmentTrackerTabProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const subjects = useMemo(() => {
-    return Array.from(new Set(assignments.map((a) => a.subject).filter(Boolean)));
+    const set = new Set<string>();
+    for (let i = 0; i < assignments.length; i++) {
+      const sub = assignments[i].subject;
+      if (sub) set.add(sub);
+    }
+    return Array.from(set);
   }, [assignments]);
 
   const handleQuickSubmit = async (e: React.FormEvent) => {
@@ -230,33 +235,40 @@ export const AssignmentTrackerTab: React.FC<AssignmentTrackerTabProps> = ({
     }
   };
 
-  const { filteredAssignments, oldCompletedCount } = useMemo(() => {
+  // Performance optimization: Precompute urgency and memoize filtering/sorting in a single pass.
+  // Avoids repeated regex evaluation, string parsing, and Date object instantiation on every render.
+  const { filteredAssignments, urgencyMap, oldCompletedCount } = useMemo(() => {
     const oneWeekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
     let oldDone = 0;
+    const q = searchQuery.trim().toLowerCase();
+    const urgMap = new Map<string, UrgencyState>();
 
-    const filtered = assignments.filter((a) => {
+    const filtered: Assignment[] = [];
+
+    for (let i = 0; i < assignments.length; i++) {
+      const a = assignments[i];
       const isDone = a.status === 'Done';
       const dueDateMs = a.dueDate ? new Date(a.dueDate).getTime() : 0;
 
       if (isDone && dueDateMs && dueDateMs < oneWeekAgo && !showArchived && filterStatus !== 'Done') {
         oldDone++;
-        return false;
+        continue;
       }
 
-      if (filterSubject !== 'ALL' && a.subject !== filterSubject) return false;
-      if (filterStatus !== 'ALL' && a.status !== filterStatus) return false;
-      if (filterPriority !== 'ALL' && a.priority !== filterPriority) return false;
+      if (filterSubject !== 'ALL' && a.subject !== filterSubject) continue;
+      if (filterStatus !== 'ALL' && a.status !== filterStatus) continue;
+      if (filterPriority !== 'ALL' && a.priority !== filterPriority) continue;
 
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
+      if (q) {
         const matchName = a.assignmentName.toLowerCase().includes(q);
         const matchSub = a.subject.toLowerCase().includes(q);
         const matchNotes = (a.notes || '').toLowerCase().includes(q);
-        if (!matchName && !matchSub && !matchNotes) return false;
+        if (!matchName && !matchSub && !matchNotes) continue;
       }
 
-      return true;
-    });
+      urgMap.set(a.id, getUrgencyInfo(a.dueDate, isDone)?.state ?? null);
+      filtered.push(a);
+    }
 
     filtered.sort((a, b) => {
       const aDone = a.status === 'Done';
@@ -276,7 +288,7 @@ export const AssignmentTrackerTab: React.FC<AssignmentTrackerTabProps> = ({
       return aDate - bDate;
     });
 
-    return { filteredAssignments: filtered, oldCompletedCount: oldDone };
+    return { filteredAssignments: filtered, urgencyMap: urgMap, oldCompletedCount: oldDone };
   }, [assignments, searchQuery, filterSubject, filterStatus, filterPriority, showArchived, sortByAIFocus, effortEstimates]);
 
   const doneCount = assignments.filter((a) => a.status === 'Done').length;
@@ -595,7 +607,7 @@ export const AssignmentTrackerTab: React.FC<AssignmentTrackerTabProps> = ({
                     colTasks.map((task) => {
                       const isHigh = task.priority === 'High';
                       const isDone = task.status === 'Done';
-                      const urgency = getUrgency(task);
+                      const urgency = urgencyMap.get(task.id) ?? null;
 
                       return (
                         <div
@@ -714,7 +726,7 @@ export const AssignmentTrackerTab: React.FC<AssignmentTrackerTabProps> = ({
             <div className="md:hidden p-3 space-y-2">
               {filteredAssignments.map(a=>{
                 const isDone = a.status==='Done';
-                const urgency = getUrgency(a);
+                const urgency = urgencyMap.get(a.id) ?? null;
                 return (
                   <div key={a.id} onClick={()=>setSelectedAssignment(a)} className={`p-3 rounded-2xl border bg-[#E8E6DC] dark:bg-[#1F1E1B] border-[#E8E6DC] dark:border-[#2C2B27] flex flex-col gap-1.5 ${isDone?'opacity-60':''} ${urgency ? URGENCY_TINT[urgency] : ''}`}>
                     <div className="flex items-center justify-between gap-2">
@@ -754,7 +766,7 @@ export const AssignmentTrackerTab: React.FC<AssignmentTrackerTabProps> = ({
                     const isDone = assignment.status === 'Done';
                     const isSelected = selectedAssignment?.id === assignment.id;
                     const isHigh = assignment.priority === 'High';
-                    const urgency = getUrgency(assignment);
+                    const urgency = urgencyMap.get(assignment.id) ?? null;
 
                     return (
                       <tr
