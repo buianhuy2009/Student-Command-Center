@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, Sparkles, CheckCircle2, Zap, ArrowRight } from 'lucide-react';
 
-export const CURRENT_VERSION = '2.15.0';
+export const CURRENT_VERSION = '2.16.0';
 
 interface VersionRelease {
   version: string;
@@ -14,10 +14,26 @@ interface VersionRelease {
 
 const RELEASES: VersionRelease[] = [
   {
+    version: '2.16.0',
+    date: 'September 20, 2026',
+    title: '100 Antigravity CLI UI/UX Improvements + Two-Tier Model Selector + Theme Engine',
+    badge: 'Latest Update',
+    highlights: [
+      '100 concrete visual and interaction improvements for high-speed vibe coding in the Antigravity CLI workspace',
+      'Two-tier hierarchical model selector TUI (/model) with family grouping and secondary reasoning effort tiers',
+      'Visual quota telemetry dashboard (/quota) with solid-block gauges, multi-day countdowns, and unified Claude/GPT 3P pool',
+      'CLI visual theme engine (/theme) with 5 developer palettes (Dark Carbon, Tokyo Night, Monokai, Paper & Coal, Cyberpunk)',
+    ],
+    details: [
+      '091 Model hierarchy TUI: run /model to choose cleanly between Gemini Flash (High/Med/Low), Gemini Pro, Claude Thinking, and GPT-OSS instead of a 15-item flat list.',
+      '092 Visual quota HUD: real-time solid block meters (█/░) for 5-hour rolling limits and weekly caps with dynamic multi-day countdowns (4d 13h) and 1-hour cache TTL callout.',
+      '093 Vibe coding commands & themes: in-terminal Kanban board (/todo), workspace status HUD (/status), syntax-highlighted diff (/diff), diagnostics (/doctor), and 5 selectable terminal palettes.',
+    ]
+  },
+  {
     version: '2.15.0',
     date: 'September 14, 2026',
     title: 'AI Planner Day View + Editable Times + Linked Sources',
-    badge: 'Latest Update',
     highlights: [
       'AI Planner shows one roomy day at a time with a day picker — no more squished week grid',
       'Every block time is editable and saved; connected Tracker, Canvas, Classroom, Gmail and Moodle items stay linked in-panel with placement status',

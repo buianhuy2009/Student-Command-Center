@@ -16,7 +16,8 @@
     "opencode-websearch-cited",
     "opencode-pty",
     "opencode-background-agents",
-    "opencode-supermemory"
+    "opencode-supermemory",
+    "opencode-scheduler"
   ],
   "permission": {
     "bash": {

@@ -6,6 +6,12 @@
     <description>Plain-English updates to StudentOS — what changed and why it matters for studying.</description>
     <language>en-us</language>
     <item>
+      <title>v2.16.0 — 100 Antigravity CLI UI/UX Improvements + Two-Tier Model Selector + Theme Engine</title>
+      <link>https://student-command-center.vercel.app/?changelog=2.16.0</link>
+      <pubDate>Sun, 20 Sep 2026 00:00:00 GMT</pubDate>
+      <description>100 tangible UI/UX improvements for Antigravity CLI vibe coding including a two-tier model selector (/model), visual quota dashboard (/quota) with solid blocks and multi-day countdowns, in-terminal Kanban board (/todo), workspace status HUD (/status), and 5 developer color palettes (/theme).</description>
+    </item>
+    <item>
       <title>v2.15.0 — AI Planner Day View + Editable Times + Linked Sources</title>
       <link>https://student-command-center.vercel.app/?changelog=2.15.0</link>
       <pubDate>Mon, 14 Sep 2026 00:00:00 GMT</pubDate>

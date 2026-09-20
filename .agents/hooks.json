@@ -1,0 +1,36 @@
+{
+  "safety-shield": {
+    "PreToolUse": [
+      {
+        "matcher": "run_command|write_to_file|replace_file_content",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/buianhuy/Downloads/StudentOS/.agents/scripts/pre_tool_shield.py"
+          }
+        ]
+      }
+    ]
+  },
+  "audit-logger": {
+    "PostToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/buianhuy/Downloads/StudentOS/.agents/scripts/post_tool_audit.py"
+          }
+        ]
+      }
+    ]
+  },
+  "completion-notifier": {
+    "Stop": [
+      {
+        "type": "command",
+        "command": "/Users/buianhuy/.gemini/antigravity-cli/notify_done.sh"
+      }
+    ]
+  }
+}
