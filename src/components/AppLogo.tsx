@@ -44,8 +44,6 @@ import {
   FolderOpen,
   Presentation,
   ClipboardList,
-  Palette,
-  Atom,
 } from 'lucide-react';
 
 interface AppLogoProps {
