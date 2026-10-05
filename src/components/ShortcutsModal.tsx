@@ -55,6 +55,9 @@ export const ShortcutsModal: React.FC<ShortcutsModalProps> = ({ isOpen, onClose 
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="shortcuts-modal-title"
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150"
       id="shortcuts-modal-backdrop"
       onClick={(e) => {
@@ -68,7 +71,7 @@ export const ShortcutsModal: React.FC<ShortcutsModalProps> = ({ isOpen, onClose 
               <Keyboard className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-[#141413] dark:text-[#FAF9F5]">
+              <h3 id="shortcuts-modal-title" className="text-base font-bold text-[#141413] dark:text-[#FAF9F5]">
                 {t('keys_title')}
               </h3>
               <p className="text-xs text-[#6B6860]">
