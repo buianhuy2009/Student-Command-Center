@@ -78,6 +78,9 @@ function loadSavedDecks(): CardDeck[] {
 function saveDecks(decks: CardDeck[]) {
   try {
     localStorage.setItem(LOCAL_DECKS_KEY, JSON.stringify(decks));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('scc:flashcards_updated'));
+    }
   } catch (e) {
     console.error('Error saving card decks:', e);
   }

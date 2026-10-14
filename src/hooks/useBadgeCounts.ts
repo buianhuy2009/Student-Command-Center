@@ -39,10 +39,19 @@ export function useBadgeCounts(canvasAssignments: CanvasAssignment[], assignment
 
   useEffect(() => {
     const poll = () => setFlashcardDue(countFlashcardsDue());
-    const id = window.setInterval(poll, 4000);
+    // ⚡ Performance optimization: Replaced aggressive 4-second polling with an event-driven listener
+    // (`scc:flashcards_updated`, `storage`, `focus`) and a 60-second fallback timer (for date rollovers).
+    // This avoids ~900 unnecessary localStorage reads and JSON parses per hour on the main thread.
+    const id = window.setInterval(poll, 60000);
     window.addEventListener('storage', poll);
     window.addEventListener('focus', poll);
-    return () => { clearInterval(id); window.removeEventListener('storage', poll); window.removeEventListener('focus', poll); };
+    window.addEventListener('scc:flashcards_updated', poll);
+    return () => {
+      clearInterval(id);
+      window.removeEventListener('storage', poll);
+      window.removeEventListener('focus', poll);
+      window.removeEventListener('scc:flashcards_updated', poll);
+    };
   }, []);
 
   return { canvasUnfinished, urgentEmail, pendingAssignment, flashcardDue };

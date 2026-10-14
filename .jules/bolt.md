@@ -1,0 +1,3 @@
+## 2026-09-07 - Event-Driven localStorage Badge Sync vs High-Frequency Polling
+**Learning:** Polling `localStorage` and `JSON.parse` every 4s in application-wide hooks like `useBadgeCounts` creates persistent CPU and garbage collection pressure on the main thread (~900 reads/hour). In a single-page app without global state context, dispatching custom window events (e.g., `scc:flashcards_updated`) from storage writer functions allows badge counters to update instantly and reactively while relaxing interval polling to a 60s safety fallback.
+**Action:** When updating or reading `localStorage` state in hooks/components, dispatch and listen to custom window events rather than running high-frequency `setInterval` polling loops.

@@ -168,6 +168,9 @@ export function loadSRSDecks(): SRSDeck[] {
 export function saveSRSDecks(decks: SRSDeck[]): void {
   try {
     localStorage.setItem(LOCAL_DECKS_STORAGE_KEY, JSON.stringify(decks));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('scc:flashcards_updated'));
+    }
   } catch (err) {
     console.error('Failed to save SRS decks to localStorage:', err);
   }
