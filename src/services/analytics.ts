@@ -23,19 +23,40 @@ export function trackPageView(path: string) { trackEvent('page_view', { path });
 // Web vitals reporter — call from main.tsx
 export function reportWebVitals() {
   try {
-    // dynamic import web-vitals if available, else fallback to PerformanceObserver
-    import('web-vitals').then(({ onCLS, onINP, onLCP }) => {
-      onCLS((m: any) => trackEvent('web_vital', { name: 'CLS', value: m.value, rating: m.rating }));
-      onINP((m: any) => trackEvent('web_vital', { name: 'INP', value: m.value, rating: m.rating }));
-      onLCP((m: any) => trackEvent('web_vital', { name: 'LCP', value: m.value, rating: m.rating }));
-    }).catch(() => {
-      // fallback PerformanceObserver for LCP
-      try {
-        const po = new PerformanceObserver((list) => {
-          list.getEntries().forEach((e: any) => trackEvent('web_vital', { name: e.name, duration: e.duration }));
-        });
-        po.observe({ type: 'largest-contentful-paint', buffered: true } as any);
-      } catch {}
-    });
+    if (typeof window === 'undefined' || !('PerformanceObserver' in window)) return;
+
+    try {
+      const lcpObserver = new PerformanceObserver((list) => {
+        const entries = list.getEntries();
+        const lastEntry = entries[entries.length - 1] as any;
+        if (lastEntry) {
+          const value = lastEntry.renderTime || lastEntry.loadTime || lastEntry.startTime;
+          trackEvent('web_vital', { name: 'LCP', value });
+        }
+      });
+      lcpObserver.observe({ type: 'largest-contentful-paint', buffered: true } as any);
+    } catch {}
+
+    try {
+      let clsValue = 0;
+      const clsObserver = new PerformanceObserver((list) => {
+        for (const entry of list.getEntries() as any[]) {
+          if (!entry.hadRecentInput) {
+            clsValue += entry.value;
+            trackEvent('web_vital', { name: 'CLS', value: clsValue });
+          }
+        }
+      });
+      clsObserver.observe({ type: 'layout-shift', buffered: true } as any);
+    } catch {}
+
+    try {
+      const inpObserver = new PerformanceObserver((list) => {
+        for (const entry of list.getEntries() as any[]) {
+          trackEvent('web_vital', { name: 'INP', value: entry.duration });
+        }
+      });
+      inpObserver.observe({ type: 'first-input', buffered: true } as any);
+    } catch {}
   } catch {}
 }

@@ -9,21 +9,45 @@ export interface BadgeCounts {
   flashcardDue: number;
 }
 
+// Module-level string cache to eliminate redundant JSON.parse calls on 4s polling intervals
+let cachedFlashcardRaw: string | null = null;
+let cachedSrsRaw: string | null = null;
+let cachedToday: string | null = null;
+let cachedDueCount = 0;
+
+/**
+ * Calculates due flashcards for badges.
+ * Performance: Memoized against raw localStorage strings & today's date string.
+ * Avoids re-parsing JSON and array allocations when storage/date hasn't changed.
+ */
 function countFlashcardsDue(): number {
   try {
     const today = new Date().toISOString().split('T')[0];
     const raw = localStorage.getItem('scc_flashcard_decks_v1');
+    const srsRaw = raw ? null : localStorage.getItem('scc_srs_decks_v2');
+
+    if (raw === cachedFlashcardRaw && srsRaw === cachedSrsRaw && today === cachedToday) {
+      return cachedDueCount;
+    }
+
+    let calculated = 0;
     if (raw) {
       const decks = JSON.parse(raw);
-      return decks.reduce((acc: number, d: any) => acc + (d.cards || []).filter((c: any) => !c.mastered && (!c.dueDate || c.dueDate <= today)).length, 0);
-    }
-    const srsRaw = localStorage.getItem('scc_srs_decks_v2');
-    if (srsRaw) {
+      calculated = decks.reduce((acc: number, d: any) => acc + (d.cards || []).filter((c: any) => !c.mastered && (!c.dueDate || c.dueDate <= today)).length, 0);
+    } else if (srsRaw) {
       const decks = JSON.parse(srsRaw);
-      return decks.reduce((acc: number, d: any) => acc + (d.cards || []).filter((c: any) => !c.mastered && (!c.dueDate || c.dueDate <= today)).length, 0);
+      calculated = decks.reduce((acc: number, d: any) => acc + (d.cards || []).filter((c: any) => !c.mastered && (!c.dueDate || c.dueDate <= today)).length, 0);
     }
-  } catch {}
-  return 0;
+
+    cachedFlashcardRaw = raw;
+    cachedSrsRaw = srsRaw;
+    cachedToday = today;
+    cachedDueCount = calculated;
+    return calculated;
+  } catch {
+    cachedDueCount = 0;
+    return 0;
+  }
 }
 
 export function useBadgeCounts(canvasAssignments: CanvasAssignment[], assignments: Assignment[], emailAlerts: EmailAlert[]): BadgeCounts {
