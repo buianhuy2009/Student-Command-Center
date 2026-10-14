@@ -37,6 +37,17 @@ function formatMass(mass: string): string {
   return n.toFixed(2).replace(/\.?0+$/, '');
 }
 
+// Static element subdivisions lifted out of component scope to eliminate redundant array filtering on mount/render
+const MAIN_ELEMENTS = ELEMENTS_DATA.filter(
+  (el) => el.number <= 118 &&
+    !(el.number >= 57 && el.number <= 71) &&
+    !(el.number >= 89 && el.number <= 103)
+);
+
+const LANTHANIDES = ELEMENTS_DATA.filter((el) => el.number >= 57 && el.number <= 71);
+
+const ACTINIDES = ELEMENTS_DATA.filter((el) => el.number >= 89 && el.number <= 103);
+
 // Legend groups requested by design, mapped onto the file's existing color system.
 // Note: element data stores lanthanides as "transition-metal" and has no
 // "halogen"-category rows, so Lanthanides reuses the orange family color and
@@ -70,41 +81,35 @@ export const PeriodicTableWorkspace: React.FC = () => {
     return () => window.removeEventListener('keydown', onKey);
   }, [activeElement]);
 
-  const mainElements = useMemo(() => {
-    return ELEMENTS_DATA.filter(
-      (el) => el.number <= 118 &&
-        !(el.number >= 57 && el.number <= 71) &&
-        !(el.number >= 89 && el.number <= 103)
-    );
-  }, []);
-
-  const lanthanides = useMemo(() => {
-    return ELEMENTS_DATA.filter((el) => el.number >= 57 && el.number <= 71);
-  }, []);
-
-  const actinides = useMemo(() => {
-    return ELEMENTS_DATA.filter((el) => el.number >= 89 && el.number <= 103);
-  }, []);
-
-  const checkElementMatch = (el: ChemicalElement) => {
+  // Memoize search query & category matches into an O(1) Set lookup
+  // Optimization: Prevents re-executing string lowercasing and trimming ~570 times per render frame
+  // (118 elements rendered across main grid, lanthanides, and actinides rows)
+  const matchingElementNumbers = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
-    const matchesQuery = !query ||
-      el.name.toLowerCase().includes(query) ||
-      el.symbol.toLowerCase().includes(query) ||
-      el.number.toString().includes(query);
-    const matchesCategory = selectedCategory === 'all' || el.category === selectedCategory;
-    return matchesQuery && matchesCategory;
-  };
+    const set = new Set<number>();
+    for (let i = 0; i < ELEMENTS_DATA.length; i++) {
+      const el = ELEMENTS_DATA[i];
+      const matchesQuery = !query ||
+        el.name.toLowerCase().includes(query) ||
+        el.symbol.toLowerCase().includes(query) ||
+        el.number.toString().includes(query);
+      const matchesCategory = selectedCategory === 'all' || el.category === selectedCategory;
+      if (matchesQuery && matchesCategory) {
+        set.add(el.number);
+      }
+    }
+    return set;
+  }, [searchQuery, selectedCategory]);
 
   const isSearchActive = searchQuery.trim().length > 0 || selectedCategory !== 'all';
 
   const hasMatchingLanthanide = useMemo(() => {
-    return lanthanides.some(checkElementMatch);
-  }, [lanthanides, searchQuery, selectedCategory]);
+    return LANTHANIDES.some((el) => matchingElementNumbers.has(el.number));
+  }, [matchingElementNumbers]);
 
   const hasMatchingActinide = useMemo(() => {
-    return actinides.some(checkElementMatch);
-  }, [actinides, searchQuery, selectedCategory]);
+    return ACTINIDES.some((el) => matchingElementNumbers.has(el.number));
+  }, [matchingElementNumbers]);
 
   return (
     <div className="h-full flex flex-col overflow-hidden bg-[#FAF9F5] dark:bg-[#141413] p-4 sm:p-6 space-y-5 animate-in fade-in select-none">
@@ -163,14 +168,14 @@ export const PeriodicTableWorkspace: React.FC = () => {
         {/* Left: Element Cards Grid */}
         <div className="lg:col-span-8 overflow-x-auto overflow-y-auto pr-1">
           <div className="min-w-[1220px] grid gap-2 pb-4 pr-1" style={{ gridTemplateColumns: 'repeat(18, minmax(64px, 1fr))' }}>
-            {mainElements.map((el) => {
+            {MAIN_ELEMENTS.map((el) => {
               const cat = CATEGORY_COLORS[el.category] || {
                 bg: 'bg-stone-50 border-stone-200',
                 text: 'text-stone-700',
                 label: 'Element',
               };
               const isSelected = activeElement?.number === el.number;
-              const matches = !isSearchActive || checkElementMatch(el);
+              const matches = !isSearchActive || matchingElementNumbers.has(el.number);
 
               return (
                 <button
@@ -282,14 +287,14 @@ export const PeriodicTableWorkspace: React.FC = () => {
             </div>
 
             {/* Lanthanides Row (Period 9) */}
-            {lanthanides.map((el, idx) => {
+            {LANTHANIDES.map((el, idx) => {
               const cat = CATEGORY_COLORS[el.category] || {
                 bg: 'bg-stone-50 border-stone-200',
                 text: 'text-stone-700',
                 label: 'Element',
               };
               const isSelected = activeElement?.number === el.number;
-              const matches = !isSearchActive || checkElementMatch(el);
+              const matches = !isSearchActive || matchingElementNumbers.has(el.number);
 
               return (
                 <button
@@ -326,14 +331,14 @@ export const PeriodicTableWorkspace: React.FC = () => {
             })}
 
             {/* Actinides Row (Period 10) */}
-            {actinides.map((el, idx) => {
+            {ACTINIDES.map((el, idx) => {
               const cat = CATEGORY_COLORS[el.category] || {
                 bg: 'bg-stone-50 border-stone-200',
                 text: 'text-stone-700',
                 label: 'Element',
               };
               const isSelected = activeElement?.number === el.number;
-              const matches = !isSearchActive || checkElementMatch(el);
+              const matches = !isSearchActive || matchingElementNumbers.has(el.number);
 
               return (
                 <button
