@@ -667,4 +667,3 @@ export const AppLogo: React.FC<AppLogoProps> = ({ id, size = 'md', className = '
       );
   }
 };
-
