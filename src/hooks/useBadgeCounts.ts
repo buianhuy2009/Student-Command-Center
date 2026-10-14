@@ -39,7 +39,9 @@ export function useBadgeCounts(canvasAssignments: CanvasAssignment[], assignment
 
   useEffect(() => {
     const poll = () => setFlashcardDue(countFlashcardsDue());
-    const id = window.setInterval(poll, 4000);
+    // Performance optimization: Increase polling interval from 4s to 15s to reduce main thread CPU overhead and redundant JSON parsing of localStorage decks.
+    // Instant updates are still triggered via 'storage' events (cross-tab) and window 'focus' events.
+    const id = window.setInterval(poll, 15000);
     window.addEventListener('storage', poll);
     window.addEventListener('focus', poll);
     return () => { clearInterval(id); window.removeEventListener('storage', poll); window.removeEventListener('focus', poll); };
