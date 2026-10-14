@@ -9,20 +9,38 @@ export interface BadgeCounts {
   flashcardDue: number;
 }
 
+// Memory cache to avoid redundant JSON.parse operations during interval polling when raw localStorage data is unchanged
+let cachedRawFlashcards: string | null = null;
+let cachedRawSrs: string | null = null;
+let cachedToday: string | null = null;
+let cachedCount = 0;
+
 function countFlashcardsDue(): number {
   try {
     const today = new Date().toISOString().split('T')[0];
     const raw = localStorage.getItem('scc_flashcard_decks_v1');
+    const srsRaw = localStorage.getItem('scc_srs_decks_v2');
+
+    if (raw === cachedRawFlashcards && srsRaw === cachedRawSrs && today === cachedToday) {
+      return cachedCount;
+    }
+
+    cachedRawFlashcards = raw;
+    cachedRawSrs = srsRaw;
+    cachedToday = today;
+
     if (raw) {
       const decks = JSON.parse(raw);
-      return decks.reduce((acc: number, d: any) => acc + (d.cards || []).filter((c: any) => !c.mastered && (!c.dueDate || c.dueDate <= today)).length, 0);
+      cachedCount = decks.reduce((acc: number, d: any) => acc + (d.cards || []).filter((c: any) => !c.mastered && (!c.dueDate || c.dueDate <= today)).length, 0);
+      return cachedCount;
     }
-    const srsRaw = localStorage.getItem('scc_srs_decks_v2');
     if (srsRaw) {
       const decks = JSON.parse(srsRaw);
-      return decks.reduce((acc: number, d: any) => acc + (d.cards || []).filter((c: any) => !c.mastered && (!c.dueDate || c.dueDate <= today)).length, 0);
+      cachedCount = decks.reduce((acc: number, d: any) => acc + (d.cards || []).filter((c: any) => !c.mastered && (!c.dueDate || c.dueDate <= today)).length, 0);
+      return cachedCount;
     }
   } catch {}
+  cachedCount = 0;
   return 0;
 }
 
@@ -39,10 +57,17 @@ export function useBadgeCounts(canvasAssignments: CanvasAssignment[], assignment
 
   useEffect(() => {
     const poll = () => setFlashcardDue(countFlashcardsDue());
-    const id = window.setInterval(poll, 4000);
+    // Reduced polling frequency from 4s to 15s since custom event 'scc_flashcards_updated' handles instant updates
+    const id = window.setInterval(poll, 15000);
     window.addEventListener('storage', poll);
     window.addEventListener('focus', poll);
-    return () => { clearInterval(id); window.removeEventListener('storage', poll); window.removeEventListener('focus', poll); };
+    window.addEventListener('scc_flashcards_updated', poll);
+    return () => {
+      clearInterval(id);
+      window.removeEventListener('storage', poll);
+      window.removeEventListener('focus', poll);
+      window.removeEventListener('scc_flashcards_updated', poll);
+    };
   }, []);
 
   return { canvasUnfinished, urgentEmail, pendingAssignment, flashcardDue };
