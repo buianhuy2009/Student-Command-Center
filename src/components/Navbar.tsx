@@ -82,6 +82,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         <button
           onClick={onOpenCommandPalette}
           data-tour="search"
+          aria-label={t('search_or_jump')}
           className="w-full bg-[#E8E6DC] dark:bg-[#1A1917] border border-[#E8E6DC] dark:border-[#2C2B27] hover:border-[#C96442]/30 rounded-xl py-1.5 px-3 text-xs flex items-center justify-between text-[#5E5D59] hover:text-[#141413] dark:hover:text-[#F5F4ED] transition-colors cursor-pointer group"
         >
           <div className="flex items-center gap-2">
@@ -103,6 +104,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             id="btn-nav-google-sync"
             data-tour="sync"
             onClick={onOpenGoogleSync}
+            aria-label="Google Workspace Sync Hub"
             className={`px-2.5 py-1.5 text-xs font-bold rounded-xl border transition-all flex items-center gap-1.5 cursor-pointer ${
               isGoogleConnected
                 ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800 hover:border-emerald-400'
@@ -119,6 +121,8 @@ export const Navbar: React.FC<NavbarProps> = ({
           id="btn-nav-ai-coach"
           data-tour="coach"
           onClick={onToggleAiChat}
+          aria-label="AI Study Coach"
+          aria-expanded={isAiChatOpen}
           className={`px-2.5 py-1.5 text-xs font-bold rounded-xl border transition-all flex items-center gap-1.5 cursor-pointer ${
             isAiChatOpen
               ? 'bg-[#B85C38] border-[#B85C38] text-white shadow-xs'

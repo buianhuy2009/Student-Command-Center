@@ -304,18 +304,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {!isExpanded && (
           <button
             onClick={onToggleExpand}
+            aria-label={t('side_expand')}
             className="w-11 h-11 mx-auto rounded-xl bg-white/40 hover:bg-white/70 dark:bg-[#252422]/60 dark:hover:bg-[#252422] text-[#2B2621] dark:text-[#F5F4ED] hover:text-[#2B2621] dark:hover:text-[#F5F4ED] flex items-center justify-center transition-colors cursor-pointer border border-[#70695E]/30 dark:border-[#2C2B27]"
             title={t('side_expand')}
           >
             <ChevronRight className="w-4 h-4" strokeWidth={1.75} />
           </button>
         )}
-        <div
+        <button
+          type="button"
           onClick={onOpenSettings}
-          className={`flex items-center rounded-xl p-1 cursor-pointer hover:bg-white/50 dark:hover:bg-[#252422] transition-colors border border-transparent hover:border-[#70695E]/30 dark:border-[#2C2B27] ${
-            isExpanded ? 'gap-3 justify-start p-2 min-h-[44px]' : 'w-11 h-11 mx-auto justify-center p-0'
-          }`}
+          aria-label={t('side_account')}
           title={t('side_account')}
+          className={`flex items-center rounded-xl p-1 cursor-pointer hover:bg-white/50 dark:hover:bg-[#252422] transition-colors border border-transparent hover:border-[#70695E]/30 dark:border-[#2C2B27] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E05D38]/50 ${
+            isExpanded ? 'w-full gap-3 justify-start p-2 min-h-[44px]' : 'w-11 h-11 mx-auto justify-center p-0'
+          }`}
         >
           {user ? (
             <div className="w-9 h-9 rounded-2xl bg-white/60 border-2 border-white flex items-center justify-center text-xs font-bold text-[#E05D38] overflow-hidden shrink-0 shadow-xs">
@@ -345,7 +348,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </div>
             </div>
           )}
-        </div>
+        </button>
       </div>
     </aside>
   );

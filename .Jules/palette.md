@@ -1,0 +1,3 @@
+## 2025-05-18 - Semantic Buttons for Profile & Navbar Controls
+**Learning:** Icon-only navigation actions and profile/settings triggers rendered as `div` or `<button>` without `aria-label` block keyboard navigation and screen reader accessibility. Replacing non-interactive containers with semantic `<button type="button">` and adding explicit `aria-label` and `focus-visible` ring indicators makes controls fully keyboard-accessible without changing visual design layout.
+**Action:** Always wrap interactive profile/settings/icon triggers in semantic `<button type="button">` with descriptive `aria-label` and `focus-visible` ring classes.
