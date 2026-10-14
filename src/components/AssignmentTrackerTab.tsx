@@ -49,30 +49,71 @@ interface AssignmentTrackerTabProps {
 
 type UrgencyState = 'overdue' | 'today' | 'tomorrow' | null;
 
+// Pre-allocated result objects to eliminate object creation on every render / sorting call
+const URGENCY_RESULTS = {
+  overdue: { state: 'overdue' as const, label: 'Overdue', chip: 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border-rose-200 dark:border-rose-800', tint: 'bg-rose-50/40 dark:bg-rose-950/20' },
+  today: { state: 'today' as const, label: 'Due today', chip: 'bg-amber-50 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200 dark:border-amber-800', tint: 'bg-amber-50/40 dark:bg-amber-950/20' },
+  tomorrow: { state: 'tomorrow' as const, label: 'Due tomorrow', chip: 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border-blue-200 dark:border-blue-800', tint: 'bg-blue-50/40 dark:bg-blue-950/20' },
+};
+
+// Date string cache to avoid Regex and Date instantiation for YYYY-MM-DD strings
+let dateCacheKey = 0;
+let cachedTodayStr = '';
+let cachedTomorrowStr = '';
+
+function updateDateCacheIfNeeded() {
+  const now = new Date();
+  const dayKey = now.getFullYear() * 10000 + (now.getMonth() + 1) * 100 + now.getDate();
+  if (dayKey !== dateCacheKey) {
+    dateCacheKey = dayKey;
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    cachedTodayStr = `${year}-${month}-${day}`;
+
+    const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+    const tYear = tomorrow.getFullYear();
+    const tMonth = String(tomorrow.getMonth() + 1).padStart(2, '0');
+    const tDay = String(tomorrow.getDate()).padStart(2, '0');
+    cachedTomorrowStr = `${tYear}-${tMonth}-${tDay}`;
+  }
+}
+
+// Optimized getUrgencyInfo: Fast path for YYYY-MM-DD string comparisons and zero allocations
 export function getUrgencyInfo(dueDateStr?: string, isDone?: boolean) {
   if (!dueDateStr || isDone) return null;
+  const trimmed = dueDateStr.trim();
+  if (!trimmed) return null;
+
+  updateDateCacheIfNeeded();
+
+  // Fast path: standard YYYY-MM-DD (10 chars) format with numeric validation
+  if (trimmed.length === 10 && /^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    if (trimmed < cachedTodayStr) return URGENCY_RESULTS.overdue;
+    if (trimmed === cachedTodayStr) return URGENCY_RESULTS.today;
+    if (trimmed === cachedTomorrowStr) return URGENCY_RESULTS.tomorrow;
+    return null;
+  }
+
+  // Fallback for non-standard date strings
   let due: Date;
-  const m = /^(\d{4})-(\d{1,2})-(\d{1,2})/.exec(dueDateStr.trim());
+  const m = /^(\d{4})-(\d{1,2})-(\d{1,2})/.exec(trimmed);
   if (m) {
     due = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
   } else {
-    due = new Date(dueDateStr);
+    due = new Date(trimmed);
   }
   if (Number.isNaN(due.getTime())) return null;
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const dueDay = new Date(due);
   dueDay.setHours(0, 0, 0, 0);
   const diff = Math.round((dueDay.getTime() - today.getTime()) / 86400000);
-  if (diff < 0) {
-    return { state: 'overdue' as const, label: URGENCY_LABEL.overdue, chip: URGENCY_CHIP.overdue, tint: URGENCY_TINT.overdue };
-  }
-  if (diff === 0) {
-    return { state: 'today' as const, label: URGENCY_LABEL.today, chip: URGENCY_CHIP.today, tint: URGENCY_TINT.today };
-  }
-  if (diff === 1) {
-    return { state: 'tomorrow' as const, label: URGENCY_LABEL.tomorrow, chip: URGENCY_CHIP.tomorrow, tint: URGENCY_TINT.tomorrow };
-  }
+  if (diff < 0) return URGENCY_RESULTS.overdue;
+  if (diff === 0) return URGENCY_RESULTS.today;
+  if (diff === 1) return URGENCY_RESULTS.tomorrow;
   return null;
 }
 
@@ -264,16 +305,30 @@ export const AssignmentTrackerTab: React.FC<AssignmentTrackerTabProps> = ({
       if (aDone && !bDone) return 1;
       if (!aDone && bDone) return -1;
 
-      const aDate = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
-      const bDate = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
-
       if (sortByAIFocus) {
         const aOrder = effortEstimates[a.id]?.focusOrder ?? 999;
         const bOrder = effortEstimates[b.id]?.focusOrder ?? 999;
         if (aOrder !== bOrder) return aOrder - bOrder;
       }
 
-      return aDate - bDate;
+      // Fast-path date sorting: compare YYYY-MM-DD strings directly to avoid Date object creation overhead
+      const aStr = a.dueDate ? a.dueDate.trim() : '';
+      const bStr = b.dueDate ? b.dueDate.trim() : '';
+
+      if (!aStr && !bStr) return 0;
+      if (!aStr) return 1;
+      if (!bStr) return -1;
+
+      if (aStr.length === 10 && /^\d{4}-\d{2}-\d{2}$/.test(aStr) &&
+          bStr.length === 10 && /^\d{4}-\d{2}-\d{2}$/.test(bStr)) {
+        return aStr < bStr ? -1 : aStr > bStr ? 1 : 0;
+      }
+
+      const aTime = new Date(aStr).getTime();
+      const bTime = new Date(bStr).getTime();
+      const aVal = Number.isNaN(aTime) ? Infinity : aTime;
+      const bVal = Number.isNaN(bTime) ? Infinity : bTime;
+      return aVal - bVal;
     });
 
     return { filteredAssignments: filtered, oldCompletedCount: oldDone };

@@ -23,19 +23,10 @@ export function trackPageView(path: string) { trackEvent('page_view', { path });
 // Web vitals reporter — call from main.tsx
 export function reportWebVitals() {
   try {
-    // dynamic import web-vitals if available, else fallback to PerformanceObserver
-    import('web-vitals').then(({ onCLS, onINP, onLCP }) => {
-      onCLS((m: any) => trackEvent('web_vital', { name: 'CLS', value: m.value, rating: m.rating }));
-      onINP((m: any) => trackEvent('web_vital', { name: 'INP', value: m.value, rating: m.rating }));
-      onLCP((m: any) => trackEvent('web_vital', { name: 'LCP', value: m.value, rating: m.rating }));
-    }).catch(() => {
-      // fallback PerformanceObserver for LCP
-      try {
-        const po = new PerformanceObserver((list) => {
-          list.getEntries().forEach((e: any) => trackEvent('web_vital', { name: e.name, duration: e.duration }));
-        });
-        po.observe({ type: 'largest-contentful-paint', buffered: true } as any);
-      } catch {}
+    // Fallback PerformanceObserver for LCP
+    const po = new PerformanceObserver((list) => {
+      list.getEntries().forEach((e: any) => trackEvent('web_vital', { name: e.name, duration: e.duration }));
     });
+    po.observe({ type: 'largest-contentful-paint', buffered: true } as any);
   } catch {}
 }
