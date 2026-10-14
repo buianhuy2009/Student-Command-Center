@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { X, Sparkles, CheckCircle2, Zap, ArrowRight } from 'lucide-react';
 
 export const CURRENT_VERSION = '2.16.0';
@@ -659,12 +659,31 @@ interface ChangelogModalProps {
 export const ChangelogModal: React.FC<ChangelogModalProps> = ({ isOpen, onClose }) => {
   const [selectedVersion, setSelectedVersion] = useState<string>(CURRENT_VERSION);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const currentRelease = RELEASES.find((r) => r.version === selectedVersion) || RELEASES[0];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs select-none p-4 animate-in fade-in duration-200">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="changelog-title"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs select-none p-4 animate-in fade-in duration-200"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       <div className="bg-[#FAF9F5] dark:bg-[#1A1917] w-full max-w-4xl h-[85vh] rounded-3xl border border-[#DFDACB] dark:border-[#2C2B27] flex flex-col md:flex-row overflow-hidden shadow-2xl animate-in zoom-in-95 duration-150">
         
         {/* Left Column: Version History Sidebar */}
@@ -719,13 +738,14 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({ isOpen, onClose 
                   Released on {currentRelease.date}
                 </span>
               </div>
-              <h2 className="text-lg font-extrabold text-[#141413] dark:text-[#FAF9F5] mt-1">
+              <h2 id="changelog-title" className="text-lg font-extrabold text-[#141413] dark:text-[#FAF9F5] mt-1">
                 {currentRelease.title}
               </h2>
             </div>
 
             <button
               onClick={onClose}
+              aria-label="Close release notes"
               className="p-2 rounded-xl bg-[#FAF9F5] dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] text-[#8C897F] hover:text-[#141413] dark:hover:text-[#FAF9F5] hover:border-[#D97757] transition-all cursor-pointer"
             >
               <X className="w-4 h-4" />
