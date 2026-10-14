@@ -1,0 +1,3 @@
+## 2025-05-18 - Confirmation Modal Accessibility & Keyboard Support
+**Learning:** Confirmation modals generated dynamically or rendered at root level often lack essential ARIA attributes (`role="dialog"`, `aria-modal="true"`, `aria-labelledby`, `aria-describedby`) and `Escape` key event listeners, preventing screen reader users and keyboard-only users from recognizing and dismissing them easily.
+**Action:** Always verify modals implement standard ARIA modal roles, label bindings, keyboard navigation (Escape handling), and visible focus states (`focus-visible:ring-2`) on interactive icon buttons.

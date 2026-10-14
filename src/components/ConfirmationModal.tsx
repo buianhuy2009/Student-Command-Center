@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { AlertTriangle, X, Check } from 'lucide-react';
 import { ConfirmationModalState } from '../types';
 
@@ -8,6 +8,17 @@ interface ConfirmationModalProps {
 }
 
 export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({ modal, onClose }) => {
+  useEffect(() => {
+    if (!modal.isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [modal.isOpen, onClose]);
+
   if (!modal.isOpen) return null;
 
   return (
@@ -20,6 +31,10 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({ modal, onC
     >
       <div
         id="confirmation-modal-content"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="confirmation-modal-title"
+        aria-describedby="confirmation-modal-description"
         className="bg-white dark:bg-[#1A1917] border border-[#DFDACB] dark:border-[#2C2B27] rounded-2xl max-w-md w-full p-6 shadow-2xl animate-in zoom-in-95 duration-150"
       >
         <div className="flex items-start gap-4">
@@ -30,21 +45,23 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({ modal, onC
                 : 'bg-[#D97757]/15 text-[#D97757]'
             }`}
           >
-            <AlertTriangle className="w-5 h-5" />
+            <AlertTriangle className="w-5 h-5" aria-hidden="true" />
           </div>
 
           <div className="flex-1">
-            <h3 className="text-base font-semibold text-[#141413] dark:text-[#FAF9F5]">
+            <h3 id="confirmation-modal-title" className="text-base font-semibold text-[#141413] dark:text-[#FAF9F5]">
               {modal.title}
             </h3>
-            <p className="text-sm text-[#5C5A54] dark:text-[#B5B2A8] mt-1.5 leading-relaxed">
+            <p id="confirmation-modal-description" className="text-sm text-[#5C5A54] dark:text-[#B5B2A8] mt-1.5 leading-relaxed">
               {modal.description}
             </p>
           </div>
 
           <button
+            type="button"
             onClick={onClose}
-            className="text-[#8C897F] hover:text-[#141413] dark:hover:text-[#FAF9F5] p-1 rounded-lg hover:bg-[#FAF9F5] dark:hover:bg-[#252422] transition-colors"
+            aria-label="Close dialog"
+            className="text-[#8C897F] hover:text-[#141413] dark:hover:text-[#FAF9F5] p-1 rounded-lg hover:bg-[#FAF9F5] dark:hover:bg-[#252422] transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#D97757]"
           >
             <X className="w-4 h-4" />
           </button>
