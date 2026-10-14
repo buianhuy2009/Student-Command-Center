@@ -44,6 +44,7 @@ export default async function handler(req, res) {
     });
   } catch (err) {
     console.error("auth exchange error", err);
-    return res.status(500).json({ error: err?.message || "Exchange failed" });
+    // Sanitize error message to prevent leaking sensitive server details / stack info
+    return res.status(500).json({ error: "Internal server error during authorization exchange" });
   }
 }

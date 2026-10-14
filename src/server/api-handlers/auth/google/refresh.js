@@ -45,6 +45,7 @@ export default async function handler(req, res) {
     });
   } catch (err) {
     console.error("auth refresh error", err);
-    return res.status(500).json({ error: err?.message || "Refresh failed" });
+    // Sanitize error message to prevent leaking sensitive server details / stack info
+    return res.status(500).json({ error: "Internal server error during token refresh" });
   }
 }
