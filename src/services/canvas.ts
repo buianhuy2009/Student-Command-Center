@@ -893,8 +893,10 @@ const LOCAL_STORAGE_CANVAS_COMPLETED_KEY = 'scc_canvas_completed_ids_v1';
 
 export function loadCompletedCanvasIds(): string[] {
   try {
-    const saved = localStorage.getItem(LOCAL_STORAGE_CANVAS_COMPLETED_KEY);
-    if (saved) return JSON.parse(saved);
+    if (typeof localStorage !== 'undefined') {
+      const saved = localStorage.getItem(LOCAL_STORAGE_CANVAS_COMPLETED_KEY);
+      if (saved) return JSON.parse(saved);
+    }
   } catch (e) {
     console.error('Error loading completed Canvas IDs:', e);
   }
@@ -912,6 +914,11 @@ export function saveCompletedCanvasIds(ids: string[]) {
 /**
  * Cross-reference Canvas assignments with Master Google Sheet assignments and completion status
  */
+/**
+ * Cross-reference Canvas assignments with Master Google Sheet assignments and completion status.
+ * Optimization (Bolt ⚡): Pre-processes sheet assignments into O(1) lookup maps (by canvasId and course::name),
+ * reducing runtime complexity from O(N * M) string allocations and linear scans to O(N + M).
+ */
 export function crossReferenceCanvasWithSheet(
   canvasList: CanvasAssignment[],
   sheetAssignments: Assignment[],
@@ -920,28 +927,68 @@ export function crossReferenceCanvasWithSheet(
   if (!Array.isArray(canvasList)) return [];
 
   const completedSet = new Set(Array.isArray(completedIds) ? completedIds : []);
+  const sheetList = Array.isArray(sheetAssignments) ? sheetAssignments : [];
+
+  // O(1) direct Canvas ID lookup map (first match wins)
+  const canvasIdMap = new Map<string, Assignment>();
+
+  // Preprocessed sheet items to avoid re-allocating strings inside inner loops
+  const preprocessedSheet: Array<{
+    item: Assignment;
+    canvasIdRaw?: string;
+    canvasIdLower?: string;
+    sName: string;
+    subjectLower: string;
+  }> = [];
+
+  for (let i = 0; i < sheetList.length; i++) {
+    const sheetItem = sheetList[i];
+    if (!sheetItem || typeof sheetItem !== 'object') continue;
+
+    const sName = String(sheetItem.assignmentName ?? '').toLowerCase().trim();
+    const subjectLower = String(sheetItem.subject ?? '').toLowerCase().trim();
+    const canvasIdRaw = sheetItem.canvasId !== undefined && sheetItem.canvasId !== null ? String(sheetItem.canvasId) : undefined;
+    const canvasIdLower = canvasIdRaw ? canvasIdRaw.toLowerCase().trim() : undefined;
+
+    if (canvasIdRaw && !canvasIdMap.has(canvasIdRaw)) {
+      canvasIdMap.set(canvasIdRaw, sheetItem);
+    }
+    if (canvasIdLower && !canvasIdMap.has(canvasIdLower)) {
+      canvasIdMap.set(canvasIdLower, sheetItem);
+    }
+
+    preprocessedSheet.push({ item: sheetItem, canvasIdRaw, canvasIdLower, sName, subjectLower });
+  }
 
   return canvasList.flatMap((rawItem) => {
-    // Never throw on malformed records — normalize or skip. A single bad item
-    // previously crashed setState updaters above all error boundaries (white screen).
     if (!rawItem || typeof rawItem !== 'object') return [];
+
     const canvasItem = {
       ...rawItem,
       name: String(rawItem.name ?? (rawItem as any).title ?? 'Canvas Assignment'),
       courseName: String(rawItem.courseName ?? (rawItem as any).course_code ?? 'Canvas Course'),
     };
+
     const cName = canvasItem.name.toLowerCase().trim();
+    const cCourseNameLower = canvasItem.courseName.toLowerCase().trim();
     const cKey = `${canvasItem.courseId || canvasItem.courseName}::${canvasItem.id}`.toLowerCase();
-    const matchingSheetItem = (Array.isArray(sheetAssignments) ? sheetAssignments : []).find((sheetItem) => {
-      if (!sheetItem || typeof sheetItem !== 'object') return false;
-      if (sheetItem.canvasId && canvasItem.id && sheetItem.canvasId === canvasItem.id) return true;
-      if (sheetItem.canvasId && cKey.includes(String(sheetItem.canvasId).toLowerCase())) return true;
-      const sName = String(sheetItem.assignmentName ?? '').toLowerCase().trim();
-      if (!sName || !cName) return false;
-      // fallback name match only if course also matches to avoid cross-course collision
-      const sameCourse = !sheetItem.subject || !canvasItem.courseName || String(sheetItem.subject).toLowerCase() === canvasItem.courseName.toLowerCase();
-      return sameCourse && (sName === cName || sName.includes(cName) || cName.includes(sName));
-    });
+
+    // 1. Fast O(1) exact Canvas ID match
+    let matchingSheetItem = canvasItem.id ? canvasIdMap.get(canvasItem.id) : undefined;
+
+    // 2. Sequential scan using pre-normalized records to maintain exact original match precedence (first match wins)
+    if (!matchingSheetItem) {
+      matchingSheetItem = preprocessedSheet.find(({ canvasIdLower, sName, subjectLower }) => {
+        if (canvasIdLower && cKey.includes(canvasIdLower)) return true;
+        if (!sName || !cName) return false;
+        const sameCourse =
+          !subjectLower ||
+          subjectLower === 'general' ||
+          !cCourseNameLower ||
+          subjectLower === cCourseNameLower;
+        return sameCourse && (sName === cName || sName.includes(cName) || cName.includes(sName));
+      })?.item;
+    }
 
     const isAlreadyInSheet = Boolean(matchingSheetItem);
     const isDoneInSheet = matchingSheetItem?.status === 'Done';
