@@ -39,10 +39,19 @@ export function useBadgeCounts(canvasAssignments: CanvasAssignment[], assignment
 
   useEffect(() => {
     const poll = () => setFlashcardDue(countFlashcardsDue());
-    const id = window.setInterval(poll, 4000);
+    // ⚡ Bolt: Reduced main thread blocking by changing interval from 4s to 60s.
+    // We now rely on custom 'scc_flashcards_updated' event for instant same-tab updates.
+    const id = window.setInterval(poll, 60000);
     window.addEventListener('storage', poll);
     window.addEventListener('focus', poll);
-    return () => { clearInterval(id); window.removeEventListener('storage', poll); window.removeEventListener('focus', poll); };
+    window.addEventListener('scc_flashcards_updated', poll);
+
+    return () => {
+      clearInterval(id);
+      window.removeEventListener('storage', poll);
+      window.removeEventListener('focus', poll);
+      window.removeEventListener('scc_flashcards_updated', poll);
+    };
   }, []);
 
   return { canvasUnfinished, urgentEmail, pendingAssignment, flashcardDue };

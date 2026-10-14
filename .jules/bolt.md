@@ -1,0 +1,3 @@
+## 2024-05-24 - Heavy localStorage polling on Main Thread
+**Learning:** The application heavily relies on `localStorage` for state management, but passing state across components was initially done via aggressive `setInterval` polling (e.g. every 4s). This caused severe main-thread blocking due to constant `JSON.parse` operations on large data structures.
+**Action:** Replace `setInterval` polling with custom `window.dispatchEvent(new Event('...'))` for immediate same-tab reactivity, while leveraging the native `'storage'` event for cross-tab sync. Set time-based fallback intervals to much larger windows (e.g. 60s) for handling day rollovers.
