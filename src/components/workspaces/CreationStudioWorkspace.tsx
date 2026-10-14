@@ -79,7 +79,7 @@ export const CreationStudioWorkspace: React.FC = () => {
     mermaid.initialize({
       startOnLoad: false,
       theme: 'neutral',
-      securityLevel: 'loose',
+      securityLevel: 'strict',
     });
   }, []);
 
