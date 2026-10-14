@@ -90,7 +90,7 @@ export async function migrateLocalStorageToDexie(): Promise<void> {
     const notesRaw = localStorage.getItem('scc_markdown_notes_v1');
     if (notesRaw) {
       const notes = JSON.parse(notesRaw) as MarkdownNote[];
-      if (notes.length) await db.notes.bulkPut(notes as any).catch(() => {});
+      if (notes.length) await db.notes.bulkPut(notes).catch(() => {});
     }
     const decksRaw = localStorage.getItem('scc_srs_decks_v2') || localStorage.getItem('scc_flashcard_decks_v1');
     if (decksRaw) {
