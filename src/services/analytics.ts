@@ -24,7 +24,8 @@ export function trackPageView(path: string) { trackEvent('page_view', { path });
 export function reportWebVitals() {
   try {
     // dynamic import web-vitals if available, else fallback to PerformanceObserver
-    import('web-vitals').then(({ onCLS, onINP, onLCP }) => {
+    const moduleName = 'web-vitals';
+    import(/* @vite-ignore */ moduleName).then(({ onCLS, onINP, onLCP }) => {
       onCLS((m: any) => trackEvent('web_vital', { name: 'CLS', value: m.value, rating: m.rating }));
       onINP((m: any) => trackEvent('web_vital', { name: 'INP', value: m.value, rating: m.rating }));
       onLCP((m: any) => trackEvent('web_vital', { name: 'LCP', value: m.value, rating: m.rating }));
