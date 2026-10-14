@@ -202,7 +202,8 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
 
           <button
             onClick={onClose}
-            className="p-1.5 text-[#8C897F] hover:bg-[#EFECE2] dark:hover:bg-[#2C2A26] rounded-xl transition-colors cursor-pointer"
+            aria-label="Close settings"
+            className="p-1.5 text-[#8C897F] hover:bg-[#EFECE2] dark:hover:bg-[#2C2A26] rounded-xl transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97757]"
           >
             <X className="w-4 h-4" />
           </button>
