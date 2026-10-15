@@ -67,6 +67,8 @@ export const WS_TABS_STRINGS: Record<string, { en: string; vi: string }> = {
   gmail_assignment: { en: 'Assignment', vi: 'Bài tập' },
   gmail_announcement: { en: 'Announcement', vi: 'Thông báo' },
   gmail_general: { en: 'General', vi: 'Chung' },
+  gmail_hidden: { en: 'Hidden', vi: 'Đã ẩn' },
+  gmail_hidden_desc: { en: "AI can't read these - could you please check it?", vi: 'AI chưa xem được - bạn xem giúp nhé' },
   gmail_unread: { en: 'unread', vi: 'chưa đọc' },
   gmail_search_ph: { en: 'Search emails...', vi: 'Tìm email...' },
   gmail_spam_archived: { en: 'Spam archived', vi: 'Đã lưu trữ spam' },

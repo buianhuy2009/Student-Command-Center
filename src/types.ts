@@ -58,7 +58,7 @@ export interface EmailMessage {
   labelIds?: string[];
 }
 
-export type EmailCategory = 'ASSIGNMENT' | 'EXAM' | 'GRADE' | 'SCHEDULE' | 'ANNOUNCEMENT' | 'SPAM' | 'PROMOTION' | 'SOCIAL' | 'GENERAL';
+export type EmailCategory = 'ASSIGNMENT' | 'EXAM' | 'GRADE' | 'SCHEDULE' | 'ANNOUNCEMENT' | 'SPAM' | 'PROMOTION' | 'SOCIAL' | 'GENERAL' | 'HIDDEN';
 
 export interface EmailAlert {
   id: string;

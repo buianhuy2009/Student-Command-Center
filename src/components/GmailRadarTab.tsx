@@ -246,6 +246,7 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
       const labels = alert.gmailLabels || alert.rawEmail?.labelIds || [];
       return alert.category === 'SOCIAL' || labels.includes('CATEGORY_SOCIAL');
     }
+    if (cat === 'HIDDEN') return alert.category === 'HIDDEN';
     return alert.category === cat;
   };
 
@@ -275,7 +276,7 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
       return raw?.unread ?? false;
     };
     const counts: Record<string, number> = {};
-    for (const cat of ['ALL', 'ASSIGNMENT', 'EXAM', 'ANNOUNCEMENT', 'PROMOTIONS', 'SOCIAL', 'GENERAL']) {
+    for (const cat of ['ALL', 'ASSIGNMENT', 'EXAM', 'ANNOUNCEMENT', 'PROMOTIONS', 'SOCIAL', 'GENERAL', 'HIDDEN']) {
       counts[cat] = emailAlerts.filter((a) => matchesCategory(a, cat) && isUnread(a)).length;
     }
     return counts;
@@ -359,17 +360,20 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
         
         {/* Category Filter Pills — ALL default, PROMOTIONS = spam+promo, SOCIAL separate */}
         <div className="flex items-center gap-1.5 flex-wrap">
-          {['ALL', 'ASSIGNMENT', 'EXAM', 'ANNOUNCEMENT', 'PROMOTIONS', 'SOCIAL', 'GENERAL'].map((cat) => (
+          {['ALL', 'ASSIGNMENT', 'EXAM', 'ANNOUNCEMENT', 'PROMOTIONS', 'SOCIAL', 'GENERAL', 'HIDDEN'].map((cat) => (
             <button
               key={cat}
               onClick={() => setActiveCategory(cat)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              aria-pressed={activeCategory === cat}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97757] focus-visible:ring-offset-1 ${
                 activeCategory === cat
                   ? 'bg-[#D97757] text-white shadow-xs'
                   : 'bg-[#FAF9F5] dark:bg-[#252422] text-[#5C5A54] dark:text-[#B5B2A8] hover:bg-[#EFECE2] dark:hover:bg-[#2C2A26] border border-[#DFDACB] dark:border-[#2C2B27]'
               }`}
             >
-              {cat === 'ALL'
+              {cat === 'HIDDEN'
+                ? t('gmail_hidden')
+                : cat === 'ALL'
                 ? t('gmail_all')
                 : cat === 'PROMOTIONS'
                 ? t('gmail_promos')
@@ -432,6 +436,13 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
         </div>
       </div>
 
+      {/* Hidden-tab explainer — only on HIDDEN so other tabs stay unchanged. */}
+      {activeCategory === 'HIDDEN' && (
+        <div className="px-3 py-2 bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] rounded-xl text-xs text-[#5C5A54] dark:text-[#B5B2A8]">
+          {t('gmail_hidden_desc')}
+        </div>
+      )}
+
       {/* Error Banner */}
       {gmailApiInfo ? (
         <ApiActivationBanner info={gmailApiInfo} onRetry={() => onRefreshEmails(true)} isRetrying={isLoadingEmails} />
@@ -462,7 +473,7 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
               </div>
             ) : filteredAlerts.length === 0 ? (
               <div className="p-12 text-center text-[#8C897F] text-xs">
-                {t('gmail_empty')}
+                {activeCategory === 'HIDDEN' ? t('gmail_hidden_desc') : t('gmail_empty')}
               </div>
             ) : (
               filteredAlerts.map((alert) => {
