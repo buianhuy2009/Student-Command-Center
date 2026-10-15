@@ -1261,7 +1261,7 @@ export async function summarizeEmailsWithGemini(emails: EmailMessage[]): Promise
     return emails.map((e) => byId.get(e.id)).filter((a): a is EmailAlert => Boolean(a));
   } catch (error) {
     console.error('Error calling summarize emails API:', error);
-    // Offline fallback: Gmail labels only, no keywords.
+    // Offline fallback: Gmail labels only, no keywords. NEVER invent dates.
     return emails.map((e) => {
       const b = bucketOf(e);
       if (b !== 'AI') return localAlert(e, b);
@@ -1276,6 +1276,16 @@ export async function summarizeEmailsWithGemini(emails: EmailMessage[]): Promise
         isSpam: false,
         gmailLabels: e.labelIds || [],
         rawEmail: e,
+        detectedAssignment: {
+          isAssignment: false,
+          name: e.subject || 'New Assignment',
+          subject: 'General',
+          dueDate: '',
+          dateSource: 'missing',
+          confidence: 0,
+          quote: '',
+          priority: 'Med',
+        } as any,
       };
     });
   }
@@ -1293,14 +1303,29 @@ export async function generateQuickDraft(request: QuickDraftRequest): Promise<Qu
 }
 
 export async function parseNaturalLanguageAssignment(text: string): Promise<Partial<Assignment>> {
-  const res = await fetch('/api/gemini/parse-assignment', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text }),
-  });
+  try {
+    const res = await fetch('/api/gemini/parse-assignment', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    });
 
-  if (!res.ok) throw new Error(`Parse assignment error: ${res.statusText}`);
-  return await res.json();
+    if (!res.ok) throw new Error(`Parse assignment error: ${res.statusText}`);
+    return await res.json();
+  } catch {
+    // Offline/client fallback: NEVER invent dates (no +2/+3d).
+    return {
+      subject: 'General',
+      assignmentName: text || 'New Task',
+      dueDate: '',
+      dateSource: 'missing',
+      confidence: 0,
+      quote: '',
+      priority: 'Med',
+      status: 'Not Started',
+      estimatedMinutes: 45,
+    } as any;
+  }
 }
 
 export async function sendStudyAssistantMessage(

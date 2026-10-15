@@ -48,6 +48,7 @@ export default async function handler(req, res) {
       return res.status(200).json({ alerts: [] });
     }
 
+    const todayISO = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Ho_Chi_Minh" });
     const prompt = `You are an intelligent bilingual academic email scanner for a student command center.
 Analyze the following ${emails.length} emails. Note that emails may be in English or Vietnamese (tiếng Việt).
 Each email carries Gmail native labelIds (SPAM, CATEGORY_PROMOTIONS, CATEGORY_SOCIAL, CATEGORY_UPDATES, etc.) — trust them as prior.
@@ -65,6 +66,12 @@ Your tasks:
    - Identify the language ("vi" for Vietnamese, "en" for English).
    - Write "oneLineSummary" concisely (under 14 words) in the SAME language as the email.
    - If an assignment is detected, extract title and course name cleanly.
+4. DUE-DATE DISCIPLINE (NEVER invent dates):
+   - Reference date (today) is ${todayISO} in Asia/Ho_Chi_Minh. Resolve relative dates against it.
+   - Set detectedAssignment.dueDate to YYYY-MM-DD ONLY when the email states an explicit date or an unambiguous relative date (e.g. tomorrow, next Friday with a clear anchor). Otherwise set dueDate to "".
+   - NEVER guess weekend/Monday or default to +2/+3 days when no date is present.
+   - Support Vietnamese short formats 18/9, 18-09, 18.09 (day/month, current or next year).
+   - Always return detectedAssignment.confidence (0-1), detectedAssignment.dateSource ("explicit" | "inferred-relative" | "missing"), and detectedAssignment.quote (exact <=25-word substring from the email stating the date, or "" if missing).
 
 Emails to scan:
 ${JSON.stringify(emails, null, 2)}
@@ -87,7 +94,10 @@ Respond with valid JSON matching this schema:
         "isAssignment": boolean,
         "name": "concise assignment name",
         "subject": "detected course/subject like Toán, Vật lý, AP Physics, Literature, etc.",
-        "dueDate": "YYYY-MM-DD or empty string",
+        "dueDate": "YYYY-MM-DD ONLY if explicit or unambiguous relative, else empty string",
+        "confidence": 0.9,
+        "dateSource": "explicit" | "inferred-relative" | "missing",
+        "quote": "exact <=25-word substring stating the date or empty string",
         "priority": "High" | "Med" | "Low"
       }
     }
@@ -183,7 +193,10 @@ Return only JSON, no markdown formatting.`;
           isAssignment: false,
           name: e.subject || "New Assignment",
           subject: isVietnamese ? "Môn học" : "General",
-          dueDate: new Date(Date.now() + 86400000 * 3).toISOString().split("T")[0],
+          dueDate: "",
+          dateSource: "missing",
+          confidence: 0,
+          quote: "",
           priority: "Med",
         },
       };
