@@ -1,10 +1,10 @@
 import Dexie, { type Table } from 'dexie';
-import type { MarkdownNote } from '../types';
+import type { DateSource, MarkdownNote, VerificationStatus } from '../types';
 import type { SRSCard } from '../services/srsEngine';
 
 export interface PersistedBrief { id: string; topic: string; subject: string; brief: string; createdAt: string; }
 
-export interface QueuedAssignment { id: string; assignmentName: string; subject: string; dueDate: string; priority: string; status: string; sheetRowIndex?: number; source?: string; queuedAt?: string; }
+export interface QueuedAssignment { id: string; assignmentName: string; subject: string; dueDate: string; priority: string; status: string; sheetRowIndex?: number; source?: string; queuedAt?: string; verificationStatus?: VerificationStatus; dateSource?: DateSource; confidence?: number; sourceEmailId?: string; sourceQuote?: string; needsReview?: boolean; }
 
 export interface StoredAssignment { id: string; data: any; updatedAt: string; }
 export class StudentOSDatabase extends Dexie {

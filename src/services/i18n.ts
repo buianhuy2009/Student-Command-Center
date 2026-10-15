@@ -277,6 +277,15 @@ const BASE_STRINGS: Dict = {
   scope_cal: { en: 'Schedule blocks', vi: 'Các khung giờ học' },
   stored_local: { en: 'Local', vi: 'Cục bộ' },
   priv_body: { en: 'requests only the scopes needed to sync your own data locally. No data leaves your browser except for Gemini AI summaries (truncated snippets). Tokens stay in IndexedDB, never logged. Revoke anytime in Google Account.', vi: 'chỉ xin các quyền cần thiết để đồng bộ dữ liệu của chính bạn trên máy. Không dữ liệu nào rời trình duyệt trừ đoạn trích gửi Gemini AI để tóm tắt. Token nằm trong IndexedDB, không ghi log. Thu hồi bất cứ lúc nào trong Tài khoản Google.' },
+  // ——— Gmail verification (Div A) ———
+  ai_understood: { en: 'AI understood', vi: 'AI đã hiểu' },
+  ai_confirm_hint: { en: 'Check the details below, then confirm or edit before saving.', vi: 'Kiểm tra chi tiết bên dưới, rồi xác nhận hoặc sửa trước khi lưu.' },
+  unconfirmed_badge: { en: 'Unconfirmed', vi: 'Chưa xác nhận' },
+  unknown_date_warn: { en: 'No clear due date found in the email.', vi: 'Không thấy hạn nộp rõ ràng trong email.' },
+  open_source_email: { en: 'Open source email', vi: 'Mở email gốc' },
+  report_miscat: { en: 'Report miscategorization', vi: 'Báo phân loại sai' },
+  date_missing_explain: { en: 'The AI could not find an explicit due date. Pick one or save without a date.', vi: 'AI không tìm thấy hạn nộp cụ thể. Hãy chọn một ngày hoặc lưu mà không cần hạn.' },
+  edit_and_save: { en: 'Edit & save', vi: 'Sửa & lưu' },
 };
 
 // Merged dictionary: core + per-area packs (later packs win on collision — keys must stay unique).
