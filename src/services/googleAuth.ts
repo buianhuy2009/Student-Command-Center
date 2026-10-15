@@ -656,3 +656,33 @@ async function requestOfflineGrantWithPrompt(prompt: string, opts: { gmail?: boo
 export async function signInWithAccountSelect(opts: { gmail?: boolean } = {}): Promise<string | null> {
   return requestOfflineGrantWithPrompt('select_account', opts);
 }
+
+/** LocalStorage key for the teacher-allowlist (miscategorized sender rescue). */
+export const TEACHER_ALLOWLIST_KEY = 'scc_teacher_allowlist_v1';
+
+/**
+ * Allowlist check for miscategorized senders: returns true when the sender
+ * email or display name matches an entry in the local teacher allowlist.
+ * Never throws; safe to call during render/classify. Additive export.
+ */
+export function isTeacherAllowlisted(senderEmail?: string | null, senderName?: string | null): boolean {
+  try {
+    if (typeof localStorage === 'undefined') return false;
+    const raw = localStorage.getItem(TEACHER_ALLOWLIST_KEY);
+    if (!raw) return false;
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return false;
+    const entries = parsed.filter((s): s is string => typeof s === 'string' && s.trim().length > 0);
+    if (entries.length === 0) return false;
+    const candidates = [senderEmail, senderName]
+      .filter((s): s is string => typeof s === 'string' && s.trim().length > 0)
+      .map((s) => s.trim().toLowerCase());
+    if (candidates.length === 0) return false;
+    return entries.some((entry) => {
+      const norm = entry.trim().toLowerCase();
+      return candidates.some((c) => c === norm);
+    });
+  } catch {
+    return false;
+  }
+}

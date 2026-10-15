@@ -1,5 +1,5 @@
 // Simple analytics stub — Plausible/gtag/PostHog hook + web-vitals
-export type AnalyticsEvent = 'canvas_connected' | 'assignment_created' | 'pomodoro_complete' | 'syllabus_parsed' | 'command_executed' | 'focus_session' | 'grade_predicted' | 'page_view' | 'web_vital' | 'pwa_install_accepted' | 'syllabus_deployed' | 'focus_week_scheduled' | 'exam_plan_created' | 'teacher_followup_drafted' | 'voice_dictation_used' | 'offline_queue_flushed' | 'trash_restored' | 'sample_data_enabled';
+export type AnalyticsEvent = 'canvas_connected' | 'assignment_created' | 'pomodoro_complete' | 'syllabus_parsed' | 'command_executed' | 'focus_session' | 'grade_predicted' | 'page_view' | 'web_vital' | 'pwa_install_accepted' | 'syllabus_deployed' | 'focus_week_scheduled' | 'exam_plan_created' | 'teacher_followup_drafted' | 'voice_dictation_used' | 'offline_queue_flushed' | 'trash_restored' | 'sample_data_enabled' | 'assignment_confirmed' | 'assignment_unconfirmed_saved' | 'miscat_reported' | 'unknown_date_shown';
 export function trackEvent(event: AnalyticsEvent, props?: Record<string, any>) {
   try {
     // Plausible

@@ -123,3 +123,24 @@ describe('toast grouping', () => {
     expect(grouped[0].count).toBe(2);
   });
 });
+
+describe('teacher allowlist (miscat rescue)', () => {
+  it('matches sender email/name case-insensitively, false when empty', async () => {
+    const { isTeacherAllowlisted, TEACHER_ALLOWLIST_KEY } = await import('./googleAuth');
+    // Minimal localStorage stub when the runner has no DOM (mirrors try/catch style of other tests).
+    const store = new Map<string, string>();
+    const ls = (globalThis as any).localStorage ?? {
+      getItem: (k: string) => (store.has(k) ? store.get(k)! : null),
+      setItem: (k: string, v: string) => { store.set(k, String(v)); },
+      removeItem: (k: string) => { store.delete(k); },
+    };
+    if (!(globalThis as any).localStorage) (globalThis as any).localStorage = ls;
+    ls.removeItem(TEACHER_ALLOWLIST_KEY);
+    expect(isTeacherAllowlisted('prof@school.edu', 'Prof')).toBe(false);
+    ls.setItem(TEACHER_ALLOWLIST_KEY, JSON.stringify(['Prof@School.edu']));
+    expect(isTeacherAllowlisted('prof@school.edu', null)).toBe(true);
+    expect(isTeacherAllowlisted(null, 'prof@school.EDU')).toBe(true);
+    expect(isTeacherAllowlisted('ads@promo.com', 'Promo')).toBe(false);
+    ls.removeItem(TEACHER_ALLOWLIST_KEY);
+  });
+});

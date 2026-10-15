@@ -46,6 +46,8 @@ interface GmailRadarTabProps {
   connectedEmail?: string | null;
   onDisconnectGoogle?: () => void | Promise<void>;
   onUseAnotherAccount?: () => void | Promise<void>;
+  /** Optional miscat-rescue hook: parent may handle allowlisting + analytics. */
+  onReportMiscat?: (alert: EmailAlert) => void;
 }
 
 export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
@@ -62,6 +64,7 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
   connectedEmail = null,
   onDisconnectGoogle,
   onUseAnotherAccount,
+  onReportMiscat,
 }) => {
   useLang();
   const [searchQuery, setSearchQuery] = useState('');
@@ -229,6 +232,44 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
   };
 
   const showConnected = liveConnected || isGoogleConnected;
+
+  // Miscat rescue (pills/list scope only): per-item "Not an ad?" reporting for
+  // PROMOTIONS/SOCIAL rows. Parent hook wins when provided; otherwise store the
+  // sender in the local teacher allowlist and toast, so future mail from this
+  // sender stays AI-routed instead of promo/social.
+  const handleReportMiscat = (alert: EmailAlert) => {
+    if (onReportMiscat) {
+      try {
+        onReportMiscat(alert);
+      } catch {}
+      return;
+    }
+    try {
+      const key = 'scc_teacher_allowlist_v1';
+      const raw = localStorage.getItem(key);
+      const parsed: unknown = raw ? JSON.parse(raw) : [];
+      const list: string[] = Array.isArray(parsed)
+        ? parsed.filter((s): s is string => typeof s === 'string')
+        : [];
+      const sender = (alert.rawEmail?.senderEmail || alert.sender || '').trim();
+      const norm = sender.toLowerCase();
+      if (norm && !list.some((s) => s.toLowerCase() === norm)) {
+        list.push(sender);
+        while (list.length > 200) list.shift();
+        localStorage.setItem(key, JSON.stringify(list));
+      }
+    } catch {}
+    try {
+      window.dispatchEvent(
+        new CustomEvent('scc-toast', {
+          detail: {
+            title: 'Thanks — noted',
+            message: 'Future mail from this sender will stay in your inbox, not Promotions.',
+          },
+        }),
+      );
+    } catch {}
+  };
 
   const matchesCategory = (alert: EmailAlert, cat: string) => {
     if (cat === 'ALL') return true;
@@ -498,6 +539,18 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
                         <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-rose-50 text-rose-700 dark:bg-rose-950 dark:text-rose-300">
                           {t('gmail_urgent')}
                         </span>
+                      )}
+                      {(matchesCategory(alert, 'PROMOTIONS') || matchesCategory(alert, 'SOCIAL')) && (
+                        <button
+                          onClick={(ev) => {
+                            ev.stopPropagation();
+                            handleReportMiscat(alert);
+                          }}
+                          title="Report as miscategorized — keep this sender in your inbox"
+                          className="ml-auto px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800 cursor-pointer"
+                        >
+                          Not an ad?
+                        </button>
                       )}
                     </div>
                   </div>

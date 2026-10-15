@@ -1217,6 +1217,21 @@ export async function summarizeEmailsWithGemini(emails: EmailMessage[]): Promise
   const bucketOf = (e: EmailMessage): 'PROMOTION' | 'SOCIAL' | 'AI' => {
     const labels = e.labelIds || [];
     if (labels.includes('SPAM')) return 'PROMOTION'; // same category, not hidden
+    // Miscat rescue: an allowlisted teacher sender stays AI-routed even when
+    // Gmail files it under PROMOTIONS/SOCIAL. Inline localStorage read (sync,
+    // try/catch) to avoid an import cycle with googleAuth.
+    try {
+      if (typeof localStorage !== 'undefined') {
+        const raw = localStorage.getItem('scc_teacher_allowlist_v1');
+        const parsed: unknown = raw ? JSON.parse(raw) : null;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const candidates = [`${e.senderEmail || ''}`.trim().toLowerCase(), `${e.sender || ''}`.trim().toLowerCase()].filter(Boolean);
+          const rescued = parsed.some((entry) =>
+            typeof entry === 'string' && entry.trim() && candidates.some((c) => c === entry.trim().toLowerCase()));
+          if (rescued) return 'AI';
+        }
+      }
+    } catch {}
     if (labels.includes('CATEGORY_PROMOTIONS')) return isAcademicSender(e) ? 'AI' : 'PROMOTION';
     if (labels.includes('CATEGORY_SOCIAL')) return isAcademicSender(e) ? 'AI' : 'SOCIAL';
     return 'AI';
