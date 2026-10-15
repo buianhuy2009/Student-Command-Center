@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, Sparkles, CheckCircle2, Zap, ArrowRight } from 'lucide-react';
 
-export const CURRENT_VERSION = '2.16.0';
+export const CURRENT_VERSION = '2.17.0';
 
 interface VersionRelease {
   version: string;
@@ -14,10 +14,28 @@ interface VersionRelease {
 
 const RELEASES: VersionRelease[] = [
   {
+    version: '2.17.0',
+    date: 'October 15, 2026',
+    title: 'AI Deadline Confirmation + No Fake Dates + Teacher Rescue',
+    badge: 'Latest Update',
+    highlights: [
+      'AI-read deadlines now ask you to confirm before they are saved — nothing lands in your Tracker unreviewed',
+      'No more invented due dates: unclear deadlines show an unknown-date warning with a one-tap button to reopen the original email',
+      'Real teacher emails wrongly filed as promotions or updates are rescued back to your inbox, and trusted teachers stay trusted',
+    ],
+    details: [
+      '094 Confirm-before-save: every AI-detected deadline opens a confirmation card showing the source quote, parsed date and confidence — accept, edit, or dismiss before anything is saved (find it in Gmail Radar).',
+      '095 No fake dates: the AI is now forbidden from inventing due dates and must return a confidence level, date source, and supporting quote for every deadline it reads (applies in Gmail Radar → AI Understand).',
+      '096 Unknown-date chip + reopen source: when no date can be found, the item shows an unknown-deadline chip instead of a guess, with a Reopen source button that jumps straight back to the original email (find it in Gmail Radar).',
+      '097 Unconfirmed quarantine: unconfirmed Gmail deadlines stay quarantined out of your main lists with verification badges until you approve them, so the Planner never schedules around a guess (find it in Tracker, AI Planner, and Dashboard).',
+      '098 Teacher rescue + allowlist: miscategorized teacher mail gets a rescue action back to the inbox, and the teacher allowlist keeps known academic senders correctly labeled going forward (find it in Gmail Radar).',
+      '099 Verification foundation: typed verification states, safer HTML pass-through, new translations, and tracking events underpin the confirm flow so badges stay consistent everywhere (applies app-wide).',
+    ]
+  },
+  {
     version: '2.16.0',
     date: 'September 20, 2026',
     title: '100 Antigravity CLI UI/UX Improvements + Two-Tier Model Selector + Theme Engine',
-    badge: 'Latest Update',
     highlights: [
       '100 concrete visual and interaction improvements for high-speed vibe coding in the Antigravity CLI workspace',
       'Two-tier hierarchical model selector TUI (/model) with family grouping and secondary reasoning effort tiers',

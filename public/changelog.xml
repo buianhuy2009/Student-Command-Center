@@ -6,6 +6,12 @@
     <description>Plain-English updates to StudentOS — what changed and why it matters for studying.</description>
     <language>en-us</language>
     <item>
+      <title>v2.17.0 — AI Deadline Confirmation + No Fake Dates + Teacher Rescue</title>
+      <link>https://student-command-center.vercel.app/?changelog=2.17.0</link>
+      <pubDate>Thu, 15 Oct 2026 00:00:00 GMT</pubDate>
+      <description>AI-read deadlines now ask for confirmation before saving with source quotes and confidence, invented due dates are forbidden with an unknown-date warning plus reopen-source button, unconfirmed items stay quarantined with verification badges, and miscategorized teacher mail is rescued with a teacher allowlist.</description>
+    </item>
+    <item>
       <title>v2.16.0 — 100 Antigravity CLI UI/UX Improvements + Two-Tier Model Selector + Theme Engine</title>
       <link>https://student-command-center.vercel.app/?changelog=2.16.0</link>
       <pubDate>Sun, 20 Sep 2026 00:00:00 GMT</pubDate>
