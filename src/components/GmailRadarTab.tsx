@@ -547,7 +547,26 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
 
               {/* Reader Body & AI Insights */}
               <div className="flex-1 overflow-y-auto p-6 space-y-6 text-xs">
-                
+
+                {/* Div C: missing-date chip + open-source link (detail pane only) */}
+                {!(activeAlert.detectedAssignment as any)?.dueDate && (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-[11px] font-bold text-amber-700 dark:text-amber-300">
+                      <Clock className="w-3 h-3" />
+                      Unknown deadline
+                    </span>
+                    <a
+                      href={`https://mail.google.com/mail/u/0/#inbox/${activeRawEmail?.threadId || activeRawEmail?.id || activeAlert.id}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 text-[11px] font-bold text-[#D97757] hover:underline"
+                    >
+                      Open source
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                )}
+
                 {/* AI Summary Banner */}
                 {activeAlert.oneLineSummary && (
                   <div className="p-4 bg-[#FAF9F5] dark:bg-[#1F1E1B] rounded-2xl border border-[#DFDACB] dark:border-[#2C2B27] space-y-1.5">

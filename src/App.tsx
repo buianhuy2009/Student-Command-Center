@@ -113,6 +113,7 @@ import { LandingPage } from './components/LandingPage';
 const QuickDraftModal = lazyRetry(() => import('./components/QuickDraftModal').then(m => ({ default: m.QuickDraftModal })));
 const ScheduleStudyModal = lazyRetry(() => import('./components/ScheduleStudyModal').then(m => ({ default: m.ScheduleStudyModal })));
 const ConfirmationModal = lazyRetry(() => import('./components/ConfirmationModal').then(m => ({ default: m.ConfirmationModal })));
+const AIUnderstandingConfirmModal = lazyRetry(() => import('./components/AIUnderstandingConfirmModal').then(m => ({ default: m.AIUnderstandingConfirmModal })));
 const StudyAssistantChat = lazyRetry(() => import('./components/StudyAssistantChat').then(m => ({ default: m.StudyAssistantChat })));
 const AccountSettingsModal = lazyRetry(() => import('./components/AccountSettingsModal').then(m => ({ default: m.AccountSettingsModal })));
 import { ShortcutSettings, defaultShortcutSettings } from './components/AccountSettingsModal';
@@ -850,6 +851,13 @@ export default function App() {
     description: '',
     onConfirm: () => {},
   });
+
+  // Div C: AI-understanding confirm state — { alert, rawEmail } or null.
+  // Defensive `as any` reads keep this building until Div A types land on main.
+  const [aiConfirmState, setAiConfirmState] = useState<{
+    alert: EmailAlert;
+    rawEmail?: EmailMessage;
+  } | null>(null);
 
   const [aiChatOpen, setAiChatOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
@@ -2335,30 +2343,51 @@ export default function App() {
     }
   };
 
-  // Natural Language Task Parse
+  // Natural Language Task Parse — opens AI-understanding confirm modal (Div C),
+  // no fake fallback dates. Extra verification fields ride along via `as any`
+  // until Div A types (VerificationStatus/DateSource) land on main.
   const handleParseNaturalText = async (text: string) => {
     setIsParsingAI(true);
     try {
-      const parsed = await parseNaturalLanguageAssignment(text);
-      await handleAddAssignment({
-        assignmentName: parsed.assignmentName || text,
-        subject: parsed.subject || 'General',
-        dueDate: parsed.dueDate || new Date(Date.now() + 86400000 * 3).toISOString().split('T')[0],
-        priority: parsed.priority || 'Med',
-        status: 'Not Started',
-        notes: parsed.notes || `Added via AI Smart Parse: "${text}"`,
-        source: 'Manual',
-      });
+      const parsed: any = await parseNaturalLanguageAssignment(text);
+      const syntheticAlert = {
+        id: `nl-${Date.now()}`,
+        sender: '',
+        subject: text.slice(0, 80),
+        oneLineSummary: text,
+        urgency: 'INFO',
+        category: 'GENERAL',
+        detectedAssignment: {
+          isAssignment: true,
+          name: parsed.assignmentName || text,
+          subject: parsed.subject || 'General',
+          dueDate: parsed.dueDate || '',
+          priority: parsed.priority || 'Med',
+          confidence: parsed.confidence,
+          dateSource: parsed.dateSource,
+          sourceQuote: parsed.sourceQuote,
+        },
+      } as any as EmailAlert;
+      (syntheticAlert as any)._parsedNotes = parsed.notes;
+      setAiConfirmState({ alert: syntheticAlert });
     } catch (err: any) {
       console.error('Parse error:', err);
-      await handleAddAssignment({
-        assignmentName: text,
-        subject: 'General',
-        dueDate: new Date(Date.now() + 86400000 * 3).toISOString().split('T')[0],
-        priority: 'Med',
-        status: 'Not Started',
-        source: 'Manual',
-      });
+      const fallbackAlert = {
+        id: `nl-${Date.now()}`,
+        sender: '',
+        subject: text.slice(0, 80),
+        oneLineSummary: text,
+        urgency: 'INFO',
+        category: 'GENERAL',
+        detectedAssignment: {
+          isAssignment: true,
+          name: text,
+          subject: 'General',
+          dueDate: '',
+          priority: 'Med',
+        },
+      } as any as EmailAlert;
+      setAiConfirmState({ alert: fallbackAlert });
     } finally {
       setIsParsingAI(false);
     }
@@ -2472,28 +2501,53 @@ export default function App() {
     }
   };
 
-  // Extract Assignment from Scanned Email Alert
+  // Extract Assignment from Scanned Email Alert — opens AI-understanding
+  // confirm modal (Div C) instead of the generic ConfirmationModal.
   const handleExtractAssignment = (alert: EmailAlert) => {
     if (!alert.detectedAssignment) return;
-    const { name, subject, dueDate, priority } = alert.detectedAssignment;
+    const raw =
+      (alert as any).rawEmail ??
+      rawEmailsRef.current.find((e) => e.id === alert.id || e.subject === alert.subject);
+    setAiConfirmState({ alert, rawEmail: raw ?? undefined });
+  };
 
-    setConfirmationModal({
-      isOpen: true,
-      title: 'Add Scanned Assignment to Sheet?',
-      description: `Auto-extracted from email "${alert.subject}":\n"${name}" (${subject}) due ${dueDate}.`,
-      confirmLabel: 'Add to Master Sheet',
-      onConfirm: async () => {
-        await handleAddAssignment({
-          assignmentName: name,
-          subject: subject,
-          dueDate: dueDate,
-          priority: priority,
-          status: 'Not Started',
-          source: 'Gmail',
-          notes: `Scanned from email alert: ${alert.oneLineSummary}`,
-        });
-      },
-    });
+  // Div C confirm handler — calls existing handleAddAssignment (untouched)
+  // with verification metadata attached defensively via `as any`.
+  const handleConfirmAIUnderstanding = async (edited: {
+    assignmentName: string;
+    subject: string;
+    dueDate: string;
+    priority: PriorityLevel;
+    verified: boolean;
+    confidence?: number;
+    dateSource?: string;
+    sourceQuote?: string;
+    sourceEmailId?: string;
+  }) => {
+    const alert = aiConfirmState?.alert;
+    if (!alert) return;
+    const isNL = alert.id.startsWith('nl-');
+    const hasDue = !!edited.dueDate;
+    const verificationStatus =
+      edited.verified && hasDue ? 'confirmed' : hasDue ? 'unconfirmed' : 'unknown-date';
+    await handleAddAssignment({
+      assignmentName: edited.assignmentName,
+      subject: edited.subject,
+      dueDate: edited.dueDate || '',
+      priority: edited.priority,
+      status: 'Not Started',
+      source: isNL ? 'Manual' : 'Gmail',
+      notes: isNL
+        ? (alert as any)._parsedNotes || `Added via AI Smart Parse: "${alert.oneLineSummary}"`
+        : `Scanned from email alert: ${alert.oneLineSummary}`,
+      verificationStatus,
+      dateSource: edited.dateSource,
+      confidence: edited.confidence,
+      sourceEmailId: edited.sourceEmailId,
+      sourceQuote: edited.sourceQuote,
+      needsReview: !edited.verified,
+    } as any);
+    setAiConfirmState(null);
   };
 
   // Sync single Canvas assignment to Google Sheet
@@ -3460,6 +3514,29 @@ export default function App() {
       <ConfirmationModal
         modal={confirmationModal}
         onClose={() => setConfirmationModal((prev) => ({ ...prev, isOpen: false }))}
+      />
+      )}
+
+      {/* Div C: AI-understanding confirm modal — gated so its chunk only loads when opened */}
+      {aiConfirmState && (
+      <AIUnderstandingConfirmModal
+        alert={aiConfirmState.alert}
+        initial={(aiConfirmState.alert.detectedAssignment as any) ?? {}}
+        rawEmail={aiConfirmState.rawEmail ?? (aiConfirmState.alert as any).rawEmail}
+        onConfirm={(edited: {
+          assignmentName: string;
+          subject: string;
+          dueDate: string;
+          priority: PriorityLevel;
+          verified: boolean;
+          confidence?: number;
+          dateSource?: string;
+          sourceQuote?: string;
+          sourceEmailId?: string;
+        }) => {
+          void handleConfirmAIUnderstanding(edited);
+        }}
+        onDismiss={() => setAiConfirmState(null)}
       />
       )}
 
