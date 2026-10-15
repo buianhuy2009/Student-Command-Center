@@ -389,9 +389,19 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
             )}
             {(() => {
               const todayStr = new Date().toISOString().slice(0,10);
+              const hasValidDate = (a: typeof pendingAssignments[number]) => {
+                if (!a.dueDate || typeof a.dueDate !== 'string') return false;
+                return !Number.isNaN(new Date(a.dueDate.length === 10 ? `${a.dueDate}T23:59:59` : a.dueDate).getTime());
+              };
+              const isUnconfirmed = (a: typeof pendingAssignments[number]) =>
+                (a as any)?.verificationStatus === 'unconfirmed' ||
+                (a as any)?.verificationStatus === 'unknown-date' ||
+                (a as any)?.needsReview === true;
               const overdue = pendingAssignments.filter(a => a.dueDate && a.dueDate < todayStr);
               const dueToday = pendingAssignments.filter(a => a.dueDate === todayStr);
-              const upcoming = pendingAssignments.filter(a => !a.dueDate || a.dueDate > todayStr);
+              // Unknown-date items are quarantined: never shown with an invented countdown date.
+              const upcoming = pendingAssignments.filter(a => hasValidDate(a) && a.dueDate > todayStr);
+              const needsConfirmation = pendingAssignments.filter(a => !hasValidDate(a));
               const sorted = (arr: typeof pendingAssignments) => [...arr].sort((a,b)=>{
                 const pri = { High:0, Med:1, Low:2 } as any;
                 const pa = pri[a.priority] ?? 1; const pb = pri[b.priority] ?? 1;
@@ -429,9 +439,20 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
                     {sorted(upcoming).slice(0,3).map(a=>(
                       <div key={a.id} className="flex items-center justify-between p-2.5 rounded-xl bg-[#FAF9F5] dark:bg-[#1A1917] border border-[#DFDACB]/40 text-xs">
                         <span className="font-semibold truncate flex items-center gap-1.5"><span className={`w-1.5 h-1.5 rounded-full shrink-0 ${a.priority==='High'?'bg-rose-500': a.priority==='Med'?'bg-amber-500':'bg-emerald-500'}`} />{a.assignmentName}</span>
-                        <span className="text-[11px] text-[#6B6860] dark:text-[#B5B2A8] ml-2 shrink-0">{a.subject} • {t('tracker_due')} {a.dueDate} {a.priority==='High' && <span className="ml-1 px-1 py-0.5 rounded bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 text-[9px] font-bold">{t('dash_high_badge')}</span>}</span>
+                        <span className="text-[11px] text-[#6B6860] dark:text-[#B5B2A8] ml-2 shrink-0">{a.subject} • {t('tracker_due')} {a.dueDate} {a.priority==='High' && <span className="ml-1 px-1 py-0.5 rounded bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 text-[9px] font-bold">{t('dash_high_badge')}</span>}{isUnconfirmed(a) && <span title={(a as any)?.sourceQuote || 'AI-guessed deadline — confirm before trusting this date'} className="ml-1 px-1 py-0.5 rounded bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-[9px] font-bold">Unconfirmed</span>}</span>
                       </div>
                     ))}
+                    {needsConfirmation.length>0 && (
+                      <button
+                        type="button"
+                        onClick={() => onNavigateWorkspace('tracker')}
+                        title="These items carry no usable deadline — confirm dates in the tracker"
+                        className="w-full flex items-center justify-between p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-dashed border-amber-300 dark:border-amber-800 text-xs cursor-pointer"
+                      >
+                        <span className="font-semibold text-amber-800 dark:text-amber-200">Needs deadline confirmation • {needsConfirmation.length}</span>
+                        <span className="text-[11px] text-amber-700 dark:text-amber-300">Review →</span>
+                      </button>
+                    )}
                     {upcoming.length===0 && overdue.length===0 && dueToday.length===0 && <div className="text-xs text-[#6B6860] dark:text-[#B5B2A8] italic">{t('dash_all_caught_up')}</div>}
                   </div>
                 </>

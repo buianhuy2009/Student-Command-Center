@@ -20,6 +20,7 @@ import {
   List,
   ArrowRight,
   Brain,
+  AlertTriangle,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Assignment, PriorityLevel, AssignmentStatus, ApiEnablementInfo } from '../types';
@@ -101,6 +102,56 @@ const URGENCY_TINT: Record<Exclude<UrgencyState, null>, string> = {
   tomorrow: 'bg-blue-50/40 dark:bg-blue-950/20',
 };
 
+/* ------------------------------------------------------------------ */
+/* Verification badges (Gmail-sourced, deadline unconfirmed).          */
+/* Optional chaining throughout: old rows without new fields show      */
+/* nothing and keep working.                                           */
+/* ------------------------------------------------------------------ */
+
+function getVerificationInfo(a: Assignment): { unconfirmed: boolean; unknownDate: boolean; quote?: string } {
+  const v = (a as any)?.verificationStatus;
+  const needsReview = (a as any)?.needsReview === true;
+  const quote = (a as any)?.sourceQuote as string | undefined;
+  const unknownDate = v === 'unknown-date';
+  const unconfirmed = v === 'unconfirmed' || unknownDate || needsReview;
+  return { unconfirmed, unknownDate, quote };
+}
+
+/** Row badges for unconfirmed / unknown-date rows. Click reopens the inspector. */
+const VerificationBadges: React.FC<{ assignment: Assignment; onOpen: (a: Assignment) => void }> = ({
+  assignment,
+  onOpen,
+}) => {
+  const info = getVerificationInfo(assignment);
+  if (!info.unconfirmed && !info.unknownDate) return null;
+  const tip = info.quote || 'AI-guessed deadline — confirm before trusting this date';
+  return (
+    <span className="inline-flex items-center gap-1 flex-wrap" onClick={(e) => e.stopPropagation()}>
+      {info.unconfirmed && (
+        <button
+          type="button"
+          onClick={() => onOpen(assignment)}
+          title={tip}
+          className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-200 dark:border-amber-800 cursor-pointer"
+        >
+          Unconfirmed
+        </button>
+      )}
+      {info.unknownDate && (
+        <button
+          type="button"
+          onClick={() => onOpen(assignment)}
+          title={info.quote || 'No usable deadline found — confirm a date'}
+          className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border border-dashed border-rose-300 dark:border-rose-800 inline-flex items-center gap-0.5 cursor-pointer"
+        >
+          <AlertTriangle className="w-2.5 h-2.5" />
+          <span>Unknown deadline</span>
+        </button>
+      )}
+    </span>
+  );
+};
+
 export const AssignmentTrackerTab: React.FC<AssignmentTrackerTabProps> = ({
   assignments,
   sheetUrl,
@@ -129,6 +180,7 @@ export const AssignmentTrackerTab: React.FC<AssignmentTrackerTabProps> = ({
   const [showAiAdd, setShowAiAdd] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState<'table' | 'kanban'>('table');
+  const [showOnlyUnconfirmed, setShowOnlyUnconfirmed] = useState(false);
   useLang();
 
   // Selected row for Slide-Over Inspector Sheet
@@ -247,6 +299,11 @@ export const AssignmentTrackerTab: React.FC<AssignmentTrackerTabProps> = ({
       if (filterStatus !== 'ALL' && a.status !== filterStatus) return false;
       if (filterPriority !== 'ALL' && a.priority !== filterPriority) return false;
 
+      if (showOnlyUnconfirmed) {
+        const v = getVerificationInfo(a);
+        if (!v.unconfirmed && !v.unknownDate) return false;
+      }
+
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const matchName = a.assignmentName.toLowerCase().includes(q);
@@ -277,7 +334,7 @@ export const AssignmentTrackerTab: React.FC<AssignmentTrackerTabProps> = ({
     });
 
     return { filteredAssignments: filtered, oldCompletedCount: oldDone };
-  }, [assignments, searchQuery, filterSubject, filterStatus, filterPriority, showArchived, sortByAIFocus, effortEstimates]);
+  }, [assignments, searchQuery, filterSubject, filterStatus, filterPriority, showArchived, sortByAIFocus, effortEstimates, showOnlyUnconfirmed]);
 
   const doneCount = assignments.filter((a) => a.status === 'Done').length;
   const highCount = assignments.filter((a) => a.priority === 'High' && a.status !== 'Done').length;
@@ -498,6 +555,15 @@ export const AssignmentTrackerTab: React.FC<AssignmentTrackerTabProps> = ({
             <option value="Med">Med</option>
             <option value="Low">Low</option>
           </select>
+          <label className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl cursor-pointer text-amber-800 dark:text-amber-200">
+            <input
+              type="checkbox"
+              checked={showOnlyUnconfirmed}
+              onChange={(e) => setShowOnlyUnconfirmed(e.target.checked)}
+              className="rounded text-amber-600 focus:ring-amber-500 cursor-pointer"
+            />
+            <span>Show only unconfirmed</span>
+          </label>
           <button
             onClick={handleExportCsv}
             className="px-3 py-1.5 bg-[#E8E6DC] dark:bg-[#252422] hover:bg-[#E8E6DC] dark:hover:bg-[#2C2A26] text-[#141413] dark:text-[#F5F4ED] text-xs font-bold rounded-xl border border-[#E8E6DC] dark:border-[#2C2B27] transition-all flex items-center gap-1.5 cursor-pointer"
@@ -628,6 +694,7 @@ export const AssignmentTrackerTab: React.FC<AssignmentTrackerTabProps> = ({
                           >
                             {task.assignmentName}
                           </h4>
+                          <VerificationBadges assignment={task} onOpen={setSelectedAssignment} />
 
                           {effortEstimates[task.id] && (
                             <div className="text-[10px] text-[#C96442] dark:text-[#E59A7C] font-semibold flex items-center gap-1">
@@ -722,6 +789,7 @@ export const AssignmentTrackerTab: React.FC<AssignmentTrackerTabProps> = ({
                       <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${a.priority==='High'?'bg-rose-50 text-rose-700 dark:bg-rose-950 dark:text-rose-300 border border-rose-200 dark:border-rose-800':'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'}`}>{a.priority}</span>
                     </div>
                     <div className={`text-xs font-bold truncate ${isDone?'line-through text-[#6B6860] dark:text-[#B5B2A8]':''}`}>{a.assignmentName}</div>
+                    <VerificationBadges assignment={a} onOpen={setSelectedAssignment} />
                     <div className="flex items-center justify-between text-[11px] text-[#6B6860] dark:text-[#B5B2A8]">
                       <span className="flex items-center gap-1.5 flex-wrap">
                         <span>{t('tracker_due')} {a.dueDate || t('tracker_no_date')}</span>
@@ -791,6 +859,7 @@ export const AssignmentTrackerTab: React.FC<AssignmentTrackerTabProps> = ({
                             <span className={`text-[#141413] dark:text-[#F5F4ED] truncate ${isDone ? 'line-through text-[#8C897F] dark:text-[#B5B2A8]' : ''}`}>
                               {assignment.assignmentName}
                             </span>
+                            <VerificationBadges assignment={assignment} onOpen={setSelectedAssignment} />
                             {effortEstimates[assignment.id] && (
                               <span className="text-[10px] text-[#C96442] dark:text-[#E59A7C] font-mono shrink-0">
                                 (~{effortEstimates[assignment.id].estimatedMinutes}m)
@@ -867,6 +936,17 @@ export const AssignmentTrackerTab: React.FC<AssignmentTrackerTabProps> = ({
               <h3 className="text-sm font-bold text-[#141413] dark:text-[#F5F4ED] mb-2">
                 {selectedAssignment.assignmentName}
               </h3>
+              <div className="mb-2">
+                <VerificationBadges assignment={selectedAssignment} onOpen={setSelectedAssignment} />
+              </div>
+              {(getVerificationInfo(selectedAssignment).quote) && (
+                <div
+                  title={getVerificationInfo(selectedAssignment).quote}
+                  className="mb-2 p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-[11px] italic leading-relaxed text-amber-800 dark:text-amber-200"
+                >
+                  “{getVerificationInfo(selectedAssignment).quote}”
+                </div>
+              )}
               <div className="space-y-1 text-[#8C897F] dark:text-[#B5B2A8] text-[11px]">
                 <div className="flex items-center justify-between">
                   <span>{t('status')}:</span>

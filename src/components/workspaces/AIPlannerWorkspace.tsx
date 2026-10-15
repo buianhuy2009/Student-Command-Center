@@ -164,6 +164,43 @@ interface DatedTask {
   origin: 'assignment' | 'canvas' | 'classroom' | 'gmail' | 'moodle';
   /** Deep link back to the source (tracker doc, Canvas/Classroom URL) when known. */
   url?: string;
+  /** Gmail-sourced task whose deadline is AI-guessed, not confirmed. Optional for backward compat. */
+  unconfirmed?: boolean;
+  /** Source email quote backing an unconfirmed task. Optional for backward compat. */
+  quote?: string;
+}
+
+/** Gmail detections that look like assignments but carry no usable deadline.
+ *  Never scheduled into the timetable — surfaced in `Needs deadline confirmation`. */
+export interface QuarantinedGmailItem {
+  key: string;
+  title: string;
+  subject: string;
+  quote?: string;
+  alertId: string;
+}
+
+/** Split Gmail alerts into (a) dated, schedulable and (b) deadline-missing quarantine.
+ *  Optional chaining throughout so old alerts without new fields still work. */
+export function harvestUnconfirmedGmail(emailAlerts?: EmailAlert[]): QuarantinedGmailItem[] {
+  const out: QuarantinedGmailItem[] = [];
+  const seen = new Set<string>();
+  for (const alert of emailAlerts || []) {
+    const det = alert?.detectedAssignment;
+    if (!det?.isAssignment) continue;
+    const title = (det?.name || (alert as any)?.subject || '').trim();
+    if (!title || seen.has(title.toLowerCase())) continue;
+    seen.add(title.toLowerCase());
+    if (parseDueToISO(det?.dueDate)) continue; // dated → schedulable, not quarantined
+    out.push({
+      key: `g-${(alert as any)?.id}`,
+      title,
+      subject: det?.subject || 'Gmail',
+      quote: (det as any)?.sourceQuote || (alert as any)?.oneLineSummary || undefined,
+      alertId: String((alert as any)?.id || ''),
+    });
+  }
+  return out;
 }
 
 function readCachedArray(key: string): any[] {
@@ -237,18 +274,26 @@ function harvestTasks(
   for (const alert of emailAlerts || []) {
     const det = alert?.detectedAssignment;
     if (!det?.isAssignment) continue;
-    const title = (det.name || alert.subject || '').trim();
+    const title = (det?.name || (alert as any)?.subject || '').trim();
     if (!title || seenGmail.has(title.toLowerCase())) continue;
     seenGmail.add(title.toLowerCase());
-    const dueISO = parseDueToISO(det.dueDate) || fallbackDue;
+    // Quarantine: no usable deadline → never schedule, never fake overdue or a fallback date.
+    // Surfaced separately via harvestUnconfirmedGmail ("Needs deadline confirmation").
+    const dueISO = parseDueToISO(det?.dueDate);
+    if (!dueISO) continue;
     out.push({
-      key: `g-${alert.id}`,
+      key: `g-${(alert as any)?.id}`,
       title,
-      subject: det.subject || 'Gmail',
+      subject: det?.subject || 'Gmail',
       dueISO,
-      priority: det.priority || 'Med',
+      priority: det?.priority || 'Med',
       minutes: 60,
       origin: 'gmail',
+      unconfirmed:
+        (det as any)?.verificationStatus === 'unconfirmed' ||
+        (alert as any)?.needsReview === true ||
+        undefined,
+      quote: (det as any)?.sourceQuote || (alert as any)?.oneLineSummary || undefined,
     });
   }
   const weight = { High: 0, Med: 1, Low: 2 } as const;
@@ -587,6 +632,8 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
     () => [...meetingsToBusy(meetings), ...timetableToBusy(days)],
     [meetings, days],
   );
+  // Gmail detections without a usable deadline — quarantined, never scheduled.
+  const unconfirmedGmail = useMemo(() => harvestUnconfirmedGmail(emailAlerts), [emailAlerts]);
   const busyByDay = useMemo(() => {
     const map: Record<string, BusySpan[]> = {};
     for (const b of busySpans) (map[b.dayISO] ||= []).push(b);
@@ -801,6 +848,35 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
             </p>
           )}
         </div>
+        {unconfirmedGmail.length > 0 && (
+          <div className="rounded-3xl border border-dashed border-amber-300 bg-amber-50/60 p-5 dark:border-amber-800 dark:bg-amber-950/20 sm:p-6">
+            <h3 className="flex items-center gap-2 text-sm font-bold text-amber-800 dark:text-amber-200">
+              <TriangleAlert className="h-4 w-4 shrink-0" aria-hidden="true" />
+              Needs deadline confirmation · {unconfirmedGmail.length}
+            </h3>
+            <p className="mt-1 text-xs leading-relaxed text-amber-700 dark:text-amber-300">
+              These Gmail detections look like assignments but carry no usable deadline — they are
+              not scheduled and never marked overdue. Confirm the date in Gmail, then re-plan.
+            </p>
+            <ul className="mt-3 space-y-2">
+              {unconfirmedGmail.map((g) => (
+                <li
+                  key={g.key}
+                  title={g.quote || g.title}
+                  className="rounded-2xl border border-amber-200 bg-white p-3 dark:border-amber-800/60 dark:bg-[#1F1E1B]"
+                >
+                  <p className="text-xs font-bold text-[#1A1917] dark:text-[#F5F2EA]">{g.title}</p>
+                  <p className="mt-0.5 text-[11px] font-medium text-[#6B6860] dark:text-[#A8A49A]">{g.subject}</p>
+                  {g.quote && (
+                    <p className="mt-1 line-clamp-2 text-[11px] italic leading-snug text-[#6B6860] dark:text-[#A8A49A]">
+                      “{g.quote}”
+                    </p>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
     );
   }
@@ -887,6 +963,40 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
           </p>
         )}
       </div>
+
+      {/* Quarantine — Gmail detections without a usable deadline. Never scheduled, never overdue. */}
+      {unconfirmedGmail.length > 0 && (
+        <section
+          aria-label="Needs deadline confirmation"
+          className="rounded-3xl border border-dashed border-amber-300 bg-amber-50/60 p-5 shadow-card dark:border-amber-800 dark:bg-amber-950/20 sm:p-6"
+        >
+          <h3 className="flex items-center gap-2 text-sm font-bold text-amber-800 dark:text-amber-200">
+            <TriangleAlert className="h-4 w-4 shrink-0" aria-hidden="true" />
+            Needs deadline confirmation · {unconfirmedGmail.length}
+          </h3>
+          <p className="mt-1 text-xs leading-relaxed text-amber-700 dark:text-amber-300">
+            These Gmail detections look like assignments but carry no usable deadline — held out of
+            the timetable and never marked overdue until you confirm a date.
+          </p>
+          <ul className="mt-3 space-y-2">
+            {unconfirmedGmail.map((g) => (
+              <li
+                key={g.key}
+                title={g.quote || g.title}
+                className="rounded-2xl border border-amber-200 bg-white p-3 dark:border-amber-800/60 dark:bg-[#1F1E1B]"
+              >
+                <p className="text-xs font-bold text-[#1A1917] dark:text-[#F5F2EA]">{g.title}</p>
+                <p className="mt-0.5 text-[11px] font-medium text-[#6B6860] dark:text-[#A8A49A]">{g.subject}</p>
+                {g.quote && (
+                  <p className="mt-1 line-clamp-2 text-[11px] italic leading-snug text-[#6B6860] dark:text-[#A8A49A]">
+                    “{g.quote}”
+                  </p>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {/* Loading skeleton */}
       {phase && (
@@ -1126,6 +1236,14 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
                     <div className="min-w-0">
                       <p className="flex flex-wrap items-center gap-1.5">
                         <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${meta.chip}`}>{meta.label}</span>
+                        {t.unconfirmed && (
+                          <span
+                            title={t.quote || 'AI-guessed deadline — confirm in Gmail before trusting this slot'}
+                            className="rounded-full border border-amber-300 bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800 dark:border-amber-700 dark:bg-amber-950/60 dark:text-amber-300"
+                          >
+                            Unconfirmed
+                          </span>
+                        )}
                         <span className="min-w-0 break-words text-xs font-bold text-[#1A1917] dark:text-[#F5F2EA]">{t.title}</span>
                       </p>
                       <p className="mt-1 text-[11px] text-[#6B6860] dark:text-[#A8A49A]">

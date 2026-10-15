@@ -34,6 +34,7 @@ import { CanvasSyncTab } from '../CanvasSyncTab';
 import { GoogleClassroomPanel } from '../GoogleClassroomPanel';
 import { MoodlePanel } from '../MoodlePanel';
 import { GmailRadarTab } from '../GmailRadarTab';
+import { harvestUnconfirmedGmail } from './AIPlannerWorkspace';
 import confetti from 'canvas-confetti';
 import {
   parseSyllabusMultimodal,
@@ -159,6 +160,10 @@ export const AcademicRadarWorkspace: React.FC<AcademicRadarWorkspaceProps> = ({
     assignments.forEach((a) => set.add(a.subject));
     return ['All', ...Array.from(set)];
   }, [assignments]);
+
+  // Gmail detections without a usable deadline — quarantined, never scheduled or marked overdue.
+  // Optional chaining inside harvestUnconfirmedGmail keeps old alerts without new fields working.
+  const unconfirmedGmail = useMemo(() => harvestUnconfirmedGmail(emailAlerts), [emailAlerts]);
 
   // Handle Syllabus File Upload
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -322,6 +327,57 @@ export const AcademicRadarWorkspace: React.FC<AcademicRadarWorkspaceProps> = ({
             </div>
           </div>
 
+          {/* Quarantine — Gmail detections with no usable deadline. Never scheduled, never overdue. */}
+          {unconfirmedGmail.length > 0 && (
+            <section
+              aria-label="Needs deadline confirmation"
+              className="rounded-2xl border border-dashed border-amber-300 dark:border-amber-800 bg-amber-50/60 dark:bg-amber-950/20 p-4 shadow-xs"
+            >
+              <h4 className="flex items-center gap-1.5 text-xs font-bold text-amber-800 dark:text-amber-200">
+                <AlertTriangle className="w-3.5 h-3.5" />
+                <span>Needs deadline confirmation · {unconfirmedGmail.length}</span>
+              </h4>
+              <p className="text-[11px] text-amber-700 dark:text-amber-300 mt-1 leading-relaxed">
+                These Gmail detections look like assignments but carry no usable deadline — held out
+                of the agenda and never marked overdue until you confirm a date.
+              </p>
+              <ul className="mt-2.5 space-y-2">
+                {unconfirmedGmail.map((g) => (
+                  <li
+                    key={g.key}
+                    title={g.quote || g.title}
+                    className="p-3 rounded-xl bg-white dark:bg-[#1A1917] border border-amber-200 dark:border-amber-800/60"
+                  >
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#D97757]/10 text-[#D97757] border border-[#D97757]/20">
+                        {g.subject}
+                      </span>
+                      <span
+                        title={g.quote || 'AI-guessed assignment — deadline not confirmed'}
+                        className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-200 dark:border-amber-800"
+                      >
+                        Unconfirmed
+                      </span>
+                      <span
+                        title={g.quote || 'No usable deadline found in the email'}
+                        className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border border-dashed border-rose-300 dark:border-rose-800 flex items-center gap-1"
+                      >
+                        <AlertTriangle className="w-3 h-3" />
+                        <span>Unknown deadline</span>
+                      </span>
+                    </div>
+                    <p className="text-xs font-bold text-[#141413] dark:text-[#FAF9F5] mt-1.5">{g.title}</p>
+                    {g.quote && (
+                      <p className="text-[11px] text-[#5C5A54] dark:text-[#B5B2A8] mt-0.5 line-clamp-2 italic">
+                        “{g.quote}”
+                      </p>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
           {/* Agenda List */}
           <div className="space-y-3">
             {agendaItems.length === 0 ? (
@@ -377,6 +433,32 @@ export const AcademicRadarWorkspace: React.FC<AcademicRadarWorkspaceProps> = ({
                           {item.urgency === 'DUE_24H' && (
                             <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
                               Due in 24h
+                            </span>
+                          )}
+
+                          {((item as any)?.verificationStatus === 'unconfirmed' ||
+                            (item as any)?.needsReview === true) && (
+                            <span
+                              title={
+                                (item as any)?.sourceQuote ||
+                                'AI-guessed deadline — confirm before trusting this date'
+                              }
+                              className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-200 dark:border-amber-800"
+                            >
+                              Unconfirmed
+                            </span>
+                          )}
+
+                          {(item as any)?.verificationStatus === 'unknown-date' && (
+                            <span
+                              title={
+                                (item as any)?.sourceQuote ||
+                                'No usable deadline found — confirm a date'
+                              }
+                              className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border border-dashed border-rose-300 dark:border-rose-800 flex items-center gap-1"
+                            >
+                              <AlertTriangle className="w-3 h-3" />
+                              <span>Unknown deadline</span>
                             </span>
                           )}
 
