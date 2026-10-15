@@ -1,6 +1,9 @@
 export type PriorityLevel = 'High' | 'Med' | 'Low';
 export type AssignmentStatus = 'Not Started' | 'In Progress' | 'Done';
 
+export type VerificationStatus = 'confirmed' | 'unconfirmed' | 'unknown-date';
+export type DateSource = 'explicit' | 'inferred-relative' | 'missing';
+
 export interface Assignment {
   id: string;
   subject: string;
@@ -21,6 +24,12 @@ export interface Assignment {
   attachments?: AssignmentAttachment[];
   submission?: AssignmentSubmission;
   trashedAt?: string | null;
+  verificationStatus?: VerificationStatus;
+  dateSource?: DateSource;
+  confidence?: number;
+  sourceEmailId?: string;
+  sourceQuote?: string;
+  needsReview?: boolean;
 }
 
 export interface CalendarEvent {
@@ -77,6 +86,10 @@ export interface EmailAlert {
     subject: string;
     dueDate: string;
     priority: PriorityLevel;
+    confidence?: number;
+    dateSource?: DateSource;
+    quote?: string;
+    emailId?: string;
   };
   rawEmail?: EmailMessage;
   /** Gmail native labels carried through (trusted over keywords). */

@@ -19,6 +19,12 @@ export function sanitizeAssignment(a: any, index = 0): Assignment | null {
   const assignmentName = safeStr(a.assignmentName || a.title || a.name, '').trim() || 'Untitled Assignment';
   const priority = a.priority === 'High' || a.priority === 'Med' || a.priority === 'Low' ? a.priority : 'Med';
   const status = a.status === 'Done' || a.status === 'In Progress' || a.status === 'Not Started' ? a.status : 'Not Started';
+  // Verification pass-through (Div A): keep "" dueDate as "" (never coerce to epoch),
+  // clamp confidence into 0-1, truncate sourceQuote to 200 chars.
+  const verificationStatus = a.verificationStatus === 'confirmed' || a.verificationStatus === 'unconfirmed' || a.verificationStatus === 'unknown-date' ? a.verificationStatus : undefined;
+  const dateSource = a.dateSource === 'explicit' || a.dateSource === 'inferred-relative' || a.dateSource === 'missing' ? a.dateSource : undefined;
+  const confidence = typeof a.confidence === 'number' && Number.isFinite(a.confidence) ? Math.min(1, Math.max(0, a.confidence)) : undefined;
+  const sourceQuote = typeof a.sourceQuote === 'string' ? a.sourceQuote.slice(0, 200) : undefined;
   return {
     id: safeStr(a.id, `task-${Date.now()}-${index}`),
     subject: safeStr(a.subject, 'General') || 'General',
@@ -39,6 +45,12 @@ export function sanitizeAssignment(a: any, index = 0): Assignment | null {
     attachments: Array.isArray(a.attachments) ? a.attachments : undefined,
     submission: a.submission,
     trashedAt: a.trashedAt ?? null,
+    verificationStatus,
+    dateSource,
+    confidence,
+    sourceEmailId: typeof a.sourceEmailId === 'string' ? a.sourceEmailId : undefined,
+    sourceQuote,
+    needsReview: typeof a.needsReview === 'boolean' ? a.needsReview : undefined,
   };
 }
 
@@ -74,7 +86,23 @@ export function sanitizeEmailAlert(e: any, index = 0): EmailAlert | null {
   if (!e || typeof e !== 'object') return null;
   const urgency = e.urgency === 'HIGH' || e.urgency === 'MEDIUM' || e.urgency === 'LOW' || e.urgency === 'INFO' ? e.urgency : 'INFO';
   const category = ['ASSIGNMENT','EXAM','GRADE','SCHEDULE','ANNOUNCEMENT','SPAM','PROMOTION','SOCIAL','GENERAL'].includes(e.category) ? e.category : 'GENERAL';
-  return { ...e, id: safeStr(e.id, `alert-${Date.now()}-${index}`), urgency, category, gmailLabels: Array.isArray(e.gmailLabels) ? e.gmailLabels : Array.isArray(e.rawEmail?.labelIds) ? e.rawEmail.labelIds : [] } as EmailAlert;
+  // Verification pass-through (Div A): make detectedAssignment provenance explicit
+  // so confidence/dateSource/quote/emailId survive even if upstream shapes shift.
+  // Legacy alerts without these subfields normalize to undefined (no behavior change).
+  let detectedAssignment = e.detectedAssignment;
+  if (detectedAssignment && typeof detectedAssignment === 'object') {
+    const d = detectedAssignment as any;
+    const dConf = typeof d.confidence === 'number' && Number.isFinite(d.confidence) ? Math.min(1, Math.max(0, d.confidence)) : undefined;
+    const dDateSource = d.dateSource === 'explicit' || d.dateSource === 'inferred-relative' || d.dateSource === 'missing' ? d.dateSource : undefined;
+    detectedAssignment = {
+      ...d,
+      confidence: dConf,
+      dateSource: dDateSource,
+      quote: typeof d.quote === 'string' ? d.quote.slice(0, 200) : undefined,
+      emailId: typeof d.emailId === 'string' ? d.emailId : undefined,
+    };
+  }
+  return { ...e, id: safeStr(e.id, `alert-${Date.now()}-${index}`), urgency, category, detectedAssignment, gmailLabels: Array.isArray(e.gmailLabels) ? e.gmailLabels : Array.isArray(e.rawEmail?.labelIds) ? e.rawEmail.labelIds : [] } as EmailAlert;
 }
 
 export function sanitizeEmailAlerts(list: any): EmailAlert[] {

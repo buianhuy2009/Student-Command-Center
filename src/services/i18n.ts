@@ -277,6 +277,23 @@ const BASE_STRINGS: Dict = {
   scope_cal: { en: 'Schedule blocks', vi: 'Các khung giờ học' },
   stored_local: { en: 'Local', vi: 'Cục bộ' },
   priv_body: { en: 'requests only the scopes needed to sync your own data locally. No data leaves your browser except for Gemini AI summaries (truncated snippets). Tokens stay in IndexedDB, never logged. Revoke anytime in Google Account.', vi: 'chỉ xin các quyền cần thiết để đồng bộ dữ liệu của chính bạn trên máy. Không dữ liệu nào rời trình duyệt trừ đoạn trích gửi Gemini AI để tóm tắt. Token nằm trong IndexedDB, không ghi log. Thu hồi bất cứ lúc nào trong Tài khoản Google.' },
+  // ——— AI deadline verification (Div A — consumed by Div C/D) ———
+  ai_understood: { en: 'AI understood', vi: 'AI hiểu là' },
+  ai_confirm_hint: { en: 'Check the details below, then confirm or edit before saving.', vi: 'Kiểm tra chi tiết bên dưới, rồi xác nhận hoặc sửa trước khi lưu.' },
+  ai_checked_source: { en: 'I checked against the source email', vi: 'Em đã đối chiếu với thư gốc' },
+  save_confirmed: { en: 'Save — verified', vi: 'Lưu — đã xác nhận' },
+  save_unconfirmed: { en: 'Save — unsure', vi: 'Lưu — chưa chắc' },
+  not_assignment: { en: 'Not an assignment', vi: 'Không phải bài tập' },
+  unconfirmed_badge: { en: 'Unconfirmed', vi: 'Chưa xác nhận' },
+  unknown_date_badge: { en: 'Unknown date', vi: 'Chưa rõ hạn' },
+  unknown_date_warn: { en: 'AI could not read a date in this email. No deadline saved — pick a date or keep "Unknown date".', vi: 'AI không đọc được ngày trong thư này. Chưa lưu hạn nào — hãy chọn ngày hoặc giữ "Chưa rõ hạn".' },
+  date_missing_explain: { en: 'The AI could not find an explicit due date. Pick one or save without a date.', vi: 'AI không tìm thấy hạn nộp cụ thể. Hãy chọn một ngày hoặc lưu mà không cần hạn.' },
+  open_source_email: { en: 'Open source email', vi: 'Mở thư gốc' },
+  open_in_gmail: { en: 'Open in Gmail', vi: 'Mở Gmail' },
+  report_miscat: { en: 'Not an ad?', vi: 'Không phải quảng cáo?' },
+  miscat_done: { en: 'Moved out of Promotions + teacher remembered', vi: 'Đã chuyển khỏi Quảng cáo + ghi nhớ thầy/cô này' },
+  needs_deadline_title: { en: 'Needs deadline confirmation', vi: 'Cần xác nhận hạn' },
+  review_toast_title: { en: 'Please double-check this deadline', vi: 'Hãy xem lại hạn này' },
 };
 
 // Merged dictionary: core + per-area packs (later packs win on collision — keys must stay unique).

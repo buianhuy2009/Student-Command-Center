@@ -1,10 +1,13 @@
 import Dexie, { type Table } from 'dexie';
-import type { MarkdownNote } from '../types';
+import type { DateSource, MarkdownNote, VerificationStatus } from '../types';
 import type { SRSCard } from '../services/srsEngine';
 
 export interface PersistedBrief { id: string; topic: string; subject: string; brief: string; createdAt: string; }
 
-export interface QueuedAssignment { id: string; assignmentName: string; subject: string; dueDate: string; priority: string; status: string; sheetRowIndex?: number; source?: string; queuedAt?: string; }
+// Div A (AI Deadline Trust V2): verification fields are optional + unindexed, so no
+// Dexie version bump or migration is required — old rows load untouched, new rows
+// simply carry extra props inside the stored object.
+export interface QueuedAssignment { id: string; assignmentName: string; subject: string; dueDate: string; priority: string; status: string; sheetRowIndex?: number; source?: string; queuedAt?: string; verificationStatus?: VerificationStatus; dateSource?: DateSource; confidence?: number; sourceEmailId?: string; sourceQuote?: string; needsReview?: boolean; }
 
 export interface StoredAssignment { id: string; data: any; updatedAt: string; }
 export class StudentOSDatabase extends Dexie {

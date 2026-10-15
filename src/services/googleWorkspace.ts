@@ -691,10 +691,14 @@ export async function appendAssignmentToSheet(
     assignment.source || 'Manual',
     assignment.docUrl || '',
     assignment.notes || '',
+    // Div A (AI Deadline Trust V2): trailing cols I:J — Verified, Source.
+    // A:H order/indexes byte-identical; old sheets without I:J just gain values.
+    assignment.verificationStatus || '',
+    assignment.sourceQuote || assignment.sourceEmailId || '',
   ];
 
   const res = await fetch(
-    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Assignments!A:H:append?valueInputOption=USER_ENTERED`,
+    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Assignments!A:J:append?valueInputOption=USER_ENTERED`,
     {
       method: 'POST',
       headers: {
