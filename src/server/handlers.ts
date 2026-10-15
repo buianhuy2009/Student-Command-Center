@@ -180,6 +180,7 @@ export async function handleSummarizeEmails(req: any, res: any) {
       labelIds: Array.isArray(e.labelIds) ? e.labelIds : [],
     }));
 
+    const todayISO = new Date().toISOString().slice(0, 10);
     const prompt = `You are an intelligent bilingual academic email scanner for a student command center.
 Analyze the following ${emails.length} emails. Note that emails may be in English or Vietnamese (tiếng Việt).
 Each email carries Gmail native labelIds — trust them as prior, never content keywords.
@@ -197,6 +198,12 @@ Your tasks:
    - Identify the language ("vi" for Vietnamese, "en" for English).
    - Write "oneLineSummary" concisely (under 14 words) in the SAME language as the email.
    - If an assignment is detected, extract title and course name cleanly.
+4. DEADLINE HONESTY (highest priority, overrides all):
+   - Reference date: ${todayISO} (Asia/Ho_Chi_Minh). Output dueDate ONLY as YYYY-MM-DD when the email contains an explicit date or an unambiguous relative date resolvable against the reference.
+   - Accepted VI/EN forms: 18/9, 18-09, 18.09, 18/09/2026, "hạn 18/9", "nộp trước 18/9", "thứ 6 tuần này" (= upcoming Friday from reference), "ngày mai", "tomorrow", "Sept 18", "September 18th".
+   - If vague ("cuối tuần này", "this weekend", "sớm", "soon", "upcoming") OR no date at all → dueDate:"", dateSource:"missing", confidence<=0.4, quote:"" or the vague phrase verbatim.
+   - NEVER guess Saturday/Sunday/Monday, NEVER add +2/+3 days, NEVER copy the email-received date.
+   - ALWAYS return confidence (0-1: 1.0 explicit full date, 0.7-0.9 unambiguous relative, <=0.4 missing/vague), dateSource (explicit|inferred-relative|missing), quote (exact ≤25-word substring that justifies subject+date, "" if none).
 
 Emails to scan:
 ${JSON.stringify(sanitizedEmails, null, 2)}
@@ -220,6 +227,9 @@ Respond with valid JSON matching this schema:
         "name": "concise assignment name",
         "subject": "detected course/subject like Toán, Vật lý, AP Physics, Literature, etc.",
         "dueDate": "YYYY-MM-DD or empty string",
+        "confidence": 0.9,
+        "dateSource": "explicit|inferred-relative|missing",
+        "quote": "exact <=25-word substring that justifies subject+date, empty string if none",
         "priority": "High" | "Med" | "Low"
       }
     }
@@ -267,6 +277,15 @@ Return only JSON, no markdown formatting.`;
         alert.gmailLabels = labels;
         return alert;
       });
+    }
+    // Post-guard (Div B): clamp confidence, force missing provenance when no date, strip non-ISO dates.
+    if (parsed.alerts && Array.isArray(parsed.alerts)) {
+      for (const a of parsed.alerts) {
+        const d = (a.detectedAssignment = a.detectedAssignment || { isAssignment: false, name: '', subject: 'General', dueDate: '', priority: 'Med' as const, confidence: 0, dateSource: 'missing', quote: '' } as any);
+        (d as any).confidence = Math.min(1, Math.max(0, Number((d as any).confidence ?? ((d as any).dueDate ? 0.7 : 0))));
+        if (!(d as any).dueDate) { (d as any).dateSource = 'missing'; (d as any).confidence = Math.min((d as any).confidence, 0.4); }
+        if (!/^\d{4}-\d{2}-\d{2}$/.test((d as any).dueDate || '')) (d as any).dueDate = '';
+      }
     }
     res.status(200).json(parsed);
   } catch (err: any) {
@@ -316,9 +335,12 @@ Return only JSON, no markdown formatting.`;
           isAssignment: false,
           name: e.subject || "New Assignment",
           subject: isVietnamese ? "Môn học" : "General",
-          dueDate: new Date(Date.now() + 86400000 * 3).toISOString().split("T")[0],
+          dueDate: "",
+          dateSource: "missing",
+          confidence: 0,
+          quote: "",
           priority: "Med" as const,
-        },
+        } as any,
       };
     });
     res.status(200).json({ alerts: fallbackAlerts });
@@ -432,14 +454,21 @@ export async function handleParseAssignment(req: any, res: any) {
     }
 
     const ai = getGenAI();
+    const todayISO = new Date().toISOString().slice(0, 10);
     const prompt = `Extract a student assignment from this natural language text: "${text}"
-Current reference date is ${new Date().toISOString().split("T")[0]}.
+Current reference date is ${todayISO} (Asia/Ho_Chi_Minh).
+- dueDate: YYYY-MM-DD only if text states or unambiguously implies a date. Else "".
+- NEVER invent weekend/+2d. If missing add "dateSource":"missing","confidence":0,"quote":"".
+- Return confidence/dateSource/quote alongside subject/assignmentName/dueDate/priority.
 
 Respond with JSON:
 {
   "subject": "detected course/subject like Physics, AP Calculus, Literature, Chemistry, etc. If unknown, use General",
   "assignmentName": "clean concise assignment title",
-  "dueDate": "YYYY-MM-DD (estimate relative to today if user said tomorrow/friday/next week)",
+  "dueDate": "YYYY-MM-DD ONLY if explicit or unambiguous relative, else empty string",
+  "dateSource": "explicit|inferred-relative|missing",
+  "confidence": 0.9,
+  "quote": "exact <=25-word substring stating the date or empty string",
   "priority": "High" | "Med" | "Low",
   "status": "Not Started",
   "estimatedMinutes": 45
@@ -454,13 +483,19 @@ Return only JSON.`;
     });
 
     const parsed = JSON.parse(response.text || "{}");
+    // Div B post-guard: never let a guessed/malformed date through.
+    if (!/^\d{4}-\d{2}-\d{2}$/.test((parsed as any).dueDate || '')) (parsed as any).dueDate = '';
+    if (!(parsed as any).dueDate) { (parsed as any).dateSource = 'missing'; (parsed as any).confidence = Math.min(Number((parsed as any).confidence ?? 0), 0.4); if (!(parsed as any).quote) (parsed as any).quote = ''; }
     res.status(200).json(parsed);
   } catch (err: any) {
     console.error("Parse assignment error:", err);
     res.status(200).json({
       subject: "General",
       assignmentName: (req.body && req.body.text) || "New Task",
-      dueDate: new Date(Date.now() + 86400000 * 2).toISOString().split("T")[0],
+      dueDate: "",
+      dateSource: "missing",
+      confidence: 0,
+      quote: "",
       priority: "Med",
       status: "Not Started",
       estimatedMinutes: 45,

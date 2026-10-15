@@ -48,6 +48,7 @@ export default async function handler(req, res) {
       return res.status(200).json({ alerts: [] });
     }
 
+    const todayISO = new Date().toISOString().slice(0, 10);
     const prompt = `You are an intelligent bilingual academic email scanner for a student command center.
 Analyze the following ${emails.length} emails. Note that emails may be in English or Vietnamese (tiếng Việt).
 Each email carries Gmail native labelIds (SPAM, CATEGORY_PROMOTIONS, CATEGORY_SOCIAL, CATEGORY_UPDATES, etc.) — trust them as prior.
@@ -65,6 +66,12 @@ Your tasks:
    - Identify the language ("vi" for Vietnamese, "en" for English).
    - Write "oneLineSummary" concisely (under 14 words) in the SAME language as the email.
    - If an assignment is detected, extract title and course name cleanly.
+4. DEADLINE HONESTY (highest priority, overrides all):
+   - Reference date: ${todayISO} (Asia/Ho_Chi_Minh). Output dueDate ONLY as YYYY-MM-DD when the email contains an explicit date or an unambiguous relative date resolvable against the reference.
+   - Accepted VI/EN forms: 18/9, 18-09, 18.09, 18/09/2026, "hạn 18/9", "nộp trước 18/9", "thứ 6 tuần này" (= upcoming Friday from reference), "ngày mai", "tomorrow", "Sept 18", "September 18th".
+   - If vague ("cuối tuần này", "this weekend", "sớm", "soon", "upcoming") OR no date at all → dueDate:"", dateSource:"missing", confidence<=0.4, quote:"" or the vague phrase verbatim.
+   - NEVER guess Saturday/Sunday/Monday, NEVER add +2/+3 days, NEVER copy the email-received date.
+   - ALWAYS return confidence (0-1: 1.0 explicit full date, 0.7-0.9 unambiguous relative, <=0.4 missing/vague), dateSource (explicit|inferred-relative|missing), quote (exact ≤25-word substring that justifies subject+date, "" if none).
 
 Emails to scan:
 ${JSON.stringify(emails, null, 2)}
@@ -88,6 +95,9 @@ Respond with valid JSON matching this schema:
         "name": "concise assignment name",
         "subject": "detected course/subject like Toán, Vật lý, AP Physics, Literature, etc.",
         "dueDate": "YYYY-MM-DD or empty string",
+        "confidence": 0.9,
+        "dateSource": "explicit|inferred-relative|missing",
+        "quote": "exact <=25-word substring that justifies subject+date, empty string if none",
         "priority": "High" | "Med" | "Low"
       }
     }
@@ -139,6 +149,16 @@ Return only JSON, no markdown formatting.`;
         return alert;
       });
     }
+    // Post-guard: defense in depth — never let a guessed/malformed date through.
+    // Div B: clamp confidence, force missing provenance when no date, strip non-ISO dates.
+    if (parsed.alerts && Array.isArray(parsed.alerts)) {
+      for (const a of parsed.alerts) {
+        const d = (a.detectedAssignment = a.detectedAssignment || { isAssignment: false, name: '', subject: 'General', dueDate: '', priority: 'Med', confidence: 0, dateSource: 'missing', quote: '' });
+        d.confidence = Math.min(1, Math.max(0, Number(d.confidence ?? (d.dueDate ? 0.7 : 0))));
+        if (!d.dueDate) { d.dateSource = 'missing'; d.confidence = Math.min(d.confidence, 0.4); }
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(d.dueDate || '')) d.dueDate = '';
+      }
+    }
     res.status(200).json(parsed);
   } catch (err) {
     console.error("Email summarization error:", err);
@@ -183,11 +203,30 @@ Return only JSON, no markdown formatting.`;
           isAssignment: false,
           name: e.subject || "New Assignment",
           subject: isVietnamese ? "Môn học" : "General",
-          dueDate: new Date(Date.now() + 86400000 * 3).toISOString().split("T")[0],
+          dueDate: "",
+          dateSource: "missing",
+          confidence: 0,
+          quote: "",
           priority: "Med",
         },
       };
     });
     res.status(200).json({ alerts: fallbackAlerts });
   }
+}
+
+// Div B (AI Deadline Trust V2) — pure helpers exported for vitest. Additive only.
+export function normalizeDetectedAssignment(d) {
+  const out = d || { isAssignment: false, name: '', subject: 'General', dueDate: '', priority: 'Med', confidence: 0, dateSource: 'missing', quote: '' };
+  out.confidence = Math.min(1, Math.max(0, Number(out.confidence ?? (out.dueDate ? 0.7 : 0))));
+  if (!out.dueDate) { out.dateSource = 'missing'; out.confidence = Math.min(out.confidence, 0.4); }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(out.dueDate || '')) out.dueDate = '';
+  return out;
+}
+
+export function normalizeAlerts(alerts) {
+  for (const a of alerts || []) {
+    a.detectedAssignment = normalizeDetectedAssignment(a.detectedAssignment);
+  }
+  return alerts;
 }

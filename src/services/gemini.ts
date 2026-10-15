@@ -1253,6 +1253,13 @@ export async function summarizeEmailsWithGemini(emails: EmailMessage[]): Promise
       const src = aiEmails.find((e) => e.id === alert.id);
       // Server already trusts Gmail labels; re-assert academic-sender-in-promo stays AI-labeled:
       // if server forced PROMOTION but sender is academic, keep server label only when Gmail said promo AND sender non-academic.
+      // Div B client post-guard: clamp provenance, strip non-ISO dates (Div A types pending -> as any).
+      const d = (alert as any).detectedAssignment;
+      if (d) {
+        d.confidence = Math.min(1, Math.max(0, Number(d.confidence ?? (d.dueDate ? 0.7 : 0))));
+        if (!d.dueDate) { d.dateSource = 'missing'; d.confidence = Math.min(d.confidence, 0.4); }
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(d.dueDate || '')) d.dueDate = '';
+      }
       return { ...alert, gmailLabels: src?.labelIds || [], rawEmail: src };
     });
     const byId = new Map<string, EmailAlert>();
@@ -1261,7 +1268,7 @@ export async function summarizeEmailsWithGemini(emails: EmailMessage[]): Promise
     return emails.map((e) => byId.get(e.id)).filter((a): a is EmailAlert => Boolean(a));
   } catch (error) {
     console.error('Error calling summarize emails API:', error);
-    // Offline fallback: Gmail labels only, no keywords.
+    // Offline fallback: Gmail labels only, no keywords. NEVER invent dates.
     return emails.map((e) => {
       const b = bucketOf(e);
       if (b !== 'AI') return localAlert(e, b);
@@ -1276,6 +1283,17 @@ export async function summarizeEmailsWithGemini(emails: EmailMessage[]): Promise
         isSpam: false,
         gmailLabels: e.labelIds || [],
         rawEmail: e,
+        // Div B: unknown date is first-class, never a guessed date (Div A types pending -> as any).
+        detectedAssignment: {
+          isAssignment: false,
+          name: e.subject || 'New Assignment',
+          subject: 'General',
+          dueDate: '',
+          dateSource: 'missing',
+          confidence: 0,
+          quote: '',
+          priority: 'Med',
+        } as any,
       };
     });
   }
@@ -1293,14 +1311,29 @@ export async function generateQuickDraft(request: QuickDraftRequest): Promise<Qu
 }
 
 export async function parseNaturalLanguageAssignment(text: string): Promise<Partial<Assignment>> {
-  const res = await fetch('/api/gemini/parse-assignment', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text }),
-  });
+  try {
+    const res = await fetch('/api/gemini/parse-assignment', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    });
 
-  if (!res.ok) throw new Error(`Parse assignment error: ${res.statusText}`);
-  return await res.json();
+    if (!res.ok) throw new Error(`Parse assignment error: ${res.statusText}`);
+    return await res.json();
+  } catch {
+    // Offline/client fallback: NEVER invent dates (no +2/+3d). Div A types pending -> as any.
+    return {
+      subject: 'General',
+      assignmentName: text || 'New Task',
+      dueDate: '',
+      dateSource: 'missing',
+      confidence: 0,
+      quote: '',
+      priority: 'Med',
+      status: 'Not Started',
+      estimatedMinutes: 45,
+    } as any;
+  }
 }
 
 export async function sendStudyAssistantMessage(
