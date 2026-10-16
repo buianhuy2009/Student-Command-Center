@@ -16,7 +16,7 @@ function getGenAI(): GoogleGenAI {
   return genAI;
 }
 
-const CANDIDATE_MODELS: string[] = SERVER_MODELS;
+const CANDIDATE_MODELS = SERVER_MODELS as string[];
 
 export async function generateWithModelFallback(params: {
   contents: any;

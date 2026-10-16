@@ -1,0 +1,969 @@
+{
+  "ranAt": "2026-10-16T15:53:43.384Z",
+  "base": "https://sutdent-command-center.vercel.app",
+  "rows": [
+    {
+      "id": "e01",
+      "tricky": "Google's Vietnamese date '18 thg 9, 23:59' has no year and abbreviates 'tháng' to 'thg'; the class is KHTN but the lesson is chemistry, so the subject must map to KHTN/Hoá.",
+      "subject": "Bài tập mới: \"Bài 2 - Phản ứng hoá học: Phiếu bài tập số 1\"",
+      "expected": {
+        "category": "ASSIGNMENT",
+        "isAssignment": true,
+        "dueDate": "2026-09-18",
+        "priority": "Med",
+        "mustNotHide": true
+      },
+      "got": {
+        "category": "GENERAL",
+        "aiStatus": "ok",
+        "needsReview": false,
+        "reviewReason": "",
+        "isAssignment": false,
+        "dueDate": "2026-10-19",
+        "subject": "Môn học",
+        "priority": "Med",
+        "evidence": ""
+      },
+      "hidden": false,
+      "checks": {
+        "notHidden": true,
+        "category": false,
+        "isAssignment": false,
+        "dueDate": false,
+        "subject": false,
+        "priority": true
+      },
+      "pass": false
+    },
+    {
+      "id": "e02",
+      "tricky": "English UI with a Vietnamese body; the work is marked optional ('KHÔNG bắt buộc', '(optional)'), so priority must be Low even though it has a due date.",
+      "subject": "New assignment: \"Bonus: Challenge problems Chapter 2 (optional)\"",
+      "expected": {
+        "category": "ASSIGNMENT",
+        "isAssignment": true,
+        "dueDate": "2026-09-24",
+        "priority": "Low",
+        "mustNotHide": true
+      },
+      "got": {
+        "category": "GENERAL",
+        "aiStatus": "ok",
+        "needsReview": false,
+        "reviewReason": "",
+        "isAssignment": false,
+        "dueDate": "2026-10-19",
+        "subject": "Môn học",
+        "priority": "Med",
+        "evidence": ""
+      },
+      "hidden": false,
+      "checks": {
+        "notHidden": true,
+        "category": false,
+        "isAssignment": false,
+        "dueDate": false,
+        "subject": false,
+        "priority": false
+      },
+      "pass": false
+    },
+    {
+      "id": "e03",
+      "tricky": "Two dates in one post: the OLD deadline (thứ Sáu 25/9) is mentioned first; the correct deadline is the NEW one (thứ Hai 28/9).",
+      "subject": "Thông báo mới: \"Các em chú ý: cô gia hạn bài viết Kể lại một truyền thuyết...\"",
+      "expected": {
+        "category": "ASSIGNMENT",
+        "isAssignment": true,
+        "dueDate": "2026-09-28",
+        "priority": "Med",
+        "mustNotHide": true
+      },
+      "got": {
+        "category": "GENERAL",
+        "aiStatus": "ok",
+        "needsReview": false,
+        "reviewReason": "",
+        "isAssignment": false,
+        "dueDate": "2026-10-19",
+        "subject": "Môn học",
+        "priority": "Med",
+        "evidence": ""
+      },
+      "hidden": false,
+      "checks": {
+        "notHidden": true,
+        "category": false,
+        "isAssignment": false,
+        "dueDate": false,
+        "subject": false,
+        "priority": true
+      },
+      "pass": false
+    },
+    {
+      "id": "e04",
+      "tricky": "It is an announcement, not an assignment post, and the deadline 'trước 21h thứ Năm tuần này' sits in the fourth paragraph between news items; the AI must still raise it as an assignment.",
+      "subject": "Thông báo mới: \"Good morning 7A3! Tuần này mình học Unit 3: Community Service...\"",
+      "expected": {
+        "category": "ASSIGNMENT",
+        "isAssignment": true,
+        "dueDate": "2026-10-08",
+        "priority": "Med",
+        "mustNotHide": true
+      },
+      "got": {
+        "category": "GENERAL",
+        "aiStatus": "ok",
+        "needsReview": false,
+        "reviewReason": "",
+        "isAssignment": false,
+        "dueDate": "2026-10-19",
+        "subject": "Môn học",
+        "priority": "Med",
+        "evidence": ""
+      },
+      "hidden": false,
+      "checks": {
+        "notHidden": true,
+        "category": false,
+        "isAssignment": false,
+        "dueDate": false,
+        "subject": false,
+        "priority": true
+      },
+      "pass": false
+    },
+    {
+      "id": "e05",
+      "tricky": "The due date is relative ('Ngày mai, 07:00') and the email is sent in the evening, so 'ngày mai' must resolve from the email's own date (Tue 6/10 → Wed 7/10).",
+      "subject": "Sắp đến hạn: \"Phiếu học tập Bài 2 - Cách mạng công nghiệp\"",
+      "expected": {
+        "category": "ASSIGNMENT",
+        "isAssignment": true,
+        "dueDate": "2026-10-07",
+        "priority": "High",
+        "mustNotHide": true
+      },
+      "got": {
+        "category": "GENERAL",
+        "aiStatus": "ok",
+        "needsReview": false,
+        "reviewReason": "",
+        "isAssignment": false,
+        "dueDate": "2026-10-19",
+        "subject": "Môn học",
+        "priority": "Med",
+        "evidence": ""
+      },
+      "hidden": false,
+      "checks": {
+        "notHidden": true,
+        "category": false,
+        "isAssignment": false,
+        "dueDate": false,
+        "subject": false,
+        "priority": false
+      },
+      "pass": false
+    },
+    {
+      "id": "e06",
+      "tricky": "The structured field says 'No due date' but the instructions say 'by this Friday, October 16'; the AI must read the text and not report 'no date'.",
+      "subject": "New assignment: \"Scratch project: Maze game\"",
+      "expected": {
+        "category": "ASSIGNMENT",
+        "isAssignment": true,
+        "dueDate": "2026-10-16",
+        "priority": "Med",
+        "mustNotHide": true
+      },
+      "got": {
+        "category": "GENERAL",
+        "aiStatus": "ok",
+        "needsReview": false,
+        "reviewReason": "",
+        "isAssignment": false,
+        "dueDate": "2026-10-19",
+        "subject": "General",
+        "priority": "Med",
+        "evidence": ""
+      },
+      "hidden": false,
+      "checks": {
+        "notHidden": true,
+        "category": false,
+        "isAssignment": false,
+        "dueDate": false,
+        "subject": false,
+        "priority": true
+      },
+      "pass": false
+    },
+    {
+      "id": "e07",
+      "tricky": "Canvas omits the year for dates in the current year ('Oct 2 at 11:59pm'); the subject packs the assignment and course names into one comma-separated string.",
+      "subject": "Assignment Created - Essay: A Place I Love, English 8 (Bilingual) - 8B",
+      "expected": {
+        "category": "ASSIGNMENT",
+        "isAssignment": true,
+        "dueDate": "2026-10-02",
+        "priority": "Med",
+        "mustNotHide": true
+      },
+      "got": {
+        "category": "GENERAL",
+        "aiStatus": "ok",
+        "needsReview": false,
+        "reviewReason": "",
+        "isAssignment": false,
+        "dueDate": "2026-10-19",
+        "subject": "General",
+        "priority": "Med",
+        "evidence": ""
+      },
+      "hidden": false,
+      "checks": {
+        "notHidden": true,
+        "category": false,
+        "isAssignment": false,
+        "dueDate": false,
+        "subject": false,
+        "priority": true
+      },
+      "pass": false
+    },
+    {
+      "id": "e08",
+      "tricky": "Canvas's Vietnamese date 'Tháng 10 9 tại 11:59giờ chiều/tối' puts the month first (unusual in Vietnamese) and glues 'giờ chiều/tối' to the time; a day-first reading gives 10/9 = 10 September, which is wrong (and already past). Correct: 9 October.",
+      "subject": "Ngày Đến Hạn của Bài Tập Đã Thay Đổi: Báo cáo thực hành số 2, KHTN 9A",
+      "expected": {
+        "category": "ASSIGNMENT",
+        "isAssignment": true,
+        "dueDate": "2026-10-09",
+        "priority": "Med",
+        "mustNotHide": true
+      },
+      "got": {
+        "category": "GENERAL",
+        "aiStatus": "ok",
+        "needsReview": false,
+        "reviewReason": "",
+        "isAssignment": false,
+        "dueDate": "2026-10-19",
+        "subject": "Môn học",
+        "priority": "Med",
+        "evidence": ""
+      },
+      "hidden": false,
+      "checks": {
+        "notHidden": true,
+        "category": false,
+        "isAssignment": false,
+        "dueDate": false,
+        "subject": false,
+        "priority": true
+      },
+      "pass": false
+    },
+    {
+      "id": "e09",
+      "tricky": "Relative date only: 'thứ 6 tuần này' sent on Monday 14/9 must resolve to Friday 18/9; 'kiểm tra vở' is a homework check, not a test.",
+      "subject": "[Toán 8A1] Bài tập về nhà tuần 2",
+      "expected": {
+        "category": "ASSIGNMENT",
+        "isAssignment": true,
+        "dueDate": "2026-09-18",
+        "priority": "Med",
+        "mustNotHide": true
+      },
+      "got": {
+        "category": "GENERAL",
+        "aiStatus": "ok",
+        "needsReview": false,
+        "reviewReason": "",
+        "isAssignment": false,
+        "dueDate": "2026-10-19",
+        "subject": "Môn học",
+        "priority": "Med",
+        "evidence": ""
+      },
+      "hidden": false,
+      "checks": {
+        "notHidden": true,
+        "category": false,
+        "isAssignment": false,
+        "dueDate": false,
+        "subject": false,
+        "priority": true
+      },
+      "pass": false
+    },
+    {
+      "id": "e10",
+      "tricky": "Date written dd/mm without a year ('trước 21h ngày 25/9'); the year must come from the email date, and 25/9 must not be read month-first.",
+      "subject": "Bài viết số 1 - Ngữ văn 9A2",
+      "expected": {
+        "category": "ASSIGNMENT",
+        "isAssignment": true,
+        "dueDate": "2026-09-25",
+        "priority": "Med",
+        "mustNotHide": true
+      },
+      "got": {
+        "category": "GENERAL",
+        "aiStatus": "ok",
+        "needsReview": false,
+        "reviewReason": "",
+        "isAssignment": false,
+        "dueDate": "2026-10-19",
+        "subject": "Môn học",
+        "priority": "Med",
+        "evidence": ""
+      },
+      "hidden": false,
+      "checks": {
+        "notHidden": true,
+        "category": false,
+        "isAssignment": false,
+        "dueDate": false,
+        "subject": false,
+        "priority": true
+      },
+      "pass": false
+    },
+    {
+      "id": "e11",
+      "tricky": "'Trước buổi học tới' has no date; the email says the class meets Monday and Thursday, so from Tuesday 22/9 the next lesson is Thursday 24/9; 'kiểm tra miệng' is an oral check, not an exam.",
+      "subject": "6A1 - English homework",
+      "expected": {
+        "category": "ASSIGNMENT",
+        "isAssignment": true,
+        "dueDate": "2026-09-24",
+        "priority": "High",
+        "mustNotHide": true
+      },
+      "got": {
+        "category": "GENERAL",
+        "aiStatus": "ok",
+        "needsReview": false,
+        "reviewReason": "",
+        "isAssignment": false,
+        "dueDate": "2026-10-19",
+        "subject": "Môn học",
+        "priority": "Med",
+        "evidence": ""
+      },
+      "hidden": false,
+      "checks": {
+        "notHidden": true,
+        "category": false,
+        "isAssignment": false,
+        "dueDate": false,
+        "subject": false,
+        "priority": false
+      },
+      "pass": false
+    },
+    {
+      "id": "e12",
+      "tricky": "The real deadline ('thứ Ba tuần sau') comes after 600+ characters of class news, and a decoy deadline appears first ('hạn đăng ký là hết tháng 10' for optional clubs).",
+      "subject": "Thông tin lớp 7A5 tuần 5",
+      "expected": {
+        "category": "ASSIGNMENT",
+        "isAssignment": true,
+        "dueDate": "2026-10-06",
+        "priority": "Med",
+        "mustNotHide": true
+      },
+      "got": {
+        "category": "GENERAL",
+        "aiStatus": "ok",
+        "needsReview": false,
+        "reviewReason": "",
+        "isAssignment": false,
+        "dueDate": "2026-10-19",
+        "subject": "Môn học",
+        "priority": "Med",
+        "evidence": ""
+      },
+      "hidden": false,
+      "checks": {
+        "notHidden": true,
+        "category": false,
+        "isAssignment": false,
+        "dueDate": false,
+        "subject": false,
+        "priority": true
+      },
+      "pass": false
+    },
+    {
+      "id": "e13",
+      "tricky": "The quoted older messages contain the OLD deadline ('Hạn nộp: thứ Tư 07/10') and two other dates in quote headers; only the newest text counts: 'hết ngày thứ Hai 12/10'.",
+      "subject": "Re: [Công nghệ 8A1] Bài tập nhóm: Bản vẽ chi tiết",
+      "expected": {
+        "category": "ASSIGNMENT",
+        "isAssignment": true,
+        "dueDate": "2026-10-12",
+        "priority": "Med",
+        "mustNotHide": true
+      },
+      "got": {
+        "category": "GENERAL",
+        "aiStatus": "ok",
+        "needsReview": false,
+        "reviewReason": "",
+        "isAssignment": false,
+        "dueDate": "2026-10-19",
+        "subject": "Môn học",
+        "priority": "Med",
+        "evidence": ""
+      },
+      "hidden": false,
+      "checks": {
+        "notHidden": true,
+        "category": false,
+        "isAssignment": false,
+        "dueDate": false,
+        "subject": false,
+        "priority": true
+      },
+      "pass": false
+    },
+    {
+      "id": "e14",
+      "tricky": "Two assignments in one email: the first-listed (project, Fri 23/10) is NOT the most urgent; the expected item is the second-listed spreadsheet due Wed 14/10 (2 days away → High). An AI that returns both items is correct if one of them is 14/10; merging them into one date is wrong.",
+      "subject": "[Tin học 9A1] 2 bài tập cần làm",
+      "expected": {
+        "category": "ASSIGNMENT",
+        "isAssignment": true,
+        "dueDate": "2026-10-14",
+        "priority": "High",
+        "mustNotHide": true
+      },
+      "got": {
+        "category": "GENERAL",
+        "aiStatus": "ok",
+        "needsReview": false,
+        "reviewReason": "",
+        "isAssignment": false,
+        "dueDate": "2026-10-19",
+        "subject": "Môn học",
+        "priority": "Med",
+        "evidence": ""
+      },
+      "hidden": false,
+      "checks": {
+        "notHidden": true,
+        "category": false,
+        "isAssignment": false,
+        "dueDate": false,
+        "subject": false,
+        "priority": false
+      },
+      "pass": false
+    },
+    {
+      "id": "e15",
+      "tricky": "There is NO deadline; the only number is a duration ('7 ngày liên tiếp') that an AI may wrongly turn into 'email date + 7'. Correct output: assignment with no date (dueDate null), never a guessed date.",
+      "subject": "GDCD 8A2 - Chuẩn bị cho bài Lập kế hoạch chi tiêu",
+      "expected": {
+        "category": "ASSIGNMENT",
+        "isAssignment": true,
+        "dueDate": null,
+        "priority": "Med",
+        "mustNotHide": true
+      },
+      "got": {
+        "category": "GENERAL",
+        "aiStatus": "ok",
+        "needsReview": false,
+        "reviewReason": "",
+        "isAssignment": false,
+        "dueDate": "2026-10-19",
+        "subject": "Môn học",
+        "priority": "Med",
+        "evidence": ""
+      },
+      "hidden": false,
+      "checks": {
+        "notHidden": true,
+        "category": false,
+        "isAssignment": false,
+        "dueDate": false,
+        "subject": false,
+        "priority": true
+      },
+      "pass": false
+    },
+    {
+      "id": "e16",
+      "tricky": "A multi-subject exam timetable flattened to plain text; the expected item is the earliest exam (Ngữ văn, Mon 26/10). An AI that creates one EXAM per subject is correct if the earliest is 26/10. Dates carry the year (26/10/2026) while the header date is in words.",
+      "subject": "THÔNG BÁO Lịch kiểm tra giữa học kỳ I năm học 2026-2027",
+      "expected": {
+        "category": "EXAM",
+        "isAssignment": true,
+        "dueDate": "2026-10-26",
+        "priority": "High",
+        "mustNotHide": true
+      },
+      "got": {
+        "category": "GENERAL",
+        "aiStatus": "ok",
+        "needsReview": false,
+        "reviewReason": "",
+        "isAssignment": false,
+        "dueDate": "2026-10-19",
+        "subject": "Môn học",
+        "priority": "Med",
+        "evidence": ""
+      },
+      "hidden": false,
+      "checks": {
+        "notHidden": true,
+        "category": false,
+        "isAssignment": false,
+        "dueDate": false,
+        "subject": false,
+        "priority": false
+      },
+      "pass": false
+    },
+    {
+      "id": "e17",
+      "tricky": "Not a student assignment, yet it has an event date (Sun 27/9) and a deadline for PARENTS (survey 'trước ngày 25/9'); the AI must file it as SCHEDULE and not create homework.",
+      "subject": "Giấy mời họp phụ huynh học sinh đầu năm học 2026-2027 - Lớp 8A1",
+      "expected": {
+        "category": "SCHEDULE",
+        "isAssignment": false,
+        "dueDate": null,
+        "priority": null,
+        "mustNotHide": true
+      },
+      "got": {
+        "category": "GENERAL",
+        "aiStatus": "ok",
+        "needsReview": false,
+        "reviewReason": "",
+        "isAssignment": false,
+        "dueDate": "2026-10-19",
+        "subject": "Môn học",
+        "priority": "Med",
+        "evidence": ""
+      },
+      "hidden": false,
+      "checks": {
+        "notHidden": true,
+        "category": false,
+        "isAssignment": true
+      },
+      "pass": false
+    },
+    {
+      "id": "e18",
+      "tricky": "Several dates (30/9 closure, 01/10 return, 10/10 make-up day) and the word 'học bù', but nothing to submit: SCHEDULE, not an assignment.",
+      "subject": "THÔNG BÁO (KHẨN) V/v cho học sinh nghỉ học để phòng, tránh bão số 8",
+      "expected": {
+        "category": "SCHEDULE",
+        "isAssignment": false,
+        "dueDate": null,
+        "priority": null,
+        "mustNotHide": true
+      },
+      "got": {
+        "category": "GENERAL",
+        "aiStatus": "ok",
+        "needsReview": false,
+        "reviewReason": "",
+        "isAssignment": false,
+        "dueDate": "2026-10-19",
+        "subject": "Môn học",
+        "priority": "Med",
+        "evidence": ""
+      },
+      "hidden": false,
+      "checks": {
+        "notHidden": true,
+        "category": false,
+        "isAssignment": true
+      },
+      "pass": false
+    },
+    {
+      "id": "e19",
+      "tricky": "Platform date format 'Hạn nộp: 21:00 - 08/10/2026' (time before date, dd/mm/yyyy); sender is a platform, not a teacher, but it must not be hidden.",
+      "subject": "[Azota] Bài tập mới: Ôn tập Chương I - Phương trình và hệ hai phương trình bậc nhất hai ẩn",
+      "expected": {
+        "category": "ASSIGNMENT",
+        "isAssignment": true,
+        "dueDate": "2026-10-08",
+        "priority": "Med",
+        "mustNotHide": true
+      },
+      "got": {
+        "category": "GENERAL",
+        "aiStatus": "ok",
+        "needsReview": false,
+        "reviewReason": "",
+        "isAssignment": false,
+        "dueDate": "2026-10-19",
+        "subject": "Môn học",
+        "priority": "Med",
+        "evidence": ""
+      },
+      "hidden": false,
+      "checks": {
+        "notHidden": true,
+        "category": false,
+        "isAssignment": false,
+        "dueDate": false,
+        "subject": false,
+        "priority": true
+      },
+      "pass": false
+    },
+    {
+      "id": "e20",
+      "tricky": "OLM calls the deadline 'Ngày kiểm tra' (check date), which sounds like an exam; it is an auto-graded practice set due in 2 days (High). EXAM is tolerated as long as the date and priority are right.",
+      "subject": "[OLM] Em được giao bài mới: Luyện tập - Dấu hiệu chia hết cho 2, 5, 3, 9",
+      "expected": {
+        "category": "ASSIGNMENT",
+        "isAssignment": true,
+        "dueDate": "2026-10-16",
+        "priority": "High",
+        "mustNotHide": true
+      },
+      "got": {
+        "category": "GENERAL",
+        "aiStatus": "ok",
+        "needsReview": false,
+        "reviewReason": "",
+        "isAssignment": false,
+        "dueDate": "2026-10-19",
+        "subject": "Môn học",
+        "priority": "Med",
+        "evidence": ""
+      },
+      "hidden": false,
+      "checks": {
+        "notHidden": true,
+        "category": false,
+        "isAssignment": false,
+        "dueDate": false,
+        "subject": false,
+        "priority": false
+      },
+      "pass": false
+    },
+    {
+      "id": "e21",
+      "tricky": "A grade report, not work to do; it ends with a service-renewal deadline ('hết hạn vào ngày 31/10/2026') that must not become an assignment due date, and the GVCN comment names a weak subject without asking for any task.",
+      "subject": "[vnEdu] Thông báo kết quả học tập - HS Trần Minh Khoa - Lớp 8A1",
+      "expected": {
+        "category": "GRADE",
+        "isAssignment": false,
+        "dueDate": null,
+        "priority": null,
+        "mustNotHide": true
+      },
+      "got": {
+        "category": "GENERAL",
+        "aiStatus": "ok",
+        "needsReview": false,
+        "reviewReason": "",
+        "isAssignment": false,
+        "dueDate": "2026-10-19",
+        "subject": "Môn học",
+        "priority": "Med",
+        "evidence": ""
+      },
+      "hidden": false,
+      "checks": {
+        "notHidden": true,
+        "category": false,
+        "isAssignment": true
+      },
+      "pass": false
+    },
+    {
+      "id": "e22",
+      "tricky": "Labelled CATEGORY_PROMOTIONS, sender is @gmail.com (no .edu/school domain), body full of promo words; it is still a compulsory assignment due Sun 18/10.",
+      "subject": "🔥 [Toán 9A1] Đề luyện tập số 4 + TẶNG file tổng hợp công thức - hạn nộp CN 18/10",
+      "expected": {
+        "category": "ASSIGNMENT",
+        "isAssignment": true,
+        "dueDate": "2026-10-18",
+        "priority": "Med",
+        "mustNotHide": true
+      },
+      "got": {
+        "category": "PROMOTION",
+        "aiStatus": "skipped",
+        "needsReview": false,
+        "reviewReason": "",
+        "isAssignment": false,
+        "dueDate": "",
+        "subject": "",
+        "priority": "",
+        "evidence": ""
+      },
+      "hidden": true,
+      "checks": {
+        "notHidden": false,
+        "category": false,
+        "isAssignment": false,
+        "dueDate": false,
+        "subject": false,
+        "priority": false
+      },
+      "pass": false
+    },
+    {
+      "id": "e23",
+      "tricky": "Labelled CATEGORY_SOCIAL with facebook.com and zalo.me links and 'thả tim, bình luận' wording; sender is @gmail.com; the real assignment is due 'thứ Ba tuần sau' (from Fri 9/10 → Tue 13/10).",
+      "subject": "Nhóm lớp 8A3 - Bài tập Ngữ văn tuần 6",
+      "expected": {
+        "category": "ASSIGNMENT",
+        "isAssignment": true,
+        "dueDate": "2026-10-13",
+        "priority": "Med",
+        "mustNotHide": true
+      },
+      "got": {
+        "category": "SOCIAL",
+        "aiStatus": "skipped",
+        "needsReview": false,
+        "reviewReason": "",
+        "isAssignment": false,
+        "dueDate": "",
+        "subject": "",
+        "priority": "",
+        "evidence": ""
+      },
+      "hidden": true,
+      "checks": {
+        "notHidden": false,
+        "category": false,
+        "isAssignment": false,
+        "dueDate": false,
+        "subject": false,
+        "priority": false
+      },
+      "pass": false
+    },
+    {
+      "id": "e24",
+      "tricky": "Looks academic: names Toán/Ngữ văn/Tiếng Anh, a 'bài kiểm tra đầu vào' and a 'hạn chót 20/10/2026'; it is still a PROMOTION and must not create a task.",
+      "subject": "2K12 CHÚ Ý! Lộ trình luyện thi vào 10 Toán - Văn - Anh chính thức khai giảng 📚",
+      "expected": {
+        "category": "PROMOTION",
+        "isAssignment": false,
+        "dueDate": null,
+        "priority": null,
+        "mustNotHide": false
+      },
+      "got": {
+        "category": "PROMOTION",
+        "aiStatus": "skipped",
+        "needsReview": false,
+        "reviewReason": "",
+        "isAssignment": false,
+        "dueDate": "",
+        "subject": "",
+        "priority": "",
+        "evidence": ""
+      },
+      "hidden": true,
+      "checks": {
+        "notHidden": null,
+        "category": true,
+        "isAssignment": true
+      },
+      "pass": true
+    },
+    {
+      "id": "e25",
+      "tricky": "Sender domain ends in .edu.vn (many commercial centres use one), body says 'BÀI KIỂM TRA ĐẦU VÀO' with a deadline 25/10; a '.edu' rule would wrongly trust it. Correct: PROMOTION.",
+      "subject": "Bài test IELTS miễn phí cho học sinh THCS - Nhận học bổng 30% trước 25/10 🎯",
+      "expected": {
+        "category": "PROMOTION",
+        "isAssignment": false,
+        "dueDate": null,
+        "priority": null,
+        "mustNotHide": false
+      },
+      "got": {
+        "category": "GENERAL",
+        "aiStatus": "ok",
+        "needsReview": false,
+        "reviewReason": "",
+        "isAssignment": false,
+        "dueDate": "2026-10-19",
+        "subject": "Môn học",
+        "priority": "Med",
+        "evidence": ""
+      },
+      "hidden": false,
+      "checks": {
+        "notHidden": null,
+        "category": false,
+        "isAssignment": true
+      },
+      "pass": false
+    },
+    {
+      "id": "e26",
+      "tricky": "School words everywhere (vở, sách tham khảo lớp 6-9, máy tính Casio, compa ôn thi) and an expiry '23:59 ngày 10/10/2026'; it is shopping, not schoolwork.",
+      "subject": "🎒 10.10 Siêu Sale Tựu Trường | Balo, vở, máy tính Casio giảm đến 50%",
+      "expected": {
+        "category": "PROMOTION",
+        "isAssignment": false,
+        "dueDate": null,
+        "priority": null,
+        "mustNotHide": false
+      },
+      "got": {
+        "category": "PROMOTION",
+        "aiStatus": "skipped",
+        "needsReview": false,
+        "reviewReason": "",
+        "isAssignment": false,
+        "dueDate": "",
+        "subject": "",
+        "priority": "",
+        "evidence": ""
+      },
+      "hidden": true,
+      "checks": {
+        "notHidden": null,
+        "category": true,
+        "isAssignment": true
+      },
+      "pass": true
+    },
+    {
+      "id": "e27",
+      "tricky": "A classmate's post asks for answers to 'bài tập Toán trang 45' and says 'Mai đi học sớm'; it is SOCIAL chatter, not a teacher assignment, and must not create a task with tomorrow's date.",
+      "subject": "Lê Gia Bảo đã đăng trong 8A1 Forever 💙",
+      "expected": {
+        "category": "SOCIAL",
+        "isAssignment": false,
+        "dueDate": null,
+        "priority": null,
+        "mustNotHide": false
+      },
+      "got": {
+        "category": "SOCIAL",
+        "aiStatus": "skipped",
+        "needsReview": false,
+        "reviewReason": "",
+        "isAssignment": false,
+        "dueDate": "",
+        "subject": "",
+        "priority": "",
+        "evidence": ""
+      },
+      "hidden": true,
+      "checks": {
+        "notHidden": null,
+        "category": true,
+        "isAssignment": true
+      },
+      "pass": true
+    },
+    {
+      "id": "e28",
+      "tricky": "Formal school-style layout, the student's full name and a hard deadline (17h00 20/10/2026) make it look urgent and official; Gmail already put it in SPAM. Correct: PROMOTION (or SPAM), never an assignment.",
+      "subject": "🎓 CHÚC MỪNG! Em đã được chọn nhận HỌC BỔNG 100% du học hè Singapore 2027 - Xác nhận trước 20/10",
+      "expected": {
+        "category": "PROMOTION",
+        "isAssignment": false,
+        "dueDate": null,
+        "priority": null,
+        "mustNotHide": false
+      },
+      "got": {
+        "category": "PROMOTION",
+        "aiStatus": "skipped",
+        "needsReview": false,
+        "reviewReason": "",
+        "isAssignment": false,
+        "dueDate": "",
+        "subject": "",
+        "priority": "",
+        "evidence": ""
+      },
+      "hidden": true,
+      "checks": {
+        "notHidden": null,
+        "category": true,
+        "isAssignment": true
+      },
+      "pass": true
+    },
+    {
+      "id": "e29",
+      "tricky": "It has three dates (event 23/10, parent reply by 21/10, lessons resume 26/10) and even says 'no homework'; it is an ANNOUNCEMENT for an event, not an assignment, but from the school so it must not be hidden.",
+      "subject": "Sports Day - Friday, October 23 | Important information for Grade 6-9 students",
+      "expected": {
+        "category": "ANNOUNCEMENT",
+        "isAssignment": false,
+        "dueDate": null,
+        "priority": null,
+        "mustNotHide": true
+      },
+      "got": {
+        "category": "GENERAL",
+        "aiStatus": "ok",
+        "needsReview": false,
+        "reviewReason": "",
+        "isAssignment": false,
+        "dueDate": "2026-10-19",
+        "subject": "General",
+        "priority": "Med",
+        "evidence": ""
+      },
+      "hidden": false,
+      "checks": {
+        "notHidden": true,
+        "category": false,
+        "isAssignment": true
+      },
+      "pass": false
+    },
+    {
+      "id": "e30",
+      "tricky": "Mixed-language text; 'thứ Năm này' from Tuesday 13/10 → Thursday 15/10; a decoy make-up date ('giờ ra chơi thứ Sáu') follows; a 15-minute quiz is a test → EXAM, High.",
+      "subject": "Reminder: 15-minute quiz Unit 4 - thứ Năm này",
+      "expected": {
+        "category": "EXAM",
+        "isAssignment": true,
+        "dueDate": "2026-10-15",
+        "priority": "High",
+        "mustNotHide": true
+      },
+      "got": {
+        "category": "GENERAL",
+        "aiStatus": "ok",
+        "needsReview": false,
+        "reviewReason": "",
+        "isAssignment": false,
+        "dueDate": "2026-10-19",
+        "subject": "Môn học",
+        "priority": "Med",
+        "evidence": ""
+      },
+      "hidden": false,
+      "checks": {
+        "notHidden": true,
+        "category": false,
+        "isAssignment": false,
+        "dueDate": false,
+        "subject": false,
+        "priority": false
+      },
+      "pass": false
+    }
+  ]
+}

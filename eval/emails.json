@@ -1,0 +1,972 @@
+[
+  {
+    "id": "e01",
+    "modeledOn": "Google Classroom 'new assignment' notification, Vietnamese UI (sender '<Teacher> (Classroom)' <no-reply@classroom.google.com>, subject 'Bài tập mới: \"...\"', due line, 'Mở' button, Google footer). Notification type 'Work and other posts from teachers': https://support.google.com/edu/classroom/answer/6141557?hl=en ; VN UI terms 'ngày đến hạn', 'nộp muộn': https://support.google.com/edu/classroom/answer/6020285?hl=vi",
+    "tricky": "Google's Vietnamese date '18 thg 9, 23:59' has no year and abbreviates 'tháng' to 'thg'; the class is KHTN but the lesson is chemistry, so the subject must map to KHTN/Hoá.",
+    "email": {
+      "id": "e01",
+      "sender": "Nguyễn Thị Lan (Classroom)",
+      "senderEmail": "no-reply@classroom.google.com",
+      "subject": "Bài tập mới: \"Bài 2 - Phản ứng hoá học: Phiếu bài tập số 1\"",
+      "date": "2026-09-14T07:32:00+07:00",
+      "snippet": "Nguyễn Thị Lan đã đăng một bài tập mới trong 8A1 - Khoa học tự nhiên Bài tập mới Đến hạn: 18 thg 9, 23:59 Bài 2 - Phản ứng hoá học: Phiếu bài tập số",
+      "body": "Nguyễn Thị Lan đã đăng một bài tập mới trong 8A1 - Khoa học tự nhiên\n\nBài tập mới\nĐến hạn: 18 thg 9, 23:59\n\nBài 2 - Phản ứng hoá học: Phiếu bài tập số 1\n\nCác em làm phiếu bài tập đính kèm (câu 1 đến câu 8), chụp ảnh bài làm rõ nét và nộp trên Classroom. Câu 7, 8 cần viết rõ phương trình chữ của phản ứng.\n\nPhieu_BT_so1_Bai2.pdf\n\nMở\n\nGoogle LLC, 1600 Amphitheatre Parkway, Mountain View, CA 94043 USA\nBạn nhận được email này vì bạn đã cho biết rằng bạn muốn nhận thông báo qua email từ Google Classroom. Nếu không muốn nhận những email như thế này, bạn có thể hủy đăng ký hoặc thay đổi chế độ cài đặt.",
+      "labelIds": [
+        "INBOX",
+        "CATEGORY_UPDATES",
+        "UNREAD"
+      ]
+    },
+    "expected": {
+      "isAssignment": true,
+      "category": "ASSIGNMENT",
+      "subjectAliases": [
+        "Khoa học tự nhiên",
+        "KHTN",
+        "Natural Science",
+        "Science",
+        "Hoá học",
+        "Hóa học",
+        "Hoá",
+        "Hóa",
+        "Chemistry"
+      ],
+      "dueDate": "2026-09-18",
+      "priority": "Med",
+      "mustNotHide": true
+    }
+  },
+  {
+    "id": "e02",
+    "modeledOn": "Google Classroom 'new assignment' notification, English UI ('<Teacher> posted a new assignment in <class>', 'Due Sep 24, 11:59 PM', 'Open' button) with Vietnamese instructions, as seen when a Vietnamese school's accounts are set to English. https://support.google.com/edu/classroom/answer/6141557?hl=en",
+    "tricky": "English UI with a Vietnamese body; the work is marked optional ('KHÔNG bắt buộc', '(optional)'), so priority must be Low even though it has a due date.",
+    "email": {
+      "id": "e02",
+      "sender": "Phạm Thu Hà (Classroom)",
+      "senderEmail": "no-reply@classroom.google.com",
+      "subject": "New assignment: \"Bonus: Challenge problems Chapter 2 (optional)\"",
+      "date": "2026-09-21T15:10:00+07:00",
+      "snippet": "Phạm Thu Hà posted a new assignment in 7A2 - Toán New assignment Due Sep 24, 11:59 PM Bonus: Challenge problems Chapter 2 (optional) Bài tập nâng cao",
+      "body": "Phạm Thu Hà posted a new assignment in 7A2 - Toán\n\nNew assignment\nDue Sep 24, 11:59 PM\n\nBonus: Challenge problems Chapter 2 (optional)\n\nBài tập nâng cao KHÔNG bắt buộc, dành cho bạn nào muốn thử sức thêm với chương Số thực. Làm được bài nào thì nộp bài đó, cô sẽ cộng điểm khuyến khích cho các bạn làm đúng.\n\nChallenge_Chuong2_SoThuc.pdf\n\nOpen\n\nGoogle LLC, 1600 Amphitheatre Parkway, Mountain View, CA 94043 USA\nThis email was sent to you because you indicated that you'd like to receive email notifications from Google Classroom. If you don't want to receive emails like this, you can unsubscribe or change your settings.",
+      "labelIds": [
+        "INBOX",
+        "CATEGORY_UPDATES"
+      ]
+    },
+    "expected": {
+      "isAssignment": true,
+      "category": "ASSIGNMENT",
+      "subjectAliases": [
+        "Toán",
+        "Toán học",
+        "Toan",
+        "Math",
+        "Maths",
+        "Mathematics"
+      ],
+      "dueDate": "2026-09-24",
+      "priority": "Low",
+      "mustNotHide": true
+    }
+  },
+  {
+    "id": "e03",
+    "modeledOn": "Google Classroom 'new announcement' notification, Vietnamese UI, used by the teacher to announce a due-date change. Classroom has no dedicated 'due date changed' email type (the student notification list on https://support.google.com/edu/classroom/answer/6141557?hl=en has none), so changes reach students as a stream announcement like this.",
+    "tricky": "Two dates in one post: the OLD deadline (thứ Sáu 25/9) is mentioned first; the correct deadline is the NEW one (thứ Hai 28/9).",
+    "email": {
+      "id": "e03",
+      "sender": "Đặng Thị Minh Thư (Classroom)",
+      "senderEmail": "no-reply@classroom.google.com",
+      "subject": "Thông báo mới: \"Các em chú ý: cô gia hạn bài viết Kể lại một truyền thuyết...\"",
+      "date": "2026-09-24T20:05:00+07:00",
+      "snippet": "Đặng Thị Minh Thư đã đăng một thông báo mới trong 6A3 - Ngữ văn Thông báo mới Các em chú ý: cô gia hạn bài viết \"Kể lại một truyền thuyết\" cho cả",
+      "body": "Đặng Thị Minh Thư đã đăng một thông báo mới trong 6A3 - Ngữ văn\n\nThông báo mới\n\nCác em chú ý: cô gia hạn bài viết \"Kể lại một truyền thuyết\" cho cả lớp. Lúc giao bài cô ghi hạn nộp là thứ Sáu 25/9, nhưng vì tuần này lớp mình có lịch tập văn nghệ nên cô cho nộp chậm nhất 21h00 thứ Hai 28/9. Bài nộp trên Classroom, đặt tên file theo mẫu: STT_HoTen_KeTruyenThuyet.docx. Bạn nào đã nộp rồi thì không cần nộp lại.\n\nMở\n\nGoogle LLC, 1600 Amphitheatre Parkway, Mountain View, CA 94043 USA\nBạn nhận được email này vì bạn đã cho biết rằng bạn muốn nhận thông báo qua email từ Google Classroom. Nếu không muốn nhận những email như thế này, bạn có thể hủy đăng ký hoặc thay đổi chế độ cài đặt.",
+      "labelIds": [
+        "INBOX",
+        "CATEGORY_UPDATES"
+      ]
+    },
+    "expected": {
+      "isAssignment": true,
+      "category": "ASSIGNMENT",
+      "subjectAliases": [
+        "Ngữ văn",
+        "Ngữ Văn",
+        "Văn",
+        "Ngu van",
+        "Literature",
+        "Vietnamese Literature"
+      ],
+      "dueDate": "2026-09-28",
+      "priority": "Med",
+      "mustNotHide": true,
+      "categoryAlsoAccepted": [
+        "ANNOUNCEMENT"
+      ]
+    }
+  },
+  {
+    "id": "e04",
+    "modeledOn": "Google Classroom 'new announcement' notification, Vietnamese UI: a chatty weekly stream post (materials, class photos) with the only deadline in the middle of the text. https://support.google.com/edu/classroom/answer/6141557?hl=en",
+    "tricky": "It is an announcement, not an assignment post, and the deadline 'trước 21h thứ Năm tuần này' sits in the fourth paragraph between news items; the AI must still raise it as an assignment.",
+    "email": {
+      "id": "e04",
+      "sender": "Đỗ Mai Anh (Classroom)",
+      "senderEmail": "no-reply@classroom.google.com",
+      "subject": "Thông báo mới: \"Good morning 7A3! Tuần này mình học Unit 3: Community Service...\"",
+      "date": "2026-10-05T06:45:00+07:00",
+      "snippet": "Đỗ Mai Anh đã đăng một thông báo mới trong 7A3 - Tiếng Anh Thông báo mới Good morning 7A3! 🌞 Tuần này mình học Unit 3: Community Service. Cô đã đưa",
+      "body": "Đỗ Mai Anh đã đăng một thông báo mới trong 7A3 - Tiếng Anh\n\nThông báo mới\n\nGood morning 7A3! 🌞\nTuần này mình học Unit 3: Community Service. Cô đã đưa file từ vựng và audio bài nghe lên mục Tài liệu, các em tải về nghe trước nhé.\nCô cảm ơn các bạn đã tham gia rất nhiệt tình buổi English Club hôm thứ Bảy, ảnh của lớp cô để trong album bên dưới.\nMột số bạn hỏi về bài thuyết trình nhóm \"Our community project\": các nhóm hoàn thành slide (5–7 trang) và nộp file lên Classroom trước 21h thứ Năm tuần này để cô góp ý trước khi các em thuyết trình. Nhóm trưởng nộp giúp cả nhóm.\nHave a great week!\n\nAlbum: English Club 3/10\n\nMở\n\nGoogle LLC, 1600 Amphitheatre Parkway, Mountain View, CA 94043 USA\nBạn nhận được email này vì bạn đã cho biết rằng bạn muốn nhận thông báo qua email từ Google Classroom. Nếu không muốn nhận những email như thế này, bạn có thể hủy đăng ký hoặc thay đổi chế độ cài đặt.",
+      "labelIds": [
+        "INBOX",
+        "CATEGORY_UPDATES",
+        "UNREAD"
+      ]
+    },
+    "expected": {
+      "isAssignment": true,
+      "category": "ASSIGNMENT",
+      "subjectAliases": [
+        "Tiếng Anh",
+        "Anh",
+        "Anh văn",
+        "English"
+      ],
+      "dueDate": "2026-10-08",
+      "priority": "Med",
+      "mustNotHide": true,
+      "categoryAlsoAccepted": [
+        "ANNOUNCEMENT"
+      ]
+    }
+  },
+  {
+    "id": "e05",
+    "modeledOn": "Google Classroom 'Due-date reminders for your work' notification (sent for unsubmitted work due within 24 hours), Vietnamese UI. Type documented at https://support.google.com/edu/classroom/answer/6141557?hl=en ; exact subject wording is not published by Google, so it is reconstructed.",
+    "tricky": "The due date is relative ('Ngày mai, 07:00') and the email is sent in the evening, so 'ngày mai' must resolve from the email's own date (Tue 6/10 → Wed 7/10).",
+    "email": {
+      "id": "e05",
+      "sender": "Google Classroom",
+      "senderEmail": "no-reply@classroom.google.com",
+      "subject": "Sắp đến hạn: \"Phiếu học tập Bài 2 - Cách mạng công nghiệp\"",
+      "date": "2026-10-06T19:00:00+07:00",
+      "snippet": "Bạn có bài tập sắp đến hạn 8A1 - Lịch sử và Địa lí Phiếu học tập Bài 2 - Cách mạng công nghiệp Đến hạn: Ngày mai, 07:00 Bạn chưa nộp bài tập này. Hãy",
+      "body": "Bạn có bài tập sắp đến hạn\n\n8A1 - Lịch sử và Địa lí\nPhiếu học tập Bài 2 - Cách mạng công nghiệp\nĐến hạn: Ngày mai, 07:00\n\nBạn chưa nộp bài tập này. Hãy nộp trước thời hạn để bài không bị đánh dấu là nộp muộn.\n\nMở\n\nGoogle LLC, 1600 Amphitheatre Parkway, Mountain View, CA 94043 USA\nBạn nhận được email này vì bạn đã cho biết rằng bạn muốn nhận thông báo qua email từ Google Classroom. Nếu không muốn nhận những email như thế này, bạn có thể hủy đăng ký hoặc thay đổi chế độ cài đặt.",
+      "labelIds": [
+        "INBOX",
+        "CATEGORY_UPDATES",
+        "UNREAD"
+      ]
+    },
+    "expected": {
+      "isAssignment": true,
+      "category": "ASSIGNMENT",
+      "subjectAliases": [
+        "Lịch sử và Địa lí",
+        "Lịch sử và Địa lý",
+        "Lịch sử & Địa lí",
+        "Lịch sử & Địa lý",
+        "LS&ĐL",
+        "Lịch sử",
+        "Sử",
+        "History",
+        "History and Geography"
+      ],
+      "dueDate": "2026-10-07",
+      "priority": "High",
+      "mustNotHide": true
+    }
+  },
+  {
+    "id": "e06",
+    "modeledOn": "Google Classroom 'new assignment' notification, English UI, international/bilingual school, where the teacher left the Classroom due date empty ('No due date') but wrote the deadline in the instructions. https://support.google.com/edu/classroom/answer/6141557?hl=en",
+    "tricky": "The structured field says 'No due date' but the instructions say 'by this Friday, October 16'; the AI must read the text and not report 'no date'.",
+    "email": {
+      "id": "e06",
+      "sender": "Daniel Reyes (Classroom)",
+      "senderEmail": "no-reply@classroom.google.com",
+      "subject": "New assignment: \"Scratch project: Maze game\"",
+      "date": "2026-10-12T09:20:00+07:00",
+      "snippet": "Daniel Reyes posted a new assignment in Grade 7 Computer Science - 7B New assignment No due date Scratch project: Maze game Hi 7B, Build a maze game",
+      "body": "Daniel Reyes posted a new assignment in Grade 7 Computer Science - 7B\n\nNew assignment\nNo due date\n\nScratch project: Maze game\n\nHi 7B,\nBuild a maze game in Scratch using the \"Maze starter\" project attached below. Your sprite must move with the arrow keys, bounce back when it touches a wall, and show a \"You win!\" message at the finish line.\nPlease submit your .sb3 file here by this Friday, October 16. The rubric is attached.\n\nMaze_starter.sb3\nRubric_Maze_game.pdf\n\nOpen\n\nGoogle LLC, 1600 Amphitheatre Parkway, Mountain View, CA 94043 USA\nThis email was sent to you because you indicated that you'd like to receive email notifications from Google Classroom. If you don't want to receive emails like this, you can unsubscribe or change your settings.",
+      "labelIds": [
+        "INBOX",
+        "CATEGORY_UPDATES"
+      ]
+    },
+    "expected": {
+      "isAssignment": true,
+      "category": "ASSIGNMENT",
+      "subjectAliases": [
+        "Tin học",
+        "Tin",
+        "Computer Science",
+        "Informatics",
+        "ICT"
+      ],
+      "dueDate": "2026-10-16",
+      "priority": "Med",
+      "mustNotHide": true
+    }
+  },
+  {
+    "id": "e07",
+    "modeledOn": "Canvas LMS 'Assignment Created' notification, English, copied from Instructure's own template app/messages/assignment_created.email.erb (subject 'Assignment Created - <name>, <course>', 'due: <date> at <time>', 'Click here to view the assignment'): https://github.com/instructure/canvas-lms/blob/master/app/messages/assignment_created.email.erb ; date format from lib/text_helper.rb + config/locales: https://github.com/instructure/canvas-lms/blob/master/lib/text_helper.rb",
+    "tricky": "Canvas omits the year for dates in the current year ('Oct 2 at 11:59pm'); the subject packs the assignment and course names into one comma-separated string.",
+    "email": {
+      "id": "e07",
+      "sender": "Canvas Notifications",
+      "senderEmail": "notifications@instructure.com",
+      "subject": "Assignment Created - Essay: A Place I Love, English 8 (Bilingual) - 8B",
+      "date": "2026-09-28T10:02:00+07:00",
+      "snippet": "A new assignment has been created for your course, English 8 (Bilingual) - 8B Essay: A Place I Love due: Oct 2 at 11:59pm Click here to view the",
+      "body": "A new assignment has been created for your course, English 8 (Bilingual) - 8B\n\nEssay: A Place I Love\n\ndue: Oct 2 at 11:59pm\n\nClick here to view the assignment:\nhttps://riverside-bilingual.example.instructure.com/courses/2814/assignments/40217\n\nYou received this email because you are participating in one or more classes using Canvas. To change or turn off email notification settings, visit:\nhttps://riverside-bilingual.example.instructure.com/profile/communication",
+      "labelIds": [
+        "INBOX",
+        "CATEGORY_UPDATES"
+      ]
+    },
+    "expected": {
+      "isAssignment": true,
+      "category": "ASSIGNMENT",
+      "subjectAliases": [
+        "Tiếng Anh",
+        "Anh",
+        "Anh văn",
+        "English",
+        "English 8",
+        "Writing",
+        "Essay"
+      ],
+      "dueDate": "2026-10-02",
+      "priority": "Med",
+      "mustNotHide": true
+    }
+  },
+  {
+    "id": "e08",
+    "modeledOn": "Canvas LMS 'Assignment Due Date Changed' notification in Canvas's Vietnamese locale, copied from app/messages/assignment_due_date_changed.email.erb and the vi.yml strings ('Ngày Đến Hạn của Bài Tập Đã Thay Đổi: ...', '... đã thay đổi thành:', 'Nhấp vào đây để xem bài tập', date format '%b %-d' with abbr month 'Tháng 10', time '%l:%M%P' with pm = 'giờ chiều/tối'): https://github.com/instructure/canvas-lms/blob/master/app/messages/assignment_due_date_changed.email.erb ; https://github.com/instructure/canvas-lms/blob/master/config/locales/vi.yml",
+    "tricky": "Canvas's Vietnamese date 'Tháng 10 9 tại 11:59giờ chiều/tối' puts the month first (unusual in Vietnamese) and glues 'giờ chiều/tối' to the time; a day-first reading gives 10/9 = 10 September, which is wrong (and already past). Correct: 9 October.",
+    "email": {
+      "id": "e08",
+      "sender": "Canvas Notifications",
+      "senderEmail": "notifications@instructure.com",
+      "subject": "Ngày Đến Hạn của Bài Tập Đã Thay Đổi: Báo cáo thực hành số 2, KHTN 9A",
+      "date": "2026-10-05T08:15:00+07:00",
+      "snippet": "Ngày đến hạn của bài tập, Báo cáo thực hành số 2, đối với khóa học, KHTN 9A, đã thay đổi thành: Tháng 10 9 tại 11:59giờ chiều/tối Nhấp vào đây để xem",
+      "body": "Ngày đến hạn của bài tập, Báo cáo thực hành số 2, đối với khóa học, KHTN 9A, đã thay đổi thành:\n\nTháng 10 9 tại 11:59giờ chiều/tối\n\nNhấp vào đây để xem bài tập:\nhttps://thcs-saomai.example.instructure.com/courses/1187/assignments/30554\n\nBạn nhận được email này vì bạn đang tham gia một hoặc nhiều lớp học sử dụng Canvas. Để thay đổi hoặc tắt cài đặt thông báo qua email, hãy truy cập:\nhttps://thcs-saomai.example.instructure.com/profile/communication",
+      "labelIds": [
+        "INBOX",
+        "CATEGORY_UPDATES",
+        "UNREAD"
+      ]
+    },
+    "expected": {
+      "isAssignment": true,
+      "category": "ASSIGNMENT",
+      "subjectAliases": [
+        "Khoa học tự nhiên",
+        "KHTN",
+        "Natural Science",
+        "Science",
+        "Vật lí",
+        "Vật lý",
+        "Physics"
+      ],
+      "dueDate": "2026-10-09",
+      "priority": "Med",
+      "mustNotHide": true
+    }
+  },
+  {
+    "id": "e09",
+    "modeledOn": "Direct email from a Vietnamese subject teacher (giáo viên bộ môn) to the class: greeting 'Chào các em lớp ...', list of SGK/SBT exercises, deadline as a weekday ('thứ 6 tuần này'), signature 'Thầy <tên> - GV Toán'. Common phrasing; no single source.",
+    "tricky": "Relative date only: 'thứ 6 tuần này' sent on Monday 14/9 must resolve to Friday 18/9; 'kiểm tra vở' is a homework check, not a test.",
+    "email": {
+      "id": "e09",
+      "sender": "Thầy Ngô Đức Minh",
+      "senderEmail": "minh.nd@thcs-saomai.example.edu.vn",
+      "subject": "[Toán 8A1] Bài tập về nhà tuần 2",
+      "date": "2026-09-14T20:15:00+07:00",
+      "snippet": "Chào các em lớp 8A1, Thầy gửi bài tập về nhà tuần này phần \"Đa thức nhiều biến\": - SGK trang 12: bài 1.5, 1.6, 1.7 - SBT trang 8: bài 1.12, 1.15 (bài",
+      "body": "Chào các em lớp 8A1,\n\nThầy gửi bài tập về nhà tuần này phần \"Đa thức nhiều biến\":\n- SGK trang 12: bài 1.5, 1.6, 1.7\n- SBT trang 8: bài 1.12, 1.15 (bài 1.15 là bài khó, các em cố gắng thử)\n\nCác em làm vào vở bài tập, thứ 6 tuần này thầy kiểm tra vở đầu giờ. Bạn nào nghỉ học hôm đó thì chụp bài gửi qua email cho thầy trong ngày.\n\nCó gì chưa hiểu các em hỏi thầy trong giờ ra chơi nhé.\n\nThầy Minh\nGV Toán - Trường THCS Sao Mai",
+      "labelIds": [
+        "INBOX",
+        "CATEGORY_PERSONAL"
+      ]
+    },
+    "expected": {
+      "isAssignment": true,
+      "category": "ASSIGNMENT",
+      "subjectAliases": [
+        "Toán",
+        "Toán học",
+        "Toan",
+        "Math",
+        "Maths",
+        "Mathematics"
+      ],
+      "dueDate": "2026-09-18",
+      "priority": "Med",
+      "mustNotHide": true
+    }
+  },
+  {
+    "id": "e10",
+    "modeledOn": "Direct email from a Ngữ văn teacher assigning 'Bài viết số 1' with an explicit 'trước 21h ngày dd/mm' deadline and requirements list. Common phrasing; no single source.",
+    "tricky": "Date written dd/mm without a year ('trước 21h ngày 25/9'); the year must come from the email date, and 25/9 must not be read month-first.",
+    "email": {
+      "id": "e10",
+      "sender": "Cô Trần Bích Ngọc",
+      "senderEmail": "ngoc.tb@thcs-saomai.example.edu.vn",
+      "subject": "Bài viết số 1 - Ngữ văn 9A2",
+      "date": "2026-09-17T21:40:00+07:00",
+      "snippet": "Các em 9A2 thân mến, Cô giao bài viết số 1: Viết bài văn nghị luận phân tích một tác phẩm truyện (chọn 1 trong 2 truyện đã học: \"Chuyện người con gái",
+      "body": "Các em 9A2 thân mến,\n\nCô giao bài viết số 1: Viết bài văn nghị luận phân tích một tác phẩm truyện (chọn 1 trong 2 truyện đã học: \"Chuyện người con gái Nam Xương\" hoặc \"Truyện lạ nhà thuyền chài\").\n\nYêu cầu:\n- Độ dài 600–800 chữ, viết tay trên giấy kiểm tra, ghi đủ họ tên, lớp.\n- Có mở bài, thân bài, kết bài rõ ràng; trích dẫn chi tiết trong truyện để làm dẫn chứng.\n\nCác em nộp bài trước 21h ngày 25/9 bằng cách chụp ảnh bài làm và trả lời vào email này.\n\nChúc các em làm bài tốt.\nCô Ngọc",
+      "labelIds": [
+        "INBOX",
+        "CATEGORY_PERSONAL"
+      ]
+    },
+    "expected": {
+      "isAssignment": true,
+      "category": "ASSIGNMENT",
+      "subjectAliases": [
+        "Ngữ văn",
+        "Ngữ Văn",
+        "Văn",
+        "Ngu van",
+        "Literature",
+        "Vietnamese Literature"
+      ],
+      "dueDate": "2026-09-25",
+      "priority": "Med",
+      "mustNotHide": true
+    }
+  },
+  {
+    "id": "e11",
+    "modeledOn": "Direct email from an English teacher (THCS, Global Success textbook) with workbook homework due 'trước buổi học tới'. Common phrasing; no single source.",
+    "tricky": "'Trước buổi học tới' has no date; the email says the class meets Monday and Thursday, so from Tuesday 22/9 the next lesson is Thursday 24/9; 'kiểm tra miệng' is an oral check, not an exam.",
+    "email": {
+      "id": "e11",
+      "sender": "Cô Vương Thanh Tâm",
+      "senderEmail": "tam.vt@thcs-saomai.example.edu.vn",
+      "subject": "6A1 - English homework",
+      "date": "2026-09-22T18:30:00+07:00",
+      "snippet": "Dear 6A1, Hôm nay cả lớp đã học xong Unit 2 - A Closer Look 2. Bài tập về nhà: 1. Workbook trang 12–13: bài 1, 2, 4. 2. Học thuộc 10 từ mới trong vở,",
+      "body": "Dear 6A1,\n\nHôm nay cả lớp đã học xong Unit 2 - A Closer Look 2. Bài tập về nhà:\n1. Workbook trang 12–13: bài 1, 2, 4.\n2. Học thuộc 10 từ mới trong vở, đầu giờ buổi sau cô kiểm tra miệng.\n\nLớp mình học tiếng Anh vào thứ Hai và thứ Năm, các em hoàn thành bài trước buổi học tới và mang workbook lên lớp để cô chữa nhé.\n\nThanks and see you soon!\nMs. Tâm",
+      "labelIds": [
+        "INBOX",
+        "CATEGORY_PERSONAL"
+      ]
+    },
+    "expected": {
+      "isAssignment": true,
+      "category": "ASSIGNMENT",
+      "subjectAliases": [
+        "Tiếng Anh",
+        "Anh",
+        "Anh văn",
+        "English"
+      ],
+      "dueDate": "2026-09-24",
+      "priority": "High",
+      "mustNotHide": true
+    }
+  },
+  {
+    "id": "e12",
+    "modeledOn": "Weekly email from a giáo viên chủ nhiệm (GVCN) covering nề nếp, đồng phục, quỹ lớp, trực nhật and clubs, who also teaches Lịch sử và Địa lí and adds an assignment at the end. Common GVCN newsletter structure; no single source.",
+    "tricky": "The real deadline ('thứ Ba tuần sau') comes after 600+ characters of class news, and a decoy deadline appears first ('hạn đăng ký là hết tháng 10' for optional clubs).",
+    "email": {
+      "id": "e12",
+      "sender": "Cô Vũ Thị Hạnh",
+      "senderEmail": "hanh.vt@thcs-saomai.example.edu.vn",
+      "subject": "Thông tin lớp 7A5 tuần 5",
+      "date": "2026-10-01T21:00:00+07:00",
+      "snippet": "Các con lớp 7A5 thân mến, Cô tổng kết nhanh tuần 4 của lớp mình: - Nề nếp: lớp xếp thứ 3/12 lớp khối 7, cô khen tổ 2 trực nhật rất sạch sẽ. Vẫn còn 3",
+      "body": "Các con lớp 7A5 thân mến,\n\nCô tổng kết nhanh tuần 4 của lớp mình:\n- Nề nếp: lớp xếp thứ 3/12 lớp khối 7, cô khen tổ 2 trực nhật rất sạch sẽ. Vẫn còn 3 bạn đi học muộn vào sáng thứ Ba, các con chú ý đặt báo thức sớm hơn nhé.\n- Đồng phục: từ tuần sau trường kiểm tra đồng phục và thẻ học sinh ở cổng lúc 6h45, bạn nào chưa có thẻ thì báo lại với lớp trưởng.\n- Quỹ lớp: ban cán sự lớp đã công khai thu chi tháng 9 trên nhóm Zalo phụ huynh, các con về nhắc bố mẹ xem giúp cô.\n- Lịch trực nhật tuần 5: tổ 3. Tổ 3 nhớ đến sớm 15 phút để lau bảng, tưới cây.\n- Câu lạc bộ: CLB bóng rổ và CLB vẽ đang nhận thêm thành viên, hạn đăng ký là hết tháng 10, bạn nào thích thì gặp thầy Tổng phụ trách.\n\nVề môn Lịch sử và Địa lí cô dạy: sau buổi tham quan bảo tàng hôm thứ Bảy vừa rồi, mỗi con viết một bài thu hoạch khoảng 1 trang A4 (cảm nhận về một hiện vật em ấn tượng nhất và hiện vật đó cho em biết điều gì về lịch sử). Bài viết tay, nộp vào tiết Sử thứ Ba tuần sau, cô sẽ lấy điểm đánh giá thường xuyên.\n\nChúc các con cuối tuần vui vẻ.\nCô Hạnh - GVCN 7A5",
+      "labelIds": [
+        "INBOX",
+        "CATEGORY_PERSONAL"
+      ]
+    },
+    "expected": {
+      "isAssignment": true,
+      "category": "ASSIGNMENT",
+      "subjectAliases": [
+        "Lịch sử và Địa lí",
+        "Lịch sử và Địa lý",
+        "Lịch sử & Địa lí",
+        "Lịch sử & Địa lý",
+        "LS&ĐL",
+        "Lịch sử",
+        "Sử",
+        "History",
+        "History and Geography"
+      ],
+      "dueDate": "2026-10-06",
+      "priority": "Med",
+      "mustNotHide": true
+    }
+  },
+  {
+    "id": "e13",
+    "modeledOn": "Gmail reply thread (Vietnamese Gmail UI quote header 'Vào <thứ>, <ngày> thg <tháng>, <năm> lúc <giờ> <tên> <email> đã viết:' and '>' quoting) where a Công nghệ teacher extends a group-work deadline. Common Gmail thread layout.",
+    "tricky": "The quoted older messages contain the OLD deadline ('Hạn nộp: thứ Tư 07/10') and two other dates in quote headers; only the newest text counts: 'hết ngày thứ Hai 12/10'.",
+    "email": {
+      "id": "e13",
+      "sender": "Thầy Hoàng Văn Nam",
+      "senderEmail": "nam.hv@thcs-saomai.example.edu.vn",
+      "subject": "Re: [Công nghệ 8A1] Bài tập nhóm: Bản vẽ chi tiết",
+      "date": "2026-10-06T21:12:00+07:00",
+      "snippet": "Chào các em, Thầy đã đọc email của nhóm 3. Vì tuần này lớp mình vướng lịch tập huấn phòng cháy chữa cháy nên thầy đồng ý gia hạn cho TẤT CẢ các nhóm:",
+      "body": "Chào các em,\n\nThầy đã đọc email của nhóm 3. Vì tuần này lớp mình vướng lịch tập huấn phòng cháy chữa cháy nên thầy đồng ý gia hạn cho TẤT CẢ các nhóm: nộp bản vẽ chậm nhất hết ngày thứ Hai 12/10. Lưu ý bản vẽ phải có khung tên và ghi đủ kích thước.\n\nThầy Nam\n\nVào Th 3, 6 thg 10, 2026 lúc 18:05 Nguyễn Gia Huy <huy.ng.8a1@student.thcs-saomai.example.edu.vn> đã viết:\n> Em chào thầy ạ,\n> Nhóm 3 lớp 8A1 xin phép thầy cho nhóm em nộp muộn bài bản vẽ chi tiết vì bạn Lan nhóm em bị ốm ạ.\n> Em cảm ơn thầy ạ.\n>\n> Vào Th 5, 1 thg 10, 2026 lúc 20:30 Hoàng Văn Nam <nam.hv@thcs-saomai.example.edu.vn> đã viết:\n>> Thầy giao bài tập nhóm: mỗi nhóm vẽ bản vẽ chi tiết của một chi tiết máy đơn giản (ống lót hoặc tấm đệm) theo mẫu trong SGK.\n>> Hạn nộp: thứ Tư 07/10, nộp bản giấy khổ A4 cho lớp trưởng.",
+      "labelIds": [
+        "INBOX",
+        "CATEGORY_PERSONAL",
+        "IMPORTANT"
+      ]
+    },
+    "expected": {
+      "isAssignment": true,
+      "category": "ASSIGNMENT",
+      "subjectAliases": [
+        "Công nghệ",
+        "Technology",
+        "Design and Technology"
+      ],
+      "dueDate": "2026-10-12",
+      "priority": "Med",
+      "mustNotHide": true
+    }
+  },
+  {
+    "id": "e14",
+    "modeledOn": "Direct email from a Tin học teacher listing two pieces of work with different deadlines (a group project presentation and an individual spreadsheet exercise). Common phrasing; no single source.",
+    "tricky": "Two assignments in one email: the first-listed (project, Fri 23/10) is NOT the most urgent; the expected item is the second-listed spreadsheet due Wed 14/10 (2 days away → High). An AI that returns both items is correct if one of them is 14/10; merging them into one date is wrong.",
+    "email": {
+      "id": "e14",
+      "sender": "Thầy Bùi Đức Long",
+      "senderEmail": "long.bd@thcs-saomai.example.edu.vn",
+      "subject": "[Tin học 9A1] 2 bài tập cần làm",
+      "date": "2026-10-12T19:45:00+07:00",
+      "snippet": "Chào cả lớp 9A1, Thầy nhắc lại 2 việc các em cần làm trong thời gian tới: 1) Dự án nhóm \"Bảo vệ thông tin cá nhân trên mạng\": các nhóm chuẩn bị bài",
+      "body": "Chào cả lớp 9A1,\n\nThầy nhắc lại 2 việc các em cần làm trong thời gian tới:\n\n1) Dự án nhóm \"Bảo vệ thông tin cá nhân trên mạng\": các nhóm chuẩn bị bài trình chiếu 8–10 trang, thuyết trình trong tiết Tin thứ Sáu tuần sau (23/10). Mỗi nhóm có 5 phút.\n\n2) Bài tập bảng tính cá nhân: hoàn thành file \"Bang_diem_lop.xlsx\" (dùng hàm SUMIF, COUNTIF như đã học) và nộp lên thư mục Drive của lớp trước 21h thứ Tư (14/10).\n\nBài 2 tính vào điểm đánh giá thường xuyên nên các em đừng quên nhé.\n\nThầy Long",
+      "labelIds": [
+        "INBOX",
+        "CATEGORY_PERSONAL"
+      ]
+    },
+    "expected": {
+      "isAssignment": true,
+      "category": "ASSIGNMENT",
+      "subjectAliases": [
+        "Tin học",
+        "Tin",
+        "Computer Science",
+        "Informatics",
+        "ICT"
+      ],
+      "dueDate": "2026-10-14",
+      "priority": "High",
+      "mustNotHide": true,
+      "secondAssignment": {
+        "title": "Dự án nhóm: Bảo vệ thông tin cá nhân trên mạng (thuyết trình)",
+        "dueDate": "2026-10-23",
+        "priority": "Med"
+      }
+    }
+  },
+  {
+    "id": "e15",
+    "modeledOn": "Direct email from a Giáo dục công dân teacher asking students to prepare material, with the deadline explicitly postponed ('cô sẽ thông báo sau'). Common phrasing; no single source.",
+    "tricky": "There is NO deadline; the only number is a duration ('7 ngày liên tiếp') that an AI may wrongly turn into 'email date + 7'. Correct output: assignment with no date (dueDate null), never a guessed date.",
+    "email": {
+      "id": "e15",
+      "sender": "Cô Trịnh Ngọc Ánh",
+      "senderEmail": "anh.tn@thcs-saomai.example.edu.vn",
+      "subject": "GDCD 8A2 - Chuẩn bị cho bài Lập kế hoạch chi tiêu",
+      "date": "2026-10-14T16:20:00+07:00",
+      "snippet": "Chào các em 8A2, Để chuẩn bị cho bài \"Lập kế hoạch chi tiêu\", mỗi em làm giúp cô 2 việc: - Ghi lại tất cả các khoản chi tiêu cá nhân của mình trong 7",
+      "body": "Chào các em 8A2,\n\nĐể chuẩn bị cho bài \"Lập kế hoạch chi tiêu\", mỗi em làm giúp cô 2 việc:\n- Ghi lại tất cả các khoản chi tiêu cá nhân của mình trong 7 ngày liên tiếp (ăn sáng, đồ dùng học tập, gửi xe, ...) vào một tờ giấy A4.\n- Sưu tầm 1 bài báo hoặc 1 video ngắn về cách tiết kiệm tiền của học sinh, ghi lại đường link hoặc dán bài báo vào giấy.\n\nThời gian nộp cô sẽ thông báo sau khi lớp học xong bài mới, các em cứ chuẩn bị dần từ bây giờ nhé.\n\nCô Ánh",
+      "labelIds": [
+        "INBOX",
+        "CATEGORY_PERSONAL"
+      ]
+    },
+    "expected": {
+      "isAssignment": true,
+      "category": "ASSIGNMENT",
+      "subjectAliases": [
+        "Giáo dục công dân",
+        "GDCD",
+        "Civic Education",
+        "Civics"
+      ],
+      "dueDate": null,
+      "priority": "Med",
+      "mustNotHide": true
+    }
+  },
+  {
+    "id": "e16",
+    "modeledOn": "Official school notice (THÔNG BÁO) layout copied from a real THCS exam-schedule notice: header 'UBND PHƯỜNG ... / TRƯỜNG THCS ... / Số: .../TB-...', national motto, 'Kính gửi: Cha mẹ học sinh và học sinh', 'Thực hiện Kế hoạch số ...', a table of Ngày / Buổi / Môn / Khối / Thời gian làm bài, 'trân trọng thông báo./.', 'Nơi nhận', HIỆU TRƯỞNG. Model: THCS Yên Bắc 154/TB-THCSYB https://thcsyenbac.ninhbinh.edu.vn/wp-content/uploads/2025/12/154.TB-l%E1%BB%8Bch-KSCL-HKI-n%C4%83m-h%E1%BB%8Dc-25-26.pdf ; midterm content scope from https://ngothoinhiem.edu.vn/data/files/pdf/832-1.pdf",
+    "tricky": "A multi-subject exam timetable flattened to plain text; the expected item is the earliest exam (Ngữ văn, Mon 26/10). An AI that creates one EXAM per subject is correct if the earliest is 26/10. Dates carry the year (26/10/2026) while the header date is in words.",
+    "email": {
+      "id": "e16",
+      "sender": "Trường THCS Sao Mai",
+      "senderEmail": "bangiamhieu@thcs-saomai.example.edu.vn",
+      "subject": "THÔNG BÁO Lịch kiểm tra giữa học kỳ I năm học 2026-2027",
+      "date": "2026-10-12T10:00:00+07:00",
+      "snippet": "UBND PHƯỜNG AN KHÁNH TRƯỜNG THCS SAO MAI Số: 86/TB-THCSSM CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM Độc lập - Tự do - Hạnh phúc An Khánh, ngày 12 tháng 10",
+      "body": "UBND PHƯỜNG AN KHÁNH\nTRƯỜNG THCS SAO MAI\nSố: 86/TB-THCSSM\n\nCỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM\nĐộc lập - Tự do - Hạnh phúc\nAn Khánh, ngày 12 tháng 10 năm 2026\n\nTHÔNG BÁO\nLịch kiểm tra giữa học kỳ I\nNăm học 2026-2027\n\nKính gửi: Cha mẹ học sinh và học sinh trường THCS Sao Mai\n\nThực hiện Kế hoạch số 52/KH-THCSSM ngày 15/9/2026 của trường THCS Sao Mai về kiểm tra, đánh giá năm học 2026-2027, nhà trường thông báo lịch kiểm tra giữa học kỳ I cụ thể như sau:\n\nNgày | Buổi | Môn | Khối | Thời gian làm bài | Giờ tính giờ\n26/10/2026 (Thứ Hai) | Sáng | Ngữ văn | 6, 7, 8 | 90 phút | 7h30\n26/10/2026 (Thứ Hai) | Sáng | Ngữ văn | 9 | 120 phút | 7h30\n27/10/2026 (Thứ Ba) | Sáng | Toán | 6, 7, 8 | 90 phút | 7h30\n27/10/2026 (Thứ Ba) | Sáng | Toán | 9 | 120 phút | 7h30\n28/10/2026 (Thứ Tư) | Sáng | Tiếng Anh | 6, 7, 8, 9 | 60 phút | 7h30\n29/10/2026 (Thứ Năm) | Sáng | Khoa học tự nhiên | 6, 7, 8, 9 | 60 phút | 7h30\n30/10/2026 (Thứ Sáu) | Sáng | Lịch sử và Địa lí | 6, 7, 8, 9 | 60 phút | 7h30\n\nCác môn Giáo dục công dân, Tin học, Công nghệ kiểm tra trong tiết học trên lớp trong tuần từ 26/10 đến 30/10/2026 theo thời khóa biểu.\n\nLưu ý:\n- Học sinh có mặt tại phòng kiểm tra trước giờ tính giờ 15 phút, mang theo thẻ học sinh và đồ dùng học tập cần thiết.\n- Không mang điện thoại vào phòng kiểm tra.\n- Đề cương ôn tập các môn đã được giáo viên bộ môn đăng trên Google Classroom của từng lớp.\n\nTrường THCS Sao Mai trân trọng thông báo./.\n\nNơi nhận:\n- CMHS, HS (t/h);\n- GVCN, GVBM (t/h);\n- Lưu: VT.\n\nHIỆU TRƯỞNG\n(đã ký)\nNguyễn Văn Phúc",
+      "labelIds": [
+        "INBOX",
+        "CATEGORY_UPDATES",
+        "IMPORTANT"
+      ]
+    },
+    "expected": {
+      "isAssignment": true,
+      "category": "EXAM",
+      "subjectAliases": [
+        "Ngữ văn",
+        "Ngữ Văn",
+        "Văn",
+        "Ngu van",
+        "Literature",
+        "Vietnamese Literature",
+        "Kiểm tra giữa kỳ",
+        "Kiểm tra giữa kì",
+        "Giữa kỳ",
+        "Giữa kì",
+        "Midterm",
+        "Nhiều môn",
+        "Tất cả các môn"
+      ],
+      "dueDate": "2026-10-26",
+      "priority": "High",
+      "mustNotHide": true,
+      "allExamDates": {
+        "Ngữ văn": "2026-10-26",
+        "Toán": "2026-10-27",
+        "Tiếng Anh": "2026-10-28",
+        "Khoa học tự nhiên": "2026-10-29",
+        "Lịch sử và Địa lí": "2026-10-30"
+      }
+    }
+  },
+  {
+    "id": "e17",
+    "modeledOn": "Giấy mời họp phụ huynh học sinh (parent-meeting invitation) sent by the GVCN, following the standard template fields 'Kính gửi', 'Trân trọng kính mời', 'Thời gian: <giờ>, thứ ..., ngày ... tháng ... năm ...', 'Địa điểm', 'Nội dung', 'Đề nghị ... đến đúng giờ'. Template: https://hoatieu.vn/bieu-mau/mau-giay-moi-hop-phu-huynh-70321 ; meeting agenda items: https://hoatieu.vn/tai-lieu/noi-dung-hop-phu-huynh-dau-nam-hoc-112713",
+    "tricky": "Not a student assignment, yet it has an event date (Sun 27/9) and a deadline for PARENTS (survey 'trước ngày 25/9'); the AI must file it as SCHEDULE and not create homework.",
+    "email": {
+      "id": "e17",
+      "sender": "Cô Nguyễn Thị Lan - GVCN 8A1",
+      "senderEmail": "lan.nt@thcs-saomai.example.edu.vn",
+      "subject": "Giấy mời họp phụ huynh học sinh đầu năm học 2026-2027 - Lớp 8A1",
+      "date": "2026-09-16T16:00:00+07:00",
+      "snippet": "TRƯỜNG THCS SAO MAI GIẤY MỜI HỌP PHỤ HUYNH HỌC SINH Kính gửi: Quý phụ huynh học sinh lớp 8A1 Trân trọng kính mời Quý phụ huynh đến dự buổi họp phụ",
+      "body": "TRƯỜNG THCS SAO MAI\nGIẤY MỜI HỌP PHỤ HUYNH HỌC SINH\n\nKính gửi: Quý phụ huynh học sinh lớp 8A1\n\nTrân trọng kính mời Quý phụ huynh đến dự buổi họp phụ huynh học sinh đầu năm học 2026-2027.\nThời gian: 8h00, Chủ nhật, ngày 27 tháng 9 năm 2026\nĐịa điểm: Phòng học lớp 8A1 (tầng 2, nhà B), Trường THCS Sao Mai\n\nNội dung:\n- Thông qua kế hoạch năm học và quy định đánh giá học sinh theo Thông tư 22.\n- Báo cáo tình hình học tập, nề nếp của lớp trong tháng 9.\n- Bầu Ban đại diện cha mẹ học sinh lớp.\n\nĐể chuẩn bị cho buổi họp, đề nghị Quý phụ huynh điền phiếu khảo sát trực tuyến về thông tin gia đình và nguyện vọng trước ngày 25/9 theo đường link: https://forms.example.com/8a1-khaosat\n\nĐề nghị Quý phụ huynh sắp xếp thời gian đến đúng giờ để buổi họp thành công.\nTrân trọng!\n\nGIÁO VIÊN CHỦ NHIỆM\nNguyễn Thị Lan",
+      "labelIds": [
+        "INBOX",
+        "CATEGORY_PERSONAL"
+      ]
+    },
+    "expected": {
+      "isAssignment": false,
+      "category": "SCHEDULE",
+      "subjectAliases": [],
+      "dueDate": null,
+      "priority": null,
+      "mustNotHide": true,
+      "eventDate": "2026-09-27"
+    }
+  },
+  {
+    "id": "e18",
+    "modeledOn": "Urgent school notice 'THÔNG BÁO (KHẨN) Về việc nghỉ tránh bão số ...' with 'Căn cứ ...' lines, closure date, return date and a make-up day (học bù). Template: https://hoatieu.vn/bieu-mau/mau-thong-bao-nghi-bao-140037 ; real closures and make-up arrangements: https://thanhtra.com.vn/giao-duc-A6BAEB6CD/cho-hoc-sinh-cac-cap-nghi-hoc-trong-2-ngay-27-28-10-de-phong-tranh-bao-so-9-16BB8E6E.html , https://plo.vn/post-879856.html . Since the 1/7/2025 two-level local government reform, school notices cite UBND phường/xã and the Sở GD&ĐT rather than a district Phòng GD&ĐT (see the 'UBND PHƯỜNG ĐỒNG VĂN' header in the Yên Bắc notice).",
+    "tricky": "Several dates (30/9 closure, 01/10 return, 10/10 make-up day) and the word 'học bù', but nothing to submit: SCHEDULE, not an assignment.",
+    "email": {
+      "id": "e18",
+      "sender": "Trường THCS Sao Mai",
+      "senderEmail": "thongbao@thcs-saomai.example.edu.vn",
+      "subject": "THÔNG BÁO (KHẨN) V/v cho học sinh nghỉ học để phòng, tránh bão số 8",
+      "date": "2026-09-29T15:30:00+07:00",
+      "snippet": "UBND PHƯỜNG AN KHÁNH TRƯỜNG THCS SAO MAI Số: 71/TB-THCSSM THÔNG BÁO (KHẨN) Về việc cho học sinh nghỉ học để phòng, tránh bão số 8 Kính gửi: Cha mẹ",
+      "body": "UBND PHƯỜNG AN KHÁNH\nTRƯỜNG THCS SAO MAI\nSố: 71/TB-THCSSM\n\nTHÔNG BÁO (KHẨN)\nVề việc cho học sinh nghỉ học để phòng, tránh bão số 8\n\nKính gửi: Cha mẹ học sinh và học sinh toàn trường\n\nCăn cứ Công văn số 1520/UBND-VHXH ngày 29/9/2026 của UBND phường An Khánh về việc chủ động ứng phó với bão số 8;\nCăn cứ chỉ đạo của Sở Giáo dục và Đào tạo về việc cho học sinh nghỉ học để đảm bảo an toàn,\n\nNhà trường thông báo:\n1. Toàn thể học sinh nghỉ học ngày thứ Tư 30/9/2026. Học sinh đi học trở lại vào thứ Năm 01/10/2026 (nếu có thay đổi, nhà trường sẽ thông báo trên cổng thông tin và nhóm Zalo các lớp).\n2. Học bù: các lớp học bù vào sáng thứ Bảy 10/10/2026 theo thời khóa biểu của ngày thứ Tư.\n3. Trong thời gian nghỉ, học sinh không ra ngoài khi có mưa to, gió lớn; không đến gần sông, hồ, cột điện, cây to.\n\nĐề nghị Quý phụ huynh phối hợp quản lý, nhắc nhở các em đảm bảo an toàn.\n\nHIỆU TRƯỞNG\nNguyễn Văn Phúc",
+      "labelIds": [
+        "INBOX",
+        "CATEGORY_UPDATES",
+        "IMPORTANT"
+      ]
+    },
+    "expected": {
+      "isAssignment": false,
+      "category": "SCHEDULE",
+      "subjectAliases": [],
+      "dueDate": null,
+      "priority": null,
+      "mustNotHide": true,
+      "eventDate": "2026-09-30",
+      "makeUpDate": "2026-10-10"
+    }
+  },
+  {
+    "id": "e19",
+    "modeledOn": "Azota assignment notice. Azota's assignment form has 'tên bài tập', 'hạn nộp (nếu có)' and 'yêu cầu đăng nhập để nộp' (https://hoatieu.vn/cach-giao-va-cham-bai-tap-cho-hoc-sinh-tren-azota-211092), and the student app notifies new work and deadline reminders, mostly in-app and via Zalo class groups (https://www.thegioididong.com/game-app/azota-ung-dung-giao-va-cham-bai-tap-251439). The email wrapper and sender address are a reconstruction.",
+    "tricky": "Platform date format 'Hạn nộp: 21:00 - 08/10/2026' (time before date, dd/mm/yyyy); sender is a platform, not a teacher, but it must not be hidden.",
+    "email": {
+      "id": "e19",
+      "sender": "Azota",
+      "senderEmail": "no-reply@azota.vn",
+      "subject": "[Azota] Bài tập mới: Ôn tập Chương I - Phương trình và hệ hai phương trình bậc nhất hai ẩn",
+      "date": "2026-10-05T17:05:00+07:00",
+      "snippet": "Azota - Thông báo bài tập mới Chào Lê Bảo Ngọc, Giáo viên Lương Thị Thảo vừa giao bài tập mới cho lớp 9A2 - Toán. Tên bài tập: Ôn tập Chương I -",
+      "body": "Azota - Thông báo bài tập mới\n\nChào Lê Bảo Ngọc,\n\nGiáo viên Lương Thị Thảo vừa giao bài tập mới cho lớp 9A2 - Toán.\n\nTên bài tập: Ôn tập Chương I - Phương trình và hệ hai phương trình bậc nhất hai ẩn\nHình thức: Tự luận - nộp ảnh bài làm\nHạn nộp: 21:00 - 08/10/2026\nYêu cầu đăng nhập để nộp: Có\n\nLàm bài ngay: https://azota.vn/de-thi/example9a2c1\n\nLưu ý: Bài nộp sau hạn nộp sẽ được đánh dấu \"Nộp muộn\".\n\nĐây là email tự động từ hệ thống Azota, vui lòng không trả lời email này.",
+      "labelIds": [
+        "INBOX",
+        "CATEGORY_UPDATES"
+      ]
+    },
+    "expected": {
+      "isAssignment": true,
+      "category": "ASSIGNMENT",
+      "subjectAliases": [
+        "Toán",
+        "Toán học",
+        "Toan",
+        "Math",
+        "Maths",
+        "Mathematics"
+      ],
+      "dueDate": "2026-10-08",
+      "priority": "Med",
+      "mustNotHide": true
+    }
+  },
+  {
+    "id": "e20",
+    "modeledOn": "OLM.VN assignment notice. OLM's teacher flow is 'Giao bài' → choose content → 'Điền ngày kiểm tra học sinh' → tick 'Cả lớp' → 'Lưu', after which 'cả lớp sẽ nhận được thông báo' (https://quantrimang.com/cong-nghe/cach-giao-bai-tap-tren-olm-vn-186002). The email wrapper is a reconstruction of that notice.",
+    "tricky": "OLM calls the deadline 'Ngày kiểm tra' (check date), which sounds like an exam; it is an auto-graded practice set due in 2 days (High). EXAM is tolerated as long as the date and priority are right.",
+    "email": {
+      "id": "e20",
+      "sender": "OLM.VN",
+      "senderEmail": "thongbao@olm.vn",
+      "subject": "[OLM] Em được giao bài mới: Luyện tập - Dấu hiệu chia hết cho 2, 5, 3, 9",
+      "date": "2026-10-14T18:30:00+07:00",
+      "snippet": "Xin chào Đinh Quang Vinh, Giáo viên Nguyễn Văn Bình vừa giao bài cho lớp 6A4 - Trường THCS Sao Mai. Bài được giao: Luyện tập - Dấu hiệu chia hết cho",
+      "body": "Xin chào Đinh Quang Vinh,\n\nGiáo viên Nguyễn Văn Bình vừa giao bài cho lớp 6A4 - Trường THCS Sao Mai.\n\nBài được giao: Luyện tập - Dấu hiệu chia hết cho 2, 5, 3, 9 (20 câu trắc nghiệm)\nMôn: Toán 6\nNgày kiểm tra: 16/10/2026\n\nEm vào mục \"Bài tập được giao\" trên OLM để làm bài: https://olm.vn/lop-hoc/example6a4/bai-tap\nKết quả sẽ được chấm tự động và gửi cho giáo viên.\n\nTrân trọng,\nĐội ngũ OLM.VN",
+      "labelIds": [
+        "INBOX",
+        "CATEGORY_UPDATES"
+      ]
+    },
+    "expected": {
+      "isAssignment": true,
+      "category": "ASSIGNMENT",
+      "subjectAliases": [
+        "Toán",
+        "Toán học",
+        "Toan",
+        "Math",
+        "Maths",
+        "Mathematics"
+      ],
+      "dueDate": "2026-10-16",
+      "priority": "High",
+      "mustNotHide": true,
+      "categoryAlsoAccepted": [
+        "EXAM"
+      ]
+    }
+  },
+  {
+    "id": "e21",
+    "modeledOn": "vnEdu / SMAS electronic contact book (sổ liên lạc điện tử) grade notice. Parents see scores under 'Kết quả học tập' and get school notices by app/SMS (https://cellphones.com.vn/sforum/vnedu-phu-huynh , https://viettelstore.vn/tin-tuc/smas-4-0-la-gi-huong-dan-dang-nhap-va-su-dung-so-lien-lac-dien-tu-chi-tiet-nhat). Score labels follow Thông tư 22/2021/TT-BGDĐT (ĐĐGtx = điểm đánh giá thường xuyên; subjects like Giáo dục thể chất are graded Đạt/Chưa đạt): https://luatminhkhue.vn/van-ban/thong-tu-22-2021-tt-bgddt.aspx . The email wrapper is a reconstruction.",
+    "tricky": "A grade report, not work to do; it ends with a service-renewal deadline ('hết hạn vào ngày 31/10/2026') that must not become an assignment due date, and the GVCN comment names a weak subject without asking for any task.",
+    "email": {
+      "id": "e21",
+      "sender": "vnEdu - Sổ liên lạc điện tử",
+      "senderEmail": "thongbao@vnedu.vn",
+      "subject": "[vnEdu] Thông báo kết quả học tập - HS Trần Minh Khoa - Lớp 8A1",
+      "date": "2026-10-16T11:00:00+07:00",
+      "snippet": "TRƯỜNG THCS SAO MAI thông báo: Kết quả học tập của học sinh Trần Minh Khoa, lớp 8A1, cập nhật đến ngày 16/10/2026: - Toán: ĐĐGtx: 8; 9; 7,5 - Ngữ",
+      "body": "TRƯỜNG THCS SAO MAI thông báo:\nKết quả học tập của học sinh Trần Minh Khoa, lớp 8A1, cập nhật đến ngày 16/10/2026:\n\n- Toán: ĐĐGtx: 8; 9; 7,5\n- Ngữ văn: ĐĐGtx: 7; 8\n- Tiếng Anh: ĐĐGtx: 9; 8,5\n- Khoa học tự nhiên: ĐĐGtx: 6,5; 7\n- Lịch sử và Địa lí: ĐĐGtx: 8\n- Giáo dục công dân: ĐĐGtx: 9\n- Giáo dục thể chất: Đ\n\nNhận xét của GVCN: Em có ý thức học tập tốt, cần chú ý hơn môn Khoa học tự nhiên.\n\nPhụ huynh xem chi tiết điểm và nhận xét trên ứng dụng vnEdu Connect, mục \"Kết quả học tập\".\n\nThông báo dịch vụ: Gói dịch vụ Sổ liên lạc điện tử học kỳ I của Quý phụ huynh sẽ hết hạn vào ngày 31/10/2026. Vui lòng gia hạn để không bị gián đoạn việc nhận thông báo.\n\nĐây là thư tự động, vui lòng không trả lời.",
+      "labelIds": [
+        "INBOX",
+        "CATEGORY_UPDATES"
+      ]
+    },
+    "expected": {
+      "isAssignment": false,
+      "category": "GRADE",
+      "subjectAliases": [],
+      "dueDate": null,
+      "priority": null,
+      "mustNotHide": true
+    }
+  },
+  {
+    "id": "e22",
+    "modeledOn": "Teacher email sent from a personal Gmail address with newsletter-style formatting (emoji bullets, 'TẶNG MIỄN PHÍ', 'tải ngay', an opt-out line), the kind Gmail files under Promotions. This is the failure the judges described: a real assignment hidden as a promotion. Gmail category labels: https://developers.google.com/workspace/gmail/api/guides/labels",
+    "tricky": "Labelled CATEGORY_PROMOTIONS, sender is @gmail.com (no .edu/school domain), body full of promo words; it is still a compulsory assignment due Sun 18/10.",
+    "email": {
+      "id": "e22",
+      "sender": "Thầy Tuấn Toán",
+      "senderEmail": "thaytuan.toan@gmail.com",
+      "subject": "🔥 [Toán 9A1] Đề luyện tập số 4 + TẶNG file tổng hợp công thức - hạn nộp CN 18/10",
+      "date": "2026-10-15T20:30:00+07:00",
+      "snippet": "Chào các em lớp 9A1 thân mến! 👋 📌 Thầy gửi ĐỀ LUYỆN TẬP SỐ 4 (chủ đề: Hệ thức lượng trong tam giác vuông). Đây là bài BẮT BUỘC, thầy lấy điểm đánh",
+      "body": "Chào các em lớp 9A1 thân mến! 👋\n\n📌 Thầy gửi ĐỀ LUYỆN TẬP SỐ 4 (chủ đề: Hệ thức lượng trong tam giác vuông). Đây là bài BẮT BUỘC, thầy lấy điểm đánh giá thường xuyên.\n👉 Tải đề tại đây: https://drive.google.com/file/d/EXAMPLE-de4/view\n⏰ Hạn nộp: trước 20h Chủ nhật 18/10. Các em chụp bài làm và nộp qua Google Form: https://forms.gle/EXAMPLE4\n\n🎁 TẶNG KÈM MIỄN PHÍ: file tổng hợp công thức Toán 9 học kỳ I, tải ngay tại link bên dưới, in ra dán vào vở để ôn thi giữa kỳ nhé!\n👉 https://drive.google.com/file/d/EXAMPLE-congthuc/view\n\nBạn nào chưa vào nhóm Zalo của lớp thì nhắn thầy nhé.\nChúc các em học tốt! 💪\nThầy Tuấn\n---\nNếu không muốn nhận email này nữa, các em trả lời email và ghi \"Hủy\".",
+      "labelIds": [
+        "INBOX",
+        "CATEGORY_PROMOTIONS",
+        "UNREAD"
+      ]
+    },
+    "expected": {
+      "isAssignment": true,
+      "category": "ASSIGNMENT",
+      "subjectAliases": [
+        "Toán",
+        "Toán học",
+        "Toan",
+        "Math",
+        "Maths",
+        "Mathematics"
+      ],
+      "dueDate": "2026-10-18",
+      "priority": "Med",
+      "mustNotHide": true
+    }
+  },
+  {
+    "id": "e23",
+    "modeledOn": "Teacher email sent from a personal Gmail address that mostly points to the teacher's Facebook page and the class Zalo group, the kind Gmail files under Social. Gmail category labels: https://developers.google.com/workspace/gmail/api/guides/labels",
+    "tricky": "Labelled CATEGORY_SOCIAL with facebook.com and zalo.me links and 'thả tim, bình luận' wording; sender is @gmail.com; the real assignment is due 'thứ Ba tuần sau' (from Fri 9/10 → Tue 13/10).",
+    "email": {
+      "id": "e23",
+      "sender": "Cô Lê Thu Hương",
+      "senderEmail": "cohuong.van8a3@gmail.com",
+      "subject": "Nhóm lớp 8A3 - Bài tập Ngữ văn tuần 6",
+      "date": "2026-10-09T21:00:00+07:00",
+      "snippet": "Chào các em lớp 8A3, Cô đã đăng video bài giảng \"Thu điếu\" lên trang Facebook \"Ngữ văn cùng cô Hương\" và gửi link vào nhóm Zalo lớp, các em xem lại",
+      "body": "Chào các em lớp 8A3,\n\nCô đã đăng video bài giảng \"Thu điếu\" lên trang Facebook \"Ngữ văn cùng cô Hương\" và gửi link vào nhóm Zalo lớp, các em xem lại trước khi làm bài nhé:\nhttps://www.facebook.com/example.nguvancohuong/videos/000000\nNhóm Zalo lớp: https://zalo.me/g/example8a3\n\nBài tập tuần 6: Viết đoạn văn (khoảng 200 chữ) phân tích vẻ đẹp của bức tranh mùa thu trong bài thơ \"Thu điếu\" của Nguyễn Khuyến. Các em viết vào vở, thứ Ba tuần sau cô thu vở chấm.\n\nBạn nào thả tim, bình luận dưới video thì cô cũng đọc hết, nhưng bài tập vẫn phải viết vào vở nhé 😊\n\nCô Hương",
+      "labelIds": [
+        "INBOX",
+        "CATEGORY_SOCIAL"
+      ]
+    },
+    "expected": {
+      "isAssignment": true,
+      "category": "ASSIGNMENT",
+      "subjectAliases": [
+        "Ngữ văn",
+        "Ngữ Văn",
+        "Văn",
+        "Ngu van",
+        "Literature",
+        "Vietnamese Literature"
+      ],
+      "dueDate": "2026-10-13",
+      "priority": "Med",
+      "mustNotHide": true
+    }
+  },
+  {
+    "id": "e24",
+    "modeledOn": "Vietnamese exam-prep course ad modeled on HOCMAI's 'HM10 Luyện đề' launch post: '2K.. CHÚ Ý!', 'chính thức khai giảng', 'học phí chỉ từ 180.000 đồng/tháng', 'Áp dụng cho 100 học sinh đăng ký nhanh nhất', 'TẶNG MIỄN PHÍ ĐỀ THI THỬ VÀO 10', 'thời gian vàng', 'Đăng ký ngay': https://huongnghiep.hocmai.vn/2k10-chu-y-hm10-luyen-de-2025-chinh-thuc-khai-giang . Brand and domain are fictional.",
+    "tricky": "Looks academic: names Toán/Ngữ văn/Tiếng Anh, a 'bài kiểm tra đầu vào' and a 'hạn chót 20/10/2026'; it is still a PROMOTION and must not create a task.",
+    "email": {
+      "id": "e24",
+      "sender": "HọcGiỏi247 - Luyện thi vào 10",
+      "senderEmail": "tuvan@hocgioi247-example.vn",
+      "subject": "2K12 CHÚ Ý! Lộ trình luyện thi vào 10 Toán - Văn - Anh chính thức khai giảng 📚",
+      "date": "2026-10-13T19:00:00+07:00",
+      "snippet": "Chào bạn Trần Minh Khoa, Chỉ còn 8 tháng nữa là kỳ thi tuyển sinh vào lớp 10 năm 2027 sẽ chính thức diễn ra. Học kỳ I lớp 9 chính là \"thời gian vàng\"",
+      "body": "Chào bạn Trần Minh Khoa,\n\nChỉ còn 8 tháng nữa là kỳ thi tuyển sinh vào lớp 10 năm 2027 sẽ chính thức diễn ra. Học kỳ I lớp 9 chính là \"thời gian vàng\" để lấy lại gốc và bứt phá điểm số!\n\n✅ Lộ trình luyện thi vào 10 trọn gói 3 môn Toán - Ngữ văn - Tiếng Anh\n✅ Bám sát cấu trúc đề thi mới của Sở GD&ĐT\n✅ Học phí chỉ từ 180.000đ/tháng, áp dụng cho 100 học sinh đăng ký nhanh nhất\n🎁 TẶNG MIỄN PHÍ bộ đề thi thử vào 10 kèm lời giải chi tiết\n\n⏰ Hạn chót nhận ưu đãi: 23:59 ngày 20/10/2026\n📝 Làm bài kiểm tra đầu vào miễn phí để nhận lộ trình cá nhân: https://hocgioi247-example.vn/test-dau-vao\n\nĐĂNG KÝ NGAY: https://hocgioi247-example.vn/vao10\nHotline tư vấn: 1900 0000\n\nBạn nhận được email này vì đã đăng ký nhận tài liệu tại HọcGiỏi247. Hủy đăng ký",
+      "labelIds": [
+        "INBOX",
+        "CATEGORY_PROMOTIONS"
+      ]
+    },
+    "expected": {
+      "isAssignment": false,
+      "category": "PROMOTION",
+      "subjectAliases": [],
+      "dueDate": null,
+      "priority": null,
+      "mustNotHide": false
+    }
+  },
+  {
+    "id": "e25",
+    "modeledOn": "IELTS centre ad aimed at THCS students (placement test + 'học bổng 30%' + limited seats), the typical shape of Vietnamese English-centre email marketing; same urgency structure as the HOCMAI post above. No single source; brand and domain are fictional.",
+    "tricky": "Sender domain ends in .edu.vn (many commercial centres use one), body says 'BÀI KIỂM TRA ĐẦU VÀO' with a deadline 25/10; a '.edu' rule would wrongly trust it. Correct: PROMOTION.",
+    "email": {
+      "id": "e25",
+      "sender": "IELTS Sprint Academy",
+      "senderEmail": "hello@ieltssprint-example.edu.vn",
+      "subject": "Bài test IELTS miễn phí cho học sinh THCS - Nhận học bổng 30% trước 25/10 🎯",
+      "date": "2026-10-07T12:15:00+07:00",
+      "snippet": "Hi Khoa, Con đang học lớp 7-9 và muốn có IELTS 6.5+ trước khi vào lớp 10? IELTS Sprint Academy mở lớp IELTS Junior dành riêng cho học sinh THCS: - Lộ",
+      "body": "Hi Khoa,\n\nCon đang học lớp 7-9 và muốn có IELTS 6.5+ trước khi vào lớp 10?\nIELTS Sprint Academy mở lớp IELTS Junior dành riêng cho học sinh THCS:\n- Lộ trình 0 → 6.5 trong 18 tháng, cam kết đầu ra bằng văn bản\n- Lớp tối đa 12 học viên, giáo viên 8.0+\n- Học thử 2 buổi MIỄN PHÍ\n\n🎯 BÀI KIỂM TRA ĐẦU VÀO 4 KỸ NĂNG: hoàn thành trước 23:59 ngày 25/10 để nhận HỌC BỔNG 30% học phí khóa đầu tiên.\n👉 Làm bài test ngay: https://ieltssprint-example.edu.vn/placement-test\n\nƯu đãi chỉ dành cho 50 bạn đăng ký sớm nhất. Đừng bỏ lỡ!\n\nIELTS Sprint Academy\nTầng 5, số 18 đường Hoa Sữa, phường An Khánh\nUnsubscribe",
+      "labelIds": [
+        "INBOX",
+        "CATEGORY_PROMOTIONS"
+      ]
+    },
+    "expected": {
+      "isAssignment": false,
+      "category": "PROMOTION",
+      "subjectAliases": [],
+      "dueDate": null,
+      "priority": null,
+      "mustNotHide": false
+    }
+  },
+  {
+    "id": "e26",
+    "modeledOn": "Shopee-style back-to-school marketplace sale for the 10.10 double-day, with the 'Hoàn Xu Tựu Trường' mechanic (10% Xu back on orders from 150.000đ) seen on Shopee's own blog: https://shopee.vn/blog/?p=197663 . Sender domain is an example domain.",
+    "tricky": "School words everywhere (vở, sách tham khảo lớp 6-9, máy tính Casio, compa ôn thi) and an expiry '23:59 ngày 10/10/2026'; it is shopping, not schoolwork.",
+    "email": {
+      "id": "e26",
+      "sender": "Shopee",
+      "senderEmail": "info@mail.shopee-example.vn",
+      "subject": "🎒 10.10 Siêu Sale Tựu Trường | Balo, vở, máy tính Casio giảm đến 50%",
+      "date": "2026-10-09T12:00:00+07:00",
+      "snippet": "SIÊU SALE 10.10 - MÙA TỰU TRƯỜNG 🎒 Chỉ 1 ngày duy nhất 10.10! 📚 Vở, sách tham khảo lớp 6-9: đồng giá từ 9.000đ 🧮 Máy tính Casio fx-580VN X chính hãng",
+      "body": "SIÊU SALE 10.10 - MÙA TỰU TRƯỜNG 🎒\nChỉ 1 ngày duy nhất 10.10!\n\n📚 Vở, sách tham khảo lớp 6-9: đồng giá từ 9.000đ\n🧮 Máy tính Casio fx-580VN X chính hãng giảm 25%\n🎒 Balo chống gù cho học sinh THCS giảm đến 50%\n✏️ Combo bút + thước + compa ôn thi chỉ 49.000đ\n\n🎟️ Voucher Mùa Tựu Trường giảm 30K cho đơn từ 150K\nMã: TUUTRUONG1010 - Hạn sử dụng: 23:59 ngày 10/10/2026\n\nHoàn Xu 10% cho đơn đồ dùng học tập từ 150.000đ\n\nMUA NGAY\n\nBạn nhận được email này vì đã đăng ký nhận tin khuyến mãi. Hủy đăng ký",
+      "labelIds": [
+        "INBOX",
+        "CATEGORY_PROMOTIONS"
+      ]
+    },
+    "expected": {
+      "isAssignment": false,
+      "category": "PROMOTION",
+      "subjectAliases": [],
+      "dueDate": null,
+      "priority": null,
+      "mustNotHide": false
+    }
+  },
+  {
+    "id": "e27",
+    "modeledOn": "Facebook group activity notification ('<Tên> đã đăng trong <nhóm>', post excerpt, 'Xem bài viết', Meta footer) from a classmates' group. No official template was found online; layout follows the common Facebook notification email.",
+    "tricky": "A classmate's post asks for answers to 'bài tập Toán trang 45' and says 'Mai đi học sớm'; it is SOCIAL chatter, not a teacher assignment, and must not create a task with tomorrow's date.",
+    "email": {
+      "id": "e27",
+      "sender": "Facebook",
+      "senderEmail": "notification@facebookmail.com",
+      "subject": "Lê Gia Bảo đã đăng trong 8A1 Forever 💙",
+      "date": "2026-09-26T22:10:00+07:00",
+      "snippet": "Lê Gia Bảo đã đăng trong 8A1 Forever 💙 \"Ai có đáp án bài tập Toán trang 45 không cho tớ xin với 😭😭 Mai đi học sớm 15 phút, ai cho chép tớ khao trà",
+      "body": "Lê Gia Bảo đã đăng trong 8A1 Forever 💙\n\n\"Ai có đáp án bài tập Toán trang 45 không cho tớ xin với 😭😭 Mai đi học sớm 15 phút, ai cho chép tớ khao trà sữa 🧋\"\n\n12 bình luận · 5 lượt thích\n\nXem bài viết\nhttps://www.facebook.com/groups/example8a1forever/posts/000000\n\nPhạm Hà My và 3 người khác cũng đã bình luận về bài viết này.\n\nThông báo này đã được gửi đến khoa.tm@student.thcs-saomai.example.edu.vn. Để không nhận những email này từ Meta nữa, hãy hủy đăng ký.\nMeta Platforms, Inc., Attention: Community Support, 1 Meta Way, Menlo Park, CA 94025",
+      "labelIds": [
+        "INBOX",
+        "CATEGORY_SOCIAL"
+      ]
+    },
+    "expected": {
+      "isAssignment": false,
+      "category": "SOCIAL",
+      "subjectAliases": [],
+      "dueDate": null,
+      "priority": null,
+      "mustNotHide": false
+    }
+  },
+  {
+    "id": "e28",
+    "modeledOn": "Fake '100% scholarship' scam with an official-looking 'Số: .../HB-...' number, a short deadline, a 'phí xử lý hồ sơ' paid to a personal account and a Zalo contact; these are the red flags in the warnings from the Ministry's Cục Hợp tác quốc tế (https://lsvn.vn/bo-gd-dt-canh-bao-thong-tin-gia-ve-hoc-bong-tai-tro-du-hoc-a163216.html), HCMUT (https://voh.com.vn/giao-duc/truong-dai-hoc-tai-tphcm-canh-bao-tan-sinh-vien-ve-lua-dao-gia-mao-hoc-bong-610451.html), FPT University (https://tienphong.vn/truong-dai-hoc-canh-bao-thong-tin-lua-dao-lien-quan-den-hoc-bong-du-hoc-post1701288.html) and Tuổi Trẻ (https://tuoitre.vn/hang-loat-dai-hoc-phat-canh-bao-chieu-lua-dao-hoc-bong-giam-hoc-phi-cho-sinh-vien-20241223103555799.htm). Organisation, domain, bank and phone are fictional.",
+    "tricky": "Formal school-style layout, the student's full name and a hard deadline (17h00 20/10/2026) make it look urgent and official; Gmail already put it in SPAM. Correct: PROMOTION (or SPAM), never an assignment.",
+    "email": {
+      "id": "e28",
+      "sender": "Ban Tuyển chọn Học bổng ASEAN Future",
+      "senderEmail": "ban.tuyenchon@asean-future-scholarship.example.org",
+      "subject": "🎓 CHÚC MỪNG! Em đã được chọn nhận HỌC BỔNG 100% du học hè Singapore 2027 - Xác nhận trước 20/10",
+      "date": "2026-10-11T23:47:00+07:00",
+      "snippet": "THÔNG BÁO KẾT QUẢ XÉT CHỌN HỌC BỔNG Số: 2026/HB-ASEAN Kính gửi: Học sinh Trần Minh Khoa và Quý phụ huynh, Ban Tuyển chọn trân trọng chúc mừng em đã",
+      "body": "THÔNG BÁO KẾT QUẢ XÉT CHỌN HỌC BỔNG\nSố: 2026/HB-ASEAN\n\nKính gửi: Học sinh Trần Minh Khoa và Quý phụ huynh,\n\nBan Tuyển chọn trân trọng chúc mừng em đã được Hội đồng lựa chọn là 1 trong 50 học sinh THCS xuất sắc nhất Việt Nam nhận HỌC BỔNG TOÀN PHẦN 100% chương trình trao đổi học sinh hè tại Singapore năm 2027 (trị giá 150.000.000 VNĐ).\n\nĐể giữ suất học bổng, phụ huynh vui lòng hoàn tất các bước sau trước 17h00 ngày 20/10/2026:\n1. Điền phiếu xác nhận thông tin học sinh (kèm ảnh CCCD của phụ huynh và học bạ): https://asean-future-scholarship.example.org/xac-nhan\n2. Chuyển khoản phí xử lý hồ sơ 1.500.000 VNĐ vào tài khoản của cán bộ phụ trách:\n   STK: 0000 1234 5678 - Ngân hàng XYZ - Chủ TK: NGUYEN VAN A\n   Nội dung: HB2027 + Họ tên học sinh\n\nSau thời hạn trên, suất học bổng sẽ được chuyển cho học sinh khác trong danh sách chờ.\nMọi thắc mắc liên hệ thầy Hùng (Zalo): 0123 456 789\n\nTrân trọng,\nBan Tuyển chọn Học bổng ASEAN Future",
+      "labelIds": [
+        "SPAM"
+      ]
+    },
+    "expected": {
+      "isAssignment": false,
+      "category": "PROMOTION",
+      "subjectAliases": [],
+      "dueDate": null,
+      "priority": null,
+      "mustNotHide": false,
+      "categoryAlsoAccepted": [
+        "SPAM"
+      ]
+    }
+  },
+  {
+    "id": "e29",
+    "modeledOn": "English-language school-wide announcement from an international/bilingual school office (event date, schedule, what to bring, parent action deadline, signed by the Head of Secondary). Common international-school newsletter layout; no single source.",
+    "tricky": "It has three dates (event 23/10, parent reply by 21/10, lessons resume 26/10) and even says 'no homework'; it is an ANNOUNCEMENT for an event, not an assignment, but from the school so it must not be hidden.",
+    "email": {
+      "id": "e29",
+      "sender": "Riverside Bilingual School",
+      "senderEmail": "office@riverside-bilingual.example.edu.vn",
+      "subject": "Sports Day - Friday, October 23 | Important information for Grade 6-9 students",
+      "date": "2026-10-14T08:30:00+07:00",
+      "snippet": "Dear Students and Parents, We are excited to announce that our annual Sports Day for Grades 6–9 will take place on Friday, October 23, at Riverside",
+      "body": "Dear Students and Parents,\n\nWe are excited to announce that our annual Sports Day for Grades 6–9 will take place on Friday, October 23, at Riverside Sports Complex.\n\nSchedule:\n7:15 AM – Students gather at school; buses depart at 7:30 AM\n8:00 AM – Opening ceremony\n8:30 AM – 11:30 AM – Track events and team games\n12:00 PM – Buses return to school\n\nWhat to bring:\n- PE uniform in your house colour (Red, Blue, Green or Yellow) and running shoes\n- A refillable water bottle, a hat and sunscreen\n\nThere will be no regular classes on that day, and no homework will be set for October 23. Lessons resume as normal on Monday, October 26.\n\nIf your child has a medical condition that prevents them from taking part, please email the school office by Wednesday, October 21.\n\nKind regards,\nMs. Hannah Cole\nHead of Secondary\nRiverside Bilingual School",
+      "labelIds": [
+        "INBOX",
+        "CATEGORY_UPDATES"
+      ]
+    },
+    "expected": {
+      "isAssignment": false,
+      "category": "ANNOUNCEMENT",
+      "subjectAliases": [],
+      "dueDate": null,
+      "priority": null,
+      "mustNotHide": true,
+      "eventDate": "2026-10-23",
+      "categoryAlsoAccepted": [
+        "SCHEDULE"
+      ]
+    }
+  },
+  {
+    "id": "e30",
+    "modeledOn": "Bilingual (English + Vietnamese code-switching) reminder from an English teacher at a bilingual school about a 15-minute quiz, as is common in Vietnamese bilingual programmes. No single source.",
+    "tricky": "Mixed-language text; 'thứ Năm này' from Tuesday 13/10 → Thursday 15/10; a decoy make-up date ('giờ ra chơi thứ Sáu') follows; a 15-minute quiz is a test → EXAM, High.",
+    "email": {
+      "id": "e30",
+      "sender": "Ms. Nguyễn Hà Vy",
+      "senderEmail": "vy.nh@riverside-bilingual.example.edu.vn",
+      "subject": "Reminder: 15-minute quiz Unit 4 - thứ Năm này",
+      "date": "2026-10-13T20:10:00+07:00",
+      "snippet": "Hi Grade 7 English A, Just a quick reminder: lớp mình sẽ có bài 15-minute quiz Unit 4 (Music and Arts) vào tiết 2 thứ Năm này nhé. Quiz covers: -",
+      "body": "Hi Grade 7 English A,\n\nJust a quick reminder: lớp mình sẽ có bài 15-minute quiz Unit 4 (Music and Arts) vào tiết 2 thứ Năm này nhé.\n\nQuiz covers:\n- Vocabulary Unit 4 (Student's Book page 40–41)\n- Comparisons: (not) as … as, the same as, different from\n- Pronunciation: /ʃ/ and /ʒ/\n\nCác em ôn lại workbook trang 28–30. Bạn nào vắng sẽ làm bù vào giờ ra chơi thứ Sáu.\n\nGood luck, and see you on Thursday!\nMs. Vy",
+      "labelIds": [
+        "INBOX",
+        "CATEGORY_PERSONAL"
+      ]
+    },
+    "expected": {
+      "isAssignment": true,
+      "category": "EXAM",
+      "subjectAliases": [
+        "Tiếng Anh",
+        "Anh",
+        "Anh văn",
+        "English"
+      ],
+      "dueDate": "2026-10-15",
+      "priority": "High",
+      "mustNotHide": true
+    }
+  }
+]

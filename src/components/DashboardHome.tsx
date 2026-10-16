@@ -17,6 +17,7 @@ import { getTodayQuote, QUOTE_BANK, DailyQuote } from '../data/quotes';
 import { useNasaApod } from '../hooks/useNasaApod';
 import { usePomodoroStore } from '../stores/pomodoroStore';
 import { EmptyAssignments } from './EmptyState';
+import { MainFlowCard } from './MainFlowCard';
 import { t, useLang } from '../services/i18n';
 
 const LOCAL_STORAGE_NAME_KEY = 'scc_user_preferred_name';
@@ -38,6 +39,8 @@ interface DashboardHomeProps {
   calendarEvents?: CalendarEvent[];
   emailAlerts?: EmailAlert[];
   isLoadingEvents?: boolean;
+  canvasCount?: number;
+  classroomCount?: number;
 }
 
 type VibeType = 'focus' | 'calm' | 'creative' | 'recharge';
@@ -52,6 +55,8 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
   calendarEvents = [],
   emailAlerts = [],
   isLoadingEvents = false,
+  canvasCount = 0,
+  classroomCount = 0,
 }) => {
   useLang();
   // Time-aware greeting prefix
@@ -316,29 +321,15 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
           </div>
         </div>
 
-        {/* AI Planner — most-used planning entry point */}
-        <div className="bg-gradient-to-br from-violet-600 via-[#6D28D9] to-[#4C1D95] rounded-3xl p-5 text-left text-white shadow-lg shadow-violet-500/20 space-y-3">
-          <div className="flex items-center justify-between gap-2 flex-wrap">
-            <span className="inline-flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider bg-white/20 px-2.5 py-1 rounded-full">
-              <Sparkles className="w-3.5 h-3.5" /> AI Planner
-            </span>
-            <span className="text-[11px] font-semibold text-white/80">
-              {pendingAssignments.length} deadlines · {calendarEvents.length} meetings avoided
-            </span>
-          </div>
-          <h2 className="text-lg font-extrabold leading-tight">Your week, planned from every source.</h2>
-          <ul className="text-xs leading-relaxed text-white/90 space-y-1 list-disc pl-4">
-            <li>Tracker + Canvas + Classroom + Gmail + Moodle in one exclusive 7-day timetable.</li>
-            <li>Gmail-native inbox: Spam/Promos share a tab, Social separate, academic senders in Promo still AI-sorted — zero keywords.</li>
-            <li>AI chain 3.5-flash → 3.0-flash → Groq with offline fallback — never blank.</li>
-          </ul>
-          <button
-            onClick={() => onNavigateWorkspace('ai-planner')}
-            className="px-5 py-2.5 bg-white text-[#4C1D95] rounded-xl text-xs font-extrabold hover:bg-white/90 transition flex items-center gap-2 cursor-pointer"
-          >
-            Open AI Planner <ArrowRight className="w-4 h-4" />
-          </button>
-        </div>
+        {/* Main flow first (judges: focus on one flow instead of 34 small apps) */}
+        <MainFlowCard
+          assignments={assignments}
+          emailAlerts={emailAlerts}
+          onNavigate={onNavigateWorkspace}
+          isGoogleConnected={isGoogleConnected}
+          canvasCount={canvasCount}
+          classroomCount={classroomCount}
+        />
 
         {/* Today's Plan — overdue grouping + due today */}
         {pendingAssignments.length > 0 ? (

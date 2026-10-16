@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, Sparkles, CheckCircle2, Zap, ArrowRight } from 'lucide-react';
 
-export const CURRENT_VERSION = '2.17.1';
+export const CURRENT_VERSION = '2.18.0';
 
 interface VersionRelease {
   version: string;
@@ -14,10 +14,29 @@ interface VersionRelease {
 
 const RELEASES: VersionRelease[] = [
   {
+    version: '2.18.0',
+    date: 'October 16, 2026',
+    title: 'Schedule You Control + One Main Flow + AI Test Report',
+    badge: 'Latest Update',
+    highlights: [
+      'The AI never silently rewrites your week: see "AI muốn đổi 3 buổi", then apply or keep the old plan',
+      'Go back to any earlier plan, and lock sessions so the AI cannot move them',
+      'Reschedule in Vietnamese: "Dời Toán tối thứ 3 sang sáng thứ 7", "Tuần này em bận tối thứ 5"',
+      'Home and sidebar now start with one main flow: inbox → assignments → weekly plan',
+    ],
+    details: [
+      '102 Plan history + diff: every regenerate or chat change builds a candidate and shows each moved, added or removed session before anything changes; "Lịch sử lịch học" keeps the last 15 versions with "Quay lại bản này", plus a one-tap "↶ Hoàn tác" (Schedule → AI Planner).',
+      '103 Locks + manual edits: each session has Khoá / Mở khoá; editing a time or day by hand locks it automatically. Locked sessions are fixed busy time for the planner and are re-checked after every AI answer, so the AI cannot move them even if it tries.',
+      '104 Vietnamese commands: the AI turns your sentence into exact changes (move, swap, clear a day or evening, add a review, cap session length, finish before 22h), refuses to touch locked sessions and says so; without AI, a Vietnamese/English keyword parser (with or without diacritics) does the same.',
+      '105 No invented deadlines in the planner either: work without a date is listed under "Chưa có hạn nộp — AI không tự đặt hạn" instead of being pushed to the end of the week; AI-read dates show as dashed "Hạn chưa xác nhận" blocks.',
+      '106 One main flow: the dashboard opens with Sources → Needs your check → Assignments & due dates → Weekly plan, and the sidebar keeps those on top; other tools sit under "Công cụ khác". Canvas can be hidden with one tap if your school does not use it.',
+      '107 AI test set: 30 recreated school emails (fictional people, real Classroom/Canvas/teacher/school/EdTech formats), 10 Vietnamese reschedule sentences and 10 tutor requests in eval/, run with npx tsx scripts/eval_ai.ts; right/wrong per case in eval/REPORT.md.',
+    ]
+  },
+  {
     version: '2.17.1',
     date: 'October 16, 2026',
     title: 'AI Back Online: Current Gemini Model Chain',
-    badge: 'Latest Update',
     highlights: [
       'AI features work again — Google retired the models StudentOS was asking for, so every AI answer had been falling back',
     ],

@@ -1,0 +1,140 @@
+{
+  "ranAt": "2026-10-16T16:01:57.791Z",
+  "base": "https://sutdent-command-center.vercel.app",
+  "rows": [
+    {
+      "id": "s01",
+      "command": "Dời buổi Toán tối thứ 3 sang sáng thứ 7 nhé",
+      "intent": "move",
+      "expect": "Move only b02 (Toán, Tue 19:00-20:00) to Saturday morning, keeping its 60-minute length and not overlapping anything; everything else stays as it is.",
+      "ops": [],
+      "said": "Noted — rebalanced the week (request not understood)",
+      "pass": false,
+      "fails": [
+        "expected change on b02 not made"
+      ]
+    },
+    {
+      "id": "s02",
+      "command": "Tuần này em bận tối thứ 5, bỏ lịch tối thứ 5 giúp em nhé",
+      "intent": "clear_day",
+      "expect": "Nothing may remain on Thursday evening: b06 (Lịch sử và Địa lí 19:00) and b07 (Tiếng Anh 21:00) are moved to free slots on other days this week (preferred) or dropped for this week, and the reply says which. No other block moves.",
+      "ops": [],
+      "said": "Noted — rebalanced the week (request not understood)",
+      "pass": false,
+      "fails": [
+        "expected change on b06 not made",
+        "expected change on b07 not made"
+      ]
+    },
+    {
+      "id": "s03",
+      "command": "Thêm 1 buổi ôn KHTN trước bài kiểm tra thứ 6",
+      "intent": "add",
+      "expect": "Add one new Khoa học tự nhiên review block on Mon-Thu (the test is during the school day on Friday, so a Friday-evening block is too late), in a free slot that does not overlap any block, especially locked b04 (Wed 18:00-19:30). Existing blocks are not moved.",
+      "ops": [],
+      "said": "Noted — rebalanced the week (request not understood)",
+      "pass": false,
+      "fails": [
+        "missing added Khoa học tự nhiên"
+      ]
+    },
+    {
+      "id": "s04",
+      "command": "Bớt học buổi tối đi, em muốn ngủ trước 22h",
+      "intent": "limit_evening",
+      "expect": "Every block that ends after 22:00 is shortened, moved earlier or moved to another day so that nothing ends after 22:00 (21:30 is better, to leave time to get ready for bed): that is b07 (Thu 21:00-22:15) and b09 (Fri 21:00-22:30). Blocks that already end by 22:00 stay as they are.",
+      "ops": [],
+      "said": "Noted — rebalanced the week (request not understood)",
+      "pass": false,
+      "fails": [
+        "expected change on b07 not made",
+        "expected change on b09 not made"
+      ]
+    },
+    {
+      "id": "s05",
+      "command": "Đổi buổi Văn thứ 2 với buổi Anh thứ 3 cho nhau nhé",
+      "intent": "swap",
+      "expect": "Swap the time slots of b01 (Ngữ văn, Mon 19:00-20:00) and b03 (Tiếng Anh, Tue 20:15-21:15): Ngữ văn goes to Tue 20:15-21:15 and Tiếng Anh goes to Mon 19:00-20:00. Nothing else changes.",
+      "ops": [],
+      "said": "Noted — rebalanced the week (request not understood)",
+      "pass": false,
+      "fails": [
+        "expected change on b01 not made",
+        "expected change on b03 not made"
+      ]
+    },
+    {
+      "id": "s06",
+      "command": "Bỏ buổi học thêm Toán thứ 4 đi, em muốn ở nhà ôn Văn",
+      "intent": "locked_refuse",
+      "expect": "b04 (Học thêm Toán, Wed 18:00-19:30) is locked: keep it exactly as it is and tell the student it is locked (a fixed class they must unlock themselves or ask a parent about). Optionally offer, or add, a Ngữ văn review in a free slot that does not overlap b04. Deleting or moving b04 is a fail.",
+      "ops": [],
+      "said": "Noted — rebalanced the week (request not understood)",
+      "pass": false,
+      "fails": [
+        "reply does not say the session is locked"
+      ]
+    },
+    {
+      "id": "s07",
+      "command": "Em muốn học nhiều hơn môn em yếu",
+      "intent": "ambiguous",
+      "expect": "The plan does not say which subject is weak, so the right move is to ask which subject(s) the student means (or, if the app has grade data, name the subject it picked and why, then wait for a yes). It must not silently rewrite the week. Adding time to a subject only counts as correct if the reply names that subject and the reason.",
+      "ops": [],
+      "said": "Noted — rebalanced the week (request not understood)",
+      "pass": false,
+      "fails": [
+        "reply neither asks nor names the weak subject"
+      ]
+    },
+    {
+      "id": "s08",
+      "command": "Chủ nhật em muốn nghỉ hoàn toàn",
+      "intent": "day_off",
+      "expect": "Move b13 (Khoa học tự nhiên, Sun 19:30-20:30) to a free slot on another day (or drop it and say so). b12 (Tiếng Anh ở trung tâm, Sun 08:00-09:30) is locked, so it stays on Sunday and the reply must say Sunday cannot be fully free because of it.",
+      "ops": [],
+      "said": "Noted — rebalanced the week (request not understood)",
+      "pass": false,
+      "fails": [
+        "expected change on b13 not made",
+        "reply does not say the session is locked"
+      ]
+    },
+    {
+      "id": "s09",
+      "command": "Mỗi buổi học tối đa 45 phút thôi",
+      "intent": "max_duration",
+      "expect": "Every unlocked block longer than 45 minutes is shortened to at most 45 minutes or split into parts of at most 45 minutes with a break: b01, b02, b03, b05, b06, b07, b09, b10, b11, b13. b08 is already 45 minutes and stays. The two locked blocks (b04 90 min, b12 90 min) stay unchanged and the reply says they are locked.",
+      "ops": [],
+      "said": "Noted — rebalanced the week (request not understood)",
+      "pass": false,
+      "fails": [
+        "expected change on b01 not made",
+        "expected change on b02 not made",
+        "expected change on b03 not made",
+        "expected change on b05 not made",
+        "expected change on b06 not made",
+        "expected change on b07 not made",
+        "expected change on b09 not made",
+        "expected change on b10 not made",
+        "expected change on b11 not made",
+        "expected change on b13 not made",
+        "reply does not say the session is locked"
+      ]
+    },
+    {
+      "id": "s10",
+      "command": "doi toan sang thu 7",
+      "intent": "move",
+      "expect": "No diacritics: 'đổi Toán sang thứ 7'. The only unlocked Toán block not already on Saturday is b02 (Tue 19:00-20:00): move it to Saturday at a time that does not overlap b10 (14:00-15:30) or b11 (16:00-17:00), keeping 60 minutes. b04 (Học thêm Toán) is locked and must stay on Wednesday; b10 is already on Saturday and stays.",
+      "ops": [],
+      "said": "Noted — rebalanced the week (request not understood)",
+      "pass": false,
+      "fails": [
+        "expected change on b02 not made"
+      ]
+    }
+  ]
+}

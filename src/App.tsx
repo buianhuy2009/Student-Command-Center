@@ -3427,8 +3427,10 @@ export default function App() {
                       onConnectGoogle={() => handleGoogleSignIn(true)}
                       onOpenStudyPlan={() => setIsStudyPlanOpen(true)}
                       calendarEvents={calendarEvents}
-                      emailAlerts={emailAlerts}
+                      emailAlerts={allAlerts}
                       isLoadingEvents={isLoadingEvents}
+                      canvasCount={canvasAssignments.filter((c) => !c.isCompleted).length}
+                      classroomCount={classroomAssignments.filter((c) => !c.isCompleted).length}
                     />
                     {/* Demoted secondary card: collapsible + dismissible, never blocks greeting/Today Plan */}
                     <OnboardingChecklist

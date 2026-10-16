@@ -11,7 +11,20 @@ import {
 } from 'lucide-react';
 import { AppLogo } from './AppLogo';
 import { APP_CATALOG } from './AppStoreModal';
-import { t, useLang } from '../services/i18n';
+import { t, useLang, getLang } from '../services/i18n';
+import { isCanvasHidden } from './MainFlowCard';
+
+const L = (vi: string, en: string) => (getLang() === 'vi' ? vi : en);
+
+// The one main flow (judges: focus instead of 34 small apps). Always on top, never unpinnable.
+const MAIN_FLOW: Array<{ id: string; vi: string; en: string; descVi: string; descEn: string; badgeKey?: string }> = [
+  { id: 'gmail', vi: 'Hộp thư bài tập', en: 'School inbox', descVi: 'Gmail + Classroom, AI đọc', descEn: 'Gmail + Classroom, AI-read', badgeKey: 'gmail' },
+  { id: 'tracker', vi: 'Bài tập & hạn nộp', en: 'Assignments & due', descVi: 'Đã xác nhận / chưa xác nhận', descEn: 'Confirmed / unconfirmed', badgeKey: 'tracker' },
+  { id: 'ai-planner', vi: 'Lịch học tuần', en: 'Weekly plan', descVi: 'AI xếp, bạn khoá', descEn: 'AI plans, you lock' },
+  { id: 'classroom', vi: 'Google Classroom', en: 'Google Classroom', descVi: 'Bài tập & thông báo', descEn: 'Coursework & posts' },
+  { id: 'canvas', vi: 'Canvas', en: 'Canvas', descVi: 'Bài tập Canvas', descEn: 'Canvas assignments', badgeKey: 'canvas' },
+];
+const MAIN_FLOW_IDS = new Set(MAIN_FLOW.map((m) => m.id));
 
 const NavSection: React.FC<{ title?: string; isExpanded: boolean; children: React.ReactNode }> = ({ title, isExpanded, children }) => (
   <div className="space-y-1">
@@ -72,6 +85,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
   badges = {},
 }) => {
   useLang();
+  const [canvasHidden, setCanvasHiddenState] = useState(isCanvasHidden);
+  useEffect(() => {
+    const on = (e: any) => setCanvasHiddenState(Boolean(e?.detail));
+    window.addEventListener('scc-canvas-visibility', on);
+    return () => window.removeEventListener('scc-canvas-visibility', on);
+  }, []);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
@@ -95,6 +114,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const pinnedApps = useMemo(() => {
     return pinnedAppIds
+      .filter((id) => !MAIN_FLOW_IDS.has(id))
       .map((id) => APP_CATALOG.find((app) => app.id === id))
       .filter(Boolean) as typeof APP_CATALOG;
   }, [pinnedAppIds]);
@@ -162,6 +182,48 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       <div className="flex-1 overflow-y-auto min-h-0 space-y-4 pr-0.5">
+        <NavSection title={L('Luồng chính', 'Main flow')} isExpanded={isExpanded}>
+          {MAIN_FLOW.filter((m) => !(m.id === 'canvas' && canvasHidden)).map((m, i) => {
+            const isActive = activeTab === m.id;
+            const count = (m.badgeKey && (badges as any)[m.badgeKey]) || 0;
+            return (
+              <button
+                key={`flow-${m.id}`}
+                onClick={() => onSelectTab(m.id)}
+                aria-current={isActive ? 'page' : undefined}
+                data-tour-tab={m.id}
+                title={L(m.vi, m.en)}
+                className={`w-full rounded-xl flex items-center transition-all duration-200 cursor-pointer relative group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E05D38]/50 ${
+                  isExpanded ? 'px-3 py-2 justify-between gap-3 min-h-[44px]' : 'w-11 h-11 mx-auto justify-center'
+                } ${
+                  isActive
+                    ? 'bg-[#FCEEE8] dark:bg-[#252422] text-[#E05D38] dark:text-[#E8A07E] shadow-sm font-bold'
+                    : 'bg-white/60 hover:bg-white dark:bg-[#252422]/60 dark:hover:bg-[#252422] text-[#2B2621] dark:text-[#F5F4ED] border border-transparent'
+                }`}
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  {i < 3 ? (
+                    <span className="w-6 h-6 shrink-0 rounded-full bg-[#E05D38]/15 text-[#E05D38] text-[11px] font-extrabold flex items-center justify-center">{i + 1}</span>
+                  ) : (
+                    <AppLogo id={m.id} size="sm" />
+                  )}
+                  {isExpanded && (
+                    <div className="text-left min-w-0">
+                      <div className="text-xs truncate leading-tight">{L(m.vi, m.en)}</div>
+                      <div className="text-[10px] truncate text-[#70695E] dark:text-[#B5B2A8]">{L(m.descVi, m.descEn)}</div>
+                    </div>
+                  )}
+                </div>
+                {count > 0 && (
+                  <span className={isExpanded ? 'px-1.5 py-0.5 text-[9px] font-bold rounded-full bg-[#E05D38] text-white' : 'absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-[#E05D38]'}>
+                    {isExpanded ? (count > 99 ? '99+' : count) : null}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </NavSection>
+
         <NavSection title={t('side_pinned')} isExpanded={isExpanded}>
           <div className="space-y-1">
             {pinnedApps.length === 0 ? (
@@ -273,7 +335,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             title={t('side_open_store')}
           >
             <Plus className="w-4 h-4 shrink-0" strokeWidth={1.75} />
-            {isExpanded && <span>{t('side_add_tools')}</span>}
+            {isExpanded && <span>{L('Công cụ khác (thêm khi cần)', 'More tools (add when needed)')}</span>}
           </button>
           {!isExpanded && (
             <span className="absolute left-16 top-1/2 -translate-y-1/2 bg-[#141413] dark:bg-[#F5F4ED] text-[#F5F4ED] dark:text-[#141413] text-xs font-semibold px-2.5 py-1 rounded-lg opacity-0 pointer-events-none group-hover/add:opacity-100 transition-opacity delay-100 whitespace-nowrap z-50 shadow-md border border-[#E8E6DC] dark:border-[#2C2B27]">

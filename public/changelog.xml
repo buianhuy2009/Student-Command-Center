@@ -6,6 +6,12 @@
     <description>Plain-English updates to StudentOS — what changed and why it matters for studying.</description>
     <language>en-us</language>
     <item>
+      <title>v2.18.0 — Schedule You Control + One Main Flow + AI Test Report</title>
+      <link>https://sutdent-command-center.vercel.app/?changelog=2.18.0</link>
+      <pubDate>Fri, 16 Oct 2026 17:00:00 GMT</pubDate>
+      <description>The AI planner shows every change before applying it, keeps 15 earlier versions with undo, respects locked and hand-edited sessions, understands Vietnamese reschedule sentences, and never invents a deadline; the app now opens on one main flow, and an AI test report covers 30 school emails, 10 schedule commands and 10 tutor requests.</description>
+    </item>
+    <item>
       <title>v2.17.1 — AI Back Online: Current Gemini Model Chain</title>
       <link>https://sutdent-command-center.vercel.app/?changelog=2.17.1</link>
       <pubDate>Fri, 16 Oct 2026 16:10:00 GMT</pubDate>
