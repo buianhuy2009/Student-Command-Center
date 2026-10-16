@@ -56,28 +56,23 @@ basicProvider.setCustomParameters({
 export const workspaceProvider = new GoogleAuthProvider();
 export const coreWorkspaceProvider = new GoogleAuthProvider();
 
-// Google Workspace Scopes
-// Core Workspace Scopes: non-restricted student scopes (Calendar, Sheets, Drive files created by app, Docs, Classroom).
-// Free of restricted scopes (gmail.* and drive.readonly) so Google OAuth will NOT block unverified apps!
+// Google Workspace Scopes — least privilege (judges' feedback, v2.17.0).
+// Removed: calendar.readonly (calendar.events already reads), spreadsheets + documents
+// (drive.file covers the tracker sheet and docs the app creates), classroom rosters and
+// student-submissions (never called), drive.readonly and gmail.compose (drafts now open
+// Gmail's own compose window). Every remaining scope is explained in PrivacyModal.
 export const CORE_WORKSPACE_SCOPES = [
   'https://www.googleapis.com/auth/calendar.events',
-  'https://www.googleapis.com/auth/calendar.readonly',
-  'https://www.googleapis.com/auth/spreadsheets',
   'https://www.googleapis.com/auth/drive.file',
-  'https://www.googleapis.com/auth/documents',
   'https://www.googleapis.com/auth/classroom.courses.readonly',
   'https://www.googleapis.com/auth/classroom.coursework.me.readonly',
   'https://www.googleapis.com/auth/classroom.announcements.readonly',
-  'https://www.googleapis.com/auth/classroom.student-submissions.me.readonly',
-  'https://www.googleapis.com/auth/classroom.rosters.readonly',
 ];
 
-// Full Workspace Scopes: Core plus restricted Gmail & Drive scopes (requires GCP Test Users or verification)
+// Full Workspace Scopes: Core plus the one restricted scope, Gmail read-only (opt-in "Quét Gmail").
 export const WORKSPACE_SCOPES = [
   ...CORE_WORKSPACE_SCOPES,
-  'https://www.googleapis.com/auth/drive.readonly',
   'https://www.googleapis.com/auth/gmail.readonly',
-  'https://www.googleapis.com/auth/gmail.compose',
 ];
 
 CORE_WORKSPACE_SCOPES.forEach((scope) => {

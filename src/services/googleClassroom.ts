@@ -1,4 +1,4 @@
-import { CanvasAssignment, ApiEnablementInfo } from '../types';
+import { CanvasAssignment, ApiEnablementInfo, EmailMessage } from '../types';
 import { parseGoogleApiResponseError } from './googleWorkspace';
 
 export interface ClassroomCourse {
@@ -166,4 +166,47 @@ export async function fetchAllClassroomAssignments(token: string): Promise<Canva
     console.error('Error fetching all Classroom assignments:', error);
     throw error;
   }
+}
+
+/**
+ * Recent teacher announcements across active courses, shaped like emails so they run
+ * through the same AI reader → confirm card → review box. THCS teachers often give
+ * homework in a "Thông báo" post instead of a Classroom assignment.
+ */
+export async function fetchRecentClassroomAnnouncements(token: string, days = 21): Promise<EmailMessage[]> {
+  const courses = await fetchClassroomCourses(token);
+  const since = Date.now() - days * 86400000;
+  const out: EmailMessage[] = [];
+  await Promise.all(
+    (courses || []).slice(0, 20).map(async (course) => {
+      try {
+        const res = await fetch(
+          `https://classroom.googleapis.com/v1/courses/${course.id}/announcements?pageSize=10&orderBy=updateTime%20desc`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        if (!res.ok) return;
+        const data = await res.json();
+        for (const a of (data.announcements || []) as Array<ClassroomAnnouncement & { updateTime?: string; creatorUserId?: string }>) {
+          const when = a.updateTime || a.creationTime || '';
+          if (!a.text || (when && Date.parse(when) < since)) continue;
+          out.push({
+            id: `gca-${a.id}`,
+            sender: course.name,
+            senderEmail: 'no-reply@classroom.google.com',
+            subject: `Thông báo · ${course.name}`,
+            date: when ? new Date(when).toLocaleDateString() : '',
+            dateISO: when || undefined,
+            snippet: a.text.slice(0, 200),
+            body: a.text.slice(0, 6000),
+            labelIds: [],
+            sourceUrl: a.alternateLink || course.alternateLink,
+          } as EmailMessage & { sourceUrl?: string });
+        }
+      } catch (e) {
+        console.warn(`Could not load announcements for course ${course.id}:`, e);
+      }
+    })
+  );
+  out.sort((x, y) => (y.dateISO || '').localeCompare(x.dateISO || ''));
+  return out.slice(0, 30);
 }

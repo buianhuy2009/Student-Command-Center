@@ -21,6 +21,16 @@ export interface Assignment {
   attachments?: AssignmentAttachment[];
   submission?: AssignmentSubmission;
   trashedAt?: string | null;
+  /**
+   * Trust state of `dueDate`. Missing = legacy/manual/LMS (treated as confirmed).
+   * 'unconfirmed' = AI read it and the student has not checked it yet.
+   * 'missing' = AI found no date; `dueDate` is '' and nothing is invented.
+   */
+  dueStatus?: 'confirmed' | 'unconfirmed' | 'missing';
+  /** Deep link back to the original email / Classroom post / Canvas page. */
+  sourceUrl?: string;
+  /** Exact sentence the AI read the deadline from (shown on the confirm card). */
+  aiEvidence?: string;
 }
 
 export interface CalendarEvent {
@@ -56,6 +66,8 @@ export interface EmailMessage {
   unread?: boolean;
   /** Gmail native labels (CATEGORY_PROMOTIONS, CATEGORY_SOCIAL, SPAM, etc.). Trusted over keywords. */
   labelIds?: string[];
+  /** Send time as ISO 8601 (from Gmail internalDate) — the anchor for "thứ 6 tuần này". */
+  dateISO?: string;
 }
 
 export type EmailCategory = 'ASSIGNMENT' | 'EXAM' | 'GRADE' | 'SCHEDULE' | 'ANNOUNCEMENT' | 'SPAM' | 'PROMOTION' | 'SOCIAL' | 'GENERAL';
@@ -77,10 +89,25 @@ export interface EmailAlert {
     subject: string;
     dueDate: string;
     priority: PriorityLevel;
+    /** Exact quote from the email that holds the deadline ('' when none). */
+    dueEvidence?: string;
+    /** explicit = a written date, relative = "thứ 6 tuần này", none = no date in the email. */
+    dueConfidence?: 'explicit' | 'relative' | 'none';
   };
   rawEmail?: EmailMessage;
   /** Gmail native labels carried through (trusted over keywords). */
   gmailLabels?: string[];
+  /** ok = AI read it; failed = AI error/quota/omitted; skipped = sorted by Gmail labels, AI never read it. */
+  aiStatus?: 'ok' | 'failed' | 'skipped';
+  /** AI's own confidence in the classification, 0..1. */
+  confidence?: number;
+  /** Goes to "AI chưa đọc được – bạn xem giúp nhé" instead of being hidden. */
+  needsReview?: boolean;
+  reviewReason?: string;
+  /** Where the alert came from (Gmail by default; Classroom announcements reuse the pipeline). */
+  origin?: 'gmail' | 'classroom';
+  /** Deep link to the original message / post. */
+  sourceUrl?: string;
 }
 
 export interface SchoolFile {

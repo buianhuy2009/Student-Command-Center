@@ -1,5 +1,8 @@
 import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
+import summarizeEmailsHandler from "./api-handlers/gemini/summarize-emails.js";
+import parseAssignmentHandler from "./api-handlers/gemini/parse-assignment.js";
+import assistantHandler from "./api-handlers/gemini/assistant.js";
 
 dotenv.config();
 
@@ -161,168 +164,9 @@ export async function handleCanvasProxy(req: any, res: any) {
   }
 }
 
-// 3. Summarize Emails with Gemini — PII truncated, snippet limited to 300 chars
+// 3. Summarize Emails — single source of truth shared with Vercel (api-handlers).
 export async function handleSummarizeEmails(req: any, res: any) {
-  if (setCorsHeaders(req, res)) return;
-  try {
-    const { emails } = req.body || {};
-    if (!emails || !Array.isArray(emails) || emails.length === 0) {
-      return res.status(200).json({ alerts: [] });
-    }
-    // Truncate snippets/bodies to 300 chars and strip to prevent PII log leakage (keep Gmail labels)
-    const sanitizedEmails = (emails as any[]).slice(0, 25).map((e: any) => ({
-      id: e.id,
-      sender: String(e.sender || "").slice(0, 80),
-      senderEmail: String(e.senderEmail || "").slice(0, 120),
-      subject: String(e.subject || "").slice(0, 120),
-      snippet: String(e.snippet || e.body || "").slice(0, 300),
-      date: e.date,
-      labelIds: Array.isArray(e.labelIds) ? e.labelIds : [],
-    }));
-
-    const prompt = `You are an intelligent bilingual academic email scanner for a student command center.
-Analyze the following ${emails.length} emails. Note that emails may be in English or Vietnamese (tiếng Việt).
-Each email carries Gmail native labelIds — trust them as prior, never content keywords.
-
-Your tasks:
-1. GMAIL-NATIVE PRIOR:
-   - labelIds SPAM → "isSpam": true, "category": "PROMOTION", "urgency": "INFO".
-   - CATEGORY_PROMOTIONS / CATEGORY_SOCIAL with non-academic sender → "PROMOTION" / "SOCIAL", "urgency": "INFO".
-   - Academic senders (classroom/canvas/moodle/.edu/teacher) ALWAYS classified by content even in Promotions/Social.
-2. FOR ACADEMIC / SCHOOL / INSTRUCTOR EMAILS ONLY:
-   - Only emails genuinely from schools, teachers, professors, or academic LMS platforms (Canvas, Classroom, Blackboard) about coursework may be categorized into: "ASSIGNMENT", "EXAM", "GRADE", "SCHEDULE", "ANNOUNCEMENT", or "GENERAL".
-   - Extract actionable deadlines, quizzes, test dates, homework, lab reports, or office hours.
-   - Set urgency: "HIGH" for imminent school deadlines (<48h) or critical exam dates; "MEDIUM" for standard assignments/requests; "LOW" for general school info; "INFO" for newsletters/spam.
-3. LANGUAGE HANDLING:
-   - Identify the language ("vi" for Vietnamese, "en" for English).
-   - Write "oneLineSummary" concisely (under 14 words) in the SAME language as the email.
-   - If an assignment is detected, extract title and course name cleanly.
-
-Emails to scan:
-${JSON.stringify(sanitizedEmails, null, 2)}
-
-Respond with valid JSON matching this schema:
-{
-  "alerts": [
-    {
-      "id": "matching email id",
-      "sender": "clean sender name or role",
-      "subject": "email subject",
-      "oneLineSummary": "concise 1-line alert under 14 words with specific dates and action items",
-      "urgency": "HIGH" | "MEDIUM" | "LOW" | "INFO",
-      "category": "ASSIGNMENT" | "EXAM" | "GRADE" | "SCHEDULE" | "ANNOUNCEMENT" | "SPAM" | "PROMOTION" | "GENERAL",
-      "categoryLabel": "human-friendly label like 'Bài tập / Assignment' or 'Khuyến mãi / Promotion'",
-      "isSpam": boolean,
-      "spamReason": "reason if spam/promo or empty string",
-      "language": "vi" | "en" | "other",
-      "detectedAssignment": {
-        "isAssignment": boolean,
-        "name": "concise assignment name",
-        "subject": "detected course/subject like Toán, Vật lý, AP Physics, Literature, etc.",
-        "dueDate": "YYYY-MM-DD or empty string",
-        "priority": "High" | "Med" | "Low"
-      }
-    }
-  ]
-}
-Return only JSON, no markdown formatting.`;
-
-    const response = await generateWithModelFallback({
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-      },
-    });
-
-    const responseText = response.text || "{}";
-    const parsed = JSON.parse(responseText);
-    const ACADEMIC_SENDER_RE = /classroom|canvas|moodle|blackboard|\.edu|school|teacher|professor|instructor|phòng đào tạo|giáo viên/i;
-
-    if (parsed.alerts && Array.isArray(parsed.alerts)) {
-      parsed.alerts = parsed.alerts.map((alert: any) => {
-        const raw = emails.find((e: any) => e.id === alert.id);
-        const labels: string[] = raw?.labelIds || [];
-        const isAcademicSender = ACADEMIC_SENDER_RE.test(`${raw?.senderEmail || ''} ${raw?.sender || ''}`);
-        if (labels.includes('SPAM')) {
-          alert.isSpam = true;
-          alert.category = 'PROMOTION';
-          alert.categoryLabel = alert.language === 'vi' ? 'Khuyến mãi / Thư rác' : 'Promotion / Spam';
-          alert.urgency = 'INFO';
-          alert.spamReason = alert.spamReason || 'Sorted by Gmail';
-          if (alert.detectedAssignment) alert.detectedAssignment.isAssignment = false;
-        } else if (!isAcademicSender && labels.includes('CATEGORY_PROMOTIONS')) {
-          alert.isSpam = true;
-          alert.category = 'PROMOTION';
-          alert.categoryLabel = alert.language === 'vi' ? 'Khuyến mãi / Thư rác' : 'Promotion / Spam';
-          alert.urgency = 'INFO';
-          alert.spamReason = alert.spamReason || 'Sorted by Gmail';
-          if (alert.detectedAssignment) alert.detectedAssignment.isAssignment = false;
-        } else if (!isAcademicSender && labels.includes('CATEGORY_SOCIAL')) {
-          alert.isSpam = false;
-          alert.category = 'SOCIAL';
-          alert.categoryLabel = 'Social';
-          alert.urgency = 'INFO';
-          if (alert.detectedAssignment) alert.detectedAssignment.isAssignment = false;
-        }
-        alert.gmailLabels = labels;
-        return alert;
-      });
-    }
-    res.status(200).json(parsed);
-  } catch (err: any) {
-    console.error("Email summarization error:", err);
-    // Label-based fallback — no content keywords.
-    const ACADEMIC_FB_RE =
-      /classroom|canvas|moodle|blackboard|\.edu|school|teacher|professor|instructor|phòng đào tạo|giáo viên/i;
-
-    const fallbackAlerts = ((req.body && req.body.emails) || []).map((e: any) => {
-      const labels: string[] = e.labelIds || [];
-      const isAcademic = ACADEMIC_FB_RE.test(`${e.senderEmail || ''} ${e.sender || ''}`);
-      const fullText = `${e.subject || ""} ${e.snippet || ""} ${e.sender || ""}`;
-      const isVietnamese =
-        /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(
-          fullText
-        );
-
-      let category: any = "GENERAL";
-      let isSpam = false;
-      let urgency: any = "LOW";
-      let categoryLabel = isVietnamese ? "Thông báo chung" : "General Update";
-
-      if (labels.includes('SPAM') || (!isAcademic && labels.includes('CATEGORY_PROMOTIONS'))) {
-        category = "PROMOTION";
-        isSpam = true;
-        urgency = "INFO";
-        categoryLabel = isVietnamese ? "Khuyến mãi / Thư rác" : "Promotion / Spam";
-      } else if (!isAcademic && labels.includes('CATEGORY_SOCIAL')) {
-        category = "SOCIAL";
-        urgency = "INFO";
-        categoryLabel = "Social";
-      }
-
-      return {
-        id: e.id,
-        sender: e.sender || "Instructor",
-        subject: e.subject || "Email Notification",
-        oneLineSummary: `${(e.snippet || e.subject || "").slice(0, 75)}...`,
-        urgency,
-        category,
-        categoryLabel,
-        isSpam,
-        spamReason: isSpam ? 'Sorted by Gmail' : '',
-        language: isVietnamese ? "vi" : "en",
-        gmailLabels: labels,
-        detectedAssignment: {
-          isAssignment: false,
-          name: e.subject || "New Assignment",
-          subject: isVietnamese ? "Môn học" : "General",
-          dueDate: new Date(Date.now() + 86400000 * 3).toISOString().split("T")[0],
-          priority: "Med" as const,
-        },
-      };
-    });
-    res.status(200).json({ alerts: fallbackAlerts });
-  }
+  return summarizeEmailsHandler(req, res);
 }
 
 // 4. Quick Draft Email to Teacher
@@ -422,104 +266,14 @@ Return only JSON.`;
   }
 }
 
-// 5. Parse Natural Language Assignment
+// 5. Parse Natural Language Assignment — shared with Vercel (api-handlers).
 export async function handleParseAssignment(req: any, res: any) {
-  if (setCorsHeaders(req, res)) return;
-  try {
-    const { text } = req.body || {};
-    if (!text) {
-      return res.status(400).json({ error: "Text is required" });
-    }
-
-    const ai = getGenAI();
-    const prompt = `Extract a student assignment from this natural language text: "${text}"
-Current reference date is ${new Date().toISOString().split("T")[0]}.
-
-Respond with JSON:
-{
-  "subject": "detected course/subject like Physics, AP Calculus, Literature, Chemistry, etc. If unknown, use General",
-  "assignmentName": "clean concise assignment title",
-  "dueDate": "YYYY-MM-DD (estimate relative to today if user said tomorrow/friday/next week)",
-  "priority": "High" | "Med" | "Low",
-  "status": "Not Started",
-  "estimatedMinutes": 45
-}
-Return only JSON.`;
-
-    const response = await generateWithModelFallback({
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-      },
-    });
-
-    const parsed = JSON.parse(response.text || "{}");
-    res.status(200).json(parsed);
-  } catch (err: any) {
-    console.error("Parse assignment error:", err);
-    res.status(200).json({
-      subject: "General",
-      assignmentName: (req.body && req.body.text) || "New Task",
-      dueDate: new Date(Date.now() + 86400000 * 2).toISOString().split("T")[0],
-      priority: "Med",
-      status: "Not Started",
-      estimatedMinutes: 45,
-    });
-  }
+  return parseAssignmentHandler(req, res);
 }
 
-// 6. AI Study Assistant Chat
+// 6. AI Study Assistant Chat — shared with Vercel (api-handlers).
 export async function handleAssistant(req: any, res: any) {
-  if (setCorsHeaders(req, res)) return;
-  try {
-    const { messages, context } = req.body || {};
-
-    const systemInstruction = `You are the Student Command Center AI Study Advisor & Academic Coach.
-You help high school and university students manage their coursework, plan 45-minute focus sessions, break down large essays/projects into milestones, draft professional emails to professors, and master challenging concepts.
-Keep your responses structured, encouraging, concise, and highly actionable with markdown formatting and bullet points where helpful.
-Current student context:
-${JSON.stringify(context || {}, null, 2)}`;
-
-    // Sanitize messages so that turn 0 is ALWAYS 'user' (Gemini requirement)
-    const formattedContents: any[] = [];
-    for (const m of messages || []) {
-      const role = m.role === "assistant" ? "model" : "user";
-      if (formattedContents.length === 0 && role === "model") {
-        // Skip assistant welcome greeting if it's at index 0
-        continue;
-      }
-      formattedContents.push({
-        role,
-        parts: [{ text: m.content || "" }],
-      });
-    }
-
-    if (formattedContents.length === 0) {
-      formattedContents.push({
-        role: "user",
-        parts: [{ text: "Hello! How can you help me today?" }],
-      });
-    }
-
-    const response = await generateWithModelFallback({
-      contents: formattedContents,
-      config: {
-        systemInstruction,
-      },
-    });
-
-    res.status(200).json({
-      reply:
-        response.text ||
-        "I'm here to help you organize and conquer your school tasks!",
-    });
-  } catch (err: any) {
-    console.error("Study assistant error:", err);
-    res.status(200).json({
-      reply:
-        "I am ready to help you plan your study blocks, organize your assignments, and draft emails to your teachers! Let me know which task or class you want to tackle first.",
-    });
-  }
+  return assistantHandler(req, res);
 }
 
 // 7. AI Smart-Breakdown Task Extractor (Canvas)

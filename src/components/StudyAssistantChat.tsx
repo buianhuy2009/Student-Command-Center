@@ -13,6 +13,7 @@ import { MathMarkdown } from './MathMarkdown';
 import { sendStudyAssistantMessage } from '../services/gemini';
 import { queryVault, getVaultStats, VaultChunk } from '../services/ragVault';
 import { Assignment, CalendarEvent, EmailAlert } from '../types';
+import { useLang } from '../services/i18n';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -69,6 +70,10 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
     if (!v) setVaultSources([]);
   };
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [lang] = useLang();
+  const tutorBanner = lang === 'vi'
+    ? '💡 Gia sư AI chỉ gợi ý từng bước — không làm bài hộ'
+    : "💡 The AI tutor gives step-by-step hints — it won't do your homework";
   // Persist to Dexie + localStorage via useEffect
   useEffect(() => {
     try {
@@ -233,6 +238,10 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
           >
             <Trash2 className="w-4 h-4" />
           </button>
+        </div>
+
+        <div className="px-4 sm:px-6 py-2 text-xs font-semibold bg-[#D97757]/10 text-[#B5502F] border-b border-[#D97757]/20 shrink-0">
+          <div className="max-w-3xl mx-auto">{tutorBanner}</div>
         </div>
 
         {/* Messages Scrollable Container */}
@@ -400,6 +409,8 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
           </button>
         </div>
       </div>
+
+      <div className="px-3.5 py-1.5 text-[11px] font-semibold bg-[#D97757]/10 text-[#B5502F] border-b border-[#D97757]/20 shrink-0">{tutorBanner}</div>
 
       <div className="flex-1 overflow-y-auto p-3.5 space-y-3 text-xs">
         {messages.map((msg, idx) => (

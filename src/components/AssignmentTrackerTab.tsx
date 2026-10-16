@@ -27,6 +27,7 @@ import { ApiActivationBanner } from './ApiActivationBanner';
 import { estimateAssignmentEffort, EffortEstimate } from '../services/gemini';
 import { t, useLang } from '../services/i18n';
 import { WhyIsThisHardModal } from './WhyIsThisHardModal';
+import { DueTrustBadge } from './DueTrustBadge';
 
 interface AssignmentTrackerTabProps {
   assignments: Assignment[];
@@ -45,6 +46,8 @@ interface AssignmentTrackerTabProps {
   sheetError?: string | null;
   sheetApiInfo?: ApiEnablementInfo | null;
   onOpenLibrarySearch?: (query: string) => void;
+  /** Student checked an AI-read deadline → mark it confirmed. */
+  onConfirmDue?: (assignment: Assignment) => void;
 }
 
 type UrgencyState = 'overdue' | 'today' | 'tomorrow' | null;
@@ -118,6 +121,7 @@ export const AssignmentTrackerTab: React.FC<AssignmentTrackerTabProps> = ({
   sheetError,
   sheetApiInfo,
   onOpenLibrarySearch,
+  onConfirmDue,
 }) => {
   const [quickInput, setQuickInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -643,6 +647,7 @@ export const AssignmentTrackerTab: React.FC<AssignmentTrackerTabProps> = ({
                           >
                             <span className="flex items-center gap-1.5 flex-wrap">
                               <span>{task.dueDate || t('tracker_no_due')}</span>
+                              <DueTrustBadge assignment={task} onConfirm={onConfirmDue} />
                               {urgency && (
                                 <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold border ${URGENCY_CHIP[urgency]}`}>
                                   {urgency === 'overdue' ? t('overdue') : urgency === 'today' ? t('due_today') : t('tracker_urg_tomorrow')}
@@ -725,6 +730,7 @@ export const AssignmentTrackerTab: React.FC<AssignmentTrackerTabProps> = ({
                     <div className="flex items-center justify-between text-[11px] text-[#6B6860] dark:text-[#B5B2A8]">
                       <span className="flex items-center gap-1.5 flex-wrap">
                         <span>{t('tracker_due')} {a.dueDate || t('tracker_no_date')}</span>
+                        <DueTrustBadge assignment={a} onConfirm={onConfirmDue} />
                         {urgency && (
                           <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold border ${URGENCY_CHIP[urgency]}`}>
                             {urgency === 'overdue' ? t('overdue') : urgency === 'today' ? t('due_today') : t('tracker_urg_tomorrow')}
@@ -803,6 +809,7 @@ export const AssignmentTrackerTab: React.FC<AssignmentTrackerTabProps> = ({
                         <td className="py-1.5 px-3 whitespace-nowrap text-[11px] text-[#8C897F] dark:text-[#B5B2A8]">
                           <span className="inline-flex items-center gap-1.5">
                             <span>{assignment.dueDate || t('tracker_no_due_date')}</span>
+                            <DueTrustBadge assignment={assignment} onConfirm={onConfirmDue} />
                             {urgency && (
                               <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold border ${URGENCY_CHIP[urgency]}`}>
                                 {urgency === 'overdue' ? t('overdue') : urgency === 'today' ? t('due_today') : t('tracker_urg_tomorrow')}

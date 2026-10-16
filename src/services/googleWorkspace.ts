@@ -6,6 +6,8 @@ import {
   SchoolFile,
   ApiEnablementInfo,
 } from '../types';
+import { extractPlainBody } from '../utils/emailText';
+import { decodeTrustNotes, encodeTrustNotes } from '../utils/trust';
 
 import rawFirebaseConfig from '../../firebase-applet-config.json';
 
@@ -392,14 +394,20 @@ export async function fetchAcademicEmails(
           const dateHeader = headers.find((h: any) => h.name.toLowerCase() === 'date');
 
           let bodySnippet = data.snippet || '';
+          // Full body (the deadline is often below the 200-char snippet) + exact send time,
+          // the anchor the AI needs to resolve "thứ 6 tuần này".
+          const body = extractPlainBody(data.payload);
+          const sentMs = Number(data.internalDate) || (dateHeader ? Date.parse(dateHeader.value) : NaN);
           return {
             id: data.id,
             threadId: data.threadId,
-            sender: fromHeader ? fromHeader.value.replace(/<.*>/, '').trim() : 'Instructor',
+            sender: fromHeader ? fromHeader.value.replace(/<.*>/, '').replace(/"/g, '').trim() : 'Instructor',
             senderEmail: fromHeader ? (fromHeader.value.match(/<([^>]+)>/)?.[1] || fromHeader.value) : '',
             subject: subjectHeader ? subjectHeader.value : '(No Subject)',
             date: dateHeader ? new Date(dateHeader.value).toLocaleDateString() : 'Recent',
+            dateISO: Number.isFinite(sentMs) ? new Date(sentMs).toISOString() : undefined,
             snippet: bodySnippet,
+            body: body || undefined,
             unread: Array.isArray(data.labelIds) && data.labelIds.includes('UNREAD'),
             labelIds: Array.isArray(data.labelIds) ? data.labelIds : [],
           };
@@ -667,7 +675,7 @@ export async function readAssignmentsFromSheet(
       status: (row[4] as any) || 'Not Started',
       source: (row[5] as any) || 'Google Sheet',
       docUrl: row[6] || '',
-      notes: row[7] || '',
+      ...decodeTrustNotes(row[7] || ''),
     }));
   } catch (error) {
     console.error('Error reading assignments from Sheet:', error);
@@ -689,8 +697,8 @@ export async function appendAssignmentToSheet(
     assignment.priority,
     assignment.status,
     assignment.source || 'Manual',
-    assignment.docUrl || '',
-    assignment.notes || '',
+    assignment.docUrl || assignment.sourceUrl || '',
+    encodeTrustNotes(assignment),
   ];
 
   const res = await fetch(
@@ -781,8 +789,8 @@ export async function syncAllAssignmentsToSheet(
     a.priority,
     a.status,
     a.source || 'Manual',
-    a.docUrl || '',
-    a.notes || '',
+    a.docUrl || a.sourceUrl || '',
+    encodeTrustNotes(a),
   ]);
 
   // 1. Clear existing range
@@ -1017,19 +1025,20 @@ export const createAssignmentDoc = createFormattedAssignmentDoc;
  * This avoids 403 access denied errors for teachers when graded.
  * POST https://www.googleapis.com/drive/v3/files/{fileId}/permissions
  */
-export async function shareGoogleDriveFile(token: string, fileId: string): Promise<any> {
-  const url = `https://www.googleapis.com/drive/v3/files/${fileId}/permissions`;
+export async function shareGoogleDriveFile(token: string, fileId: string, emailAddress?: string): Promise<any> {
+  // With an email: share with that one person (the teacher). Without: anyone-with-link,
+  // which callers must only use after the student explicitly agreed.
+  const email = (emailAddress || '').trim();
+  const url = `https://www.googleapis.com/drive/v3/files/${fileId}/permissions${email ? '?sendNotificationEmail=true' : ''}`;
   
   const headers = {
     Authorization: `Bearer ${token}`,
     'Content-Type': 'application/json',
   };
 
-  const body = {
-    role: 'reader',
-    type: 'anyone',
-    allowFileDiscovery: false,
-  };
+  const body = email
+    ? { role: 'reader', type: 'user', emailAddress: email }
+    : { role: 'reader', type: 'anyone', allowFileDiscovery: false };
 
   const res = await fetch(url, {
     method: 'POST',

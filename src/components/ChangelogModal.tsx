@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, Sparkles, CheckCircle2, Zap, ArrowRight } from 'lucide-react';
 
-export const CURRENT_VERSION = '2.16.0';
+export const CURRENT_VERSION = '2.17.0';
 
 interface VersionRelease {
   version: string;
@@ -14,10 +14,30 @@ interface VersionRelease {
 
 const RELEASES: VersionRelease[] = [
   {
+    version: '2.17.0',
+    date: 'October 16, 2026',
+    title: 'Trust Layer: Confirm Before Save, "AI chưa đọc được" Box, 13 → 6 Permissions',
+    badge: 'Latest Update',
+    highlights: [
+      'Nothing the AI finds is saved until you check it: "AI hiểu là: môn Hoá – hạn 18/9 – ưu tiên cao. Đúng chưa?"',
+      'The AI never invents a deadline any more — no date found means "chưa có hạn", clearly marked',
+      'Emails the AI skipped, doubted or failed on stay in "AI chưa đọc được – bạn xem giúp nhé", so real homework is never lost',
+      'StudentOS now asks Google for 6 permissions instead of 13, and explains each one to students and parents',
+    ],
+    details: [
+      '094 Confirm card: Gmail, Classroom and typed tasks open one card with the subject, due date, priority, the exact sentence the AI read, and an "Open original email" button. Fix any field in place, or "Save, check later" to keep the date marked unconfirmed (Gmail → Kiểm tra & lưu bài tập; Tracker → quick add).',
+      '095 Honest dates: the AI now reads the full email body (not just the 200-character preview) and the real send day, so "thứ 6 tuần này" resolves correctly; quoted older replies are cut so old dates do not leak in. The old fallback that silently set a deadline 2-3 days out is gone (email reader, quick add and offline fallback). Unconfirmed and missing dates carry a badge in every tracker view.',
+      '096 Review box: Gmail → "Cần bạn xem" collects emails Gmail filed as Promotions/Social, low-confidence results, AI errors and anything the AI skipped. Each has "Đây là bài tập", "Cho AI đọc thư này", "Đây là thầy cô" (that sender is never filed as an ad again) and "Không phải bài tập".',
+      '097 Classroom announcements: teacher posts are read by the same AI and appear in the inbox with a Classroom chip, the confirm card and an "Open post" link.',
+      '098 Least privilege: dropped calendar.readonly, spreadsheets, documents, classroom rosters and student-submissions, drive.readonly and gmail.compose. "Draft to teacher" opens Gmail\'s own compose window. Embedded tools lost camera/mic/location/payment access. Files are shared publicly only after you agree, and the Drive tab shares with the teacher\'s email you type.',
+      '099 Privacy page + AI tutor: Settings → Privacy explains in Vietnamese which permission does what, what goes to which AI (Gemini, Groq fallback), and where data is stored, with a section for parents. The AI tutor now gives step-by-step hints and does not do homework.',
+      '100 Fix: returning from redirect sign-in no longer stops before loading your Google data.',
+    ]
+  },
+  {
     version: '2.16.0',
     date: 'September 20, 2026',
     title: '100 Antigravity CLI UI/UX Improvements + Two-Tier Model Selector + Theme Engine',
-    badge: 'Latest Update',
     highlights: [
       '100 concrete visual and interaction improvements for high-speed vibe coding in the Antigravity CLI workspace',
       'Two-tier hierarchical model selector TUI (/model) with family grouping and secondary reasoning effort tiers',

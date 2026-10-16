@@ -39,6 +39,9 @@ export function sanitizeAssignment(a: any, index = 0): Assignment | null {
     attachments: Array.isArray(a.attachments) ? a.attachments : undefined,
     submission: a.submission,
     trashedAt: a.trashedAt ?? null,
+    dueStatus: a.dueStatus === 'confirmed' || a.dueStatus === 'unconfirmed' || a.dueStatus === 'missing' ? a.dueStatus : undefined,
+    sourceUrl: typeof a.sourceUrl === 'string' ? a.sourceUrl : undefined,
+    aiEvidence: typeof a.aiEvidence === 'string' ? a.aiEvidence : undefined,
   };
 }
 
@@ -91,6 +94,7 @@ export function sanitizeRawEmails(list: any): EmailMessage[] {
     senderEmail: e.senderEmail,
     subject: safeStr(e.subject, '(no subject)'),
     date: safeStr(e.date, ''),
+    dateISO: typeof e.dateISO === 'string' ? e.dateISO : undefined,
     snippet: safeStr(e.snippet, ''),
     body: e.body,
     unread: e.unread,

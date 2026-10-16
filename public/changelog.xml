@@ -6,6 +6,12 @@
     <description>Plain-English updates to StudentOS — what changed and why it matters for studying.</description>
     <language>en-us</language>
     <item>
+      <title>v2.17.0 — Trust Layer: Confirm Before Save, Review Box, 13 to 6 Permissions</title>
+      <link>https://student-command-center.vercel.app/?changelog=2.17.0</link>
+      <pubDate>Fri, 16 Oct 2026 15:45:00 GMT</pubDate>
+      <description>AI-found assignments wait for a confirm card with the exact source sentence and an open-original link, no deadline is ever invented, skipped or uncertain emails stay in an "AI chưa đọc được" review box, Classroom announcements are read, and Google permissions drop from 13 to 6 with a Vietnamese privacy page for students and parents.</description>
+    </item>
+    <item>
       <title>v2.16.0 — 100 Antigravity CLI UI/UX Improvements + Two-Tier Model Selector + Theme Engine</title>
       <link>https://student-command-center.vercel.app/?changelog=2.16.0</link>
       <pubDate>Sun, 20 Sep 2026 00:00:00 GMT</pubDate>

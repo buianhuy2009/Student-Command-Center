@@ -21,7 +21,8 @@ export const IframeErrorBoundary: React.FC<IframeErrorBoundaryProps> = ({
   title,
   src,
   className = '',
-  allow = 'accelerometer; ambient-light-sensor; camera; encrypted-media; geolocation; gyroscope; hid; microphone; midi; payment; usb; vr; xr-spatial-tracking',
+  // Embedded tools (Desmos, GeoGebra, Canva…) get no camera, mic, location, payment or USB access.
+  allow = 'clipboard-read; clipboard-write; fullscreen',
   sandbox = 'allow-forms allow-modals allow-popups allow-presentation allow-same-origin allow-scripts',
   allowFullscreen = true,
 }) => {

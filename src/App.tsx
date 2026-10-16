@@ -171,7 +171,7 @@ import {
   fetchRecentSchoolFiles,
   shareGoogleDriveFile,
 } from './services/googleWorkspace';
-import { fetchAllClassroomAssignments } from './services/googleClassroom';
+import { fetchAllClassroomAssignments, fetchRecentClassroomAnnouncements } from './services/googleClassroom';
 import {
   loadCanvasSettings,
   saveCanvasSettings,
@@ -205,6 +205,8 @@ import {
   ApiEnablementInfo,
 } from './types';
 import { sanitizeAssignments, sanitizeCanvasAssignments, sanitizeEmailAlerts, sanitizeRawEmails } from './utils/sanitize';
+import { AiConfirmCard, type AiDraft, type AiConfirmResult } from './components/AiConfirmCard';
+import { dismissReview } from './utils/trust';
 
 const LOCAL_ASSIGNMENTS_KEY = 'scc_user_assignments_v2';
 const LOCAL_EMAIL_ALERTS_KEY = 'scc_cached_email_alerts_v2';
@@ -740,6 +742,9 @@ export default function App() {
   const [isLoadingCanvas, setIsLoadingCanvas] = useState(false);
   const [isRefreshingAll, setIsRefreshingAll] = useState(false);
   const [isParsingAI, setIsParsingAI] = useState(false);
+  // AI results wait here until the student confirms them (judges: "AI hiểu là … Đúng chưa?").
+  const [aiDraft, setAiDraft] = useState<AiDraft | null>(null);
+  const [classroomAlerts, setClassroomAlerts] = useState<EmailAlert[]>([]);
   const [isScheduling, setIsScheduling] = useState(false);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
 
@@ -1455,6 +1460,9 @@ export default function App() {
               gmailLabels: labels,
               detectedAssignment: undefined,
               rawEmail: msg,
+              aiStatus: 'failed' as const,
+              needsReview: !isPromo,
+              reviewReason: 'ai_failed',
             };
           });
         }
@@ -1639,6 +1647,57 @@ export default function App() {
     }
   }, [addToast]);
 
+  // Classroom announcements → same AI reader as Gmail. Re-read only when the post set changes.
+  const loadClassroomAnnouncements = useCallback(async (token: string) => {
+    const CACHE = 'scc_classroom_alerts_v1';
+    try {
+      const posts = await fetchRecentClassroomAnnouncements(token);
+      const ids = posts.map((p) => p.id).join(',');
+      try {
+        const cached = JSON.parse(localStorage.getItem(CACHE) || 'null');
+        if (cached && cached.ids === ids && Array.isArray(cached.alerts)) {
+          setClassroomAlerts(sanitizeEmailAlerts(cached.alerts));
+          return;
+        }
+      } catch {}
+      if (posts.length === 0) {
+        setClassroomAlerts([]);
+        return;
+      }
+      const alerts = sanitizeEmailAlerts(await summarizeEmailsWithGemini(posts, { forceAI: true, origin: 'classroom' }));
+      setClassroomAlerts(alerts);
+      try {
+        localStorage.setItem(CACHE, JSON.stringify({ ids, alerts }));
+      } catch {}
+    } catch (err) {
+      console.warn('Classroom announcements unavailable:', err);
+    }
+  }, []);
+
+  // One inbox of school messages: Gmail + Classroom announcements.
+  const allAlerts = useMemo(() => [...emailAlerts, ...classroomAlerts], [emailAlerts, classroomAlerts]);
+
+  // "Cho AI đọc thư này": the student asks the AI to read one email Gmail had filed away.
+  const handleForceAIRead = useCallback(async (alert: EmailAlert) => {
+    const raw = alert.rawEmail;
+    if (!raw) return;
+    try {
+      const [fresh] = await summarizeEmailsWithGemini([raw], { forceAI: true, origin: alert.origin || 'gmail' });
+      if (!fresh) return;
+      const swap = (list: EmailAlert[]) => list.map((a) => (a.id === alert.id ? { ...fresh, id: alert.id } : a));
+      if (alert.origin === 'classroom') setClassroomAlerts((prev) => swap(prev));
+      else {
+        setEmailAlerts((prev) => {
+          const next = sanitizeEmailAlerts(swap(prev));
+          saveEmailAlerts(next);
+          return next;
+        });
+      }
+    } catch (err) {
+      console.warn('Force AI read failed:', err);
+    }
+  }, []);
+
   // Fetch Google Classroom coursework (access auto-renews silently)
   const loadClassroomData = useCallback(async (isSilent = false) => {
     const token = await ensureFreshGoogleToken();
@@ -1653,6 +1712,7 @@ export default function App() {
       setClassroomAssignments(list);
       setClassroomError(null);
       setGoogleToken(token);
+      void loadClassroomAnnouncements(token);
       try {
         localStorage.setItem('scc_cached_classroom_assignments', JSON.stringify(list));
       } catch {}
@@ -1942,7 +2002,6 @@ export default function App() {
         setUser(resumed.user);
         setIsDemoMode(false);
         setOauthGuideModalOpen(false);
-        setGoogleSessionExpired(false);
         if (resumed.accessToken) {
           setGoogleToken(resumed.accessToken);
           await runFullSync(false);
@@ -2335,33 +2394,76 @@ export default function App() {
     }
   };
 
-  // Natural Language Task Parse
+  // Natural Language Task Parse → confirm card (never auto-saved, never a made-up date)
   const handleParseNaturalText = async (text: string) => {
     setIsParsingAI(true);
     try {
-      const parsed = await parseNaturalLanguageAssignment(text);
-      await handleAddAssignment({
+      const parsed: any = await parseNaturalLanguageAssignment(text);
+      setAiDraft({
         assignmentName: parsed.assignmentName || text,
-        subject: parsed.subject || 'General',
-        dueDate: parsed.dueDate || new Date(Date.now() + 86400000 * 3).toISOString().split('T')[0],
-        priority: parsed.priority || 'Med',
-        status: 'Not Started',
-        notes: parsed.notes || `Added via AI Smart Parse: "${text}"`,
-        source: 'Manual',
+        subject: parsed.subject || '',
+        dueDate: /^\d{4}-\d{2}-\d{2}$/.test(parsed.dueDate || '') ? parsed.dueDate : '',
+        priority: parsed.priority === 'High' || parsed.priority === 'Low' ? parsed.priority : 'Med',
+        dueConfidence: parsed.dueConfidence,
+        evidence: parsed.dueEvidence || '',
+        sourceLabel: `“${text.slice(0, 80)}”`,
+        aiFailed: parsed.aiStatus === 'failed',
+        origin: 'text',
       });
     } catch (err: any) {
       console.error('Parse error:', err);
-      await handleAddAssignment({
+      setAiDraft({
         assignmentName: text,
-        subject: 'General',
-        dueDate: new Date(Date.now() + 86400000 * 3).toISOString().split('T')[0],
+        subject: '',
+        dueDate: '',
         priority: 'Med',
-        status: 'Not Started',
-        source: 'Manual',
+        dueConfidence: 'none',
+        sourceLabel: `“${text.slice(0, 80)}”`,
+        aiFailed: true,
+        origin: 'text',
       });
     } finally {
       setIsParsingAI(false);
     }
+  };
+
+  const handleConfirmAiDraft = async (result: AiConfirmResult, dueStatus: 'confirmed' | 'unconfirmed' | 'missing') => {
+    const d = aiDraft;
+    if (!d) return;
+    await handleAddAssignment({
+      assignmentName: result.assignmentName,
+      subject: result.subject,
+      dueDate: result.dueDate,
+      priority: result.priority,
+      status: 'Not Started',
+      source: d.origin === 'text' ? 'Manual' : 'Gmail',
+      notes: d.origin === 'text' ? `AI: ${d.sourceLabel}` : `${d.sourceLabel}`,
+      dueStatus,
+      sourceUrl: d.sourceUrl,
+      aiEvidence: d.evidence || undefined,
+    });
+    if (d.alertId) dismissReview(d.alertId);
+    setAiDraft(null);
+  };
+
+  // Student tapped "Hạn chưa xác nhận" in the tracker → the date is now theirs.
+  const handleConfirmDue = async (target: Assignment) => {
+    const next = assignments.map((a) => (a.id === target.id ? { ...a, dueStatus: 'confirmed' as const, updatedAt: new Date().toISOString() } : a));
+    setAssignments(next);
+    addToast({ type: 'success', title: 'Đã xác nhận hạn nộp', message: `${target.assignmentName} · ${target.dueDate}` });
+    try {
+      const token = await ensureFreshGoogleToken();
+      if (token && masterSheetId) await syncAllAssignmentsToSheet(token, masterSheetId, next.filter((a) => !a.trashedAt));
+    } catch (err) {
+      console.warn('Sheet update after confirm failed (kept locally):', err);
+    }
+  };
+
+  const handleRejectAiDraft = () => {
+    const d = aiDraft;
+    if (d?.alertId) dismissReview(d.alertId);
+    setAiDraft(null);
+    addToast({ type: 'info', title: 'Đã ghi nhận', message: 'Không lưu — thư vẫn còn trong hộp thư nếu bạn cần xem lại.' });
   };
 
   // Schedule Study Block in Google Calendar
@@ -2428,71 +2530,45 @@ export default function App() {
   };
 
   // Save Gmail Draft
+  // Opens Gmail's own compose window pre-filled — the student reviews and sends it.
+  // Needs no Gmail permission at all (gmail.compose was dropped in v2.17.0).
   const handleSaveToGmailDrafts = async (to: string, subject: string, body: string) => {
     setIsSavingDraft(true);
-    const token = await ensureFreshGoogleToken();
-
     try {
-      if (token) {
-        await createGmailDraft(token, to, subject, body);
-        addToast({
-          type: 'success',
-          title: 'Draft Saved to Gmail!',
-          message: `Email to ${to || 'teacher'} is ready in your Gmail Drafts folder.`,
-          actionLabel: 'Open Gmail',
-          actionUrl: 'https://mail.google.com/mail/u/0/#drafts',
-        });
-      } else {
-        addToast({
-          type: 'warning',
-          title: 'Gmail Not Connected',
-          message: 'Connect your Google account to save drafts directly into Gmail.',
-        });
-      }
-    } catch (err: any) {
-      console.error('Save draft error:', err);
-      if (err?.isServiceDisabled) {
-        setApiActivationModalInfo({
-          serviceName: err.serviceName || 'Gmail API',
-          serviceId: err.serviceId || 'gmail.googleapis.com',
-          activationUrl: err.activationUrl,
-          projectId: err.projectId || (import.meta as any).env?.VITE_GOOGLE_PROJECT_ID || '',
-        });
-        setApiActivationModalOpen(true);
-      }
+      let account = '';
+      try {
+        account = localStorage.getItem('scc_google_email_v1') || '';
+      } catch {}
+      const params = new URLSearchParams({ view: 'cm', fs: '1', to: to || '', su: subject || '', body: (body || '').slice(0, 1800) });
+      if (account.includes('@')) params.set('authuser', account);
+      window.open(`https://mail.google.com/mail/?${params.toString()}`, '_blank', 'noopener');
       addToast({
-        type: 'error',
-        title: err?.isServiceDisabled ? 'Gmail API Disabled' : 'Draft Save Failed',
-        message: err.message || 'Could not save draft to Gmail.',
-        actionLabel: err?.activationUrl ? 'Enable in Cloud' : undefined,
-        actionUrl: err?.activationUrl,
+        type: 'success',
+        title: 'Đã mở Gmail',
+        message: `Thư gửi ${to || 'thầy cô'} đã điền sẵn — kiểm tra rồi bấm Gửi trong Gmail.`,
       });
     } finally {
       setIsSavingDraft(false);
     }
   };
 
-  // Extract Assignment from Scanned Email Alert
+  // Extract Assignment from Scanned Email Alert → confirm card (works even when the AI found nothing)
   const handleExtractAssignment = (alert: EmailAlert) => {
-    if (!alert.detectedAssignment) return;
-    const { name, subject, dueDate, priority } = alert.detectedAssignment;
-
-    setConfirmationModal({
-      isOpen: true,
-      title: 'Add Scanned Assignment to Sheet?',
-      description: `Auto-extracted from email "${alert.subject}":\n"${name}" (${subject}) due ${dueDate}.`,
-      confirmLabel: 'Add to Master Sheet',
-      onConfirm: async () => {
-        await handleAddAssignment({
-          assignmentName: name,
-          subject: subject,
-          dueDate: dueDate,
-          priority: priority,
-          status: 'Not Started',
-          source: 'Gmail',
-          notes: `Scanned from email alert: ${alert.oneLineSummary}`,
-        });
-      },
+    const det = alert.detectedAssignment;
+    const fromClassroom = alert.origin === 'classroom';
+    setAiDraft({
+      assignmentName: det?.name || alert.subject || '',
+      subject: det?.subject || '',
+      dueDate: /^\d{4}-\d{2}-\d{2}$/.test(det?.dueDate || '') ? (det as any).dueDate : '',
+      priority: det?.priority || 'Med',
+      dueConfidence: det?.dueDate ? det?.dueConfidence || 'explicit' : 'none',
+      evidence: det?.dueEvidence || '',
+      sourceLabel: `${fromClassroom ? 'Classroom' : 'Gmail'} · ${alert.sender} · ${alert.subject}`.slice(0, 120),
+      sourceUrl: alert.sourceUrl,
+      sourceText: alert.rawEmail?.body || alert.rawEmail?.snippet,
+      aiFailed: alert.aiStatus === 'failed' || alert.aiStatus === 'skipped',
+      origin: fromClassroom ? 'classroom' : alert.needsReview ? 'review' : 'gmail',
+      alertId: alert.id,
     });
   };
 
@@ -2532,7 +2608,22 @@ export default function App() {
   };
 
   // Google Drive & Canvas direct submission workflow
+  // Public link sharing only after the student agrees (it used to happen silently).
   const handleSubmitAssignment = async (assignment: CanvasAssignment, fileId: string) => {
+    setConfirmationModal({
+      isOpen: true,
+      title: 'Chia sẻ bài cho thầy cô?',
+      description:
+        'Để thầy cô mở được bài trên Canvas, file sẽ được đặt "Ai có đường liên kết đều xem được". Bạn có thể tắt lại trong Google Drive bất cứ lúc nào. Không đồng ý thì hãy tự chia sẻ file với email của thầy cô.',
+      confirmLabel: 'Đồng ý & nộp bài',
+      isDestructive: false,
+      onConfirm: async () => {
+        await submitAssignmentWithShare(assignment, fileId);
+      },
+    });
+  };
+
+  const submitAssignmentWithShare = async (assignment: CanvasAssignment, fileId: string) => {
     const token = await ensureFreshGoogleToken();
     if (!token && !isDemoMode) {
       addToast({
@@ -2974,6 +3065,7 @@ export default function App() {
                     isGoogleConnected={isGoogleConnected}
                     onConnectGoogle={() => handleGoogleSignIn(true)}
                     onClearCompleted={handleClearCompletedAssignments}
+                    onConfirmDue={handleConfirmDue}
                     sheetError={sheetError}
                     sheetApiInfo={sheetApiInfo}
                     onOpenLibrarySearch={(q) => {
@@ -2985,7 +3077,8 @@ export default function App() {
 
                 {activeTab === 'gmail' && (
                   <GmailRadarTab
-                    emailAlerts={emailAlerts}
+                    emailAlerts={allAlerts}
+                    onForceAIRead={handleForceAIRead}
                     rawEmails={rawEmails}
                     isLoadingEmails={isLoadingEmails}
                     onRefreshEmails={(forceResort, options) => loadEmailsAndAlerts(false, forceResort ?? true, options)}
@@ -3143,7 +3236,7 @@ export default function App() {
                 )}
 
                 {activeTab === 'ai-planner' && (
-                  <AIPlannerWorkspace assignments={assignments} canvasAssignments={canvasAssignments} classroomAssignments={classroomAssignments} emailAlerts={emailAlerts} meetings={calendarEvents} />
+                  <AIPlannerWorkspace assignments={assignments} canvasAssignments={canvasAssignments} classroomAssignments={classroomAssignments} emailAlerts={allAlerts} meetings={calendarEvents} />
                 )}
 
                 {activeTab === 'grade-forecaster' && (
@@ -3461,6 +3554,15 @@ export default function App() {
         modal={confirmationModal}
         onClose={() => setConfirmationModal((prev) => ({ ...prev, isOpen: false }))}
       />
+      )}
+
+      {aiDraft && (
+        <AiConfirmCard
+          draft={aiDraft}
+          onSave={handleConfirmAiDraft}
+          onReject={handleRejectAiDraft}
+          onClose={() => setAiDraft(null)}
+        />
       )}
 
       {/* Command Palette — gated so its chunk only loads when opened */}

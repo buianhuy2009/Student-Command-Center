@@ -23,6 +23,8 @@ import {
   DeployedSemesterResult,
   MarkdownNote,
 } from '../types';
+import { ACADEMIC_CUE_RE, ACADEMIC_SENDER_RE, gmailLink, isTeacherSender } from '../utils/trust';
+import { cleanEmailForAI } from '../utils/emailText';
 
 // --- Client-Side API Key Management — plaintext warning + sessionStorage option ---
 const GEMINI_KEY_STORAGE_KEY = 'scc_gemini_api_key';
@@ -1207,78 +1209,107 @@ Return only JSON.`;
 // Existing Helper Endpoints & Legacy Support
 // -------------------------------------------------------------
 
-export async function summarizeEmailsWithGemini(emails: EmailMessage[]): Promise<EmailAlert[]> {
-  // Gmail-native pre-sort: trust labelIds, never keywords. SPAM + PROMOTIONS share
-  // the PROMOTION category, SOCIAL gets its own tab. Academic senders found in
-  // PROMOTIONS/SOCIAL are still AI-routed (user requirement).
-  const ACADEMIC_SENDER_RE = /classroom|canvas|moodle|blackboard|\.edu|school|teacher|professor|instructor|phòng đào tạo|giáo viên/i;
+export async function summarizeEmailsWithGemini(
+  emails: EmailMessage[],
+  opts: { forceAI?: boolean; origin?: 'gmail' | 'classroom' } = {},
+): Promise<EmailAlert[]> {
+  // Gmail-native pre-sort saves AI calls: Promotions/Social from non-school senders are not
+  // sent to the AI. They are NOT hidden — they land in "AI chưa đọc được" for the student.
+  // Teachers the student marked (often on personal Gmail) always go to the AI.
+  const origin = opts.origin || 'gmail';
   const isAcademicSender = (e: EmailMessage) =>
-    ACADEMIC_SENDER_RE.test(`${e.senderEmail || ''} ${e.sender || ''}`);
+    isTeacherSender(e.senderEmail) || ACADEMIC_SENDER_RE.test(`${e.senderEmail || ''} ${e.sender || ''}`);
   const bucketOf = (e: EmailMessage): 'PROMOTION' | 'SOCIAL' | 'AI' => {
+    if (opts.forceAI) return 'AI';
     const labels = e.labelIds || [];
-    if (labels.includes('SPAM')) return 'PROMOTION'; // same category, not hidden
+    if (labels.includes('SPAM')) return isAcademicSender(e) ? 'AI' : 'PROMOTION';
     if (labels.includes('CATEGORY_PROMOTIONS')) return isAcademicSender(e) ? 'AI' : 'PROMOTION';
     if (labels.includes('CATEGORY_SOCIAL')) return isAcademicSender(e) ? 'AI' : 'SOCIAL';
     return 'AI';
   };
-  const localAlert = (e: EmailMessage, category: 'PROMOTION' | 'SOCIAL'): EmailAlert => ({
+  const linkOf = (e: EmailMessage) => (origin === 'gmail' ? gmailLink(e.id) : (e as any).sourceUrl);
+  const skippedAlert = (e: EmailMessage, category: 'PROMOTION' | 'SOCIAL'): EmailAlert => {
+    const cue = ACADEMIC_CUE_RE.test(`${e.subject || ''} ${e.snippet || ''}`);
+    return {
+      id: e.id,
+      sender: e.sender,
+      subject: e.subject,
+      oneLineSummary: `${(e.snippet || e.subject || '').slice(0, 90)}…`,
+      urgency: 'INFO' as const,
+      category,
+      categoryLabel: category === 'SOCIAL' ? 'Social' : 'Promotion / Spam',
+      isSpam: category === 'PROMOTION',
+      spamReason: 'Sorted by Gmail',
+      language: 'other' as const,
+      gmailLabels: e.labelIds || [],
+      rawEmail: e,
+      aiStatus: 'skipped',
+      // Looks school-related although Gmail filed it away → surface it, never hide it.
+      needsReview: cue,
+      reviewReason: cue ? 'skipped_with_cue' : 'skipped',
+      origin,
+      sourceUrl: linkOf(e),
+    };
+  };
+  const failed = (e: EmailMessage, reason: string): EmailAlert => ({
     id: e.id,
     sender: e.sender,
     subject: e.subject,
-    oneLineSummary: `${(e.snippet || e.subject || '').slice(0, 75)}...`,
-    urgency: 'INFO' as const,
-    category,
-    categoryLabel: category === 'SOCIAL' ? 'Social' : 'Promotion / Spam',
-    isSpam: category === 'PROMOTION',
-    spamReason: 'Sorted by Gmail',
-    language: 'other' as const,
+    oneLineSummary: `${(e.snippet || e.subject || '').slice(0, 90)}…`,
+    urgency: 'LOW' as const,
+    category: 'GENERAL' as const,
+    categoryLabel: 'Chưa đọc được',
+    isSpam: false,
     gmailLabels: e.labelIds || [],
     rawEmail: e,
+    aiStatus: 'failed',
+    needsReview: true,
+    reviewReason: reason,
+    origin,
+    sourceUrl: linkOf(e),
   });
+
+  const aiEmails = emails.filter((e) => bucketOf(e) === 'AI');
+  const localAlerts = emails
+    .filter((e) => bucketOf(e) !== 'AI')
+    .map((e) => skippedAlert(e, bucketOf(e) as 'PROMOTION' | 'SOCIAL'));
+  if (aiEmails.length === 0) return localAlerts;
+  // Data minimisation: quoted replies + signatures cut, body capped at AI_BODY_LIMIT chars.
+  const payload = aiEmails.map((e) => ({
+    id: e.id,
+    sender: e.sender,
+    senderEmail: e.senderEmail,
+    subject: e.subject,
+    date: e.date,
+    dateISO: e.dateISO,
+    snippet: (e.snippet || '').slice(0, 300),
+    body: cleanEmailForAI(e.body || e.snippet || ''),
+    labelIds: e.labelIds || [],
+    knownTeacher: isTeacherSender(e.senderEmail),
+  }));
+  let aiAlerts: EmailAlert[];
   try {
-    const aiEmails = emails.filter((e) => bucketOf(e) === 'AI');
-    const localAlerts = emails.filter((e) => bucketOf(e) !== 'AI').map((e) => localAlert(e, bucketOf(e) as 'PROMOTION' | 'SOCIAL'));
-    if (aiEmails.length === 0) return localAlerts;
-    // PII: truncate snippet to 300 chars before POST (keep labelIds + sender for server trust)
-    const truncated = aiEmails.map(e => ({ id: e.id, sender: e.sender, senderEmail: e.senderEmail, subject: e.subject, date: e.date, snippet: (e.snippet||'').slice(0,300), body: e.body ? e.body.slice(0,300) : undefined, labelIds: e.labelIds || [] }));
     const res = await fetch('/api/gemini/summarize-emails', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ emails: truncated }),
+      body: JSON.stringify({ emails: payload, today: new Date().toISOString() }),
     });
-
     if (!res.ok) throw new Error(`Summarize API failed: ${res.statusText}`);
     const data = await res.json();
-    const aiAlerts: EmailAlert[] = (data.alerts || []).map((alert: any) => {
-      const src = aiEmails.find((e) => e.id === alert.id);
-      // Server already trusts Gmail labels; re-assert academic-sender-in-promo stays AI-labeled:
-      // if server forced PROMOTION but sender is academic, keep server label only when Gmail said promo AND sender non-academic.
-      return { ...alert, gmailLabels: src?.labelIds || [], rawEmail: src };
+    const byId = new Map<string, any>((data.alerts || []).map((a: any) => [String(a.id), a]));
+    aiAlerts = aiEmails.map((src) => {
+      const alert = byId.get(String(src.id));
+      if (!alert) return failed(src, 'ai_omitted');
+      return { ...alert, gmailLabels: src.labelIds || [], rawEmail: src, origin, sourceUrl: linkOf(src) } as EmailAlert;
     });
-    const byId = new Map<string, EmailAlert>();
-    [...aiAlerts, ...localAlerts].forEach((a) => byId.set(a.id, a));
-    // Preserve original inbox order, show ALL by default.
-    return emails.map((e) => byId.get(e.id)).filter((a): a is EmailAlert => Boolean(a));
   } catch (error) {
     console.error('Error calling summarize emails API:', error);
-    // Offline fallback: Gmail labels only, no keywords.
-    return emails.map((e) => {
-      const b = bucketOf(e);
-      if (b !== 'AI') return localAlert(e, b);
-      return {
-        id: e.id,
-        sender: e.sender,
-        subject: e.subject,
-        oneLineSummary: `${(e.snippet || e.subject || '').slice(0, 75)}...`,
-        urgency: 'LOW' as const,
-        category: 'GENERAL' as const,
-        categoryLabel: 'General Update',
-        isSpam: false,
-        gmailLabels: e.labelIds || [],
-        rawEmail: e,
-      };
-    });
+    aiAlerts = aiEmails.map((e) => failed(e, 'ai_failed'));
   }
+  const byId = new Map<string, EmailAlert>();
+  [...aiAlerts, ...localAlerts].forEach((a) => byId.set(a.id, a));
+  // Preserve original inbox order; every fetched email stays visible somewhere.
+  return emails.map((e) => byId.get(e.id)).filter((a): a is EmailAlert => Boolean(a));
 }
 
 export async function generateQuickDraft(request: QuickDraftRequest): Promise<QuickDraftResponse> {

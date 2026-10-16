@@ -105,7 +105,7 @@ export const GoogleDriveTab: React.FC<GoogleDriveTabProps> = ({
     setIsSharing(true);
     setShareSuccess(false);
     try {
-      await shareGoogleDriveFile(googleToken, activeFile.id);
+      await shareGoogleDriveFile(googleToken, activeFile.id, shareEmail.trim());
       setShareSuccess(true);
       setTimeout(() => setShareSuccess(false), 4000);
     } catch (err) {
