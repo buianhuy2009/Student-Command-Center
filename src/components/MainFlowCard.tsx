@@ -3,6 +3,7 @@ import { Inbox, ListChecks, CalendarCheck, PlugZap, ChevronRight, EyeOff, Eye } 
 import type { Assignment, EmailAlert } from '../types';
 import { getLang, useLang } from '../services/i18n';
 import { getDismissedReviewIds } from '../utils/trust';
+import { downloadPilotExport } from '../utils/pilotStats';
 
 const L = (vi: string, en: string) => (getLang() === 'vi' ? vi : en);
 
@@ -161,6 +162,16 @@ export const MainFlowCard: React.FC<Props> = ({ assignments, emailAlerts, onNavi
           <ChevronRight className="h-4 w-4 self-end text-[#6B6860] group-hover:text-[#D97757]" aria-hidden="true" />
         </button>
       </div>
+      <p className="mt-3 text-[11px] text-[#6B6860] dark:text-[#A8A49A]">
+        <button type="button" onClick={() => window.dispatchEvent(new CustomEvent('scc-open-privacy'))} className="font-bold text-[#D97757] underline">
+          {L('Quyền riêng tư & dữ liệu gửi cho AI', 'Privacy & what the AI sees')}
+        </button>
+        {' · '}
+        {L('Đang tham gia thử nghiệm?', 'In the pilot?')}{' '}
+        <button type="button" onClick={downloadPilotExport} className="font-bold text-[#D97757] underline">
+          {L('Tải số liệu thử nghiệm (ẩn danh: chỉ có số đếm, không có tên hay nội dung thư)', 'Download pilot numbers (anonymous: counts only, no names or email text)')}
+        </button>
+      </p>
     </section>
   );
 };

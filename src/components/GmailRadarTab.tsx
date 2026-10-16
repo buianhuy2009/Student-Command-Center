@@ -23,6 +23,7 @@ import { EmailAlert, EmailMessage, EmailCategory, ApiEnablementInfo } from '../t
 import { ApiActivationBanner } from './ApiActivationBanner';
 import { t, useLang, getLang } from '../services/i18n';
 import { dismissReview, getDismissedReviewIds, gmailLink, isTeacherSender, toggleTeacherSender, viShortDate } from '../utils/trust';
+import { logPilot } from '../utils/pilotStats';
 
 const L = (vi: string, en: string) => (getLang() === 'vi' ? vi : en);
 
@@ -658,6 +659,7 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
                           disabled={forcing === activeAlert.id}
                           onClick={async () => {
                             setForcing(activeAlert.id);
+                            logPilot('review_force_read');
                             try {
                               await onForceAIRead(activeAlert);
                             } finally {
@@ -673,7 +675,7 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
                       {activeAlert.rawEmail?.senderEmail && activeAlert.origin !== 'classroom' && (
                         <button
                           onClick={() => {
-                            toggleTeacherSender(activeAlert.rawEmail?.senderEmail);
+                            if (toggleTeacherSender(activeAlert.rawEmail?.senderEmail)) logPilot('teacher_marked');
                             setTeacherTick((n) => n + 1);
                           }}
                           className="px-3 py-2 min-h-[40px] bg-white dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] hover:border-[#D97757] rounded-xl text-xs font-bold text-[#141413] dark:text-[#FAF9F5]"
@@ -687,6 +689,7 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
                       <button
                         onClick={() => {
                           dismissReview(activeAlert.id);
+                          logPilot('review_dismissed');
                           setDismissed(new Set(getDismissedReviewIds()));
                         }}
                         className="px-3 py-2 min-h-[40px] rounded-xl text-xs font-bold text-[#5C5A54] dark:text-[#B5B2A8] hover:text-rose-600"

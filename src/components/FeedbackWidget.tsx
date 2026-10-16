@@ -18,7 +18,7 @@ export const FeedbackWidget: React.FC = () => {
           <div className="space-y-2">
             <a href="https://github.com/buianhuy2009/Sutdent-Command-Center/issues/new" target="_blank" rel="noreferrer" className="w-full flex items-center justify-between p-2.5 rounded-xl bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] text-xs font-bold hover:border-[#D97757]">GitHub Issue <ExternalLink className="w-3 h-3" /></a>
             <a href="https://tally.so" target="_blank" rel="noreferrer" className="w-full flex items-center justify-between p-2.5 rounded-xl bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] text-xs font-bold hover:border-[#D97757]">Tally Feedback Form <ExternalLink className="w-3 h-3" /></a>
-            <a href="https://twitter.com/intent/tweet?text=Check%20out%20Student%20Command%20Center%20—%20my%20unified%20academic%20OS%20https://student-command-center.vercel.app" target="_blank" rel="noreferrer" className="w-full flex items-center justify-center p-2.5 rounded-xl bg-[#D97757] text-white text-xs font-bold">Share your setup on X</a>
+            <a href="https://twitter.com/intent/tweet?text=Check%20out%20Student%20Command%20Center%20—%20my%20unified%20academic%20OS%20https://sutdent-command-center.vercel.app" target="_blank" rel="noreferrer" className="w-full flex items-center justify-center p-2.5 rounded-xl bg-[#D97757] text-white text-xs font-bold">Share your setup on X</a>
           </div>
         </div>
       )}

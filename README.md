@@ -6,7 +6,7 @@
 ![Build](https://img.shields.io/badge/build-passing-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
-Deployed: **https://student-command-center.vercel.app** · GitHub: **buianhuy2009/Sutdent-Command-Center**
+Deployed: **https://sutdent-command-center.vercel.app** · GitHub: **buianhuy2009/Sutdent-Command-Center**
 
 ---
 

@@ -20,7 +20,7 @@ import {
   Bot,
 } from 'lucide-react';
 import { GoogleIcon } from './GoogleIcon';
-import { t, useLang } from '../services/i18n';
+import { t, useLang, getLang } from '../services/i18n';
 import { LanguageToggle } from './LanguageToggle';
 
 interface LandingPageProps {
@@ -457,17 +457,41 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         <section id="privacy" className="py-10 bg-white dark:bg-[#141413] border-b border-[#E8E6DC] dark:border-[#2C2B27] scroll-mt-16">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center space-y-3 reveal">
             <h3 className="text-sm font-bold text-[#141413] dark:text-[#F5F4ED] flex items-center justify-center gap-2"><ShieldCheck className="w-4 h-4 text-[#C96442]" /> {t('landing_privacy_title')}</h3>
-            <p className="text-xs text-[#5E5D59] dark:text-[#B5B2A8] leading-relaxed">Student Command Center requests <code className="font-mono bg-[#E8E6DC] dark:bg-[#252422] px-1 py-0.5 rounded">calendar.readonly</code>, <code className="font-mono bg-[#E8E6DC] dark:bg-[#252422] px-1 py-0.5 rounded">gmail.readonly</code>, <code className="font-mono bg-[#E8E6DC] dark:bg-[#252422] px-1 py-0.5 rounded">drive.readonly</code>, <code className="font-mono bg-[#E8E6DC] dark:bg-[#252422] px-1 py-0.5 rounded">spreadsheets</code> and 7 other scopes <em>only</em> to sync your own data locally. No data leaves your browser except for Gemini AI summaries (truncated snippets). Tokens stay in IndexedDB, never logged. Revoke anytime in Google Account.</p>
+            <p className="text-xs text-[#5E5D59] dark:text-[#B5B2A8] leading-relaxed">
+              {getLang() === 'vi'
+                ? 'StudentOS chỉ xin 6 quyền Google (trước đây là 13), và chỉ Gmail là quyền nhạy cảm — chỉ xin khi bạn bật "Quét Gmail". Mọi bài tập AI tìm thấy đều chờ bạn xác nhận. Thu hồi quyền bất cứ lúc nào trong Tài khoản Google.'
+                : 'StudentOS asks Google for 6 permissions (down from 13); only Gmail is sensitive, and it is requested only when you turn on "Scan Gmail". Every assignment the AI finds waits for your confirmation. Revoke anytime in your Google Account.'}
+            </p>
             <div className="overflow-x-auto text-left">
               <table className="w-full text-[11px] border-collapse mt-2">
-                <thead><tr className="bg-[#E8E6DC] dark:bg-[#1F1E1B]"><th className="p-1.5 border">Scope</th><th className="p-1.5 border">Purpose</th><th className="p-1.5 border">Stored</th></tr></thead>
+                <thead>
+                  <tr className="bg-[#E8E6DC] dark:bg-[#1F1E1B]">
+                    <th className="p-1.5 border">{getLang() === 'vi' ? 'Quyền' : 'Scope'}</th>
+                    <th className="p-1.5 border">{getLang() === 'vi' ? 'Để làm gì' : 'Purpose'}</th>
+                    <th className="p-1.5 border">{getLang() === 'vi' ? 'Gửi cho AI?' : 'Sent to AI?'}</th>
+                  </tr>
+                </thead>
                 <tbody>
-                  <tr><td className="p-1.5 border font-mono">gmail.readonly</td><td className="p-1.5 border">Scan teacher emails</td><td className="p-1.5 border">Snippet + local</td></tr>
-                  <tr><td className="p-1.5 border font-mono">drive.readonly</td><td className="p-1.5 border">List school files</td><td className="p-1.5 border">Metadata only</td></tr>
-                  <tr><td className="p-1.5 border font-mono">calendar.readonly/events</td><td className="p-1.5 border">Schedule blocks</td><td className="p-1.5 border">Local</td></tr>
+                  {[
+                    ['classroom.courses.readonly', 'Tên các lớp của bạn', 'Your class names', 'Không', 'No'],
+                    ['classroom.coursework.me.readonly', 'Bài tập & hạn nộp của bạn', 'Your coursework & due dates', 'Không (đã có sẵn ngày)', 'No (dates are structured)'],
+                    ['classroom.announcements.readonly', 'Thông báo của thầy cô', 'Teacher announcements', 'Có — nội dung thông báo, cho Gemini (Groq nếu Gemini lỗi)', 'Yes — post text, to Gemini (Groq if Gemini fails)'],
+                    ['calendar.events', 'Lịch học để không xếp trùng; thêm buổi học khi bạn bấm', 'Class times; add study sessions when you tap', 'Không', 'No'],
+                    ['drive.file', 'Chỉ file StudentOS tạo hoặc bạn chọn', 'Only files StudentOS creates or you pick', 'Không', 'No'],
+                    ['gmail.readonly', 'Chỉ khi bật "Quét Gmail": tìm bài tập trong thư', 'Only with "Scan Gmail": find homework in mail', 'Có — người gửi, tiêu đề, ≤1.500 ký tự nội dung, cho Gemini (Groq nếu Gemini lỗi)', 'Yes — sender, subject, ≤1,500 chars, to Gemini (Groq if Gemini fails)'],
+                  ].map(([scope, vi, en, aiVi, aiEn]) => (
+                    <tr key={scope}>
+                      <td className="p-1.5 border font-mono">{scope}</td>
+                      <td className="p-1.5 border">{getLang() === 'vi' ? vi : en}</td>
+                      <td className="p-1.5 border">{getLang() === 'vi' ? aiVi : aiEn}</td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
+            <button type="button" onClick={() => window.dispatchEvent(new CustomEvent('scc-open-privacy'))} className="text-xs font-bold text-[#C96442] underline">
+              {getLang() === 'vi' ? 'Xem đầy đủ: dữ liệu nào gửi cho AI, lưu ở đâu, dành cho phụ huynh' : 'Full details: what goes to the AI, where data lives, for parents'}
+            </button>
           </div>
         </section>
 

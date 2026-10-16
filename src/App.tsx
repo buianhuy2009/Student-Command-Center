@@ -207,6 +207,8 @@ import {
 import { sanitizeAssignments, sanitizeCanvasAssignments, sanitizeEmailAlerts, sanitizeRawEmails } from './utils/sanitize';
 import { AiConfirmCard, type AiDraft, type AiConfirmResult } from './components/AiConfirmCard';
 import { dismissReview } from './utils/trust';
+import { logPilot, recordMissedDeadlines } from './utils/pilotStats';
+import { PrivacyModal } from './components/PrivacyModal';
 
 const LOCAL_ASSIGNMENTS_KEY = 'scc_user_assignments_v2';
 const LOCAL_EMAIL_ALERTS_KEY = 'scc_cached_email_alerts_v2';
@@ -744,6 +746,12 @@ export default function App() {
   const [isParsingAI, setIsParsingAI] = useState(false);
   // AI results wait here until the student confirms them (judges: "AI hiểu là … Đúng chưa?").
   const [aiDraft, setAiDraft] = useState<AiDraft | null>(null);
+  const [privacyOpen, setPrivacyOpen] = useState(false);
+  useEffect(() => {
+    const open = () => setPrivacyOpen(true);
+    window.addEventListener('scc-open-privacy', open);
+    return () => window.removeEventListener('scc-open-privacy', open);
+  }, []);
   const [classroomAlerts, setClassroomAlerts] = useState<EmailAlert[]>([]);
   const [isScheduling, setIsScheduling] = useState(false);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
@@ -1674,6 +1682,11 @@ export default function App() {
     }
   }, []);
 
+  // Pilot metric: deadlines that passed while the work was not done (anonymous, on-device).
+  useEffect(() => {
+    recordMissedDeadlines(assignments);
+  }, [assignments]);
+
   // One inbox of school messages: Gmail + Classroom announcements.
   const allAlerts = useMemo(() => [...emailAlerts, ...classroomAlerts], [emailAlerts, classroomAlerts]);
 
@@ -2443,6 +2456,8 @@ export default function App() {
       aiEvidence: d.evidence || undefined,
     });
     if (d.alertId) dismissReview(d.alertId);
+    const edited = result.assignmentName !== d.assignmentName || result.subject !== (d.subject || 'General') || result.dueDate !== d.dueDate || result.priority !== d.priority;
+    logPilot(dueStatus === 'missing' ? 'ai_no_date' : dueStatus === 'unconfirmed' ? 'ai_later' : edited ? 'ai_edited' : 'ai_confirmed');
     setAiDraft(null);
   };
 
@@ -2450,6 +2465,7 @@ export default function App() {
   const handleConfirmDue = async (target: Assignment) => {
     const next = assignments.map((a) => (a.id === target.id ? { ...a, dueStatus: 'confirmed' as const, updatedAt: new Date().toISOString() } : a));
     setAssignments(next);
+    logPilot('due_confirmed');
     addToast({ type: 'success', title: 'Đã xác nhận hạn nộp', message: `${target.assignmentName} · ${target.dueDate}` });
     try {
       const token = await ensureFreshGoogleToken();
@@ -2462,6 +2478,7 @@ export default function App() {
   const handleRejectAiDraft = () => {
     const d = aiDraft;
     if (d?.alertId) dismissReview(d.alertId);
+    logPilot('ai_rejected');
     setAiDraft(null);
     addToast({ type: 'info', title: 'Đã ghi nhận', message: 'Không lưu — thư vẫn còn trong hộp thư nếu bạn cần xem lại.' });
   };
@@ -3556,6 +3573,24 @@ export default function App() {
         modal={confirmationModal}
         onClose={() => setConfirmationModal((prev) => ({ ...prev, isOpen: false }))}
       />
+      )}
+
+      {privacyOpen && (
+        <PrivacyModal
+          onClose={() => setPrivacyOpen(false)}
+          onRevoke={async () => {
+            await handleDisconnectGoogle();
+            setPrivacyOpen(false);
+          }}
+          onDeleteAll={async () => {
+            // "Xoá toàn bộ dữ liệu": Google grant (incl. the Firestore copy), Dexie, browser storage.
+            try { await clearGoogleGrant(user?.uid || null); } catch {}
+            try { await db.delete(); } catch {}
+            try { localStorage.clear(); sessionStorage.clear(); } catch {}
+            try { await signOutUser(); } catch {}
+            window.location.reload();
+          }}
+        />
       )}
 
       {aiDraft && (

@@ -2,9 +2,15 @@
 <rss version="2.0">
   <channel>
     <title>StudentOS Changelog</title>
-    <link>https://student-command-center.vercel.app/</link>
+    <link>https://sutdent-command-center.vercel.app/</link>
     <description>Plain-English updates to StudentOS — what changed and why it matters for studying.</description>
     <language>en-us</language>
+    <item>
+      <title>v2.18.1 — Privacy Page You Can Actually Open + Pilot Counters</title>
+      <link>https://sutdent-command-center.vercel.app/?changelog=2.18.1</link>
+      <pubDate>Fri, 16 Oct 2026 17:30:00 GMT</pubDate>
+      <description>The Vietnamese privacy page now opens from the dashboard and landing page with a working delete-all, the landing page lists the 6 current permissions, the app counts missed deadlines per week anonymously for the pilot, and links point to the real site.</description>
+    </item>
     <item>
       <title>v2.18.0 — Schedule You Control + One Main Flow + AI Test Report</title>
       <link>https://sutdent-command-center.vercel.app/?changelog=2.18.0</link>
@@ -19,133 +25,133 @@
     </item>
     <item>
       <title>v2.17.0 — Trust Layer: Confirm Before Save, Review Box, 13 to 6 Permissions</title>
-      <link>https://student-command-center.vercel.app/?changelog=2.17.0</link>
+      <link>https://sutdent-command-center.vercel.app/?changelog=2.17.0</link>
       <pubDate>Fri, 16 Oct 2026 15:45:00 GMT</pubDate>
       <description>AI-found assignments wait for a confirm card with the exact source sentence and an open-original link, no deadline is ever invented, skipped or uncertain emails stay in an "AI chưa đọc được" review box, Classroom announcements are read, and Google permissions drop from 13 to 6 with a Vietnamese privacy page for students and parents.</description>
     </item>
     <item>
       <title>v2.16.0 — 100 Antigravity CLI UI/UX Improvements + Two-Tier Model Selector + Theme Engine</title>
-      <link>https://student-command-center.vercel.app/?changelog=2.16.0</link>
+      <link>https://sutdent-command-center.vercel.app/?changelog=2.16.0</link>
       <pubDate>Sun, 20 Sep 2026 00:00:00 GMT</pubDate>
       <description>100 tangible UI/UX improvements for Antigravity CLI vibe coding including a two-tier model selector (/model), visual quota dashboard (/quota) with solid blocks and multi-day countdowns, in-terminal Kanban board (/todo), workspace status HUD (/status), and 5 developer color palettes (/theme).</description>
     </item>
     <item>
       <title>v2.15.0 — AI Planner Day View + Editable Times + Linked Sources</title>
-      <link>https://student-command-center.vercel.app/?changelog=2.15.0</link>
+      <link>https://sutdent-command-center.vercel.app/?changelog=2.15.0</link>
       <pubDate>Mon, 14 Sep 2026 00:00:00 GMT</pubDate>
       <description>AI Planner shows one roomy day at a time with editable block times and a linked Tracker, Canvas, Classroom, Gmail and Moodle source list; dark-mode text safety net and Flagship wording removed.</description>
     </item>
     <item>
       <title>v2.14.0 — Paper &amp; Coal Theme + Semantic Palette</title>
-      <link>https://student-command-center.vercel.app/?changelog=2.14.0</link>
+      <link>https://sutdent-command-center.vercel.app/?changelog=2.14.0</link>
       <pubDate>Mon, 14 Sep 2026 00:00:00 GMT</pubDate>
       <description>New Paper light (#F5F0E6) and Coal dark (#201D18) theme with ember-orange accent, ink/cream text, rebalanced borders, and new semantic colors (gold, sage, clay, amber, slate).</description>
     </item>
     <item>
       <title>v2.13.0 — AI Planner All-Source Upgrade + Gmail-Native Inbox + Judge Hero</title>
-      <link>https://student-command-center.vercel.app/?changelog=2.13.0</link>
+      <link>https://sutdent-command-center.vercel.app/?changelog=2.13.0</link>
       <pubDate>Mon, 14 Sep 2026 00:00:00 GMT</pubDate>
       <description>AI Planner fuses Tracker, Canvas, Classroom, Gmail, Moodle, 7-day Calendar and timetable with a 3.5-flash to 3.0-flash to Groq chain; Gmail trusts native Spam/Promo/Social labels with zero keywords; Dashboard hero, Top-8 first slot and pinned sidebar put it first.</description>
     </item>
     <item>
       <title>v2.12.0 — Homework Sorter Metrics + Classifier Lab Experiment</title>
-      <link>https://student-command-center.vercel.app/?changelog=2.12.0</link>
+      <link>https://sutdent-command-center.vercel.app/?changelog=2.12.0</link>
       <pubDate>Sun, 13 Sep 2026 00:00:00 GMT</pubDate>
       <description>Homework Sorter gains honest on-device metrics (holdout accuracy, confusion matrix, top-word reasons) and a new Classifier Lab tab compares zero-shot baseline vs 3-example few-shot on your own school messages with a side-by-side scoreboard.</description>
     </item>
     <item>
       <title>v2.11.0 — Study Tools Wave + AI Planner + Safer Sync &amp; Keys</title>
-      <link>https://student-command-center.vercel.app/?changelog=2.11.0</link>
+      <link>https://sutdent-command-center.vercel.app/?changelog=2.11.0</link>
       <pubDate>Sun, 13 Sep 2026 00:00:00 GMT</pubDate>
       <description>Searchable PhET library with 29 sims, official GeoGebra embeds, local whiteboard and offline Python, strict embed allowlist, Gemini 2.5-flash keys with edit and expiry, Google auto-connect, named Canvas errors, formal Dossier, VI/EN contrast fixes, Gantt scan-all with preview, flashcard session limits, focus music, PDF fallback, Notion ZIP/CSV export, AI Planner, sanitized studio embeds, silent-empty Canvas fix, and a unified keys manager.</description>
     </item>
     <item>
       <title>v2.10.0 — Warm Linen Theme + Buttery Motion</title>
-      <link>https://student-command-center.vercel.app/?changelog=2.10.0</link>
+      <link>https://sutdent-command-center.vercel.app/?changelog=2.10.0</link>
       <pubDate>Sat, 12 Sep 2026 00:00:00 GMT</pubDate>
       <description>New warm linen palette (#F8F6F0 canvas, #F1ECE1 sidebar, white cards, #E05D38 buttons) with smoother hovers, page transitions, and button shine across the app.</description>
     </item>
     <item>
       <title>v2.9.8 — Warm Cream Theme, Final Tuning + Motion Polish</title>
-      <link>https://student-command-center.vercel.app/?changelog=2.9.8</link>
+      <link>https://sutdent-command-center.vercel.app/?changelog=2.9.8</link>
       <pubDate>Sat, 12 Sep 2026 00:00:00 GMT</pubDate>
       <description>Eight tuning passes settle the warm cream canvas, deeper sidebar, softer dark mode and livelier homepage with cascading entrances and tactile buttons.</description>
     </item>
     <item>
       <title>v2.8.4 — Warmer Look: No Grey Wash, Lighter Sidebar</title>
-      <link>https://student-command-center.vercel.app/?changelog=2.8.4</link>
+      <link>https://sutdent-command-center.vercel.app/?changelog=2.8.4</link>
       <pubDate>Sat, 12 Sep 2026 00:00:00 GMT</pubDate>
       <description>Dashboard drops the grey wash for warm cream and the sidebar turns soft light orange with dark readable text.</description>
     </item>
     <item>
       <title>v2.8.3 — Canvas Production Fix: Sync Works on Vercel + Single Error Message</title>
-      <link>https://student-command-center.vercel.app/?changelog=2.8.3</link>
+      <link>https://sutdent-command-center.vercel.app/?changelog=2.8.3</link>
       <pubDate>Sat, 12 Sep 2026 00:00:00 GMT</pubDate>
       <description>Canvas /api routes now reach the serverless router on the live site so pasted keys actually sync, proxy error details are surfaced, and the banner never doubles the retry hint.</description>
     </item>
     <item>
       <title>v2.8.2 — Canvas Save &amp; Sync Fix: New Credentials Actually Sync</title>
-      <link>https://student-command-center.vercel.app/?changelog=2.8.2</link>
+      <link>https://sutdent-command-center.vercel.app/?changelog=2.8.2</link>
       <pubDate>Sat, 12 Sep 2026 00:00:00 GMT</pubDate>
       <description>Pressing Save &amp; Sync in Canvas now syncs with the credentials you just entered instead of silently loading nothing with no error.</description>
     </item>
     <item>
       <title>v2.8.1 — Canvas Sync Fix: Honest Errors When the Server API Is Down</title>
-      <link>https://student-command-center.vercel.app/?changelog=2.8.1</link>
+      <link>https://sutdent-command-center.vercel.app/?changelog=2.8.1</link>
       <pubDate>Thu, 11 Sep 2026 14:10:00 GMT</pubDate>
       <description>Canvas sync now detects a broken deployment (server API returning pages instead of JSON) and says so plainly, instead of blaming your token or feed link; bare vite dev proxies /api to the app server.</description>
     </item>
     <item>
       <title>v2.8.0 — Math That Renders: KaTeX Formulas in Every AI Answer</title>
-      <link>https://student-command-center.vercel.app/?changelog=2.8.0</link>
+      <link>https://sutdent-command-center.vercel.app/?changelog=2.8.0</link>
       <pubDate>Fri, 11 Sep 2026 00:00:00 GMT</pubDate>
       <description>Math formulas in Study Coach, Feynman, quizzes, PhotoMath and STEM Lab now render as real equations with KaTeX, theme-matched and Vietnamese-safe.</description>
     </item>
     <item>
       <title>v2.7.0 — Ember Palette, VI/EN Toggle, Calmer Toolbars &amp; Honest Canvas</title>
-      <link>https://student-command-center.vercel.app/?changelog=2.7.0</link>
+      <link>https://sutdent-command-center.vercel.app/?changelog=2.7.0</link>
       <pubDate>Fri, 11 Sep 2026 00:00:00 GMT</pubDate>
       <description>Official Ember canvas/border/accent palette everywhere, Vietnamese-English toggle with auto-detect, decluttered Tracker toolbar with Filters panel and Smart Add AI Rank, single-banner Canvas errors that keep cached assignments, and a multi-section homepage with Features, How-it-works, FAQ and Privacy.</description>
     </item>
     <item>
       <title>v2.6.1 — True Palette, Point-At-You Tour &amp; Honest Canvas Errors</title>
-      <link>https://student-command-center.vercel.app/?changelog=2.6.1</link>
+      <link>https://sutdent-command-center.vercel.app/?changelog=2.6.1</link>
       <pubDate>Thu, 10 Sep 2026 00:00:00 GMT</pubDate>
       <description>Strict Warm Cream/Charcoal/Terracotta palette on every screen, spotlight tour that points at real buttons and auto-moves tabs, Canvas expired-feed and bad-token errors with fixes, and no more collapsed same-name assignments.</description>
     </item>
     <item>
       <title>v2.6.0 — Everyday Polish: deadlines, focus &amp; search feel instant</title>
-      <link>https://student-command-center.vercel.app/?changelog=2.6.0</link>
+      <link>https://sutdent-command-center.vercel.app/?changelog=2.6.0</link>
       <pubDate>Thu, 10 Sep 2026 00:00:00 GMT</pubDate>
       <description>Tracker urgency badges and relative due dates, dashboard countdowns, timetable now-line, calmer Pomodoro, mood check-in, faster search with math copy and recents, Gmail unread badges, Drive sorting, CSV export, habits streaks and one-click citation copy.</description>
     </item>
     <item>
       <title>v2.5.1 — True Two-Mode Theme, Calmer Home &amp; Fixed App Icons</title>
-      <link>https://student-command-center.vercel.app/?changelog=2.5.1</link>
+      <link>https://sutdent-command-center.vercel.app/?changelog=2.5.1</link>
       <pubDate>Sun, 06 Sep 2026 00:00:00 GMT</pubDate>
       <description>Exactly two modes: Warm Cream light and Dark Charcoal dark with terracotta accent. Simpler home, cleaner sidebar, every app icon unique.</description>
     </item>
     <item>
       <title>v2.5.0 — Division A Kit: Home Fix, NASA Repair, AI Labs &amp; Dossier</title>
-      <link>https://student-command-center.vercel.app/?changelog=2.5.0</link>
+      <link>https://sutdent-command-center.vercel.app/?changelog=2.5.0</link>
       <pubDate>Sun, 06 Sep 2026 00:00:00 GMT</pubDate>
       <description>Getting-started card below Today Plan, NASA Image of the Day with retry, offline Train My Model Lab, Few-Shot Lab and Competition Dossier with PDF export.</description>
     </item>
     <item>
       <title>v2.4.2 — Fixed: Google Sign-In That Would Not Finish</title>
-      <link>https://student-command-center.vercel.app/?changelog=2.4.2</link>
+      <link>https://sutdent-command-center.vercel.app/?changelog=2.4.2</link>
       <pubDate>Sat, 05 Sep 2026 00:00:00 GMT</pubDate>
       <description>Clear sign-in errors with fixes, redirect sign-in for blocked popups, welcome-back sync, one-tap connection check.</description>
     </item>
     <item>
       <title>v2.4.1 — Fixed: Blank Canvas Page &amp; Google Sign-In Going Stale</title>
-      <link>https://student-command-center.vercel.app/?changelog=2.4.1</link>
+      <link>https://sutdent-command-center.vercel.app/?changelog=2.4.1</link>
       <pubDate>Wed, 03 Sep 2026 00:00:00 GMT</pubDate>
       <description>One bad assignment row can no longer blank the Canvas page. Clear error with retry, permanent Google connection, cached data kept on failed sync.</description>
     </item>
     <item>
       <title>v2.4.0 — Smarter studying: auto-scheduler, grade forecaster, voice + 15 new tools</title>
-      <link>https://student-command-center.vercel.app/?changelog=2.4.0</link>
+      <link>https://sutdent-command-center.vercel.app/?changelog=2.4.0</link>
       <pubDate>Thu, 03 Sep 2026 00:00:00 GMT</pubDate>
       <description>One-tap focus planner, GPA what-if simulator, exam countdowns, teacher follow-ups, voice dictation, offline trash + history, and new workspaces (jobs, budget, code runner, resume).</description>
     </item>

@@ -3,4 +3,4 @@ Allow: /
 Disallow: /*?share-target=
 Disallow: /*?newTask=
 Disallow: /*?focus=
-Sitemap: https://student-command-center.vercel.app/sitemap.xml
+Sitemap: https://sutdent-command-center.vercel.app/sitemap.xml

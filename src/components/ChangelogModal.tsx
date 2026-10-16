@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, Sparkles, CheckCircle2, Zap, ArrowRight } from 'lucide-react';
 
-export const CURRENT_VERSION = '2.18.0';
+export const CURRENT_VERSION = '2.18.1';
 
 interface VersionRelease {
   version: string;
@@ -14,10 +14,24 @@ interface VersionRelease {
 
 const RELEASES: VersionRelease[] = [
   {
+    version: '2.18.1',
+    date: 'October 16, 2026',
+    title: 'Privacy Page You Can Actually Open + Pilot Counters',
+    badge: 'Latest Update',
+    highlights: [
+      'The privacy page (what each permission does, what the AI sees, a section for parents) now opens from the home screen and the landing page',
+      'Pilot helpers: the app counts missed deadlines per week, anonymously, and exports them in one tap',
+    ],
+    details: [
+      '108 Privacy page: it existed but nothing opened it; now "Quyền riêng tư & dữ liệu gửi cho AI" on the dashboard and "Xem đầy đủ" on the landing page open it. "Delete all my data" really wipes the Google grant (including its Firestore copy), the local database and browser storage. The landing page lists the 6 current permissions and which ones send text to the AI.',
+      '109 Pilot counters (dashboard → "Tải số liệu thử nghiệm"): weekly counts of missed deadlines and of confirm / edit / reject / check-later answers on AI results, with an anonymous device code and no names, subjects or email text. Plan and parent consent form in docs/PILOT_PLAN.md.',
+      '110 Links: canonical, share, sitemap and changelog links pointed to student-command-center.vercel.app, which is someone else\'s site; they now point to sutdent-command-center.vercel.app.',
+    ]
+  },
+  {
     version: '2.18.0',
     date: 'October 16, 2026',
     title: 'Schedule You Control + One Main Flow + AI Test Report',
-    badge: 'Latest Update',
     highlights: [
       'The AI never silently rewrites your week: see "AI muốn đổi 3 buổi", then apply or keep the old plan',
       'Go back to any earlier plan, and lock sessions so the AI cannot move them',
