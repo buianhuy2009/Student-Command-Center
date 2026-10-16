@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import summarizeEmailsHandler from "./api-handlers/gemini/summarize-emails.js";
 import parseAssignmentHandler from "./api-handlers/gemini/parse-assignment.js";
 import assistantHandler from "./api-handlers/gemini/assistant.js";
+import { SERVER_MODELS } from "./api-handlers/gemini/models.js";
 
 dotenv.config();
 
@@ -15,13 +16,7 @@ function getGenAI(): GoogleGenAI {
   return genAI;
 }
 
-const CANDIDATE_MODELS = [
-  process.env.GEMINI_MODEL,
-  "gemini-3.5-flash",
-  "gemini-3.0-flash",
-  "gemini-2.5-flash",
-  "gemini-2.0-flash",
-].filter(Boolean) as string[];
+const CANDIDATE_MODELS: string[] = SERVER_MODELS;
 
 export async function generateWithModelFallback(params: {
   contents: any;

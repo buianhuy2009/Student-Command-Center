@@ -100,7 +100,7 @@ export async function streamAnswerWithSources(
     try {
       const key = getGeminiKey();
       if (!key) throw new Error('No AI key. Add one in Settings → AI (BYOK), or use Groq fallback.');
-      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(key)}`, {
+      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${encodeURIComponent(key)}`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ contents: [{ parts: [{ text: prompt.slice(0, 12000) }] }] }),
         signal: callbacks.signal,

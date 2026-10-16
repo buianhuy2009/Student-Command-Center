@@ -250,7 +250,7 @@ export const FloatingAiCopilot: React.FC<FloatingAiCopilotProps> = ({
                     Actions ON
                   </span>
                 </h4>
-                <p className="text-[10px] text-[#8C897F]">Model: gemini-2.5-flash / 3.5-lite</p>
+                <p className="text-[10px] text-[#8C897F]">Model: gemini-flash-latest</p>
               </div>
             </div>
 

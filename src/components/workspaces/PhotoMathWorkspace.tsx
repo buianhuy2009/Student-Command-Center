@@ -109,7 +109,7 @@ async function callGeminiVision(base64: string, mimeType: string, key: string): 
 {"latex":"clean LaTeX of the main equation(s)","explanation":"1 sentence on what it is","steps":["Step 1: ...","Step 2: ..."],"hasError":false,"errorDescription":"","socraticHint":""}` +
       ` Rules: steps = short 2-6 solution steps solving what is shown (not describing the photo). If you spot an algebraic/sign/arithmetic slip, set hasError true and fill errorDescription + socraticHint (hint only, never the final answer).`;
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(key)}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${encodeURIComponent(key)}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -143,7 +143,7 @@ async function callGeminiText(expression: string, key: string): Promise<VisionAn
   try {
     const prompt = `Solve this math expression step by step: ${expression}\nReturn strict JSON only: {"latex":"clean LaTeX","explanation":"1 sentence","steps":["Step 1: ...","Step 2: ..."],"hasError":false,"errorDescription":"","socraticHint":""}`;
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(key)}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${encodeURIComponent(key)}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

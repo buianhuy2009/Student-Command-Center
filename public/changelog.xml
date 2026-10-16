@@ -6,6 +6,12 @@
     <description>Plain-English updates to StudentOS — what changed and why it matters for studying.</description>
     <language>en-us</language>
     <item>
+      <title>v2.17.1 — AI Back Online: Current Gemini Model Chain</title>
+      <link>https://sutdent-command-center.vercel.app/?changelog=2.17.1</link>
+      <pubDate>Fri, 16 Oct 2026 16:10:00 GMT</pubDate>
+      <description>Google retired the Gemini models StudentOS requested, so every AI feature had been silently falling back; all routes now share one chain led by the gemini-flash-latest alias, with a health probe that shows which model answered.</description>
+    </item>
+    <item>
       <title>v2.17.0 — Trust Layer: Confirm Before Save, Review Box, 13 to 6 Permissions</title>
       <link>https://student-command-center.vercel.app/?changelog=2.17.0</link>
       <pubDate>Fri, 16 Oct 2026 15:45:00 GMT</pubDate>

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, Sparkles, CheckCircle2, Zap, ArrowRight } from 'lucide-react';
 
-export const CURRENT_VERSION = '2.17.0';
+export const CURRENT_VERSION = '2.17.1';
 
 interface VersionRelease {
   version: string;
@@ -14,10 +14,21 @@ interface VersionRelease {
 
 const RELEASES: VersionRelease[] = [
   {
+    version: '2.17.1',
+    date: 'October 16, 2026',
+    title: 'AI Back Online: Current Gemini Model Chain',
+    badge: 'Latest Update',
+    highlights: [
+      'AI features work again — Google retired the models StudentOS was asking for, so every AI answer had been falling back',
+    ],
+    details: [
+      '101 Every server AI route (email reader, quick add, tutor, planner, drafts) now shares one model list led by Google\'s gemini-flash-latest alias, with GEMINI_MODEL in the server settings taking priority; browser-key (BYOK) calls use the same alias. /api/health?probe=1 shows which model answered.',
+    ]
+  },
+  {
     version: '2.17.0',
     date: 'October 16, 2026',
     title: 'Trust Layer: Confirm Before Save, "AI chưa đọc được" Box, 13 → 6 Permissions',
-    badge: 'Latest Update',
     highlights: [
       'Nothing the AI finds is saved until you check it: "AI hiểu là: môn Hoá – hạn 18/9 – ưu tiên cao. Đúng chưa?"',
       'The AI never invents a deadline any more — no date found means "chưa có hạn", clearly marked',

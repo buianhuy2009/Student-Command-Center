@@ -1,4 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
+import { SERVER_MODELS } from "./models.js";
 
 let genAI = null;
 function getGenAI() {
@@ -9,7 +10,7 @@ function getGenAI() {
   return genAI;
 }
 
-const CANDIDATE_MODELS = [process.env.GEMINI_MODEL, "gemini-3.5-flash", "gemini-3.0-flash", "gemini-2.5-flash"].filter(Boolean);
+const CANDIDATE_MODELS = SERVER_MODELS;
 const VI_WEEKDAYS = ["Chủ nhật", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
 const EN_WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 

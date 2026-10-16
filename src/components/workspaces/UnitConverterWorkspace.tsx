@@ -463,7 +463,7 @@ export const UnitConverterWorkspace: React.FC = () => {
         'Rules: ^ is exponent (right-associative), % is modulo, log() is base-10, ln() is natural log, trig in radians, pi ≈ 3.14159, e ≈ 2.71828. Support implicit multiplication like 2(3+4). ' +
         'Return the first line as "Result: <number>" then a 1-2 sentence explanation.';
       const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(key)}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${encodeURIComponent(key)}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

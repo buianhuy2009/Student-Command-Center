@@ -1,4 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
+import { SERVER_MODELS } from "./models.js";
 import { TUTOR_POLICY, HOMEWORK_DUMP_REMINDER, isHomeworkDump } from "./tutorPolicy.js";
 
 let genAI = null;
@@ -10,13 +11,7 @@ function getGenAI() {
   return genAI;
 }
 
-const CANDIDATE_MODELS = [
-  process.env.GEMINI_MODEL,
-  "gemini-3.5-flash",
-  "gemini-3.0-flash",
-  "gemini-2.5-flash",
-  "gemini-2.0-flash",
-].filter(Boolean);
+const CANDIDATE_MODELS = SERVER_MODELS;
 
 async function generateWithModelFallback(params) {
   const ai = getGenAI();
