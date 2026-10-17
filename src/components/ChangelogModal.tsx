@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, Sparkles, CheckCircle2, Zap, ArrowRight } from 'lucide-react';
 
-export const CURRENT_VERSION = '2.18.1';
+export const CURRENT_VERSION = '2.18.2';
 
 interface VersionRelease {
   version: string;
@@ -14,10 +14,23 @@ interface VersionRelease {
 
 const RELEASES: VersionRelease[] = [
   {
+    version: '2.18.2',
+    date: 'October 17, 2026',
+    title: 'Standalone Bilingual Privacy Policy + Google Verification URL',
+    badge: 'Latest Update',
+    highlights: [
+      'Dedicated, public privacy policy page at /privacy and /privacy.html with bilingual English/Vietnamese toggle',
+      'Full compliance with Google API Services User Data Policy, Limited Use disclosures, and children privacy laws',
+    ],
+    details: [
+      '111 Standalone Privacy Policy: public/privacy.html provides an indexable, standalone document with live EN/VI language switching, Google OAuth scopes breakdown, AI data flows (Gemini & Groq), local-first architecture details, and one-click data erasure instructions.',
+      '112 Google OAuth Verification Ready: explicit Limited Use disclosure statement, child protection commitments (COPPA, FERPA, Vietnam Decree 13/2023/NĐ-CP), and clean routing configured in vercel.json and sitemap.xml.',
+    ]
+  },
+  {
     version: '2.18.1',
     date: 'October 16, 2026',
     title: 'Privacy Page You Can Actually Open + Pilot Counters',
-    badge: 'Latest Update',
     highlights: [
       'The privacy page (what each permission does, what the AI sees, a section for parents) now opens from the home screen and the landing page',
       'Pilot helpers: the app counts missed deadlines per week, anonymously, and exports them in one tap',

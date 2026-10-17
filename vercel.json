@@ -13,6 +13,10 @@
       "destination": "/api/index"
     },
     {
+      "source": "/privacy",
+      "destination": "/privacy.html"
+    },
+    {
       "source": "/((?!api/).*)",
       "destination": "/index.html"
     }

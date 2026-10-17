@@ -6,6 +6,12 @@
     <description>Plain-English updates to StudentOS — what changed and why it matters for studying.</description>
     <language>en-us</language>
     <item>
+      <title>v2.18.2 — Standalone Bilingual Privacy Policy + Google Verification URL</title>
+      <link>https://sutdent-command-center.vercel.app/privacy</link>
+      <pubDate>Sat, 17 Oct 2026 00:30:00 GMT</pubDate>
+      <description>A dedicated, crawlable Privacy Policy page is now live at /privacy with live English/Vietnamese language switching, complete Google API Limited Use disclosures, AI processing transparency (Gemini and Groq), and one-click data deletion instructions.</description>
+    </item>
+    <item>
       <title>v2.18.1 — Privacy Page You Can Actually Open + Pilot Counters</title>
       <link>https://sutdent-command-center.vercel.app/?changelog=2.18.1</link>
       <pubDate>Fri, 16 Oct 2026 17:30:00 GMT</pubDate>
