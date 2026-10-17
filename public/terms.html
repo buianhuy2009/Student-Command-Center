@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Terms of Service — StudentOS (Student Command Center)</title>
+  <meta name="description" content="Terms of Service for StudentOS (Student Command Center): acceptable use, academic integrity, AI Socratic tutoring policies, and liability disclaimers." />
+  <link rel="canonical" href="https://sutdent-command-center.vercel.app/terms" />
+  <link rel="icon" type="image/png" href="/icon-192.png" />
+  <style>
+    :root {
+      --bg: #FAF9F5;
+      --surface: #FFFFFF;
+      --surface-subtle: #F3F1EA;
+      --text: #141413;
+      --text-muted: #5E5D59;
+      --line: #E8E6DC;
+      --accent: #C96442;
+      --accent-hover: #A94E33;
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #141413;
+        --surface: #1A1917;
+        --surface-subtle: #252422;
+        --text: #F5F4ED;
+        --text-muted: #B5B2A8;
+        --line: #2C2B27;
+        --accent: #D97757;
+        --accent-hover: #E2886A;
+      }
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      line-height: 1.65;
+      padding: 1.5rem 1rem 4rem;
+    }
+    .container {
+      max-width: 820px;
+      margin: 0 auto;
+    }
+    header {
+      padding: 1.5rem 0 2rem;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 2rem;
+    }
+    .nav-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .brand {
+      font-weight: 800;
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 1.1rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .lang-switcher {
+      display: inline-flex;
+      background: var(--surface-subtle);
+      border: 1px solid var(--line);
+      border-radius: 9999px;
+      padding: 3px;
+    }
+    .lang-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      padding: 6px 14px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      border-radius: 9999px;
+      transition: all 0.15s ease;
+    }
+    .lang-btn.active {
+      background: var(--surface);
+      color: var(--accent);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+    h1 {
+      font-size: 2.2rem;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+      margin-bottom: 0.5rem;
+    }
+    .meta {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+    .badge {
+      display: inline-block;
+      background: rgba(201, 100, 66, 0.12);
+      color: var(--accent);
+      font-weight: 700;
+      font-size: 0.78rem;
+      padding: 3px 10px;
+      border-radius: 9999px;
+      margin-bottom: 0.75rem;
+    }
+    h2 {
+      font-size: 1.35rem;
+      font-weight: 800;
+      margin: 2.25rem 0 0.85rem;
+      color: var(--text);
+      letter-spacing: -0.01em;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 0.35rem;
+    }
+    h3 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin: 1.25rem 0 0.5rem;
+      color: var(--accent);
+    }
+    p, ul, ol {
+      margin-bottom: 1rem;
+      font-size: 0.96rem;
+    }
+    ul, ol {
+      padding-left: 1.5rem;
+    }
+    li {
+      margin-bottom: 0.4rem;
+    }
+    strong {
+      font-weight: 700;
+    }
+    a {
+      color: var(--accent);
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+    a:hover {
+      color: var(--accent-hover);
+    }
+    .box {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 1rem;
+      padding: 1.25rem;
+      margin: 1.25rem 0;
+    }
+    .callout {
+      background: rgba(201, 100, 66, 0.08);
+      border-left: 4px solid var(--accent);
+      border-radius: 0.5rem;
+      padding: 1rem 1.25rem;
+      margin: 1.25rem 0;
+    }
+    .footer {
+      margin-top: 3.5rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--line);
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="nav-bar">
+        <a href="/" class="brand">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+          StudentOS
+        </a>
+        <div class="lang-switcher">
+          <button id="btn-en" class="lang-btn active" onclick="switchLang('en')">English</button>
+          <button id="btn-vi" class="lang-btn" onclick="switchLang('vi')">Tiếng Việt</button>
+        </div>
+      </div>
+      <div class="badge">Legal Terms &amp; Conditions</div>
+      <h1 id="page-title">Terms of Service</h1>
+      <div class="meta" id="page-meta">Last Updated: October 17, 2026 • Effective Date: October 17, 2026</div>
+    </header>
+
+    <!-- ==================== ENGLISH CONTENT ==================== -->
+    <div id="content-en">
+      <div class="callout">
+        <strong>Academic Summary:</strong> StudentOS is a free, open-source academic dashboard designed to help students organize school assignments, track deadlines, and study effectively. By using StudentOS, you agree to use our AI and planning tools ethically and in compliance with your school's academic integrity policies.
+      </div>
+
+      <h2>1. Agreement to Terms</h2>
+      <p>
+        These Terms of Service ("Terms") constitute a legally binding agreement between you ("User", "you", or "Student") and <strong>StudentOS</strong> ("Student Command Center", "we", "us", or "our"), governing your access to and use of the application hosted at <a href="https://sutdent-command-center.vercel.app">https://sutdent-command-center.vercel.app</a>.
+      </p>
+      <p>
+        If you are under the age of majority in your jurisdiction (e.g., under 18 years old), you represent that you have reviewed these Terms with your parent or legal guardian and obtained their consent.
+      </p>
+
+      <h2>2. Description of the Service</h2>
+      <p>
+        StudentOS is an academic operating platform that aggregates course assignments, timetables, and teacher announcements from Google Classroom, Canvas LMS, and Gmail into a consolidated dashboard. Features include:
+      </p>
+      <ul>
+        <li>Coursework deadline aggregation and calendar synchronization.</li>
+        <li>Bi-directional syncing with personal Google Sheets.</li>
+        <li>Socratic AI study assistance and natural language timetable scheduling.</li>
+        <li>Offline-capable PWA tools (calculators, flashcards, pomodoro timers, STEM simulators).</li>
+      </ul>
+
+      <h2>3. Academic Integrity &amp; Socratic AI Policy</h2>
+      <p>
+        StudentOS promotes authentic learning, conceptual mastery, and ethical productivity.
+      </p>
+      <ul>
+        <li><strong>Socratic Guidance Only:</strong> The AI Study Tutor is designed to provide step-by-step conceptual hints, illustrative examples with alternative numbers, and verification of student logic. It is programmed to decline requests to solve full homework problem sets or generate entire essays.</li>
+        <li><strong>Prohibition on Academic Dishonesty:</strong> You agree not to use StudentOS, its AI copilot, or its embedded tools to engage in plagiarism, exam cheating, or any conduct that violates your school's honor code or academic integrity policies.</li>
+        <li><strong>Attribution:</strong> Where permitted by your instructors, any AI-assisted study notes or drafts must be properly cited in accordance with school rules.</li>
+      </ul>
+
+      <h2>4. User Accounts &amp; Third-Party Integrations</h2>
+      <p>
+        To access integrated features, you may authenticate via Google OAuth 2.0 or supply a read-only Canvas LMS token:
+      </p>
+      <ul>
+        <li><strong>Account Security:</strong> You are responsible for safeguarding your device access and Google credentials.</li>
+        <li><strong>OAuth Scopes:</strong> Access to Google Classroom, Calendar, Drive, and Gmail is governed by the minimal scopes outlined in our <a href="/privacy">Privacy Policy</a>. You can revoke this authorization at any time via <a href="https://myaccount.google.com/permissions" target="_blank" rel="noreferrer">Google Account Permissions</a>.</li>
+        <li><strong>Canvas Tokens:</strong> Canvas LMS personal access tokens reside solely in your client browser storage (<code>localStorage</code>) and are never uploaded to our servers.</li>
+      </ul>
+
+      <h2>5. Human-in-the-Loop &amp; AI Accuracy Disclaimer</h2>
+      <div class="box">
+        <p>
+          <strong>Notice Regarding AI Outputs:</strong> Natural language processing (powered by Google Gemini and Groq) is probabilistic and subject to occasional inaccuracies.
+        </p>
+        <ul>
+          <li>All assignments detected by AI in emails or announcements are presented as <em>unconfirmed drafts</em> on an <strong>AI Confirm Card</strong>.</li>
+          <li>You are solely responsible for reviewing the proposed dates against your teacher's original notices before committing them to your schedule or Google Calendar.</li>
+          <li>StudentOS does not guarantee 100% detection of all school deadlines and is not responsible for missed deadlines or late submission penalties.</li>
+        </ul>
+      </div>
+
+      <h2>6. Intellectual Property &amp; Open Source Licensing</h2>
+      <ul>
+        <li><strong>Open Source Codebase:</strong> StudentOS source code is licensed under the permissive <a href="https://opensource.org/licenses/MIT" target="_blank" rel="noreferrer">MIT License</a>. You are free to inspect, fork, and contribute via our GitHub repository.</li>
+        <li><strong>Your Academic Data:</strong> You retain complete ownership and intellectual property rights over all personal study notes, documents, and spreadsheet data managed through the application.</li>
+      </ul>
+
+      <h2>7. Acceptable Use Policy</h2>
+      <p>You agree not to:</p>
+      <ul>
+        <li>Attempt to probe, scan, or compromise the security of our serverless API proxy endpoints.</li>
+        <li>Abuse, spam, or overload our AI backend endpoints with malicious, automated, or non-educational prompts.</li>
+        <li>Bypass security sandbox boundaries of embedded STEM widgets (Desmos, GeoGebra, PhET, WolframAlpha).</li>
+        <li>Use the service for commercial resale or unauthorized data scraping.</li>
+      </ul>
+
+      <h2>8. Disclaimer of Warranties</h2>
+      <p>
+        TO THE MAXIMUM EXTENT PERMITTED BY LAW, STUDENTOS IS PROVIDED ON AN "AS IS" AND "AS AVAILABLE" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR ACADEMIC PURPOSE, OR UNINTERRUPTED OPERATION. WE DO NOT WARRANT THAT THE SERVICE WILL BE ERROR-FREE, SECURE, OR FREE FROM TEMPORARY DOWNTIME CAUSED BY THIRD-PARTY CLOUD PROVIDERS.
+      </p>
+
+      <h2>9. Limitation of Liability</h2>
+      <p>
+        IN NO EVENT SHALL THE DEVELOPERS, MAINTAINERS, OR CONTRIBUTORS OF STUDENTOS BE LIABLE FOR ANY INDIRECT, INCIDENTAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING WITHOUT LIMITATION MISSED COURSEWORK DEADLINES, ACADEMIC PENALTIES, GRADE DISCREPANCIES, OR LOSS OF DATA ARISING FROM YOUR USE OF OR INABILITY TO USE THE SERVICE.
+      </p>
+
+      <h2>10. Data Deletion &amp; Termination</h2>
+      <p>
+        You may terminate your use of StudentOS at any time. By clicking <strong>"Delete all my data"</strong> in the in-app Privacy settings, all local browser databases and your encrypted Firestore OAuth refresh tokens are purged immediately.
+      </p>
+
+      <h2>11. Governing Law &amp; Contact</h2>
+      <p>
+        These Terms are governed by and construed in accordance with the laws of Vietnam, without regard to conflict of law principles.
+      </p>
+      <div class="box">
+        <strong>StudentOS Support &amp; Inquiries</strong><br />
+        Bui An Huy (Lead Maintainer)<br />
+        Email: <a href="mailto:buianhuy2009@gmail.com">buianhuy2009@gmail.com</a><br />
+        Project URL: <a href="https://sutdent-command-center.vercel.app">https://sutdent-command-center.vercel.app</a>
+      </div>
+    </div>
+
+    <!-- ==================== VIETNAMESE CONTENT ==================== -->
+    <div id="content-vi" class="hidden">
+      <div class="callout">
+        <strong>Tóm tắt học tập:</strong> StudentOS là nền tảng quản lý học tập mã nguồn mở, phi lợi nhuận, giúp học sinh THCS, THPT và Đại học theo dõi hạn nộp bài tập và sắp xếp lịch học. Khi sử dụng StudentOS, bạn cam kết sử dụng công cụ AI một cách trung thực và tuân thủ nội quy học thuật của nhà trường.
+      </div>
+
+      <h2>1. Chấp thuận Điều khoản</h2>
+      <p>
+        Điều khoản Dịch vụ này ("Điều khoản") là thoả thuận pháp lý giữa bạn ("Người dùng", "Học sinh") và dự án <strong>StudentOS</strong> ("Student Command Center", "chúng tôi") khi truy cập và sử dụng dịch vụ tại <a href="https://sutdent-command-center.vercel.app">https://sutdent-command-center.vercel.app</a>.
+      </p>
+      <p>
+        Nếu bạn chưa đủ 18 tuổi, bạn xác nhận rằng bạn đã cùng cha mẹ hoặc người giám hộ hợp pháp đọc và đồng ý với các điều khoản này.
+      </p>
+
+      <h2>2. Mô tả Dịch vụ</h2>
+      <p>
+        StudentOS là trung tâm điều hành học tập, tự động tổng hợp bài tập, thời khoá biểu và thông báo từ Google Classroom, Canvas LMS và Gmail:
+      </p>
+      <ul>
+        <li>Tổng hợp hạn nộp bài tập và đồng bộ hai chiều vào Google Calendar và Google Sheets.</li>
+        <li>Lên lịch học tự động bằng câu lệnh tiếng Việt tự nhiên (có bảo vệ các buổi đã khoá).</li>
+        <li>Gia sư AI học tập theo phương pháp gợi mở Socratic.</li>
+        <li>Các công cụ học tập ngoại tuyến (máy tính Desmos, mô phỏng PhET, thẻ nhớ flashcard, đồng hồ Pomodoro).</li>
+      </ul>
+
+      <h2>3. Liêm chính Học thuật &amp; Quy tắc sử dụng AI</h2>
+      <p>
+        StudentOS được thiết kế để rèn luyện tinh thần tự học, không phục vụ mục đích gian lận:
+      </p>
+      <ul>
+        <li><strong>AI chỉ gợi ý từng bước (Phương pháp Socratic):</strong> Gia sư AI giải thích khái niệm, chỉ ra bước đầu tiên hoặc đưa ra ví dụ tương tự để học sinh tự làm. AI được lập trình để từ chối giải sẵn toàn bộ bài kiểm tra hay viết văn sẵn để học sinh sao chép.</li>
+        <li><strong>Nghiêm cấm gian lận:</strong> Bạn cam kết không sử dụng StudentOS để đạo văn, làm bài kiểm tra hộ, hoặc vi phạm nội quy, quy chế thi của nhà trường.</li>
+      </ul>
+
+      <h2>4. Tài khoản &amp; Liên kết Google / Canvas</h2>
+      <ul>
+        <li><strong>Bảo mật:</strong> Bạn chịu trách nhiệm bảo quản thiết bị cá nhân và tài khoản Google của mình.</li>
+        <li><strong>Quyền Google:</strong> Ứng dụng chỉ xin 6 quyền Google cần thiết theo nguyên tắc tối thiểu hoá (xem <a href="/privacy">Chính sách Quyền riêng tư</a>). Bạn có thể thu hồi quyền bất cứ lúc nào tại <a href="https://myaccount.google.com/permissions" target="_blank" rel="noreferrer">myaccount.google.com/permissions</a>.</li>
+        <li><strong>Mã Canvas:</strong> Mã truy cập Canvas của bạn chỉ lưu trong bộ nhớ máy cá nhân (<code>localStorage</code>), tuyệt đối không gửi về máy chủ của chúng tôi.</li>
+      </ul>
+
+      <h2>5. Xác nhận của Học sinh (Human-in-the-Loop)</h2>
+      <div class="box">
+        <p>
+          <strong>Lưu ý về tính chính xác của AI:</strong>
+        </p>
+        <ul>
+          <li>Mọi bài tập do AI phát hiện trong thư điện tử hoặc thông báo lớp học đều hiển thị trên <strong>Thẻ xác nhận AI</strong> kèm trích dẫn gốc.</li>
+          <li>Học sinh luôn là người kiểm tra và bấm xác nhận trước khi bài tập được lưu vào bảng theo dõi hay lịch học.</li>
+          <li>StudentOS không đảm bảo đọc chính xác 100% trong mọi trường hợp thầy cô viết tắt hoặc dời lịch đột xuất, và không chịu trách nhiệm đối với việc học sinh nộp bài trễ hạn.</li>
+        </ul>
+      </div>
+
+      <h2>6. Bản quyền &amp; Giấy phép Mã nguồn mở</h2>
+      <ul>
+        <li><strong>Mã nguồn mở:</strong> Mã nguồn StudentOS được phân phối theo giấy phép <a href="https://opensource.org/licenses/MIT" target="_blank" rel="noreferrer">MIT License</a>.</li>
+        <li><strong>Dữ liệu của bạn:</strong> Mọi ghi chú, tài liệu, thời khoá biểu và bài tập do bạn nhập vào đều thuộc quyền sở hữu 100% của bạn.</li>
+      </ul>
+
+      <h2>7. Quy tắc Ứng xử</h2>
+      <p>Bạn cam kết không thực hiện các hành vi sau:</p>
+      <ul>
+        <li>Cố ý tấn công, khai thác lỗ hổng hoặc phá hoại hệ thống máy chủ proxy của StudentOS.</li>
+        <li>Lạm dụng các cổng AI bằng các yêu cầu tự động độc hại hoặc ngoài mục đích học tập.</li>
+        <li>Khai thác trái phép các công cụ nhúng STEM (Desmos, GeoGebra, PhET).</li>
+      </ul>
+
+      <h2>8. Miễn trừ Trách nhiệm</h2>
+      <p>
+        STUDENTOS ĐƯỢC CUNG CẤP DỰA TRÊN NGUYÊN TẮC "NGUYÊN TRẠNG" (AS IS) VÀ "SẴN CÓ". CHÚNG TÔI KHÔNG BẢO ĐẢM RẰNG DỊCH VỤ SẼ HOÀN TOÀN KHÔNG GIÁN ĐOẠN DO SỰ CỐ TỪ BÊN THỨ BA (GOOGLE, CANVAS, GROQ). TRONG MỌI TRƯỜNG HỢP, NHÓM PHÁT TRIỂN KHÔNG CHỊU TRÁCH NHIỆM CHO BẤT KỲ THIỆT HẠI HỌC TẬP HAY KỶ LUẬT HỌC THUẬT NÀO PHÁT SINH TỪ VIỆC SỬ DỤNG ỨNG DỤNG.
+      </p>
+
+      <h2>9. Xoá Dữ liệu &amp; Chấm dứt</h2>
+      <p>
+        Bạn có toàn quyền ngưng sử dụng bất kỳ lúc nào. Nút <strong>"Xoá toàn bộ dữ liệu của tôi"</strong> trong ứng dụng sẽ xoá sạch bộ nhớ trình duyệt và khoá cấp quyền Google trên Firestore ngay lập tức.
+      </p>
+
+      <h2>10. Luật áp dụng &amp; Thông tin Liên hệ</h2>
+      <p>Điều khoản này chịu sự điều chỉnh của pháp luật Việt Nam.</p>
+      <div class="box">
+        <strong>Hỗ trợ Người dùng StudentOS</strong><br />
+        Bùi An Huy (Trưởng nhóm phát triển)<br />
+        Email: <a href="mailto:buianhuy2009@gmail.com">buianhuy2009@gmail.com</a><br />
+        Website: <a href="https://sutdent-command-center.vercel.app">https://sutdent-command-center.vercel.app</a>
+      </div>
+    </div>
+
+    <footer class="footer">
+      <div>© 2026 StudentOS (Student Command Center) — MIT Licensed</div>
+      <div>
+        <a href="/">Trang chủ / Home</a> • 
+        <a href="/privacy">Quyền riêng tư / Privacy</a> • 
+        <a href="mailto:buianhuy2009@gmail.com">Liên hệ / Contact</a>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    function switchLang(lang) {
+      const enDiv = document.getElementById('content-en');
+      const viDiv = document.getElementById('content-vi');
+      const btnEn = document.getElementById('btn-en');
+      const btnVi = document.getElementById('btn-vi');
+      const title = document.getElementById('page-title');
+      const meta = document.getElementById('page-meta');
+
+      if (lang === 'vi') {
+        enDiv.classList.add('hidden');
+        viDiv.classList.remove('hidden');
+        btnVi.classList.add('active');
+        btnEn.classList.remove('active');
+        title.innerText = 'Điều khoản Dịch vụ';
+        meta.innerText = 'Cập nhật lần cuối: 17/10/2026 • Ngày có hiệu lực: 17/10/2026';
+        document.documentElement.lang = 'vi';
+        localStorage.setItem('scc_terms_lang', 'vi');
+      } else {
+        viDiv.classList.add('hidden');
+        enDiv.classList.remove('hidden');
+        btnEn.classList.add('active');
+        btnVi.classList.remove('active');
+        title.innerText = 'Terms of Service';
+        meta.innerText = 'Last Updated: October 17, 2026 • Effective Date: October 17, 2026';
+        document.documentElement.lang = 'en';
+        localStorage.setItem('scc_terms_lang', 'en');
+      }
+    }
+
+    (function init() {
+      const saved = localStorage.getItem('scc_terms_lang') || localStorage.getItem('scc_privacy_lang') || localStorage.getItem('scc_lang_preference');
+      const userLang = navigator.language || navigator.userLanguage || '';
+      if (saved === 'vi' || (!saved && userLang.toLowerCase().startsWith('vi'))) {
+        switchLang('vi');
+      }
+    })();
+  </script>
+</body>
+</html>

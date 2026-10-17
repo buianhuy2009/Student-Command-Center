@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, Sparkles, CheckCircle2, Zap, ArrowRight } from 'lucide-react';
 
-export const CURRENT_VERSION = '2.18.2';
+export const CURRENT_VERSION = '2.18.3';
 
 interface VersionRelease {
   version: string;
@@ -14,10 +14,23 @@ interface VersionRelease {
 
 const RELEASES: VersionRelease[] = [
   {
+    version: '2.18.3',
+    date: 'October 17, 2026',
+    title: 'Standalone Terms of Service + Google Sites Legal Portal Template',
+    badge: 'Latest Update',
+    highlights: [
+      'Dedicated, public Terms of Service page at /terms and /terms.html with bilingual English/Vietnamese toggle',
+      'Ready-to-use 2-button legal portal template (google-sites-home.html) for Google Sites hosting',
+    ],
+    details: [
+      '113 Terms of Service: public/terms.html provides clear educational usage policies, Socratic AI guardrails (forbidding essay/exam cheating), MIT licensing, and human-in-the-loop accuracy disclaimers.',
+      '114 Google Sites 2-Button Portal: public/google-sites-home.html enables instant embedding into Google Sites with direct navigation to Privacy Policy and Terms of Service.',
+    ]
+  },
+  {
     version: '2.18.2',
     date: 'October 17, 2026',
     title: 'Standalone Bilingual Privacy Policy + Google Verification URL',
-    badge: 'Latest Update',
     highlights: [
       'Dedicated, public privacy policy page at /privacy and /privacy.html with bilingual English/Vietnamese toggle',
       'Full compliance with Google API Services User Data Policy, Limited Use disclosures, and children privacy laws',
