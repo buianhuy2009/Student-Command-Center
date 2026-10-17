@@ -563,13 +563,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </div>
 
             <div className="flex items-center gap-4">
-              <button
-                type="button"
-                onClick={() => window.dispatchEvent(new CustomEvent('scc-open-privacy'))}
-                className="hover:text-[#C96442] font-medium cursor-pointer"
-              >
-                Privacy
-              </button>
+              <a href="/privacy" target="_blank" rel="noopener noreferrer" className="hover:text-[#C96442] font-medium">Privacy Policy</a>
               <a href="/terms" target="_blank" rel="noopener noreferrer" className="hover:text-[#C96442] font-medium">Terms</a>
               <a href="mailto:buianhuy2009@gmail.com" className="hover:text-[#C96442] font-medium">Contact</a>
               <button
@@ -591,7 +585,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </div>
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-[#E8E6DC] dark:border-[#2C2B27] pt-4">
             <div className="text-[11px] text-center sm:text-left text-[#5E5D59]">
-              © 2026 Student Command Center — MIT Licensed. <button type="button" onClick={() => window.dispatchEvent(new CustomEvent('scc-open-privacy'))} className="underline hover:text-[#C96442] cursor-pointer">Privacy</button> • <a href="/terms" target="_blank" rel="noopener noreferrer" className="underline hover:text-[#C96442]">Terms</a> • <a href="#pricing" className="underline">Pricing</a> • <a href="#faq" className="underline">FAQ</a> • <a href="#comparison" className="underline">Comparison</a> • OG 1200×630
+              © 2026 Student Command Center — MIT Licensed. <a href="/privacy" target="_blank" rel="noopener noreferrer" className="underline hover:text-[#C96442]">Privacy Policy</a> • <a href="/terms" target="_blank" rel="noopener noreferrer" className="underline hover:text-[#C96442]">Terms</a> • <a href="#pricing" className="underline">Pricing</a> • <a href="#faq" className="underline">FAQ</a> • <a href="#comparison" className="underline">Comparison</a> • OG 1200×630
             </div>
             <LanguageToggle />
           </div>

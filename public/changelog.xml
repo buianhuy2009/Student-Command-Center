@@ -6,6 +6,12 @@
     <description>Plain-English updates to StudentOS — what changed and why it matters for studying.</description>
     <language>en-us</language>
     <item>
+      <title>v2.18.5 — Homepage Links to the Privacy Policy for Google Verification</title>
+      <link>https://sutdent-command-center.vercel.app/privacy</link>
+      <pubDate>Sat, 17 Oct 2026 01:30:00 GMT</pubDate>
+      <description>The homepage footer now links straight to the Privacy Policy page, and the site carries Google's ownership tag so Google sign-in can be verified.</description>
+    </item>
+    <item>
       <title>v2.18.4 — Fix Legal Portal Buttons in Google Sites Sandbox &amp; Homepage Privacy Trigger</title>
       <link>https://sutdent-command-center.vercel.app/terms</link>
       <pubDate>Sat, 17 Oct 2026 00:55:00 GMT</pubDate>

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, Sparkles, CheckCircle2, Zap, ArrowRight } from 'lucide-react';
 
-export const CURRENT_VERSION = '2.18.4';
+export const CURRENT_VERSION = '2.18.5';
 
 interface VersionRelease {
   version: string;
@@ -14,10 +14,23 @@ interface VersionRelease {
 
 const RELEASES: VersionRelease[] = [
   {
+    version: '2.18.5',
+    date: 'October 17, 2026',
+    title: 'Homepage Links to the Privacy Policy for Google Verification',
+    badge: 'Latest Update',
+    highlights: [
+      'The Privacy Policy link at the bottom of the homepage now opens the full policy page at /privacy',
+      'Google can now confirm that this website belongs to us, so Google sign-in can be verified',
+    ],
+    details: [
+      '118 Footer Privacy Policy Links: both footer Privacy items on the logged-out landing page are now real links to /privacy (the same URL as on the Google consent screen); the "Full details" button beside the permission table still opens the in-app privacy panel.',
+      '119 Google Site Verification: index.html carries the Search Console google-site-verification tag and a noscript link to /privacy and /terms, so Google\'s brand review can match the home page to the Cloud project.',
+    ]
+  },
+  {
     version: '2.18.4',
     date: 'October 17, 2026',
     title: 'Fix Legal Portal Buttons in Google Sites Sandbox & Homepage Privacy Trigger',
-    badge: 'Latest Update',
     highlights: [
       'Fixed buttons in Google Sites legal portal template to navigate safely around iframe sandbox restrictions',
       'Fixed homepage Privacy and Terms buttons on logged-out landing page so Privacy modal renders instantly',
