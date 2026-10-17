@@ -6,6 +6,12 @@
     <description>Plain-English updates to StudentOS — what changed and why it matters for studying.</description>
     <language>en-us</language>
     <item>
+      <title>v2.18.4 — Fix Legal Portal Buttons in Google Sites Sandbox &amp; Homepage Privacy Trigger</title>
+      <link>https://sutdent-command-center.vercel.app/terms</link>
+      <pubDate>Sat, 17 Oct 2026 00:55:00 GMT</pubDate>
+      <description>Fixed legal portal buttons embedded in Google Sites iframes to use target="_blank" with safe navigation, mounted PrivacyModal on the logged-out landing page, and bypassed PWA cache for legal pages.</description>
+    </item>
+    <item>
       <title>v2.18.3 — Standalone Terms of Service + Google Sites Legal Portal Template</title>
       <link>https://sutdent-command-center.vercel.app/terms</link>
       <pubDate>Sat, 17 Oct 2026 00:45:00 GMT</pubDate>

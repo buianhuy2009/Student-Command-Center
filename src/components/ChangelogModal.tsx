@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, Sparkles, CheckCircle2, Zap, ArrowRight } from 'lucide-react';
 
-export const CURRENT_VERSION = '2.18.3';
+export const CURRENT_VERSION = '2.18.4';
 
 interface VersionRelease {
   version: string;
@@ -14,10 +14,24 @@ interface VersionRelease {
 
 const RELEASES: VersionRelease[] = [
   {
+    version: '2.18.4',
+    date: 'October 17, 2026',
+    title: 'Fix Legal Portal Buttons in Google Sites Sandbox & Homepage Privacy Trigger',
+    badge: 'Latest Update',
+    highlights: [
+      'Fixed buttons in Google Sites legal portal template to navigate safely around iframe sandbox restrictions',
+      'Fixed homepage Privacy and Terms buttons on logged-out landing page so Privacy modal renders instantly',
+    ],
+    details: [
+      '115 Google Sites Iframe Sandbox Fix: public/google-sites-home.html now uses target="_blank" with safe navigation fallback instead of target="_top", which was blocked by Google Sites cross-origin iframe sandbox.',
+      '116 Landing Page Modal Mount: App.tsx now renders PrivacyModal in the logged-out LandingPage branch and auto-opens on /privacy or #privacy, while LandingPage footer Privacy button directly triggers the modal.',
+      '117 PWA Workbox Denylist: vite.config.ts now bypasses Service Worker navigation fallback for /privacy, /terms, and /google-sites-home to ensure static HTML loads cleanly.',
+    ]
+  },
+  {
     version: '2.18.3',
     date: 'October 17, 2026',
     title: 'Standalone Terms of Service + Google Sites Legal Portal Template',
-    badge: 'Latest Update',
     highlights: [
       'Dedicated, public Terms of Service page at /terms and /terms.html with bilingual English/Vietnamese toggle',
       'Ready-to-use 2-button legal portal template (google-sites-home.html) for Google Sites hosting',

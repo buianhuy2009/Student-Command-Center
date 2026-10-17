@@ -41,7 +41,7 @@ export default defineConfig(() => {
         globIgnores: ['**/index.html'],
         maximumFileSizeToCacheInBytes: 2 * 1024 * 1024,
         navigateFallback: '/index.html',
-        navigateFallbackDenylist: [/^\/api\//, /^\/share-target/],
+        navigateFallbackDenylist: [/^\/api\//, /^\/share-target/, /^\/privacy/, /^\/terms/, /^\/google-sites-home/],
         runtimeCaching: [
           { urlPattern: /^https:\/\/generativelanguage\.googleapis\.com\/.*/i, handler: 'NetworkFirst', options: { cacheName: 'gemini-api', networkTimeoutSeconds: 10, expiration: { maxEntries: 50, maxAgeSeconds: 300 } } },
           { urlPattern: /^https:\/\/www\.googleapis\.com\/.*/i, handler: 'NetworkFirst', options: { cacheName: 'googleapis-cache', networkTimeoutSeconds: 8, expiration: { maxEntries: 100, maxAgeSeconds: 300 } } },

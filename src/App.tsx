@@ -750,6 +750,9 @@ export default function App() {
   useEffect(() => {
     const open = () => setPrivacyOpen(true);
     window.addEventListener('scc-open-privacy', open);
+    if (typeof window !== 'undefined' && (window.location.pathname === '/privacy' || window.location.hash === '#privacy')) {
+      setPrivacyOpen(true);
+    }
     return () => window.removeEventListener('scc-open-privacy', open);
   }, []);
   const [classroomAlerts, setClassroomAlerts] = useState<EmailAlert[]>([]);
@@ -2784,6 +2787,22 @@ export default function App() {
           onRunDiagnostics={diagnoseSignInEnvironment}
           onRedirectSignIn={() => handleRedirectSignIn(true)}
         />
+        )}
+        {privacyOpen && (
+          <PrivacyModal
+            onClose={() => setPrivacyOpen(false)}
+            onRevoke={async () => {
+              await handleDisconnectGoogle();
+              setPrivacyOpen(false);
+            }}
+            onDeleteAll={async () => {
+              try { await clearGoogleGrant(user?.uid || null); } catch {}
+              try { await db.delete(); } catch {}
+              try { localStorage.clear(); sessionStorage.clear(); } catch {}
+              try { await signOutUser(); } catch {}
+              window.location.reload();
+            }}
+          />
         )}
         <ToastContainer
           toasts={toasts}
