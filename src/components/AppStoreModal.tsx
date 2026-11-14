@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   Search,
   X,
@@ -355,6 +355,7 @@ export function loadPinnedAppIds(): string[] {
 export function savePinnedAppIds(ids: string[]) {
   try {
     localStorage.setItem(LOCAL_PINNED_APPS_KEY, JSON.stringify(ids));
+    window.dispatchEvent(new CustomEvent('scc-pinned-apps-updated', { detail: ids }));
   } catch {}
 }
 
@@ -377,6 +378,28 @@ export const AppStoreModal: React.FC<AppStoreModalProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [viewingApp, setViewingApp] = useState<AppStoreItem | null>(null);
   const { t } = useT();
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setViewingApp(null);
+      return;
+    }
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    const raf = requestAnimationFrame(() => {
+      dialogRef.current?.focus();
+    });
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      cancelAnimationFrame(raf);
+    };
+  }, [isOpen, onClose]);
 
   // Top 8 dynamic: Most Used + Recommended via token similarity (more robust than substring)
   const top8Highlights = useMemo(() => {
@@ -445,342 +468,382 @@ export const AppStoreModal: React.FC<AppStoreModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div role="dialog" aria-modal="true" aria-label={t('store_aria_dialog')} className="fixed inset-0 z-50 bg-[#FAF9F5] dark:bg-[#141413] flex flex-col animate-in fade-in duration-150 select-none">
-      
-      {/* Top Header Bar */}
-      <header className="h-16 px-6 sm:px-10 border-b border-[#DFDACB] dark:border-[#2C2B27] flex items-center justify-between bg-white dark:bg-[#1A1917] shrink-0">
-        <div className="flex items-center gap-4 min-w-0">
-          {viewingApp ? (
-            <button
-              onClick={() => setViewingApp(null)}
-              className="px-3 py-1.5 rounded-xl bg-[#FAF9F5] dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] hover:border-[#D97757] text-[#141413] dark:text-[#FAF9F5] text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span>{t('store_back')}</span>
-            </button>
-          ) : (
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-2xl bg-[#D97757] text-white flex items-center justify-center font-extrabold text-sm shadow-md shadow-[#D97757]/20">
-                S
+    <div
+      className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center sm:p-5 select-none animate-in fade-in duration-150"
+      onClick={onClose}
+    >
+      <div
+        ref={dialogRef}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-label={t('store_aria_dialog')}
+        onClick={(e) => e.stopPropagation()}
+        className="w-full h-full sm:max-w-6xl sm:h-[90vh] sm:rounded-3xl bg-[var(--bg-canvas)] text-[var(--text-primary)] border border-[var(--border-default)] shadow-card-hover flex flex-col overflow-hidden outline-none"
+      >
+        {/* Top Header Bar */}
+        <header className="h-16 px-5 sm:px-8 border-b border-[var(--border-default)] flex items-center justify-between gap-4 bg-[var(--bg-surface)] shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            {viewingApp ? (
+              <button
+                type="button"
+                onClick={() => setViewingApp(null)}
+                className="px-3 py-2 rounded-xl bg-[var(--bg-subtle)] hover:bg-[var(--bg-hover)] border border-[var(--border-default)] hover:border-[var(--border-strong)] text-[var(--text-primary)] text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer min-h-[40px]"
+              >
+                <ArrowLeft className="w-4 h-4" aria-hidden="true" />
+                <span>{t('store_back')}</span>
+              </button>
+            ) : (
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-9 h-9 rounded-xl bg-[var(--accent-fill)] text-white flex items-center justify-center font-extrabold text-sm shrink-0 shadow-xs" aria-hidden="true">
+                  S
+                </div>
+                <div className="min-w-0">
+                  <h1 className="text-base font-extrabold text-[var(--text-primary)] tracking-tight truncate">
+                    {t('store_title')}
+                  </h1>
+                  <p className="text-[11px] text-[var(--text-muted)] truncate">
+                    {t('store_sub')}
+                  </p>
+                </div>
               </div>
-              <div>
-                <h1 className="text-base font-extrabold text-[#141413] dark:text-[#FAF9F5] tracking-tight">
-                  {t('store_title')}
-                </h1>
-                <p className="text-[11px] text-[#8C897F]">
-                  {t('store_sub')}
-                </p>
+            )}
+          </div>
+
+          {/* Center Search Bar */}
+          {!viewingApp && (
+            <div className="hidden md:flex items-center flex-1 max-w-md mx-4">
+              <div className="relative w-full">
+                <Search className="w-4 h-4 text-[var(--text-muted)] absolute left-3.5 top-1/2 -translate-y-1/2" aria-hidden="true" />
+                <input
+                  type="search"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder={t('store_search_ph')}
+                  aria-label={t('store_aria_search')}
+                  className="w-full pl-10 pr-4 py-2 text-xs bg-[var(--bg-subtle)] border border-[var(--border-strong)] rounded-xl text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent-fill)]"
+                />
               </div>
             </div>
           )}
-        </div>
 
-        {/* Center Search Bar */}
-        {!viewingApp && (
-          <div className="hidden md:flex items-center flex-1 max-w-md mx-8">
-            <div className="relative w-full">
-              <Search className="w-4 h-4 text-[#8C897F] absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={t('store_search_ph')}
-                aria-label={t('store_aria_search')}
-                className="w-full pl-10 pr-4 py-2 text-xs bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#D97757] text-[#141413] dark:text-[#FAF9F5]"
-              />
-            </div>
-          </div>
-        )}
+          {/* Right Close Button */}
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-3 py-2 rounded-xl bg-[var(--bg-subtle)] hover:bg-[var(--bg-hover)] border border-[var(--border-default)] hover:border-[var(--border-strong)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer flex items-center gap-1.5 text-xs font-bold min-h-[40px] shrink-0"
+            title={t('store_close_title')}
+            aria-label={t('store_close_title')}
+          >
+            <X className="w-4 h-4" aria-hidden="true" />
+            <span className="hidden sm:inline">{t('close')}</span>
+          </button>
+        </header>
 
-        {/* Right Close Button */}
-        <button
-          onClick={onClose}
-          className="p-2 rounded-2xl bg-[#FAF9F5] dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] hover:border-[#D97757] text-[#5C5A54] dark:text-[#B5B2A8] hover:text-[#141413] dark:hover:text-[#FAF9F5] transition-colors cursor-pointer flex items-center gap-1.5 text-xs font-bold"
-          title={t('store_close_title')}
-          aria-label={t('store_close_title')}
-        >
-          <X className="w-4 h-4" />
-          <span className="hidden sm:inline">{t('close')}</span>
-        </button>
-      </header>
-
-      {/* Main Scrollable Content Area */}
-      <div className="flex-1 overflow-y-auto">
-        
-        {/* VIEW 1: DEDICATED APP DETAIL PAGE */}
-        {viewingApp ? (
-          <div className="max-w-4xl mx-auto px-6 py-10 space-y-8 animate-in fade-in zoom-in-95 duration-150">
-            
-            {/* Hero App Card */}
-            <div className="bg-white dark:bg-[#1A1917] rounded-3xl border border-[#DFDACB] dark:border-[#2C2B27] p-8 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-              <div className="flex items-center gap-6">
-                <AppLogo id={viewingApp.id} size="xl" />
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-2.5 flex-wrap">
-                    <h2 className="text-2xl font-bold text-[#141413] dark:text-[#FAF9F5]">
-                      {t(viewingApp.nameKey)}
-                    </h2>
-                    {viewingApp.badgeKey && (
-                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#D97757]/15 text-[#D97757]">
-                        {t(viewingApp.badgeKey)}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-[#8C897F]">
-                    {viewingApp.developer} • {t(CATEGORY_KEY_MAP[viewingApp.category])}
-                  </p>
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-[#6B6860] pt-0.5">
-                    <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-                    <span className="text-[#141413] dark:text-[#FAF9F5]">{viewingApp.rating.toFixed(1)}</span>
-                    <span className="text-[11px] font-medium">• {t(CATEGORY_KEY_MAP[viewingApp.category])} • {viewingApp.developer}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Hero Action Buttons */}
-              <div className="flex items-center gap-3 w-full md:w-auto">
-                <button
-                  onClick={() => onTogglePinApp(viewingApp.id)}
-                  className={`flex-1 md:flex-initial px-5 py-2.5 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer border ${
-                    pinnedAppIds.includes(viewingApp.id)
-                      ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
-                      : 'bg-white dark:bg-[#252422] text-[#141413] dark:text-[#FAF9F5] border-[#DFDACB] dark:border-[#2C2B27] hover:border-[#D97757]'
-                  }`}
-                >
-                  {pinnedAppIds.includes(viewingApp.id) ? (
-                    <>
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                      <span>{t('store_installed_sidebar')}</span>
-                    </>
-                  ) : (
-                    <>
-                      <Download className="w-4 h-4 text-[#D97757]" />
-                      <span>{t('store_install_sidebar')}</span>
-                    </>
-                  )}
-                </button>
-
-                <button
-                  onClick={() => {
-                    onLaunchApp(viewingApp.id);
-                    onClose();
-                  }}
-                  className="flex-1 md:flex-initial px-6 py-2.5 bg-[#D97757] hover:bg-[#C86646] text-white rounded-2xl text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center justify-center gap-2"
-                >
-                  <ExternalLink className="w-4 h-4" />
-                  <span>{t('store_open_app')}</span>
-                </button>
-              </div>
-            </div>
-
-            {/* About Section */}
-            <div className="bg-white dark:bg-[#1A1917] rounded-3xl border border-[#DFDACB] dark:border-[#2C2B27] p-8 shadow-sm space-y-6">
-              <div>
-                <h3 className="text-sm font-bold uppercase tracking-wider text-[#8C897F] mb-3">
-                  {t('store_about_app')}
-                </h3>
-                <p className="text-sm text-[#141413] dark:text-[#FAF9F5] leading-relaxed">
-                  {t(viewingApp.overviewKey)}
-                </p>
-              </div>
-
-              {/* Key Capabilities */}
-              <div>
-                <h3 className="text-sm font-bold uppercase tracking-wider text-[#8C897F] mb-3">
-                  {t('store_key_capabilities')}
-                </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {viewingApp.featureKeys.map((featKey, i) => (
-                    <div
-                      key={i}
-                      className="p-3.5 bg-[#FAF9F5] dark:bg-[#1F1E1B] rounded-2xl border border-[#DFDACB] dark:border-[#2C2B27] flex items-start gap-2.5 text-xs text-[#141413] dark:text-[#FAF9F5]"
-                    >
-                      <Zap className="w-4 h-4 text-[#D97757] shrink-0 mt-0.5" />
-                      <span className="font-semibold">{t(featKey)}</span>
+        {/* Main Scrollable Content Area */}
+        <div className="flex-1 overflow-y-auto overscroll-contain">
+          {/* VIEW 1: DEDICATED APP DETAIL PAGE */}
+          {viewingApp ? (
+            <div className="max-w-4xl mx-auto px-5 sm:px-8 py-8 space-y-6 animate-in fade-in duration-150">
+              {/* Hero App Card */}
+              <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-6 sm:p-8 shadow-card flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                <div className="flex items-center gap-5 min-w-0">
+                  <AppLogo id={viewingApp.id} size="xl" />
+                  <div className="space-y-1.5 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h2 className="text-xl sm:text-2xl font-extrabold text-[var(--text-primary)]">
+                        {t(viewingApp.nameKey)}
+                      </h2>
+                      {viewingApp.badgeKey && (
+                        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[var(--accent-soft)] text-[var(--accent-text)] border border-[var(--accent-border)]">
+                          {t(viewingApp.badgeKey)}
+                        </span>
+                      )}
                     </div>
-                  ))}
+                    <p className="text-xs text-[var(--text-secondary)]">
+                      {viewingApp.developer} • {t(CATEGORY_KEY_MAP[viewingApp.category])}
+                    </p>
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-[var(--text-muted)] pt-0.5">
+                      <Star className="w-3.5 h-3.5 text-[var(--status-warn-border)] fill-current" aria-hidden="true" />
+                      <span className="text-[var(--text-primary)]">{viewingApp.rating.toFixed(1)}</span>
+                      <span className="text-[11px] font-medium">• {t(CATEGORY_KEY_MAP[viewingApp.category])} • {viewingApp.developer}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Hero Action Buttons */}
+                <div className="flex items-center gap-3 w-full md:w-auto shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => onTogglePinApp(viewingApp.id)}
+                    className={`flex-1 md:flex-initial px-4 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-colors cursor-pointer border min-h-[42px] ${
+                      pinnedAppIds.includes(viewingApp.id)
+                        ? 'bg-[var(--status-warn-bg)] text-[var(--status-warn-text)] border-[var(--status-warn-border)] hover:opacity-90'
+                        : 'bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] border-[var(--border-default)] hover:border-[var(--accent-border)]'
+                    }`}
+                  >
+                    {pinnedAppIds.includes(viewingApp.id) ? (
+                      <>
+                        <CheckCircle2 className="w-4 h-4 text-[var(--status-warn-text)]" aria-hidden="true" />
+                        <span>{t('store_installed_sidebar')}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Download className="w-4 h-4 text-[var(--accent-text)]" aria-hidden="true" />
+                        <span>{t('store_install_sidebar')}</span>
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onLaunchApp(viewingApp.id);
+                      onClose();
+                    }}
+                    className="flex-1 md:flex-initial px-5 py-2.5 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-xl text-xs font-bold transition-colors shadow-xs cursor-pointer flex items-center justify-center gap-2 min-h-[42px]"
+                  >
+                    <ExternalLink className="w-4 h-4" aria-hidden="true" />
+                    <span>{t('store_open_app')}</span>
+                  </button>
                 </div>
               </div>
-            </div>
 
-          </div>
-        ) : (
-          /* VIEW 2: STORE CATALOG & CONTINUOUS FLOW */
-          <div className="max-w-6xl mx-auto px-6 sm:px-10 py-8 space-y-8">
-
-            {/* Mobile search input (header search bar is md+ only) */}
-            <div className="md:hidden relative">
-              <Search className="w-4 h-4 text-[#8C897F] absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={t('store_search_ph_mobile')}
-                aria-label={t('store_aria_search')}
-                className="w-full pl-10 pr-4 py-2 text-xs bg-white dark:bg-[#1A1917] border border-[#DFDACB] dark:border-[#2C2B27] rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#D97757] text-[#141413] dark:text-[#FAF9F5]"
-              />
-            </div>
-
-            {/* Category Filter Pills — sticky + count badges */}
-            <div className="sticky top-0 z-10 bg-[#FAF9F5] dark:bg-[#141413] py-2 flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none border-b border-[#DFDACB]/40 dark:border-[#2C2B27]/40 -mx-6 sm:-mx-10 px-6 sm:px-10">
-              {CATEGORY_ITEMS.map((cat) => {
-                const count = cat.id === 'Highlights' ? top8Highlights.length : cat.id === 'All Apps' ? APP_CATALOG.length : APP_CATALOG.filter((a) => a.category === cat.id).length;
-                return (
-                <button
-                  key={cat.id}
-                  onClick={() => {
-                    setSelectedCategory(cat.id);
-                    setSearchQuery('');
-                  }}
-                  className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-                    selectedCategory === cat.id && !searchQuery.trim()
-                      ? 'bg-[#D97757] text-white shadow-xs'
-                      : 'bg-white dark:bg-[#1A1917] text-[#5C5A54] dark:text-[#B5B2A8] hover:bg-[#FAF9F5] dark:hover:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27]'
-                  }`}
-                >
-                  <span>{t(cat.key)}</span><span className={`text-[10px] px-1.5 py-0.5 rounded-full ${selectedCategory === cat.id ? 'bg-white/20' : 'bg-black/5 dark:bg-white/10'}`}>{count}</span>
-                </button>
-                );
-              })}
-            </div>
-
-            {/* SEARCH RESULTS VIEW (If Search Active) */}
-            {searchQuery.trim() ? (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-sm font-bold text-[#141413] dark:text-[#FAF9F5]">
-                    {t('store_search_results', { count: searchResults.length })}
-                  </h2>
-                  <span className="text-xs text-[#8C897F]">{t('store_query_label', { query: searchQuery })}</span>
+              {/* About Section */}
+              <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-6 sm:p-8 shadow-card space-y-6">
+                <div>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] mb-2.5">
+                    {t('store_about_app')}
+                  </h3>
+                  <p className="text-sm text-[var(--text-primary)] leading-relaxed">
+                    {t(viewingApp.overviewKey)}
+                  </p>
                 </div>
-                {searchResults.length === 0 ? (
-                  <div className="py-20 text-center text-[#8C897F] text-xs space-y-2">
-                    <Search className="w-8 h-8 mx-auto opacity-30" />
-                    <p>{t('store_search_empty', { query: searchQuery })}</p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {searchResults.map((app) => renderAppCard(app))}
-                  </div>
-                )}
-              </div>
-            ) : selectedCategory === 'Highlights' ? (
-              /* CONTINUOUS SMOOTH FLOW: HIGHLIGHTS -> CATEGORIES */
-              <div className="space-y-12 animate-in fade-in duration-200">
-                
-                {/* 1. TOP 8 HIGHLIGHT SECTION (Visual Highlight Effect) */}
-                <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-[#FAF9F5] to-amber-500/5 dark:from-[#1A1917] dark:to-amber-500/10 border-2 border-[#D97757]/40 shadow-md space-y-6 relative overflow-hidden">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-2xl bg-[#D97757] text-white flex items-center justify-center shadow-sm">
-                        <Award className="w-5 h-5" />
+
+                {/* Key Capabilities */}
+                <div>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] mb-2.5">
+                    {t('store_key_capabilities')}
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {viewingApp.featureKeys.map((featKey, i) => (
+                      <div
+                        key={i}
+                        className="p-3.5 bg-[var(--bg-subtle)] rounded-xl border border-[var(--border-default)] flex items-start gap-2.5 text-xs text-[var(--text-primary)]"
+                      >
+                        <Zap className="w-4 h-4 text-[var(--accent-text)] shrink-0 mt-0.5" aria-hidden="true" />
+                        <span className="font-semibold">{t(featKey)}</span>
                       </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h2 className="text-base font-extrabold text-[#141413] dark:text-[#FAF9F5]">
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* VIEW 2: STORE CATALOG & CONTINUOUS FLOW */
+            <div className="max-w-6xl mx-auto px-5 sm:px-8 py-6 space-y-7">
+              {/* Mobile search input (header search bar is md+ only) */}
+              <div className="md:hidden relative">
+                <Search className="w-4 h-4 text-[var(--text-muted)] absolute left-3.5 top-1/2 -translate-y-1/2" aria-hidden="true" />
+                <input
+                  type="search"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder={t('store_search_ph_mobile')}
+                  aria-label={t('store_aria_search')}
+                  className="w-full pl-10 pr-4 py-2 text-xs bg-[var(--bg-surface)] border border-[var(--border-strong)] rounded-xl text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent-fill)]"
+                />
+              </div>
+
+              {/* Category Filter Pills — sticky + count badges */}
+              <nav
+                aria-label={t('store_cat_all')}
+                className="sticky top-0 z-10 bg-[var(--bg-canvas)]/95 backdrop-blur-xs py-2.5 flex items-center gap-2 overflow-x-auto scrollbar-none border-b border-[var(--border-default)] -mx-5 sm:-mx-8 px-5 sm:px-8"
+              >
+                {CATEGORY_ITEMS.map((cat) => {
+                  const count =
+                    cat.id === 'Highlights'
+                      ? top8Highlights.length
+                      : cat.id === 'All Apps'
+                        ? APP_CATALOG.length
+                        : APP_CATALOG.filter((a) => a.category === cat.id).length;
+                  const isActive = selectedCategory === cat.id && !searchQuery.trim();
+                  return (
+                    <button
+                      type="button"
+                      key={cat.id}
+                      aria-pressed={isActive}
+                      onClick={() => {
+                        setSelectedCategory(cat.id);
+                        setSearchQuery('');
+                      }}
+                      className={`px-3.5 py-2 rounded-xl text-xs transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1.5 border min-h-[38px] ${
+                        isActive
+                          ? 'bg-[var(--accent-fill)] border-[var(--accent-fill)] text-white font-bold shadow-xs'
+                          : 'bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border-[var(--border-default)] hover:border-[var(--border-strong)] font-semibold'
+                      }`}
+                    >
+                      <span>{t(cat.key)}</span>
+                      <span
+                        className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+                          isActive
+                            ? 'bg-white/20 text-white'
+                            : 'bg-[var(--bg-subtle)] text-[var(--text-muted)]'
+                        }`}
+                      >
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </nav>
+
+              {/* SEARCH RESULTS VIEW (If Search Active) */}
+              {searchQuery.trim() ? (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <h2 className="text-sm font-bold text-[var(--text-primary)]">
+                      {t('store_search_results', { count: searchResults.length })}
+                    </h2>
+                    <span className="text-xs text-[var(--text-muted)]">{t('store_query_label', { query: searchQuery })}</span>
+                  </div>
+                  {searchResults.length === 0 ? (
+                    <div className="py-16 text-center text-[var(--text-muted)] text-xs space-y-2 bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)]">
+                      <Search className="w-8 h-8 mx-auto opacity-40" aria-hidden="true" />
+                      <p>{t('store_search_empty', { query: searchQuery })}</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                      {searchResults.map((app) => renderAppCard(app))}
+                    </div>
+                  )}
+                </div>
+              ) : selectedCategory === 'Highlights' ? (
+                /* CONTINUOUS SMOOTH FLOW: HIGHLIGHTS -> CATEGORIES */
+                <div className="space-y-10 animate-in fade-in duration-150">
+                  {/* 1. TOP 8 HIGHLIGHT SECTION */}
+                  <section className="p-5 sm:p-6 rounded-2xl bg-[var(--bg-surface)] border border-[var(--accent-border)] shadow-card space-y-5">
+                    <div className="flex items-start gap-3.5">
+                      <div className="w-10 h-10 rounded-xl bg-[var(--accent-soft)] border border-[var(--accent-border)] text-[var(--accent-text)] flex items-center justify-center shrink-0">
+                        <Award className="w-5 h-5" aria-hidden="true" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h2 className="text-base font-extrabold text-[var(--text-primary)]">
                             {t('store_top8_title')}
                           </h2>
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-[#D97757] text-white uppercase tracking-wider">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-[var(--accent-fill)] text-white uppercase tracking-wider">
                             {t('store_featured')}
                           </span>
                         </div>
-                        <p className="text-xs text-[#8C897F] mt-0.5">
+                        <p className="text-xs text-[var(--text-secondary)] mt-0.5">
                           {t('store_top8_sub')}
                         </p>
-                        {/* Why recommended chip — explains dynamic logic */}
+                        {/* Why recommended chip */}
                         <div className="mt-2 flex flex-wrap gap-1.5">
                           {(() => {
                             try {
                               const coursesRaw = localStorage.getItem('scc_canvas_courses_v1');
                               const courses: string[] = coursesRaw ? JSON.parse(coursesRaw) : [];
                               const hasCourse = courses.join(' ').toLowerCase();
-                              if (hasCourse.includes('calculus') || hasCourse.includes('math')) return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#D97757]/10 text-[#D97757] border border-[#D97757]/25">{t('store_rec_calc')}</span>;
-                              if (hasCourse.includes('chemistry') || hasCourse.includes('chem')) return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#D97757]/10 text-[#D97757] border border-[#D97757]/25">{t('store_rec_chem')}</span>;
-                              if (hasCourse) return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#D97757]/10 text-[#D97757] border border-[#D97757]/25">{t('store_rec_courses', { courses: courses.slice(0,2).join(', ') })}</span>;
-                              try { const usage = JSON.parse(localStorage.getItem('scc_app_usage_v1')||'{}'); const top = Object.entries(usage).sort((a:any,b:any)=>b[1]-a[1])[0]; if (top) { const topApp = APP_CATALOG.find((a) => a.id === top[0]); return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#D97757]/10 text-[#D97757] border border-[#D97757]/20">{t('store_rec_most_used', { app: topApp ? t(topApp.nameKey) : top[0] })}</span>; } } catch {}
-                              return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#141413]/5 dark:bg-[#FAF9F5]/10 text-[#6B6860] dark:text-[#B5B2A8] border border-[#DFDACB] dark:border-[#2C2B27]">{t('store_rec_starter')}</span>;
+                              if (hasCourse.includes('calculus') || hasCourse.includes('math')) {
+                                return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[var(--status-warn-bg)] text-[var(--status-warn-text)] border border-[var(--status-warn-border)]">{t('store_rec_calc')}</span>;
+                              }
+                              if (hasCourse.includes('chemistry') || hasCourse.includes('chem')) {
+                                return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[var(--status-warn-bg)] text-[var(--status-warn-text)] border border-[var(--status-warn-border)]">{t('store_rec_chem')}</span>;
+                              }
+                              if (hasCourse) {
+                                return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[var(--status-warn-bg)] text-[var(--status-warn-text)] border border-[var(--status-warn-border)]">{t('store_rec_courses', { courses: courses.slice(0, 2).join(', ') })}</span>;
+                              }
+                              try {
+                                const usage = JSON.parse(localStorage.getItem('scc_app_usage_v1') || '{}');
+                                const top = Object.entries(usage).sort((a: any, b: any) => b[1] - a[1])[0];
+                                if (top) {
+                                  const topApp = APP_CATALOG.find((a) => a.id === top[0]);
+                                  return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[var(--accent-soft)] text-[var(--accent-text)] border border-[var(--accent-border)]">{t('store_rec_most_used', { app: topApp ? t(topApp.nameKey) : top[0] })}</span>;
+                                }
+                              } catch {}
+                              return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[var(--bg-subtle)] text-[var(--text-secondary)] border border-[var(--border-default)]">{t('store_rec_starter')}</span>;
                             } catch { return null; }
                           })()}
                         </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* 2 Apps Per Row Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {top8Highlights.map((app) => renderAppCard(app, true))}
-                  </div>
+                    {/* 2 Apps Per Row Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                      {top8Highlights.map((app) => renderAppCard(app, true))}
+                    </div>
+                  </section>
+
+                  {/* 2. PLAN SECTION */}
+                  <section className="space-y-3.5">
+                    <div className="flex items-center gap-2.5 pb-2 border-b border-[var(--border-default)]">
+                      <Layers className="w-4 h-4 text-[var(--accent-text)]" aria-hidden="true" />
+                      <h2 className="text-sm font-bold text-[var(--text-primary)]">
+                        {t('store_plan_heading')}
+                      </h2>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                      {APP_CATALOG.filter((a) => a.category === 'Plan').map((app) => renderAppCard(app))}
+                    </div>
+                  </section>
+
+                  {/* 3. CREATE SECTION */}
+                  <section className="space-y-3.5">
+                    <div className="flex items-center gap-2.5 pb-2 border-b border-[var(--border-default)]">
+                      <Palette className="w-4 h-4 text-[var(--accent-text)]" aria-hidden="true" />
+                      <h2 className="text-sm font-bold text-[var(--text-primary)]">
+                        {t('store_create_heading')}
+                      </h2>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                      {APP_CATALOG.filter((a) => a.category === 'Create').map((app) => renderAppCard(app))}
+                    </div>
+                  </section>
+
+                  {/* 4. LEARN SECTION */}
+                  <section className="space-y-3.5">
+                    <div className="flex items-center gap-2.5 pb-2 border-b border-[var(--border-default)]">
+                      <Timer className="w-4 h-4 text-[var(--status-ok-text)]" aria-hidden="true" />
+                      <h2 className="text-sm font-bold text-[var(--text-primary)]">
+                        {t('store_learn_heading')}
+                      </h2>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                      {APP_CATALOG.filter((a) => a.category === 'Learn').map((app) => renderAppCard(app))}
+                    </div>
+                  </section>
+
+                  {/* 5. RESEARCH SECTION */}
+                  <section className="space-y-3.5">
+                    <div className="flex items-center gap-2.5 pb-2 border-b border-[var(--border-default)]">
+                      <BookOpen className="w-4 h-4 text-[var(--status-info-text)]" aria-hidden="true" />
+                      <h2 className="text-sm font-bold text-[var(--text-primary)]">
+                        {t('store_research_heading')}
+                      </h2>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                      {APP_CATALOG.filter((a) => a.category === 'Research').map((app) => renderAppCard(app))}
+                    </div>
+                  </section>
                 </div>
-
-                {/* 2. PLAN SECTION */}
-                <div className="space-y-4 pt-2">
-                  <div className="flex items-center gap-2.5 pb-2 border-b border-[#DFDACB]/60 dark:border-[#2C2B27]/60">
-                    <Layers className="w-4 h-4 text-[#D97757]" />
-                    <h2 className="text-sm font-bold text-[#141413] dark:text-[#FAF9F5]">
-                      {t('store_plan_heading')}
+              ) : (
+                /* SPECIFIC CATEGORY VIEW (15-APP CATALOG / CATEGORY GRID) */
+                <div className="space-y-4 animate-in fade-in duration-150">
+                  <div className="flex items-center justify-between pb-2 border-b border-[var(--border-default)]">
+                    <h2 className="text-sm font-bold text-[var(--text-primary)]">
+                      {t(CATEGORY_ITEMS.find((c) => c.id === selectedCategory)?.key || 'store_cat_all')} ({categoryApps.length})
                     </h2>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {APP_CATALOG.filter((a) => a.category === 'Plan').map((app) => renderAppCard(app))}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                    {categoryApps.map((app) => renderAppCard(app))}
                   </div>
                 </div>
-
-                {/* 3. CREATE SECTION — STEM + Visual combined */}
-                <div className="space-y-4 pt-2">
-                  <div className="flex items-center gap-2.5 pb-2 border-b border-[#DFDACB]/60 dark:border-[#2C2B27]/60">
-                    <Palette className="w-4 h-4 text-violet-600" />
-                    <h2 className="text-sm font-bold text-[#141413] dark:text-[#FAF9F5]">
-                      {t('store_create_heading')}
-                    </h2>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {APP_CATALOG.filter((a) => a.category === 'Create').map((app) => renderAppCard(app))}
-                  </div>
-                </div>
-
-                {/* 4. LEARN SECTION */}
-                <div className="space-y-4 pt-2">
-                  <div className="flex items-center gap-2.5 pb-2 border-b border-[#DFDACB]/60 dark:border-[#2C2B27]/60">
-                    <Timer className="w-4 h-4 text-emerald-600" />
-                    <h2 className="text-sm font-bold text-[#141413] dark:text-[#FAF9F5]">
-                      {t('store_learn_heading')}
-                    </h2>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {APP_CATALOG.filter((a) => a.category === 'Learn').map((app) => renderAppCard(app))}
-                  </div>
-                </div>
-
-                {/* 5. RESEARCH SECTION */}
-                <div className="space-y-4 pt-2">
-                  <div className="flex items-center gap-2.5 pb-2 border-b border-[#DFDACB]/60 dark:border-[#2C2B27]/60">
-                    <BookOpen className="w-4 h-4 text-blue-600" />
-                    <h2 className="text-sm font-bold text-[#141413] dark:text-[#FAF9F5]">
-                      {t('store_research_heading')}
-                    </h2>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {APP_CATALOG.filter((a) => a.category === 'Research').map((app) => renderAppCard(app))}
-                  </div>
-                </div>
-
-              </div>
-            ) : (
-              /* SPECIFIC CATEGORY VIEW (2 APPS PER ROW) */
-              <div className="space-y-4 animate-in fade-in duration-150">
-                <div className="flex items-center justify-between pb-2 border-b border-[#DFDACB]/60 dark:border-[#2C2B27]/60">
-                  <h2 className="text-sm font-bold text-[#141413] dark:text-[#FAF9F5]">
-                    {t(CATEGORY_ITEMS.find((c) => c.id === selectedCategory)?.key || 'store_cat_all')} ({categoryApps.length})
-                  </h2>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {categoryApps.map((app) => renderAppCard(app))}
-                </div>
-              </div>
-            )}
-
-          </div>
-        )}
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -791,67 +854,77 @@ export const AppStoreModal: React.FC<AppStoreModalProps> = ({
     return (
       <div
         key={app.id}
-        onClick={() => setViewingApp(app)}
         style={{ contentVisibility: 'auto' as any, containIntrinsicSize: '96px' } as any}
-        className={`bg-white dark:bg-[#1A1917] rounded-2xl border p-3.5 shadow-xs hover:shadow-md transition-all cursor-pointer group flex items-center gap-3.5 ${
+        className={`bg-[var(--bg-surface)] hover:bg-[var(--bg-raised)] rounded-2xl border p-3.5 shadow-card transition-colors group flex items-center gap-3.5 ${
           isHighlighted
-            ? 'border-[#D97757]/40 hover:border-[#D97757]'
-            : 'border-[#DFDACB] dark:border-[#2C2B27] hover:border-[#D97757]/60'
+            ? 'border-[var(--accent-border)] hover:border-[var(--accent-fill)]'
+            : 'border-[var(--border-default)] hover:border-[var(--border-strong)]'
         }`}
       >
-        {/* Store-style icon */}
-        <AppLogo id={app.id} size="md" className="shrink-0" />
-
-        {/* Store-style middle: name / subtitle / rating */}
-        <div className="flex-1 min-w-0 text-left">
-          <div className="flex items-center gap-1.5 min-w-0">
-            <h3 className="text-[13px] font-bold text-[#141413] dark:text-[#FAF9F5] group-hover:text-[#D97757] transition-colors truncate leading-tight">
-              {t(app.nameKey)}
-            </h3>
-            {app.badgeKey && (
-              <span className="px-1.5 py-px rounded-md text-[9px] font-bold bg-[#D97757]/15 text-[#D97757] shrink-0 whitespace-nowrap">
-                {t(app.badgeKey)}
-              </span>
-            )}
+        {/* Accessible app details trigger (avoids nested interactive buttons) */}
+        <button
+          type="button"
+          onClick={() => setViewingApp(app)}
+          className="flex-1 min-w-0 flex items-center gap-3.5 text-left cursor-pointer rounded-xl focus-visible:outline-2 focus-visible:outline-[var(--accent-fill)]"
+        >
+          <AppLogo id={app.id} size="md" className="shrink-0" />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <h3 className="text-[13px] font-bold text-[var(--text-primary)] group-hover:text-[var(--accent-text)] transition-colors truncate leading-tight">
+                {t(app.nameKey)}
+              </h3>
+              {app.badgeKey && (
+                <span className="px-1.5 py-px rounded-md text-[9px] font-bold bg-[var(--accent-soft)] text-[var(--accent-text)] border border-[var(--accent-border)] shrink-0 whitespace-nowrap">
+                  {t(app.badgeKey)}
+                </span>
+              )}
+            </div>
+            <p className="text-[11px] text-[var(--text-muted)] truncate mt-0.5">
+              {t(CATEGORY_KEY_MAP[app.category])} • {app.developer}
+            </p>
+            <div className="flex items-center gap-1 mt-1">
+              <Star className="w-3 h-3 text-[var(--status-warn-border)] fill-current shrink-0" aria-hidden="true" />
+              <span className="text-[11px] font-bold text-[var(--text-primary)]">{app.rating.toFixed(1)}</span>
+              <span className="text-[11px] text-[var(--text-secondary)] truncate">— {t(app.descKey)}</span>
+            </div>
           </div>
-          <p className="text-[11px] text-[#8C897F] truncate mt-0.5">
-            {t(CATEGORY_KEY_MAP[app.category])} • {app.developer}
-          </p>
-          <div className="flex items-center gap-1 mt-1">
-            <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
-            <span className="text-[11px] font-bold text-[#141413] dark:text-[#FAF9F5]">{app.rating.toFixed(1)}</span>
-            <span className="text-[11px] text-[#8C897F] truncate">— {t(app.descKey)}</span>
-          </div>
-        </div>
+        </button>
 
-        {/* Store-style GET / OPEN pill */}
-        <div className="flex flex-col items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+        {/* Calm Terracotta / Ochre Open & Installed Controls */}
+        <div className="flex flex-col items-center gap-1.5 shrink-0">
           {isPinned ? (
             <button
+              type="button"
               onClick={() => {
                 onLaunchApp(app.id);
                 onClose();
               }}
-              className="px-5 py-1.5 bg-[#D97757] hover:bg-[#C86646] text-white rounded-full text-xs font-extrabold tracking-wide transition-all shadow-xs cursor-pointer min-w-[72px]"
+              className="px-4 py-1.5 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-full text-xs font-extrabold tracking-wide transition-colors shadow-xs cursor-pointer min-w-[76px] min-h-[32px]"
             >
               {t('store_open_btn')}
             </button>
           ) : (
             <button
+              type="button"
               onClick={() => onTogglePinApp(app.id)}
-              className="px-5 py-1.5 bg-[#D97757]/15 hover:bg-[#D97757]/25 text-[#D97757] rounded-full text-xs font-extrabold tracking-wide transition-all cursor-pointer min-w-[72px]"
+              className="px-4 py-1.5 bg-[var(--accent-soft)] hover:bg-[var(--accent-fill)] text-[var(--accent-text)] hover:text-white border border-[var(--accent-border)] rounded-full text-xs font-extrabold tracking-wide transition-colors cursor-pointer min-w-[76px] min-h-[32px]"
             >
               {t('store_get_btn')}
             </button>
           )}
           <button
-            onClick={() => (isPinned ? (onLaunchApp(app.id), onClose()) : onTogglePinApp(app.id))}
-            className="text-[10px] font-semibold text-[#8C897F] hover:text-[#D97757] transition-colors cursor-pointer flex items-center gap-0.5"
+            type="button"
+            onClick={() => onTogglePinApp(app.id)}
+            className={`text-[10px] font-bold transition-colors cursor-pointer flex items-center gap-1 px-2 py-0.5 rounded-full border ${
+              isPinned
+                ? 'bg-[var(--status-warn-bg)] text-[var(--status-warn-text)] border-[var(--status-warn-border)] hover:opacity-85'
+                : 'border-transparent text-[var(--text-muted)] hover:text-[var(--accent-text)]'
+            }`}
           >
             {isPinned ? (
-              <><CheckCircle2 className="w-3 h-3 text-emerald-600" /> {t('store_installed')}</>
+              <><CheckCircle2 className="w-3 h-3" aria-hidden="true" /> {t('store_installed')}</>
             ) : (
-              <><Pin className="w-3 h-3" /> {t('store_install')}</>
+              <><Pin className="w-3 h-3" aria-hidden="true" /> {t('store_install')}</>
             )}
           </button>
         </div>

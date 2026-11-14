@@ -1,8 +1,4 @@
-// Paper & Coal / Ember accent:
-// Light = paper #F5F0E6 / Sidebar #EAE2D1 / Cards #EAE2D1 / Border #D5C9AF
-// Accent #D97757 (hover #B85C38) / Active pill #F6DDCC / Ink #26241F / Muted #7A7161
-// Dark  = coal #201D18 / Panel #2B2620 / Element #38312A / Cream text #ECE3D0
-// Muted #A2937B / Accent text #E8936B / Border #4A4136
+// Warm Alabaster Paper (light) & Slate Charcoal (dark) with Terracotta accent
 import { t } from './i18n';
 
 export type ThemeId = 'linen' | 'midnight';
@@ -40,16 +36,14 @@ function migrateLegacyThemeKeyOnce() {
 }
 
 export const THEME_META: Record<ThemeId, { label: string; accent: string; bg: string }> = {
-  linen: { label: 'Paper (Light)', accent: '#D97757', bg: '#F5F0E6' },
-  midnight: { label: 'Coal (Dark)', accent: '#D97757', bg: '#201D18' },
+  linen: { label: 'Paper (Light)', accent: '#B54B27', bg: '#F7F6F2' },
+  midnight: { label: 'Slate (Dark)', accent: '#C2512B', bg: '#14171C' },
 };
 
 export function getThemeLabel(id: ThemeId): string {
   return t(id === 'midnight' ? 'theme_midnight_label' : 'theme_linen_label');
 }
 
-// Legacy palettes (ocean/forest/nord/dracula/catppuccin/cyberpunk/parchment) were
-// removed — migrate any stored value so dark mode is always #141413, never tinted.
 const LEGACY_DARK_THEMES = ['midnight', 'ocean', 'forest', 'nord', 'dracula', 'catppuccin', 'cyberpunk'];
 
 function migrateThemeId(raw: string | null): ThemeId {
@@ -59,6 +53,18 @@ function migrateThemeId(raw: string | null): ThemeId {
   if (raw === 'dark') return 'midnight';
   if (raw === 'light') return 'linen';
   return 'linen';
+}
+
+function applyThemeToDom(theme: ThemeId) {
+  if (typeof document === 'undefined') return;
+  const root = document.documentElement;
+  const isDark = theme === 'midnight';
+  root.setAttribute('data-theme', theme);
+  root.classList.toggle('dark', isDark);
+  root.style.colorScheme = isDark ? 'dark' : 'light';
+  try {
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', THEME_META[theme].bg);
+  } catch {}
 }
 
 export function getTheme(): ThemeId {
@@ -78,32 +84,15 @@ export function getTheme(): ThemeId {
 export function setTheme(id: ThemeId) {
   const next = migrateThemeId(id as string);
   writeThemeKey(next);
-  document.documentElement.setAttribute('data-theme', next);
-  const isDarkTheme = next === 'midnight';
-  if (isDarkTheme) {
-    document.documentElement.classList.add('dark');
-  } else {
-    document.documentElement.classList.remove('dark');
-  }
-  document.documentElement.style.colorScheme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+  applyThemeToDom(next);
 }
 
 export function initTheme() {
   migrateLegacyThemeKeyOnce();
-  const t = getTheme();
-  document.documentElement.setAttribute('data-theme', t);
-  if (t === 'midnight') {
-    document.documentElement.classList.add('dark');
-  } else {
-    document.documentElement.classList.remove('dark');
-  }
-  document.documentElement.style.colorScheme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+  const current = getTheme();
+  applyThemeToDom(current);
 }
 
 export function syncDarkToTheme(isDark: boolean) {
-  if (isDark) {
-    setTheme('midnight');
-  } else {
-    setTheme('linen');
-  }
+  setTheme(isDark ? 'midnight' : 'linen');
 }

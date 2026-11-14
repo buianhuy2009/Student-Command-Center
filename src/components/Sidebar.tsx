@@ -3,6 +3,7 @@ import { User } from 'firebase/auth';
 import {
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Plus,
   PinOff,
   Sun,
@@ -11,10 +12,10 @@ import {
 } from 'lucide-react';
 import { AppLogo } from './AppLogo';
 import { APP_CATALOG } from './AppStoreModal';
-import { useT } from '../services/i18n';
+import { useT, type TranslationKey } from '../services/i18n';
 import { isCanvasHidden } from './MainFlowCard';
 
-// The one main flow (judges: focus instead of 34 small apps). Always on top, never unpinnable.
+// The 5 core workflow apps (always top-level, never unpinnable)
 const MAIN_FLOW = [
   { id: 'gmail', labelKey: 'side_flow_gmail_t', descKey: 'side_flow_gmail_d', badgeKey: 'gmail' },
   { id: 'tracker', labelKey: 'side_flow_tracker_t', descKey: 'side_flow_tracker_d', badgeKey: 'tracker' },
@@ -26,7 +27,11 @@ const MAIN_FLOW_IDS = new Set<string>(MAIN_FLOW.map((m) => m.id));
 
 const NavSection: React.FC<{ title?: string; isExpanded: boolean; children: React.ReactNode }> = ({ title, isExpanded, children }) => (
   <div className="space-y-1">
-    {isExpanded && title && <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-[#70695E] dark:text-[#8C897F]">{title}</div>}
+    {isExpanded && title && (
+      <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
+        {title}
+      </div>
+    )}
     <div className="space-y-1">{children}</div>
   </div>
 );
@@ -71,11 +76,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isExpanded,
   onToggleExpand,
   user,
-  onSignIn,
-  onSignOut,
   onOpenSettings,
   onOpenAppStore,
-  onOpenShortcuts,
   onToggleDarkMode,
   darkMode,
   pinnedAppIds = [],
@@ -89,25 +91,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
     window.addEventListener('scc-canvas-visibility', on);
     return () => window.removeEventListener('scc-canvas-visibility', on);
   }, []);
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
+
   const userMenuRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
-        setUserMenuOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const APP_META: Record<string, { labelKey: string; descKey: string; key?: string; badgeKey?: string }> = {
-    canvas: { labelKey: 'side_meta_canvas_t', descKey: 'side_meta_canvas_d', key: '1', badgeKey: 'canvas' },
-    radar: { labelKey: 'side_meta_radar_t', descKey: 'side_meta_radar_d', key: '2', badgeKey: 'schedule' },
-    tracker: { labelKey: 'side_meta_tracker_t', descKey: 'side_meta_tracker_d', key: '3', badgeKey: 'tracker' },
-    gmail: { labelKey: 'side_meta_gmail_t', descKey: 'side_meta_gmail_d', key: '4', badgeKey: 'gmail' },
-    drive: { labelKey: 'side_meta_drive_t', descKey: 'side_meta_drive_d', key: '5' },
+  const APP_META: Record<string, { labelKey: TranslationKey; descKey: TranslationKey; badgeKey?: string }> = {
+    canvas: { labelKey: 'side_meta_canvas_t', descKey: 'side_meta_canvas_d', badgeKey: 'canvas' },
+    radar: { labelKey: 'side_meta_radar_t', descKey: 'side_meta_radar_d', badgeKey: 'schedule' },
+    tracker: { labelKey: 'side_meta_tracker_t', descKey: 'side_meta_tracker_d', badgeKey: 'tracker' },
+    gmail: { labelKey: 'side_meta_gmail_t', descKey: 'side_meta_gmail_d', badgeKey: 'gmail' },
+    drive: { labelKey: 'side_meta_drive_t', descKey: 'side_meta_drive_d' },
   };
 
   const pinnedApps = useMemo(() => {
@@ -117,67 +109,86 @@ export const Sidebar: React.FC<SidebarProps> = ({
       .filter(Boolean) as typeof APP_CATALOG;
   }, [pinnedAppIds]);
 
-  const recentApps = useMemo(() => {
-    const legacyMap: Record<string, string> = { 'ai-planner': 'radar', documents: 'notes-markdown', quizlet: 'flashcards', anki: 'flashcards', 'desmos-scientific': 'desmos-graphing' };
-    try {
-      const raw = (() => { try { return JSON.parse(localStorage.getItem('scc_recent_tabs_v1') || '[]'); } catch { return []; } })();
-      const ids = Array.isArray(raw) ? raw : [];
-      const mapped = ids
-        .map((x: any) => (typeof x === 'string' ? x : x.id))
-        .filter(Boolean)
-        .map((id: string) => legacyMap[id] || id);
-      const list: string[] = [...new Set(mapped)].slice(0, 3) as string[];
-      if (list.length < 3) {
-        const usageRaw = localStorage.getItem('scc_app_usage_v1');
-        if (usageRaw) {
-          const usage = JSON.parse(usageRaw);
-          const sorted = Object.entries(usage)
-            .sort((a: any, b: any) => b[1] - a[1])
-            .map(([k]) => legacyMap[k] || k)
-            .filter((k) => !list.includes(k) && !pinnedAppIds.includes(k) && !MAIN_FLOW_IDS.has(k));
-          list.push(...sorted.slice(0, 3 - list.length));
-        }
-      }
-      return list.slice(0, 3).map((id: string) => APP_CATALOG.find((a) => a.id === id)).filter(Boolean) as typeof APP_CATALOG;
-    } catch { return []; }
-  }, [activeTab, pinnedAppIds]);
+  const pinnedSet = useMemo(() => new Set(pinnedApps.map((a) => a.id)), [pinnedApps]);
+
+  // Remaining kept apps out of the 15 in APP_CATALOG so every workspace is 1–2 clicks away
+  const otherKeptApps = useMemo(
+    () => APP_CATALOG.filter((app) => !MAIN_FLOW_IDS.has(app.id) && !pinnedSet.has(app.id)),
+    [pinnedSet]
+  );
+
+  const activeIsInOtherTools = useMemo(
+    () => otherKeptApps.some((a) => a.id === activeTab),
+    [otherKeptApps, activeTab]
+  );
+
+  const [showOtherTools, setShowOtherTools] = useState<boolean>(activeIsInOtherTools);
+  useEffect(() => {
+    if (activeIsInOtherTools) setShowOtherTools(true);
+  }, [activeIsInOtherTools]);
+
+  // Shared active/inactive button class: active state combines fill + border + font weight + left accent indicator
+  const navBtnClasses = (isActive: boolean) =>
+    `w-full rounded-xl flex items-center transition-colors cursor-pointer relative group border ${
+      isExpanded ? 'px-2.5 py-2 justify-between gap-2.5 min-h-[40px]' : 'w-11 h-11 mx-auto justify-center'
+    } ${
+      isActive
+        ? 'bg-[var(--accent-soft)] border-[var(--accent-border)] text-[var(--accent-text)] font-bold shadow-xs'
+        : 'bg-[var(--bg-surface)]/75 hover:bg-[var(--bg-surface)] border-[var(--border-default)] hover:border-[var(--border-strong)] text-[var(--text-primary)] font-medium'
+    }`;
+
+  const renderCollapsedTooltip = (label: string) =>
+    !isExpanded ? (
+      <span
+        className="absolute left-14 bg-[var(--text-primary)] text-[var(--bg-canvas)] text-xs font-semibold px-2.5 py-1 rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity whitespace-nowrap z-50 shadow-md border border-[var(--border-default)]"
+        role="tooltip"
+      >
+        {label}
+      </span>
+    ) : null;
 
   return (
     <aside
       aria-label={t('side_primary_nav')}
       data-tour="sidebar"
       role="navigation"
-      className={`h-screen shrink-0 bg-[#F1ECE1] dark:bg-[#1A1917] border-r border-[#E7DFD3] dark:border-[#2C2B27] flex flex-col transition-all duration-300 ease-[cubic-bezier(.22,1,.36,1)] z-30 select-none ${
-        isExpanded ? 'w-64 p-4' : 'w-16 p-2'
+      className={`h-screen shrink-0 bg-[var(--bg-subtle)] border-r border-[var(--border-default)] flex flex-col transition-all duration-200 z-30 select-none ${
+        isExpanded ? 'w-60 p-3' : 'w-16 p-2'
       }`}
     >
-      <div className="flex items-center justify-between pb-3 border-b border-[#E7DFD3] dark:border-[#2C2B27] mb-2 shrink-0">
+      {/* Brand Header */}
+      <div className="flex items-center justify-between pb-3 border-b border-[var(--border-default)] mb-2.5 shrink-0">
         <button
+          type="button"
           onClick={() => onSelectTab('dashboard')}
-          className={`flex items-center gap-3 min-w-0 p-0.5 rounded-2xl transition-all duration-200 cursor-pointer text-left ${
+          className={`flex items-center gap-2.5 min-w-0 p-1 rounded-xl transition-colors cursor-pointer text-left border ${
             activeTab === 'dashboard'
-              ? 'ring-2 ring-[#E05D38]/30 bg-[#FCEEE8] dark:bg-[#252422]/40'
-              : 'hover:opacity-90'
+              ? 'border-[var(--accent-border)] bg-[var(--accent-soft)]'
+              : 'border-transparent hover:bg-[var(--bg-surface)]/70'
           }`}
           title={t('side_go_dashboard')}
         >
-          <div className="w-9 h-9 bg-[#E05D38] rounded-xl flex items-center justify-center text-white font-extrabold text-sm shadow-sm shrink-0" aria-hidden="true">
+          <div
+            className="w-8 h-8 bg-[var(--accent-fill)] rounded-lg flex items-center justify-center text-white font-extrabold text-sm shrink-0"
+            aria-hidden="true"
+          >
             S
           </div>
           {isExpanded && (
             <div className="min-w-0">
-              <h1 className="text-sm font-extrabold text-[#2B2621] dark:text-[#F5F4ED] tracking-tight truncate leading-tight">
+              <h1 className="text-sm font-extrabold text-[var(--text-primary)] tracking-tight truncate leading-tight">
                 StudentOS
               </h1>
-              <p className="text-[10px] text-[#70695E] dark:text-[#B5B2A8] font-mono truncate">{t('side_subtitle')}</p>
+              <p className="text-[10px] text-[var(--text-muted)] font-mono truncate">{t('side_subtitle')}</p>
             </div>
           )}
         </button>
 
         {isExpanded && (
           <button
+            type="button"
             onClick={onToggleExpand}
-            className="p-2.5 rounded-xl hover:bg-[#FCEEE8] dark:hover:bg-[#252422] text-[#70695E] dark:text-[#B5B2A8] hover:text-[#2B2621] dark:hover:text-[#F5F4ED] transition-all duration-200 cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center"
+            className="p-2 rounded-lg hover:bg-[var(--bg-surface)] border border-transparent hover:border-[var(--border-default)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center"
             title={t('side_collapse')}
             aria-label={t('side_collapse')}
           >
@@ -186,7 +197,31 @@ export const Sidebar: React.FC<SidebarProps> = ({
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto min-h-0 space-y-4 pr-0.5">
+      {/* Scrollable Workspace List */}
+      <div className="flex-1 overflow-y-auto min-h-0 space-y-3.5 pr-0.5">
+        {/* Explicit Home / Dashboard Item (always reachable) */}
+        <div>
+          <button
+            type="button"
+            onClick={() => onSelectTab('dashboard')}
+            aria-current={activeTab === 'dashboard' ? 'page' : undefined}
+            className={navBtnClasses(activeTab === 'dashboard')}
+            title={t('app_tab_dashboard')}
+          >
+            {activeTab === 'dashboard' && isExpanded && (
+              <span className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-[var(--accent-fill)]" aria-hidden="true" />
+            )}
+            <div className="flex items-center gap-2.5 min-w-0">
+              <AppLogo id="dashboard" size="sm" />
+              {isExpanded && (
+                <span className="text-xs truncate leading-tight">{t('app_tab_dashboard')}</span>
+              )}
+            </div>
+            {renderCollapsedTooltip(t('app_tab_dashboard'))}
+          </button>
+        </div>
+
+        {/* Core Flow (5 Academic Steps) */}
         <NavSection title={t('side_main_flow')} isExpanded={isExpanded}>
           {MAIN_FLOW.filter((m) => !(m.id === 'canvas' && canvasHidden)).map((m, i) => {
             const isActive = activeTab === m.id;
@@ -194,201 +229,268 @@ export const Sidebar: React.FC<SidebarProps> = ({
             const itemLabel = t(m.labelKey);
             return (
               <button
+                type="button"
                 key={`flow-${m.id}`}
                 onClick={() => onSelectTab(m.id)}
                 aria-current={isActive ? 'page' : undefined}
                 data-tour-tab={m.id}
                 title={itemLabel}
-                className={`w-full rounded-xl flex items-center transition-all duration-200 cursor-pointer relative group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E05D38]/50 ${
-                  isExpanded ? 'px-3 py-2 justify-between gap-3 min-h-[44px]' : 'w-11 h-11 mx-auto justify-center'
-                } ${
-                  isActive
-                    ? 'bg-[#FCEEE8] dark:bg-[#252422] text-[#E05D38] dark:text-[#E8A07E] shadow-sm font-bold'
-                    : 'bg-white/60 hover:bg-white dark:bg-[#252422]/60 dark:hover:bg-[#252422] text-[#2B2621] dark:text-[#F5F4ED] border border-transparent'
-                }`}
+                className={navBtnClasses(isActive)}
               >
+                {isActive && isExpanded && (
+                  <span className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-[var(--accent-fill)]" aria-hidden="true" />
+                )}
                 <div className="flex items-center gap-2.5 min-w-0">
                   {i < 3 ? (
-                    <span className="w-6 h-6 shrink-0 rounded-full bg-[#E05D38]/15 text-[#E05D38] text-[11px] font-extrabold flex items-center justify-center">{i + 1}</span>
+                    <span
+                      className={`w-7 h-7 shrink-0 rounded-lg border text-[11px] font-extrabold flex items-center justify-center ${
+                        isActive
+                          ? 'bg-[var(--accent-fill)] border-[var(--accent-fill)] text-white'
+                          : 'bg-[var(--accent-soft)] border-[var(--accent-border)] text-[var(--accent-text)]'
+                      }`}
+                    >
+                      {i + 1}
+                    </span>
                   ) : (
                     <AppLogo id={m.id} size="sm" />
                   )}
                   {isExpanded && (
                     <div className="text-left min-w-0">
                       <div className="text-xs truncate leading-tight">{itemLabel}</div>
-                      <div className="text-[10px] truncate text-[#70695E] dark:text-[#B5B2A8]">{t(m.descKey)}</div>
+                      <div className={`text-[10px] truncate ${isActive ? 'text-[var(--accent-text)] opacity-85' : 'text-[var(--text-muted)]'}`}>
+                        {t(m.descKey)}
+                      </div>
                     </div>
                   )}
                 </div>
                 {count > 0 && (
-                  <span className={isExpanded ? 'px-1.5 py-0.5 text-[9px] font-bold rounded-full bg-[#E05D38] text-white' : 'absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-[#E05D38]'}>
+                  <span
+                    className={
+                      isExpanded
+                        ? 'px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-[var(--accent-fill)] text-white shrink-0'
+                        : 'absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-[var(--accent-fill)] ring-2 ring-[var(--bg-subtle)]'
+                    }
+                  >
                     {isExpanded ? (count > 99 ? '99+' : count) : null}
                   </span>
                 )}
+                {renderCollapsedTooltip(itemLabel)}
               </button>
             );
           })}
         </NavSection>
 
+        {/* Pinned Apps */}
         <NavSection title={t('side_pinned')} isExpanded={isExpanded}>
           <div className="space-y-1">
             {pinnedApps.length === 0 ? (
-              <div className="text-[11px] text-[#70695E] dark:text-[#B5B2A8] px-2 py-2 italic">{t('side_no_pinned')}</div>
-            ) : pinnedApps.map((app) => {
-              const metaEntry = APP_META[app.id];
-              const metaLabel = metaEntry ? t(metaEntry.labelKey) : app.name;
-              const metaDesc = metaEntry ? t(metaEntry.descKey) : app.category;
-              const badgeKey = (metaEntry?.badgeKey) || app.id;
-              const badgeCount = badges[badgeKey] || badges[app.id] || (badges as any)[app.id.replace('-', '_')] || 0;
-              const hasBadge = badgeCount > 0;
-              const isActive = activeTab === app.id;
-              const badgeColor = 'bg-[#E05D38]';
-              return (
-                <div key={app.id} className="relative group/item flex items-center">
-                  <button
-                    onClick={() => onSelectTab(app.id)}
-                    aria-current={isActive ? 'page' : undefined}
-                    data-tour-tab={app.id}
-                    className={`w-full rounded-xl flex items-center transition-all duration-200 cursor-pointer relative group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E05D38]/50 ${
-                      isExpanded ? 'px-3 py-2.5 justify-between gap-3 min-h-[44px]' : 'w-11 h-11 mx-auto justify-center'
-                    } ${
-                      isActive
-                        ? 'bg-[#FCEEE8] dark:bg-[#252422] text-[#E05D38] dark:text-[#E8A07E] shadow-sm font-bold'
-                        : 'bg-white/60 hover:bg-white dark:bg-[#252422]/60 dark:hover:bg-[#252422] text-[#2B2621] dark:text-[#F5F4ED] border border-transparent'
-                    }`}
-                    title={metaLabel}
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <AppLogo id={app.id} size="sm" />
-                      {isExpanded && (
-                        <div className="text-left min-w-0">
-                          <div className="text-xs truncate leading-tight">{metaLabel}</div>
-                          <div className={`text-[10px] truncate ${isActive ? 'text-[#E05D38]/70 dark:text-[#E59A7C]/70' : 'text-[#70695E] dark:text-[#B5B2A8]'}`}>
-                            {metaDesc}
-                          </div>
-                        </div>
+              isExpanded && (
+                <div className="text-[11px] text-[var(--text-muted)] px-2 py-1.5 italic">
+                  {t('side_no_pinned')}
+                </div>
+              )
+            ) : (
+              pinnedApps.map((app) => {
+                const metaEntry = APP_META[app.id];
+                const metaLabel = metaEntry ? t(metaEntry.labelKey) : t(app.nameKey);
+                const metaDesc = metaEntry ? t(metaEntry.descKey) : t(`store_cat_${app.category.toLowerCase()}` as TranslationKey);
+                const badgeKey = metaEntry?.badgeKey || app.id;
+                const badgeCount = badges[badgeKey] || badges[app.id] || (badges as any)[app.id.replace('-', '_')] || 0;
+                const hasBadge = badgeCount > 0;
+                const isActive = activeTab === app.id;
+                return (
+                  <div key={app.id} className="relative group/item flex items-center">
+                    <button
+                      type="button"
+                      onClick={() => onSelectTab(app.id)}
+                      aria-current={isActive ? 'page' : undefined}
+                      data-tour-tab={app.id}
+                      className={navBtnClasses(isActive)}
+                      title={metaLabel}
+                    >
+                      {isActive && isExpanded && (
+                        <span className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-[var(--accent-fill)]" aria-hidden="true" />
                       )}
-                    </div>
-                    {isExpanded ? (
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        {hasBadge && (
-                          <span className={`px-1.5 py-0.5 text-[9px] font-bold rounded-full ${isActive ? 'bg-[#E05D38] text-white' : `${badgeColor} text-white`}`}>
-                            {badgeCount > 99 ? '99+' : badgeCount}
-                          </span>
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <AppLogo id={app.id} size="sm" />
+                        {isExpanded && (
+                          <div className="text-left min-w-0">
+                            <div className="text-xs truncate leading-tight">{metaLabel}</div>
+                            <div className={`text-[10px] truncate ${isActive ? 'text-[var(--accent-text)] opacity-85' : 'text-[var(--text-muted)]'}`}>
+                              {metaDesc}
+                            </div>
+                          </div>
                         )}
                       </div>
-                    ) : (
-                      <>
-                        {hasBadge && (
-                          <span className={`absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full ring-2 ring-[#F1ECE1] dark:ring-[#282723] ${badgeColor}`} />
-                        )}
-                        <span className="absolute left-16 bg-[#141413] dark:bg-[#F5F4ED] text-[#F5F4ED] dark:text-[#141413] text-xs font-semibold px-2.5 py-1 rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity delay-100 whitespace-nowrap z-50 shadow-md border border-[#E8E6DC] dark:border-[#2C2B27]" role="tooltip">
-                          {metaLabel}
-                        </span>
-                      </>
-                    )}
-                  </button>
-                  {isExpanded && (
-                    <button
-                      onClick={() => onUnpinApp(app.id)}
-                      className="absolute right-2 opacity-0 group-hover/item:opacity-100 p-1 text-[#70695E] dark:text-[#B5B2A8] hover:text-[#2B2621] dark:hover:text-[#F5F4ED] rounded transition-opacity cursor-pointer"
-                      title={t('side_unpin')}
-                    >
-                      <PinOff className="w-3.5 h-3.5" strokeWidth={1.75} />
+                      {isExpanded ? (
+                        hasBadge ? (
+                          <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-[var(--accent-fill)] text-white shrink-0">
+                            {badgeCount > 99 ? '99+' : badgeCount}
+                          </span>
+                        ) : null
+                      ) : (
+                        <>
+                          {hasBadge && (
+                            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full ring-2 ring-[var(--bg-subtle)] bg-[var(--accent-fill)]" />
+                          )}
+                          {renderCollapsedTooltip(metaLabel)}
+                        </>
+                      )}
                     </button>
-                  )}
-                </div>
-              );
-            })}
+                    {isExpanded && (
+                      <button
+                        type="button"
+                        onClick={() => onUnpinApp(app.id)}
+                        className="absolute right-2 opacity-0 group-hover/item:opacity-100 focus:opacity-100 p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] bg-[var(--bg-surface)] rounded cursor-pointer transition-opacity"
+                        title={t('side_unpin')}
+                        aria-label={`${t('side_unpin')} ${metaLabel}`}
+                      >
+                        <PinOff className="w-3.5 h-3.5" strokeWidth={1.75} />
+                      </button>
+                    )}
+                  </div>
+                );
+              })
+            )}
           </div>
         </NavSection>
 
-        {recentApps.length > 0 && (
-          <NavSection title={t('side_recent')} isExpanded={isExpanded}>
-            <div className="space-y-1">
-              {recentApps.map((app) => {
-                const isActive = activeTab === app.id;
-                return (
+        {/* Remaining Kept Apps Switcher (keeps all 15 apps accessible directly from Sidebar) */}
+        {otherKeptApps.length > 0 && (
+          <div className="space-y-1">
+            {isExpanded ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setShowOtherTools((v) => !v)}
+                  aria-expanded={showOtherTools}
+                  className="w-full px-2 py-1 flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer rounded-md"
+                >
+                  <span>{t('store_cat_all')} ({APP_CATALOG.length})</span>
+                  <ChevronDown
+                    className={`w-3.5 h-3.5 transition-transform ${showOtherTools ? 'rotate-180' : ''}`}
+                    strokeWidth={1.75}
+                  />
+                </button>
+                {showOtherTools && (
+                  <div className="space-y-1">
+                    {otherKeptApps.map((app) => {
+                      const isActive = activeTab === app.id;
+                      const label = t(app.nameKey);
+                      return (
+                        <button
+                          type="button"
+                          key={`kept-${app.id}`}
+                          onClick={() => onSelectTab(app.id)}
+                          aria-current={isActive ? 'page' : undefined}
+                          className={navBtnClasses(isActive)}
+                          title={label}
+                        >
+                          {isActive && (
+                            <span className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-[var(--accent-fill)]" aria-hidden="true" />
+                          )}
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <AppLogo id={app.id} size="sm" />
+                            <span className="text-xs truncate leading-tight">{label}</span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </>
+            ) : (
+              activeIsInOtherTools &&
+              otherKeptApps
+                .filter((a) => a.id === activeTab)
+                .map((app) => (
                   <button
-                    key={`recent-${app.id}`}
+                    type="button"
+                    key={`kept-active-${app.id}`}
                     onClick={() => onSelectTab(app.id)}
-                    className={`w-full rounded-xl flex items-center transition-all duration-200 cursor-pointer relative ${isExpanded ? 'px-3 py-2.5 justify-between gap-3 min-h-[44px]' : 'w-11 h-11 mx-auto justify-center'} ${isActive ? 'bg-[#FCEEE8] dark:bg-[#252422] text-[#E05D38] dark:text-[#E8A07E] shadow-sm font-bold' : 'bg-white/60 hover:bg-white dark:bg-[#252422]/60 dark:hover:bg-[#252422] text-[#2B2621] dark:text-[#F5F4ED] border border-transparent'}`}
-                    title={app.name}
+                    aria-current="page"
+                    className={navBtnClasses(true)}
+                    title={t(app.nameKey)}
                   >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <AppLogo id={app.id} size="sm" />
-                      {isExpanded && (
-                        <div className="text-left min-w-0">
-                          <div className="text-xs truncate leading-tight">{app.name}</div>
-                          <div className={`text-[10px] truncate ${isActive ? 'text-[#E05D38]/70 dark:text-[#E59A7C]/70' : 'text-[#70695E] dark:text-[#B5B2A8]'}`}>{app.category}</div>
-                        </div>
-                      )}
-                    </div>
-                    {!isExpanded && (
-                      <span className="absolute left-16 bg-[#141413] dark:bg-[#F5F4ED] text-[#F5F4ED] dark:text-[#141413] text-xs font-semibold px-2.5 py-1 rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity delay-100 whitespace-nowrap z-50 shadow-md border border-[#E8E6DC] dark:border-[#2C2B27]" role="tooltip">{app.name}</span>
-                    )}
+                    <AppLogo id={app.id} size="sm" />
+                    {renderCollapsedTooltip(t(app.nameKey))}
                   </button>
-                );
-              })}
-            </div>
-          </NavSection>
+                ))
+            )}
+          </div>
         )}
 
-        <div className="pt-2 relative group/add">
+        {/* App Store Launcher */}
+        <div className="pt-1 relative group/add">
           <button
+            type="button"
             onClick={onOpenAppStore}
-            className={`w-full rounded-xl flex items-center transition-all cursor-pointer border border-dashed border-[#70695E]/40 dark:border-[#2C2B27] hover:border-[#2B2621] text-[#2B2621] dark:text-[#B5B2A8] hover:text-[#2B2621] dark:hover:text-[#F5F4ED] ${
-              isExpanded ? 'px-3 py-2.5 gap-2.5 text-xs font-semibold min-h-[44px]' : 'w-11 h-11 mx-auto justify-center'
+            className={`w-full rounded-xl flex items-center transition-colors cursor-pointer border border-dashed border-[var(--border-strong)] hover:border-[var(--accent-fill)] bg-transparent hover:bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] ${
+              isExpanded ? 'px-3 py-2 gap-2 text-xs font-semibold min-h-[40px]' : 'w-11 h-11 mx-auto justify-center'
             }`}
             title={t('side_open_store')}
           >
             <Plus className="w-4 h-4 shrink-0" strokeWidth={1.75} />
-            {isExpanded && <span>{t('side_more_tools')}</span>}
+            {isExpanded && <span className="truncate">{t('side_more_tools')}</span>}
           </button>
-          {!isExpanded && (
-            <span className="absolute left-16 top-1/2 -translate-y-1/2 bg-[#141413] dark:bg-[#F5F4ED] text-[#F5F4ED] dark:text-[#141413] text-xs font-semibold px-2.5 py-1 rounded-lg opacity-0 pointer-events-none group-hover/add:opacity-100 transition-opacity delay-100 whitespace-nowrap z-50 shadow-md border border-[#E8E6DC] dark:border-[#2C2B27]">
-              {t('side_app_store')}
-            </span>
-          )}
+          {!isExpanded && renderCollapsedTooltip(t('side_app_store'))}
         </div>
       </div>
 
-      <div className="pt-2.5 border-t border-[#70695E]/20 dark:border-[#2C2B27] shrink-0 space-y-1.5" ref={userMenuRef}>
+      {/* Bottom Controls: Theme Toggle, Expand, Account */}
+      <div className="pt-2.5 border-t border-[var(--border-default)] shrink-0 space-y-1.5" ref={userMenuRef}>
         <button
+          type="button"
           onClick={onToggleDarkMode}
           title={darkMode ? t('side_to_light') : t('side_to_dark')}
           aria-label={darkMode ? t('side_to_light') : t('side_to_dark')}
           aria-pressed={darkMode}
-          className={`rounded-xl flex items-center transition-colors cursor-pointer border border-transparent hover:border-[#70695E]/30 dark:hover:border-[#2C2B27] hover:bg-white/50 dark:hover:bg-[#252422] text-[#2B2621] dark:text-[#F5F4ED] hover:text-[#2B2621] dark:hover:text-[#F5F4ED] ${
-            isExpanded ? 'w-full px-3 py-2 gap-2.5 text-xs font-semibold min-h-[44px]' : 'w-11 h-11 mx-auto justify-center'
+          className={`rounded-xl flex items-center transition-colors cursor-pointer border border-[var(--border-default)] hover:border-[var(--border-strong)] bg-[var(--bg-surface)]/75 hover:bg-[var(--bg-surface)] text-[var(--text-primary)] ${
+            isExpanded ? 'w-full px-3 py-2 gap-2.5 text-xs font-semibold min-h-[40px]' : 'w-11 h-11 mx-auto justify-center'
           }`}
         >
-          {darkMode ? <Sun className="w-4 h-4 shrink-0 text-[#F5F4ED]" strokeWidth={1.75} /> : <Moon className="w-4 h-4 shrink-0" strokeWidth={1.75} />}
+          {darkMode ? <Sun className="w-4 h-4 shrink-0" strokeWidth={1.75} /> : <Moon className="w-4 h-4 shrink-0" strokeWidth={1.75} />}
           {isExpanded && <span>{darkMode ? t('side_dark') : t('side_light')}</span>}
           {isExpanded && (
-            <span className={`ml-auto w-8 h-[18px] rounded-full p-[2px] transition-colors shrink-0 ${darkMode ? 'bg-[#F5F4ED]' : 'bg-[#70695E]/25 dark:bg-[#2C2B27]'}`}>
-              <span className={`block w-3.5 h-3.5 rounded-full bg-[#E05D38] dark:bg-[#F5F4ED] shadow-xs transition-transform ${darkMode ? 'translate-x-[14px]' : ''}`} />
+            <span
+              className={`ml-auto w-8 h-[18px] rounded-full p-[2px] border transition-colors shrink-0 ${
+                darkMode
+                  ? 'bg-[var(--accent-fill)] border-[var(--accent-fill)]'
+                  : 'bg-[var(--bg-subtle)] border-[var(--border-strong)]'
+              }`}
+              aria-hidden="true"
+            >
+              <span
+                className={`block w-3 h-3 rounded-full bg-white shadow-xs transition-transform ${
+                  darkMode ? 'translate-x-[14px]' : ''
+                }`}
+              />
             </span>
           )}
         </button>
+
         {!isExpanded && (
           <button
+            type="button"
             onClick={onToggleExpand}
-            className="w-11 h-11 mx-auto rounded-xl bg-white/40 hover:bg-white/70 dark:bg-[#252422]/60 dark:hover:bg-[#252422] text-[#2B2621] dark:text-[#F5F4ED] hover:text-[#2B2621] dark:hover:text-[#F5F4ED] flex items-center justify-center transition-colors cursor-pointer border border-[#70695E]/30 dark:border-[#2C2B27]"
+            className="w-11 h-11 mx-auto rounded-xl bg-[var(--bg-surface)]/75 hover:bg-[var(--bg-surface)] text-[var(--text-primary)] flex items-center justify-center transition-colors cursor-pointer border border-[var(--border-default)] hover:border-[var(--border-strong)]"
             title={t('side_expand')}
+            aria-label={t('side_expand')}
           >
             <ChevronRight className="w-4 h-4" strokeWidth={1.75} />
           </button>
         )}
-        <div
+
+        <button
+          type="button"
           onClick={onOpenSettings}
-          className={`flex items-center rounded-xl p-1 cursor-pointer hover:bg-white/50 dark:hover:bg-[#252422] transition-colors border border-transparent hover:border-[#70695E]/30 dark:border-[#2C2B27] ${
-            isExpanded ? 'gap-3 justify-start p-2 min-h-[44px]' : 'w-11 h-11 mx-auto justify-center p-0'
+          className={`w-full flex items-center rounded-xl cursor-pointer bg-[var(--bg-surface)]/75 hover:bg-[var(--bg-surface)] transition-colors border border-[var(--border-default)] hover:border-[var(--border-strong)] ${
+            isExpanded ? 'gap-2.5 justify-start p-2 min-h-[44px]' : 'w-11 h-11 mx-auto justify-center p-0'
           }`}
           title={t('side_account')}
         >
           {user ? (
-            <div className="w-9 h-9 rounded-2xl bg-white/60 border-2 border-white flex items-center justify-center text-xs font-bold text-[#E05D38] overflow-hidden shrink-0 shadow-xs">
+            <div className="w-8 h-8 rounded-lg bg-[var(--accent-soft)] border border-[var(--accent-border)] flex items-center justify-center text-xs font-bold text-[var(--accent-text)] overflow-hidden shrink-0">
               {user.photoURL ? (
                 <img
                   src={user.photoURL}
@@ -401,21 +503,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
               )}
             </div>
           ) : (
-            <div className="w-9 h-9 rounded-2xl bg-[#FDF6E7] text-[#E05D38] flex items-center justify-center text-xs font-bold shrink-0 shadow-xs">
+            <div className="w-8 h-8 rounded-lg bg-[var(--accent-soft)] border border-[var(--accent-border)] text-[var(--accent-text)] flex items-center justify-center text-xs font-bold shrink-0">
               <UserIcon className="w-4 h-4" strokeWidth={1.75} />
             </div>
           )}
           {isExpanded && (
             <div className="min-w-0 flex-1 text-left">
-              <div className="text-xs font-bold text-[#2B2621] dark:text-[#F5F4ED] truncate leading-tight">
+              <div className="text-xs font-bold text-[var(--text-primary)] truncate leading-tight">
                 {user ? user.displayName || user.email?.split('@')[0] : t('side_guest')}
               </div>
-              <div className="text-[10px] text-[#70695E] dark:text-[#B5B2A8] truncate">
+              <div className="text-[10px] text-[var(--text-muted)] truncate">
                 {user ? user.email : t('side_click_settings')}
               </div>
             </div>
           )}
-        </div>
+        </button>
       </div>
     </aside>
   );

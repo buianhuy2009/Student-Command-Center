@@ -6,8 +6,7 @@ import {
   Sparkles,
   RefreshCw,
 } from 'lucide-react';
-import { Navbar } from './components/Navbar';
-import { Sidebar } from './components/Sidebar';
+import { Shell } from './layouts/Shell';
 import { DashboardHome } from './components/DashboardHome';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { useBadgeCounts } from './hooks/useBadgeCounts';
@@ -316,7 +315,7 @@ export default function App() {
     syncDarkToTheme(v);
     setDarkModeState(v);
     try {
-      document.querySelector('meta[name="theme-color"]')?.setAttribute('content', v ? '#252320' : '#F8F6F0');
+      document.querySelector('meta[name="theme-color"]')?.setAttribute('content', v ? '#14171C' : '#F7F6F2');
     } catch {}
   }, []);
 
@@ -344,7 +343,7 @@ export default function App() {
       }
       const isDarkNow = document.documentElement.classList.contains('dark');
       setDarkModeState(isDarkNow);
-      document.querySelector('meta[name="theme-color"]')?.setAttribute('content', isDarkNow ? '#252320' : '#F8F6F0');
+      document.querySelector('meta[name="theme-color"]')?.setAttribute('content', isDarkNow ? '#14171C' : '#F7F6F2');
     } catch (e) {
       console.error('Theme init error:', e);
     }
@@ -3019,148 +3018,124 @@ export default function App() {
   }
 
   // reducedMotion already handled via CSS prefers-reduced-motion + index.css; MotionConfig not required (motion 12 export issue avoided)
+  const demoBanner = !user && isDemoMode ? (
+    <div className="bg-[var(--bg-surface)] border-b border-[var(--border-default)] text-[var(--text-primary)] px-4 py-2 text-xs font-medium flex items-center justify-between gap-3 z-30 shrink-0">
+      <div className="flex items-center gap-2 min-w-0">
+        <span className="w-2 h-2 rounded-full bg-[var(--accent-fill)] shrink-0" aria-hidden="true" />
+        <span className="truncate">
+          {t('app_demo_banner_prefix')}
+          <strong>{t('app_demo_banner_bold')}</strong>
+          {t('app_demo_banner_suffix')}
+        </span>
+      </div>
+      <div className="flex items-center gap-2 shrink-0">
+        <button
+          type="button"
+          onClick={() => handleGoogleSignIn(false)}
+          disabled={isLoggingIn}
+          className="px-3 py-1 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-lg text-xs font-bold transition-colors cursor-pointer"
+        >
+          {t('app_demo_signin_btn')}
+        </button>
+        <button
+          type="button"
+          onClick={() => setIsDemoMode(false)}
+          className="px-2 py-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] text-xs cursor-pointer"
+        >
+          {t('app_demo_exit_btn')}
+        </button>
+      </div>
+    </div>
+  ) : null;
+
+  const pwaBanner = showInstallBtn && !zenFocusMode ? (
+    <div className="mx-4 mt-2 p-2.5 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl flex items-center justify-between text-xs shadow-xs shrink-0">
+      <div className="flex items-center gap-2">
+        <span aria-hidden="true">📲</span>
+        <span className="font-semibold text-[var(--text-primary)]">{t('app_install_banner_text')}</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={handleInstallPwa}
+          className="px-3 py-1 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-lg font-bold cursor-pointer"
+        >
+          {t('app_install_btn')}
+        </button>
+        <button
+          type="button"
+          onClick={handleDismissPwa}
+          className="px-2 py-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer"
+        >
+          {t('app_install_later')}
+        </button>
+      </div>
+    </div>
+  ) : null;
+
   return (
-    <div className="h-screen max-h-screen overflow-hidden bg-[#F8F6F0] dark:bg-[#252320] text-[#2B2621] dark:text-[#F5F4ED] transition-colors duration-300 ease-[cubic-bezier(.22,1,.36,1)] flex flex-col font-sans selection:bg-[#E05D38] selection:text-white">
-      <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:bg-white dark:focus:bg-[#1A1917] focus:border focus:rounded-xl">{t('shell_skip_to_content')}</a>
-      {/* Demo Mode Top Alert */}
-      {!user && isDemoMode && (
-        <div className="bg-gradient-to-r from-indigo-600 to-violet-600 text-white px-4 py-2 text-xs font-semibold flex items-center justify-between shadow-xs z-50 shrink-0">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-amber-300 animate-pulse" />
-            <span>
-              {t('app_demo_banner_prefix')}
-              <strong>{t('app_demo_banner_bold')}</strong>
-              {t('app_demo_banner_suffix')}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => handleGoogleSignIn(false)}
-              disabled={isLoggingIn}
-              className="px-3 py-1 bg-white text-indigo-700 hover:bg-indigo-50 rounded-lg text-xs font-bold transition-colors cursor-pointer"
+    <>
+      <Shell
+        isZen={zenFocusMode}
+        mobileNavOpen={mobileNavOpen}
+        onMobileNavChange={setMobileNavOpen}
+        topBanner={demoBanner}
+        subBanner={pwaBanner}
+        sidebarProps={{
+          activeTab,
+          onSelectTab: (tab) => {
+            handleTabTransition(tab);
+            setMobileNavOpen(false);
+          },
+          isExpanded: isSidebarExpanded,
+          onToggleExpand: toggleSidebar,
+          user,
+          onSignIn: () => handleGoogleSignIn(false),
+          onSignOut: handleLogout,
+          onOpenSettings: () => setAccountSettingsOpen(true),
+          onOpenAppStore: () => setAppStoreOpen(true),
+          onOpenShortcuts: () => setShortcutsModalOpen(true),
+          onToggleDarkMode: toggleDarkMode,
+          darkMode,
+          pinnedAppIds,
+          onUnpinApp: handleUnpinApp,
+          badges: {
+            canvas: clearedTabBadges.has('canvas') ? 0 : canvasUnfinishedCount,
+            schedule: clearedTabBadges.has('radar') ? 0 : calendarEvents.length,
+            tracker: clearedTabBadges.has('tracker') ? 0 : pendingAssignmentCount,
+            gmail: clearedTabBadges.has('gmail') ? 0 : urgentEmailCount,
+            flashcards: clearedTabBadges.has('flashcards') ? 0 : flashcardDueCount,
+            pomodoro: 0,
+          },
+        }}
+        navbarProps={{
+          activeTabLabel: t(TAB_LABEL_KEYS[activeTab] || 'nav_default_tab'),
+          onOpenCommandPalette: () => setCommandPaletteOpen(true),
+          onToggleAiChat: () => setAiChatOpen(!aiChatOpen),
+          notifications,
+          isAiChatOpen: aiChatOpen,
+          onOpenGoogleSync: () => setGoogleSyncHubOpen(true),
+          isGoogleConnected,
+          isSyncingGoogle: isRefreshingAll,
+          onNotificationClick: (n) => {
+            if (n.source === 'Canvas' || n.id.startsWith('urgent-due-')) handleTabTransition('canvas');
+            else if (n.source === 'Google Drive') handleTabTransition('drive');
+            else if (n.source === 'Gmail') handleTabTransition('gmail');
+            else if (n.tier === 'urgent') handleTabTransition('tracker');
+            else handleTabTransition('radar');
+            setTimeout(() => { window.dispatchEvent(new CustomEvent('scc-highlight-tracker')); }, 300);
+          },
+        }}
+        fullScreenView={
+          aiChatOpen ? (
+            <Suspense
+              fallback={
+                <div className="flex-1 flex items-center justify-center p-8">
+                  <div className="w-6 h-6 border-2 border-[var(--accent-fill)] border-t-transparent rounded-full animate-spin" />
+                  <span className="ml-2 text-xs text-[var(--text-muted)]">{t('app_loading_coach')}</span>
+                </div>
+              }
             >
-              {t('app_demo_signin_btn')}
-            </button>
-            <button
-              onClick={() => setIsDemoMode(false)}
-              className="px-2 py-1 text-indigo-100 hover:text-white text-xs cursor-pointer"
-            >
-              {t('app_demo_exit_btn')}
-            </button>
-          </div>
-        </div>
-      )}
-      {/* Left Navigation Rail (Desktop + Mobile drawer) */}
-      <div className="flex-1 flex overflow-hidden h-full">
-        {/* Mobile hamburger — visible only <768px */}
-        {!zenFocusMode && activeTab !== 'dashboard' && (
-          <button onClick={()=>setMobileNavOpen(v=>!v)} className="md:hidden fixed top-2 left-2 z-40 p-2 rounded-xl bg-white dark:bg-[#1A1917] border border-[#E8E6DC] dark:border-[#2C2B27] shadow-md" aria-label={t('app_toggle_nav_aria')} aria-expanded={mobileNavOpen}>
-            <span className="text-sm font-bold">☰</span>
-          </button>
-        )}
-        {/* Desktop sidebar */}
-        {!zenFocusMode && activeTab !== 'dashboard' && (
-          <div className="hidden md:flex shrink-0">
-            <Sidebar
-              activeTab={activeTab}
-              onSelectTab={(tab)=>{ handleTabTransition(tab); setMobileNavOpen(false); }}
-              isExpanded={isSidebarExpanded}
-              onToggleExpand={toggleSidebar}
-              user={user}
-              onSignIn={() => handleGoogleSignIn(false)}
-              onSignOut={handleLogout}
-              onOpenSettings={() => setAccountSettingsOpen(true)}
-              onOpenAppStore={() => setAppStoreOpen(true)}
-              onOpenShortcuts={() => setShortcutsModalOpen(true)}
-              onToggleDarkMode={toggleDarkMode}
-              darkMode={darkMode}
-              pinnedAppIds={pinnedAppIds}
-              onUnpinApp={handleUnpinApp}
-              badges={{
-                canvas: clearedTabBadges.has('canvas') ? 0 : canvasUnfinishedCount,
-                schedule: clearedTabBadges.has('radar') ? 0 : calendarEvents.length,
-                tracker: clearedTabBadges.has('tracker') ? 0 : pendingAssignmentCount,
-                gmail: clearedTabBadges.has('gmail') ? 0 : urgentEmailCount,
-                flashcards: clearedTabBadges.has('flashcards') ? 0 : flashcardDueCount,
-                pomodoro: 0,
-              }}
-            />
-          </div>
-        )}
-        {/* Mobile drawer overlay with swipe to close + Esc */}
-        {mobileNavOpen && !zenFocusMode && activeTab !== 'dashboard' && (
-          <div className="md:hidden fixed inset-0 z-30 flex" onTouchStart={(e)=>{ (e.currentTarget as any)._sx = e.touches[0].clientX; }} onTouchEnd={(e)=>{ const sx=(e.currentTarget as any)._sx||0; const dx=e.changedTouches[0].clientX - sx; if(dx < -60 || dx > 60) setMobileNavOpen(false); }} onKeyDown={(e)=>{ if(e.key==='Escape') setMobileNavOpen(false); }}>
-            <div className="w-64 shrink-0 bg-[#F5F4ED] dark:bg-[#1A1917] border-r border-[#E8E6DC] dark:border-[#2C2B27] overflow-y-auto">
-              <Sidebar
-                activeTab={activeTab}
-                onSelectTab={(tab)=>{ handleTabTransition(tab); setMobileNavOpen(false); }}
-                isExpanded={true}
-                onToggleExpand={()=>setMobileNavOpen(false)}
-                user={user}
-                onSignIn={() => handleGoogleSignIn(false)}
-                onSignOut={handleLogout}
-                onOpenSettings={() => setAccountSettingsOpen(true)}
-                onOpenAppStore={() => setAppStoreOpen(true)}
-                onOpenShortcuts={() => setShortcutsModalOpen(true)}
-                onToggleDarkMode={toggleDarkMode}
-                darkMode={darkMode}
-                pinnedAppIds={pinnedAppIds}
-                onUnpinApp={handleUnpinApp}
-                badges={{
-                  canvas: clearedTabBadges.has('canvas') ? 0 : canvasUnfinishedCount,
-                  schedule: clearedTabBadges.has('radar') ? 0 : calendarEvents.length,
-                  tracker: clearedTabBadges.has('tracker') ? 0 : pendingAssignmentCount,
-                  gmail: clearedTabBadges.has('gmail') ? 0 : urgentEmailCount,
-                  flashcards: clearedTabBadges.has('flashcards') ? 0 : flashcardDueCount,
-                  pomodoro: 0,
-                }}
-              />
-            </div>
-            <button className="flex-1 bg-black/40 backdrop-blur-sm" onClick={()=>setMobileNavOpen(false)} aria-label={t('app_close_nav_aria')} />
-          </div>
-        )}
-
-        {/* Right Main Column with Top Header, Scrollable Content, and Bottom Status Bar */}
-        <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-[#F8F6F0] dark:bg-[#252320]">
-          {/* Top Header — simplified & error-guarded */}
-          {activeTab !== 'dashboard' && (
-            <ErrorBoundary fallback={<header className="h-12 bg-white dark:bg-[#141413] border-b border-[#E8E6DC] dark:border-[#2C2B27] px-4 sm:px-6 flex items-center justify-between z-20 text-xs font-semibold text-[#5E5D59]"><button onClick={() => window.dispatchEvent(new CustomEvent('scc-navigate', { detail: 'dashboard' }))} className="hover:text-[#C96442]">{t('app_nav_fallback')}</button></header>}>
-            <Navbar
-              activeTabLabel={t(TAB_LABEL_KEYS[activeTab] || 'nav_default_tab')}
-              onOpenCommandPalette={() => setCommandPaletteOpen(true)}
-              onToggleAiChat={() => setAiChatOpen(!aiChatOpen)}
-              notifications={notifications}
-              isAiChatOpen={aiChatOpen}
-              onOpenGoogleSync={() => setGoogleSyncHubOpen(true)}
-              isGoogleConnected={isGoogleConnected}
-              isSyncingGoogle={isRefreshingAll}
-              onNotificationClick={(n)=>{
-                if (n.source==='Canvas' || n.id.startsWith('urgent-due-')) handleTabTransition('canvas');
-                else if (n.source==='Google Drive') handleTabTransition('drive');
-                else if (n.source==='Gmail') handleTabTransition('gmail');
-                else if (n.tier==='urgent') handleTabTransition('tracker');
-                else handleTabTransition('radar');
-                // pulse highlight after nav
-                setTimeout(()=>{ window.dispatchEvent(new CustomEvent('scc-highlight-tracker')); }, 300);
-              }}
-            />
-            </ErrorBoundary>
-          )}
-
-          {/* PWA Install Banner — simplified */}
-          {showInstallBtn && !zenFocusMode && activeTab !== 'dashboard' && (
-            <div className="mx-4 mt-2 p-3 bg-[#F5F4ED] dark:bg-[#1A1917] border border-[#E8E6DC] dark:border-[#2C2B27] rounded-2xl flex items-center justify-between text-xs shadow-sm">
-              <div className="flex items-center gap-2"><span>📲</span><span className="font-semibold">{t('app_install_banner_text')}</span></div>
-              <div className="flex items-center gap-2">
-                <button onClick={handleInstallPwa} className="px-3 py-1.5 bg-[#C96442] text-white rounded-xl font-bold hover:bg-[#A94E33]">{t('app_install_btn')}</button>
-                <button onClick={handleDismissPwa} className="px-2 py-1 text-[#5E5D59] hover:text-[#141413] dark:hover:text-[#F5F4ED]">{t('app_install_later')}</button>
-              </div>
-            </div>
-          )}
-
-          {/* Main Area: Full-Screen AI Coach View OR Tab Workspaces — lazy + suspense + error boundary */}
-          {aiChatOpen ? (
-            <Suspense fallback={<div className="flex-1 flex items-center justify-center p-8"><div className="w-6 h-6 border-2 border-[#C96442] border-t-transparent rounded-full animate-spin" /><span className="ml-2 text-xs text-[#5E5D59]">{t('app_loading_coach')}</span></div>}>
               <StudyAssistantChat
                 isOpen={true}
                 onClose={() => setAiChatOpen(false)}
@@ -3170,11 +3145,12 @@ export default function App() {
                 isFullScreen={true}
               />
             </Suspense>
-          ) : (
-            <main id="main-content" className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-6 min-h-0" aria-label={t('shell_content_aria')}>
-              <ErrorBoundary fallback={<div className="p-6 rounded-2xl border border-rose-200 bg-rose-50 text-rose-900 text-sm">{t('app_workspace_fallback')}</div>}>
-              <Suspense fallback={<div className="p-8 flex items-center justify-center"><div className="w-6 h-6 border-2 border-[#D97757] border-t-transparent rounded-full animate-spin" /><span className="ml-2 text-xs text-[#8C897F]">{t('app_loading_workspace')}</span></div>}>
-              <div className="max-w-7xl mx-auto space-y-6 enter">
+          ) : undefined
+        }
+      >
+        <ErrorBoundary fallback={<div className="p-6 rounded-xl border border-[var(--status-err-border)] bg-[var(--status-err-bg)] text-[var(--status-err-text)] text-sm">{t('app_workspace_fallback')}</div>}>
+          <Suspense fallback={<div className="p-8 flex items-center justify-center"><div className="w-6 h-6 border-2 border-[var(--accent-fill)] border-t-transparent rounded-full animate-spin" /><span className="ml-2 text-xs text-[var(--text-muted)]">{t('app_loading_workspace')}</span></div>}>
+            <div className="max-w-7xl mx-auto space-y-6 enter">
                 {/* Google Workspace Connection Banner: only when no usable grant
                     exists. Access renews silently via the offline grant, so no
                     expiry state is ever surfaced — reconnecting once upgrades
@@ -3397,12 +3373,9 @@ export default function App() {
                   </div>
                 )}
               </div>
-              </Suspense>
-              </ErrorBoundary>
-            </main>
-          )}
-        </div>
-      </div>
+            </Suspense>
+          </ErrorBoundary>
+        </Shell>
 
       {/* Unified 2-Column Account & Settings Modal — gated so its chunk only loads when opened */}
       {accountSettingsOpen && (
@@ -3775,6 +3748,6 @@ export default function App() {
         } catch {}
         dismissToast(id);
       }} />
-    </div>
+    </>
   );
 }

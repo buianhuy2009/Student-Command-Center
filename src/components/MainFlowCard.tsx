@@ -86,43 +86,65 @@ export const MainFlowCard: React.FC<Props> = ({ assignments, emailAlerts, onNavi
 
   const needsYou = stats.review + stats.pending + stats.unconfirmed;
   const step =
-    'group flex min-w-0 flex-col gap-1.5 rounded-2xl border border-[#DFDACB] bg-white p-4 text-left transition hover:border-[#D97757] dark:border-[#2C2B27] dark:bg-[#1A1917]';
-  const num = 'flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#D97757]/15 text-[11px] font-extrabold text-[#D97757]';
+    'group flex min-w-0 flex-col gap-1.5 rounded-xl border border-[var(--border-default)] bg-[var(--bg-subtle)] p-3.5 text-left transition-colors hover:border-[var(--accent-border)] hover:bg-[var(--bg-hover)]';
+  const num =
+    'flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[var(--accent-border)] bg-[var(--accent-soft)] text-[11px] font-extrabold text-[var(--accent-text)]';
 
   return (
-    <section aria-label={t('side_main_flow')} className="rounded-3xl border border-[#DFDACB] bg-[#FAF9F5] p-4 shadow-card dark:border-[#2C2B27] dark:bg-[#1F1E1B] sm:p-5">
+    <section
+      aria-label={t('side_main_flow')}
+      className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-4 shadow-card sm:p-5"
+    >
       <div className="mb-3">
-        <h2 className="text-base font-extrabold text-[#1A1917] dark:text-[#F5F2EA]">{t('flow_title')}</h2>
-        <p className="text-xs text-[#6B6860] dark:text-[#A8A49A]">
+        <h2 className="text-sm sm:text-base font-extrabold text-[var(--text-primary)]">{t('flow_title')}</h2>
+        <p className="text-xs text-[var(--text-secondary)] mt-0.5">
           {t('flow_sub')}
         </p>
       </div>
-      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
         {/* 1. Sources */}
         <div className={step} role="group" aria-label={t('flow_sources')}>
-          <span className="flex items-center gap-2 text-xs font-bold text-[#1A1917] dark:text-[#F5F2EA]">
+          <span className="flex items-center gap-2 text-xs font-bold text-[var(--text-primary)]">
             <span className={num}>1</span>
-            <PlugZap className="h-4 w-4 text-[#D97757]" aria-hidden="true" />
+            <PlugZap className="h-4 w-4 text-[var(--accent-text)]" aria-hidden="true" />
             {t('flow_sources')}
           </span>
           <div className="flex flex-wrap gap-1.5 text-[11px] font-bold">
-            <button type="button" onClick={() => onNavigate('gmail')} className="rounded-full border border-[#DFDACB] px-2 py-1 hover:border-[#D97757] dark:border-[#2C2B27] dark:text-[#D6D2C7]">
+            <button
+              type="button"
+              onClick={() => onNavigate('gmail')}
+              className="rounded-full border border-[var(--border-default)] bg-[var(--bg-surface)] px-2.5 py-1 text-[var(--text-primary)] hover:border-[var(--accent-border)] hover:text-[var(--accent-text)] cursor-pointer"
+            >
               {t('flow_gmail_item', { status: gmailReady ? '✓' : `· ${t('flow_connect')}` })}
             </button>
-            <button type="button" onClick={() => onNavigate('classroom')} className="rounded-full border border-[#DFDACB] px-2 py-1 hover:border-[#D97757] dark:border-[#2C2B27] dark:text-[#D6D2C7]">
+            <button
+              type="button"
+              onClick={() => onNavigate('classroom')}
+              className="rounded-full border border-[var(--border-default)] bg-[var(--bg-surface)] px-2.5 py-1 text-[var(--text-primary)] hover:border-[var(--accent-border)] hover:text-[var(--accent-text)] cursor-pointer"
+            >
               {t('flow_classroom_item', { value: classroomReady || classroomCount > 0 ? classroomCount : t('flow_connect') })}
             </button>
             {canvasHidden ? (
-              <button type="button" onClick={toggleCanvas} className="inline-flex items-center gap-1 rounded-full border border-dashed border-[#DFDACB] px-2 py-1 text-[#6B6860] dark:border-[#2C2B27] dark:text-[#A8A49A]">
+              <button
+                type="button"
+                onClick={toggleCanvas}
+                className="inline-flex items-center gap-1 rounded-full border border-dashed border-[var(--border-strong)] bg-[var(--bg-surface)] px-2.5 py-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer"
+              >
                 <Eye className="h-3 w-3" aria-hidden="true" />
                 {t('flow_show_canvas')}
               </button>
             ) : (
-              <span className="inline-flex items-center gap-1 rounded-full border border-[#DFDACB] pl-2 dark:border-[#2C2B27] dark:text-[#D6D2C7]">
-                <button type="button" onClick={() => onNavigate('canvas')} className="py-1 hover:text-[#D97757]">
+              <span className="inline-flex items-center gap-1 rounded-full border border-[var(--border-default)] bg-[var(--bg-surface)] pl-2.5 text-[var(--text-primary)]">
+                <button type="button" onClick={() => onNavigate('canvas')} className="py-1 hover:text-[var(--accent-text)] cursor-pointer">
                   {t('flow_canvas_item', { count: canvasCount })}
                 </button>
-                <button type="button" onClick={toggleCanvas} aria-label={t('flow_hide_canvas')} title={t('flow_hide_canvas_title')} className="rounded-full p-1 text-[#6B6860] hover:text-[#D97757] dark:text-[#A8A49A]">
+                <button
+                  type="button"
+                  onClick={toggleCanvas}
+                  aria-label={t('flow_hide_canvas')}
+                  title={t('flow_hide_canvas_title')}
+                  className="rounded-full p-1 text-[var(--text-muted)] hover:text-[var(--accent-text)] cursor-pointer"
+                >
                   <EyeOff className="h-3 w-3" aria-hidden="true" />
                 </button>
               </span>
@@ -131,57 +153,65 @@ export const MainFlowCard: React.FC<Props> = ({ assignments, emailAlerts, onNavi
         </div>
 
         {/* 2. Needs you */}
-        <button type="button" className={`${step} ${needsYou > 0 ? 'border-amber-300 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30' : ''}`} onClick={() => onNavigate('gmail')}>
-          <span className="flex items-center gap-2 text-xs font-bold text-[#1A1917] dark:text-[#F5F2EA]">
+        <button
+          type="button"
+          className={`${step} cursor-pointer ${
+            needsYou > 0
+              ? 'border-[var(--status-warn-border)] bg-[var(--status-warn-bg)] hover:bg-[var(--status-warn-bg)]'
+              : ''
+          }`}
+          onClick={() => onNavigate('gmail')}
+        >
+          <span className={`flex items-center gap-2 text-xs font-bold ${needsYou > 0 ? 'text-[var(--status-warn-text)]' : 'text-[var(--text-primary)]'}`}>
             <span className={num}>2</span>
-            <Inbox className="h-4 w-4 text-[#D97757]" aria-hidden="true" />
+            <Inbox className={`h-4 w-4 ${needsYou > 0 ? 'text-[var(--status-warn-text)]' : 'text-[var(--accent-text)]'}`} aria-hidden="true" />
             {t('flow_needs_check')}
           </span>
-          <span className="text-[11px] leading-relaxed text-[#3A3835] dark:text-[#D6D2C7]">
+          <span className={`text-[11px] leading-relaxed ${needsYou > 0 ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
             {t('flow_pending_tasks', { count: stats.pending })}
             <br />
             {t('flow_emails_unread', { count: stats.review })}
             <br />
             {t('flow_unconfirmed_due', { count: stats.unconfirmed })}
           </span>
-          <ChevronRight className="h-4 w-4 self-end text-[#6B6860] group-hover:text-[#D97757]" aria-hidden="true" />
+          <ChevronRight className="mt-auto h-4 w-4 self-end text-[var(--text-muted)] group-hover:text-[var(--accent-text)]" aria-hidden="true" />
         </button>
 
         {/* 3. Assignments */}
-        <button type="button" className={step} onClick={() => onNavigate('tracker')}>
-          <span className="flex items-center gap-2 text-xs font-bold text-[#1A1917] dark:text-[#F5F2EA]">
+        <button type="button" className={`${step} cursor-pointer`} onClick={() => onNavigate('tracker')}>
+          <span className="flex items-center gap-2 text-xs font-bold text-[var(--text-primary)]">
             <span className={num}>3</span>
-            <ListChecks className="h-4 w-4 text-[#D97757]" aria-hidden="true" />
+            <ListChecks className="h-4 w-4 text-[var(--accent-text)]" aria-hidden="true" />
             {t('flow_assignments_due')}
           </span>
-          <span className="text-[11px] leading-relaxed text-[#3A3835] dark:text-[#D6D2C7]">
+          <span className="text-[11px] leading-relaxed text-[var(--text-secondary)]">
             {t('flow_due_week', { count: stats.week })}
             <br />
             {t('flow_no_date', { count: stats.noDate })}
           </span>
-          <ChevronRight className="h-4 w-4 self-end text-[#6B6860] group-hover:text-[#D97757]" aria-hidden="true" />
+          <ChevronRight className="mt-auto h-4 w-4 self-end text-[var(--text-muted)] group-hover:text-[var(--accent-text)]" aria-hidden="true" />
         </button>
 
         {/* 4. Weekly plan */}
-        <button type="button" className={step} onClick={() => onNavigate('radar')}>
-          <span className="flex items-center gap-2 text-xs font-bold text-[#1A1917] dark:text-[#F5F2EA]">
+        <button type="button" className={`${step} cursor-pointer`} onClick={() => onNavigate('radar')}>
+          <span className="flex items-center gap-2 text-xs font-bold text-[var(--text-primary)]">
             <span className={num}>4</span>
-            <CalendarCheck className="h-4 w-4 text-[#D97757]" aria-hidden="true" />
+            <CalendarCheck className="h-4 w-4 text-[var(--accent-text)]" aria-hidden="true" />
             {t('flow_weekly_plan')}
           </span>
-          <span className="text-[11px] leading-relaxed text-[#3A3835] dark:text-[#D6D2C7]">
+          <span className="text-[11px] leading-relaxed text-[var(--text-secondary)]">
             {t('flow_weekly_desc')}
           </span>
-          <ChevronRight className="h-4 w-4 self-end text-[#6B6860] group-hover:text-[#D97757]" aria-hidden="true" />
+          <ChevronRight className="mt-auto h-4 w-4 self-end text-[var(--text-muted)] group-hover:text-[var(--accent-text)]" aria-hidden="true" />
         </button>
       </div>
-      <p className="mt-3 text-[11px] text-[#6B6860] dark:text-[#A8A49A]">
-        <button type="button" onClick={() => window.dispatchEvent(new CustomEvent('scc-open-privacy'))} className="font-bold text-[#D97757] underline">
+      <p className="mt-3 text-[11px] text-[var(--text-muted)]">
+        <button type="button" onClick={() => window.dispatchEvent(new CustomEvent('scc-open-privacy'))} className="font-bold text-[var(--accent-text)] hover:underline underline-offset-4 cursor-pointer">
           {t('flow_privacy_link')}
         </button>
         {' · '}
         {t('flow_in_pilot')}{' '}
-        <button type="button" onClick={downloadPilotExport} className="font-bold text-[#D97757] underline">
+        <button type="button" onClick={downloadPilotExport} className="font-bold text-[var(--accent-text)] hover:underline underline-offset-4 cursor-pointer">
           {t('flow_download_pilot')}
         </button>
       </p>
