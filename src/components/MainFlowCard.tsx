@@ -150,7 +150,7 @@ export const MainFlowCard: React.FC<Props> = ({ assignments, emailAlerts, onNavi
         </button>
 
         {/* 4. Weekly plan */}
-        <button type="button" className={step} onClick={() => onNavigate('ai-planner')}>
+        <button type="button" className={step} onClick={() => onNavigate('radar')}>
           <span className="flex items-center gap-2 text-xs font-bold text-[#1A1917] dark:text-[#F5F2EA]">
             <span className={num}>4</span>
             <CalendarCheck className="h-4 w-4 text-[#D97757]" aria-hidden="true" />

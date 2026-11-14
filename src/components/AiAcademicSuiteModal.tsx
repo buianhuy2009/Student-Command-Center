@@ -55,6 +55,7 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
   const [availableHours, setAvailableHours] = useState<number>(3);
   const [isPlanning, setIsPlanning] = useState(false);
   const [studyPlan, setStudyPlan] = useState<DailyStudyPlanResult | null>(null);
+  const [suiteError, setSuiteError] = useState<string | null>(null);
 
   // 2. Syllabus Parser State
   const [syllabusText, setSyllabusText] = useState('');
@@ -81,6 +82,7 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
 
   // Handle Daily Planner
   const handleGeneratePlan = async () => {
+    setSuiteError(null);
     setIsPlanning(true);
     try {
       const pendingTaskTitles = assignments
@@ -103,8 +105,9 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
         hoursAvailable: availableHours,
       });
       setStudyPlan(res);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error generating plan:', err);
+      setSuiteError(err?.message || 'Could not generate daily study plan. Check your AI API key in Settings.');
     } finally {
       setIsPlanning(false);
     }
@@ -118,8 +121,9 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
     try {
       const res = await parseSyllabusContent(syllabusText);
       setParsedSyllabus(res);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error parsing syllabus:', err);
+      setSuiteError(err?.message || 'Could not extract assignments from syllabus. Check your AI API key in Settings.');
     } finally {
       setIsParsingSyllabus(false);
     }
@@ -148,8 +152,9 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
     try {
       const res = await generateInteractiveQuiz(quizNotes);
       setQuizQuestions(res);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error generating quiz:', err);
+      setSuiteError(err?.message || 'Could not generate practice quiz. Check your AI API key in Settings.');
     } finally {
       setIsGeneratingQuiz(false);
     }
@@ -221,7 +226,7 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
+                onClick={() => { setActiveTab(tab.id as any); setSuiteError(null); }}
                 className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 border-b-2 ${
                   isActive
                     ? 'bg-[#FAF9F5] dark:bg-[#252422] text-[#D97757] border-[#D97757]'
@@ -237,7 +242,19 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
 
         {/* Tab Body */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          
+          {suiteError && (
+            <div role="alert" className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/60 text-xs text-rose-700 dark:text-rose-300 flex items-center justify-between gap-3">
+              <span>{suiteError}</span>
+              <button
+                type="button"
+                onClick={() => setSuiteError(null)}
+                className="shrink-0 font-bold underline hover:opacity-80 cursor-pointer"
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
+
           {/* TAB 1: AI DAILY STUDY PLANNER */}
           {activeTab === 'planner' && (
             <div className="space-y-6">

@@ -19,18 +19,18 @@ import {
   Atom,
   Brain,
   FolderOpen,
-  Columns2,
   Timer,
   BookOpen,
-  GraduationCap,
+  Compass,
+  Grid2x2,
 } from 'lucide-react';
-import { Assignment, WorkspaceId } from '../types';
+import { Assignment, AppTab } from '../types';
 import { t, useLang } from '../services/i18n';
 
 interface CommandPaletteProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelectWorkspace: (workspace: WorkspaceId) => void;
+  onSelectWorkspace: (workspace: AppTab) => void;
   onOpenQuickDraft: () => void;
   onOpenNewAssignment: () => void;
   onToggleAiChat: () => void;
@@ -145,7 +145,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   const isMathActive = !!mathResult && activeIndex === 0;
 
   const actions = [
-    // Workspaces
+    // Workspaces & Kept Apps
     {
       id: 'ws-dashboard',
       title: 'Home Dashboard (Overview)',
@@ -157,8 +157,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       },
     },
     {
-      id: 'ws-academic',
-      title: 'Canvas & Assignments Hub (Canvas, Classroom, Tracker)',
+      id: 'ws-canvas',
+      title: 'Canvas LMS (Coursework & Grades)',
       category: t('pal_cat_workspaces'),
       icon: Layers,
       run: () => {
@@ -167,52 +167,142 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       },
     },
     {
-      id: 'ws-stem',
-      title: 'STEM & Calculation Lab (Desmos, GeoGebra, PhET)',
+      id: 'ws-radar',
+      title: 'Daily Schedule & AI Planner',
       category: t('pal_cat_workspaces'),
-      icon: Atom,
+      icon: Compass,
       run: () => {
-        onSelectWorkspace('stem');
+        onSelectWorkspace('radar');
         onClose();
       },
     },
     {
-      id: 'ws-creation',
-      title: 'Creation & Whiteboard Studio (Excalidraw, Canva)',
+      id: 'ws-tracker',
+      title: 'Assignment Tracker (Google Sheets Sync)',
       category: t('pal_cat_workspaces'),
-      icon: PenTool,
+      icon: CheckSquare,
       run: () => {
-        onSelectWorkspace('creation');
+        onSelectWorkspace('tracker');
         onClose();
       },
     },
     {
-      id: 'ws-retention',
-      title: 'Active Study & Retention Vault (Pomodoro, SRS, NotebookLM)',
+      id: 'ws-gmail',
+      title: 'Gmail AI Scanner',
       category: t('pal_cat_workspaces'),
-      icon: Brain,
+      icon: Mail,
       run: () => {
-        onSelectWorkspace('retention');
+        onSelectWorkspace('gmail');
         onClose();
       },
     },
     {
-      id: 'ws-documents',
-      title: 'Document & Resource Hub (Markdown, Google Drive)',
+      id: 'ws-classroom',
+      title: 'Google Classroom',
+      category: t('pal_cat_workspaces'),
+      icon: BookOpen,
+      run: () => {
+        onSelectWorkspace('classroom');
+        onClose();
+      },
+    },
+    {
+      id: 'ws-drive',
+      title: 'Google Drive Files',
       category: t('pal_cat_workspaces'),
       icon: FolderOpen,
       run: () => {
-        onSelectWorkspace('documents');
+        onSelectWorkspace('drive');
         onClose();
       },
     },
     {
-      id: 'ws-split',
-      title: 'Split-Screen Dual-Pane Dock',
+      id: 'ws-notes',
+      title: 'Markdown Notes & LaTeX (+ Google Doc Export)',
       category: t('pal_cat_workspaces'),
-      icon: Columns2,
+      icon: FileText,
       run: () => {
-        onSelectWorkspace('splitscreen');
+        onSelectWorkspace('notes-markdown');
+        onClose();
+      },
+    },
+    {
+      id: 'ws-flashcards',
+      title: 'Flashcards (SM-2)',
+      category: t('pal_cat_workspaces'),
+      icon: Brain,
+      run: () => {
+        onSelectWorkspace('flashcards');
+        onClose();
+      },
+    },
+    {
+      id: 'ws-pomodoro',
+      title: 'Pomodoro Focus Station',
+      category: t('pal_cat_workspaces'),
+      icon: Timer,
+      run: () => {
+        onSelectWorkspace('pomodoro');
+        onClose();
+      },
+    },
+    {
+      id: 'ws-excalidraw',
+      title: 'Excalidraw Whiteboard',
+      category: t('pal_cat_workspaces'),
+      icon: PenTool,
+      run: () => {
+        onSelectWorkspace('excalidraw');
+        onClose();
+      },
+    },
+    {
+      id: 'ws-desmos',
+      title: 'Desmos 2D Graphing Calculator',
+      category: t('pal_cat_workspaces'),
+      icon: Calculator,
+      run: () => {
+        onSelectWorkspace('desmos-graphing');
+        onClose();
+      },
+    },
+    {
+      id: 'ws-geogebra',
+      title: 'GeoGebra Math Suite',
+      category: t('pal_cat_workspaces'),
+      icon: Grid2x2,
+      run: () => {
+        onSelectWorkspace('geogebra');
+        onClose();
+      },
+    },
+    {
+      id: 'ws-phet',
+      title: 'PhET Interactive Simulations',
+      category: t('pal_cat_workspaces'),
+      icon: Atom,
+      run: () => {
+        onSelectWorkspace('phet');
+        onClose();
+      },
+    },
+    {
+      id: 'ws-arxiv',
+      title: 'arXiv Research Papers',
+      category: t('pal_cat_workspaces'),
+      icon: BookOpen,
+      run: () => {
+        onSelectWorkspace('arxiv');
+        onClose();
+      },
+    },
+    {
+      id: 'ws-open-library',
+      title: 'Open Library Textbooks',
+      category: t('pal_cat_workspaces'),
+      icon: BookOpen,
+      run: () => {
+        onSelectWorkspace('open-library');
         onClose();
       },
     },
@@ -251,38 +341,18 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     },
     // AI Slash Commands
     {
-      id: 'slash-split',
-      title: '/split [left-tool] [right-tool] — Dock two academic tools side-by-side in Dual-Pane Studio',
-      category: t('pal_cat_slash'),
-      icon: Columns2,
-      run: () => {
-        onSelectWorkspace('splitscreen');
-        onClose();
-      },
-    },
-    {
-      id: 'slash-explain',
-      title: '/explain [concept] — 3-Tier Feynman Simplification (ELI5, High School, Undergrad)',
-      category: t('pal_cat_slash'),
-      icon: Sparkles,
-      run: () => {
-        onSelectWorkspace('documents');
-        onClose();
-      },
-    },
-    {
       id: 'slash-graph',
-      title: '/graph [equation] — Natural language prompt-to-graph injector for Desmos',
+      title: '/graph — Open Desmos 2D Graphing Calculator',
       category: t('pal_cat_slash'),
       icon: Calculator,
       run: () => {
-        onSelectWorkspace('stem');
+        onSelectWorkspace('desmos-graphing');
         onClose();
       },
     },
     {
       id: 'slash-breakdown',
-      title: '/breakdown [assignment-id] — Deconstruct assignment into 4 actionable sub-tasks',
+      title: '/breakdown — Open Assignment Tracker to manage subtasks',
       category: t('pal_cat_slash'),
       icon: Layers,
       run: () => {
@@ -292,41 +362,21 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     },
     {
       id: 'slash-focus',
-      title: '/focus 25 — Start 25m customizable focus session with Lo-Fi ambient sound',
+      title: '/focus — Launch Pomodoro Focus Station',
       category: t('pal_cat_slash'),
       icon: Timer,
       run: () => {
-        onSelectWorkspace('retention');
-        onClose();
-      },
-    },
-    {
-      id: 'slash-pomodoro',
-      title: '/pomodoro 25 — Launch Pomodoro sprint in Active Recall Vault',
-      category: t('pal_cat_slash'),
-      icon: Timer,
-      run: () => {
-        onSelectWorkspace('retention');
-        onClose();
-      },
-    },
-    {
-      id: 'slash-viva',
-      title: '/viva [subject] — Start AI Oral Exam with voice dictation & speech synthesis',
-      category: t('pal_cat_slash'),
-      icon: GraduationCap,
-      run: () => {
-        onSelectWorkspace('retention');
+        onSelectWorkspace('pomodoro');
         onClose();
       },
     },
     {
       id: 'slash-quiz',
-      title: '/quiz [subject] — Generate active recall flashcards with SM-2 spaced repetition',
+      title: '/quiz — Open Flashcards (SM-2) studio',
       category: t('pal_cat_slash'),
       icon: Brain,
       run: () => {
-        onSelectWorkspace('retention');
+        onSelectWorkspace('flashcards');
         onClose();
       },
     },
@@ -383,7 +433,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
             const note = { id: `note-${Date.now()}`, title, subject: 'General', content: `# ${title}\n\n`, updatedAt: new Date().toLocaleDateString() };
             localStorage.setItem('scc_markdown_notes_v1', JSON.stringify([note, ...arr]));
           } catch {}
-          onSelectWorkspace('documents');
+          onSelectWorkspace('notes-markdown');
           onClose();
         }
       };
@@ -399,7 +449,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         icon: Timer,
         run: () => {
           try { localStorage.setItem('scc_pomo_requested_duration', String(mins)); } catch {}
-          onSelectWorkspace('retention');
+          onSelectWorkspace('pomodoro');
           onClose();
         }
       };
@@ -492,7 +542,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                 }
                 if(commandAction && idx===cur){ commandAction.run(); return; }
                 if(commandAction) cur++;
-                if(idx < cur+matchedAssignments.length){ const a=matchedAssignments[idx-cur]; if(a){ onSelectWorkspace('tracker' as any); onClose(); } return; }
+                if(idx < cur+matchedAssignments.length){ const a=matchedAssignments[idx-cur]; if(a){ onSelectWorkspace('tracker'); onClose(); } return; }
                 cur+=matchedAssignments.length;
                 const action = filteredActions[idx-cur];
                 if(action){ try{ const rec=JSON.parse(localStorage.getItem('scc_recent_palette_v1')||'[]'); const next=[action.id, ...rec.filter((x:string)=>x!==action.id)].slice(0,5); localStorage.setItem('scc_recent_palette_v1', JSON.stringify(next)); }catch{} action.run(); }

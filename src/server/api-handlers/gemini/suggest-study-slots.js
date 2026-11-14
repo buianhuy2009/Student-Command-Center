@@ -1,41 +1,11 @@
-import { GoogleGenAI } from "@google/genai";
-import { SERVER_MODELS } from "./models.js";
-
-let genAI = null;
-function getGenAI() {
-  if (!genAI) {
-    const apiKey = process.env.GEMINI_API_KEY || "";
-    genAI = new GoogleGenAI({ apiKey });
-  }
-  return genAI;
-}
-
-const CANDIDATE_MODELS = SERVER_MODELS;
-
-async function generateWithModelFallback(params) {
-  const ai = getGenAI();
-  let lastError = null;
-  for (const model of CANDIDATE_MODELS) {
-    try {
-      const response = await ai.models.generateContent({
-        model,
-        contents: params.contents,
-        config: params.config,
-      });
-      return response;
-    } catch (err) {
-      lastError = err;
-      console.warn(`Model ${model} attempt failed: ${err.message || err}. Trying next fallback...`);
-    }
-  }
-  throw lastError || new Error("All candidate Gemini models failed.");
-}
+import { applyApiCors } from "../cors.js";
+import { generateWithModelFallback, parseJsonLoose, sendAiFailure } from "./generate.js";
 
 export default async function handler(req, res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  if (req.method === "OPTIONS") return res.status(200).end();
+  if (applyApiCors(req, res, "POST, OPTIONS")) return;
+  if (req.method && req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed", code: "method_not_allowed" });
+  }
 
   try {
     const { existingEvents, pendingTasks, chronotype, date } = req.body || {};
@@ -68,21 +38,18 @@ Respond with valid JSON:
 }
 Return only JSON.`;
 
-    const response = await generateWithModelFallback({
+    const { response } = await generateWithModelFallback({
       contents: prompt,
       config: { responseMimeType: "application/json" },
     });
 
-    const parsed = JSON.parse(response.text || "{}");
-    res.status(200).json(parsed);
+    const parsed = parseJsonLoose(response?.text);
+    if (!parsed || !Array.isArray(parsed.suggestedSlots)) {
+      throw new Error("Invalid study slots payload from AI");
+    }
+    return res.status(200).json(parsed);
   } catch (err) {
     console.error("Suggest study slots error:", err);
-    res.status(200).json({
-      suggestedSlots: [
-        { startTime: "09:00", endTime: "09:45", taskName: "Study Block 1", taskSubject: "General", reason: "Morning focus window" },
-        { startTime: "14:00", endTime: "14:45", taskName: "Study Block 2", taskSubject: "General", reason: "Afternoon review session" },
-      ],
-      chronotypeAdvice: "Try studying during your most alert hours for best results!",
-    });
+    return sendAiFailure(res, "Suggest study slots failed", err);
   }
 }

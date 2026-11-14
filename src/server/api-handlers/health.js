@@ -1,15 +1,13 @@
+import { applyApiCors } from "./cors.js";
 import { generateWithModelFallback } from "./gemini/generate.js";
 import { SERVER_MODELS } from "./gemini/models.js";
 
 export default async function handler(req, res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, x-canvas-token");
-  if (req.method === "OPTIONS") return res.status(200).end();
+  if (applyApiCors(req, res, "GET, POST, OPTIONS")) return;
 
   const body = {
     status: "ok",
-    platform: "vercel-serverless",
+    platform: process.env.VERCEL ? "vercel-serverless" : "node-server",
     hasGeminiKey: Boolean(process.env.GEMINI_API_KEY),
     hasGroqKey: Boolean(process.env.GROQ_API_KEY),
     models: SERVER_MODELS,

@@ -8,12 +8,13 @@ import {
   Copy,
   Check,
   Download,
-  ExternalLink,
+  Upload,
   Plus,
   Trash2,
   CheckCircle2,
   Clock,
   Brain,
+  AlertTriangle,
 } from 'lucide-react';
 import { calculateSM2, ReviewQuality, SRSCard } from '../services/srsEngine';
 
@@ -26,6 +27,7 @@ export interface Flashcard {
   interval?: number;
   easeFactor?: number;
   dueDate?: string;
+  history?: SRSCard['history'];
 }
 
 export interface CardDeck {
@@ -96,6 +98,7 @@ export const FlashcardStudioTab: React.FC = () => {
   const [genNotes, setGenNotes] = useState('');
   const [genCount, setGenCount] = useState<number>(loadGenCount);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [genError, setGenError] = useState<string | null>(null);
 
   // Per-session review limit (presets + custom, persisted, default All)
   const [sessionLimit, setSessionLimit] = useState<number | 'all'>(loadSessionLimit);
@@ -104,11 +107,15 @@ export const FlashcardStudioTab: React.FC = () => {
     return typeof stored === 'number' && ![10, 20, 50].includes(stored) ? String(stored) : '';
   });
 
-  // Study Mode State
+  // Study Mode & TSV Import/Export State
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
-  const [copiedQuizlet, setCopiedQuizlet] = useState(false);
-  const [copiedAnki, setCopiedAnki] = useState(false);
+  const [copiedTsv, setCopiedTsv] = useState(false);
+  const [downloadedTsv, setDownloadedTsv] = useState(false);
+  const [showTsvImport, setShowTsvImport] = useState(false);
+  const [tsvTitle, setTsvTitle] = useState('');
+  const [tsvText, setTsvText] = useState('');
+  const [tsvImportError, setTsvImportError] = useState<string | null>(null);
 
   const sortedCards = React.useMemo(() => {
     if (!decks.find(d => d.id === activeDeckId)) return [];
@@ -224,6 +231,7 @@ export const FlashcardStudioTab: React.FC = () => {
     if (!genTopic.trim()) return;
 
     setIsGenerating(true);
+    setGenError(null);
     try {
       const res = await fetch('/api/gemini/assistant', {
         method: 'POST',
@@ -247,37 +255,34 @@ Example format:
         }),
       });
 
-      if (!res.ok) throw new Error('Generation failed');
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({} as any));
+        throw new Error(errBody?.error || `Generation failed (HTTP ${res.status}).`);
+      }
       const data = await res.json();
       const reply = data.reply || '';
 
       const jsonMatch = reply.match(/\[\s*\{[\s\S]*\}\s*\]/);
-      let parsedCards: Flashcard[] = [];
+      if (!jsonMatch) {
+        throw new Error('AI response did not contain a valid JSON flashcard array. Please try again.');
+      }
 
-      if (jsonMatch) {
-        const rawArray = JSON.parse(jsonMatch[0]);
-        parsedCards = rawArray.map((item: any, i: number) => ({
+      const rawArray = JSON.parse(jsonMatch[0]);
+      if (!Array.isArray(rawArray) || rawArray.length === 0) {
+        throw new Error('No flashcards were returned. Try adding more context or checking your AI settings.');
+      }
+
+      const parsedCards: Flashcard[] = rawArray
+        .filter((item: any) => item && (item.front || item.back))
+        .map((item: any, i: number) => ({
           id: `card-${Date.now()}-${i}`,
-          front: item.front || 'Term',
-          back: item.back || 'Definition',
+          front: String(item.front || 'Term'),
+          back: String(item.back || 'Definition'),
           mastered: false,
         }));
-      } else {
-        // High quality fallback
-        parsedCards = [
-          {
-            id: `card-${Date.now()}-0`,
-            front: `Core Definition: ${genTopic}`,
-            back: `Fundamental mechanism and conceptual definition of ${genTopic}.`,
-            mastered: false,
-          },
-          {
-            id: `card-${Date.now()}-1`,
-            front: `Key Application: ${genTopic}`,
-            back: `How ${genTopic} is applied in problem sets, analytical derivations, and exam synthesis.`,
-            mastered: false,
-          },
-        ];
+
+      if (parsedCards.length === 0) {
+        throw new Error('Parsed flashcards were empty. Please refine your prompt and retry.');
       }
 
       const newDeck: CardDeck = {
@@ -298,8 +303,9 @@ Example format:
       setGenTopic('');
       setGenSubject('');
       setGenNotes('');
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error generating flashcards:', err);
+      setGenError(err?.message || 'Could not generate flashcards. Configure Gemini or Groq in Settings or use TSV Import.');
     } finally {
       setIsGenerating(false);
     }
@@ -326,6 +332,7 @@ Example format:
       interval: currentCard.interval || 0,
       easeFactor: currentCard.easeFactor || 2.5,
       dueDate: currentCard.dueDate || new Date().toISOString().split('T')[0],
+      history: currentCard.history || [],
     };
 
     const updatedSrs = calculateSM2(srsCard, quality);
@@ -338,6 +345,7 @@ Example format:
             interval: updatedSrs.interval,
             easeFactor: updatedSrs.easeFactor,
             dueDate: updatedSrs.dueDate,
+            history: updatedSrs.history,
             mastered: quality >= 4,
           }
         : c
@@ -377,26 +385,90 @@ Example format:
     return () => window.removeEventListener('keydown', handleGradeKeyDown);
   }, [displayDeck, currentCardIndex]);
 
-  const handleExportQuizlet = () => {
+  const handleCopyTsv = () => {
     if (!activeDeck) return;
-    const quizletText = activeDeck.cards.map((c) => `${c.front}\t${c.back}`).join('\n');
-    navigator.clipboard.writeText(quizletText);
-    setCopiedQuizlet(true);
-    setTimeout(() => setCopiedQuizlet(false), 2000);
+    const tsvOutput = activeDeck.cards.map((c) => `${c.front}\t${c.back}`).join('\n');
+    navigator.clipboard.writeText(tsvOutput);
+    setCopiedTsv(true);
+    setTimeout(() => setCopiedTsv(false), 2000);
   };
 
-  const handleExportAnki = () => {
+  const handleDownloadTsv = () => {
     if (!activeDeck) return;
-    const ankiText = activeDeck.cards.map((c) => `${c.front}\t${c.back}`).join('\n');
-    const blob = new Blob([ankiText], { type: 'text/plain;charset=utf-8' });
+    const tsvOutput = activeDeck.cards.map((c) => `${c.front}\t${c.back}`).join('\n');
+    const blob = new Blob([tsvOutput], { type: 'text/tab-separated-values;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `${activeDeck.title.replace(/\s+/g, '_')}_anki_deck.txt`;
+    link.download = `${activeDeck.title.replace(/\s+/g, '_')}_sm2.tsv`;
     link.click();
     URL.revokeObjectURL(url);
-    setCopiedAnki(true);
-    setTimeout(() => setCopiedAnki(false), 2000);
+    setDownloadedTsv(true);
+    setTimeout(() => setDownloadedTsv(false), 2000);
+  };
+
+  const handleImportTsv = (e: React.FormEvent) => {
+    e.preventDefault();
+    setTsvImportError(null);
+    const lines = tsvText
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .filter((l) => l && !l.startsWith('#'));
+
+    const parsed: Flashcard[] = [];
+    lines.forEach((line, idx) => {
+      const tabIdx = line.indexOf('\t');
+      if (tabIdx <= 0) return;
+      const front = line.slice(0, tabIdx).trim();
+      const back = line.slice(tabIdx + 1).trim();
+      if (front && back) {
+        parsed.push({
+          id: `card-${Date.now()}-${idx}`,
+          front,
+          back,
+          mastered: false,
+        });
+      }
+    });
+
+    if (parsed.length === 0) {
+      setTsvImportError('No valid rows found. Use one card per line separated by a Tab: Front[TAB]Back');
+      return;
+    }
+
+    const newDeck: CardDeck = {
+      id: `deck-${Date.now()}`,
+      title: tsvTitle.trim() || 'Imported TSV Deck',
+      subject: 'Imported',
+      cards: parsed,
+      createdAt: new Date().toLocaleDateString(),
+    };
+
+    const updated = [newDeck, ...decks];
+    setDecks(updated);
+    saveDecks(updated);
+    setActiveDeckId(newDeck.id);
+    setCurrentCardIndex(0);
+    setIsFlipped(false);
+    setTsvTitle('');
+    setTsvText('');
+    setShowTsvImport(false);
+  };
+
+  const handleTsvFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!tsvTitle.trim()) {
+      setTsvTitle(file.name.replace(/\.(tsv|txt)$/i, ''));
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setTsvText(reader.result);
+        setTsvImportError(null);
+      }
+    };
+    reader.readAsText(file);
   };
 
   return (
@@ -410,50 +482,112 @@ Example format:
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-base sm:text-lg font-bold text-[#141413] dark:text-[#FAF9F5] tracking-tight">
-                Flashcard Studio (Quizlet &amp; Anki)
+                Flashcards (SM-2)
               </h2>
               <span className="px-2 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 rounded-full">
                 Spaced Repetition
               </span>
             </div>
             <p className="text-xs text-[#8C897F] mt-0.5">
-              AI card generation, 3D study review, and 1-click Quizlet &amp; Anki exports
+              AI card generation, SM-2 spaced repetition review, and TSV import/export
             </p>
           </div>
         </div>
 
-        {displayDeck && displayDeck.cards.length > 0 && (
-          <div className="flex items-center gap-2 shrink-0 flex-wrap">
-            <button
-              onClick={handleExportQuizlet}
-              className="px-3 py-1.5 bg-[#FAF9F5] dark:bg-[#252422] hover:bg-[#EFECE2] dark:hover:bg-[#2C2A26] text-[#5C5A54] dark:text-[#B5B2A8] rounded-xl text-xs font-semibold border border-[#DFDACB] dark:border-[#2C2B27] flex items-center gap-1.5 transition-colors cursor-pointer"
-              title="Copy tab-separated format to paste directly into Quizlet"
-            >
-              {copiedQuizlet ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
-              <span>{copiedQuizlet ? 'Copied for Quizlet!' : 'Export to Quizlet'}</span>
-            </button>
+        <div className="flex items-center gap-2 shrink-0 flex-wrap">
+          {displayDeck && displayDeck.cards.length > 0 && (
+            <>
+              <button
+                onClick={handleCopyTsv}
+                className="px-3 py-1.5 bg-[#FAF9F5] dark:bg-[#252422] hover:bg-[#EFECE2] dark:hover:bg-[#2C2A26] text-[#5C5A54] dark:text-[#B5B2A8] rounded-xl text-xs font-semibold border border-[#DFDACB] dark:border-[#2C2B27] flex items-center gap-1.5 transition-colors cursor-pointer"
+                title="Copy tab-separated Front\tBack rows to clipboard"
+              >
+                {copiedTsv ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                <span>{copiedTsv ? 'Copied TSV!' : 'Copy TSV'}</span>
+              </button>
 
-            <button
-              onClick={handleExportAnki}
-              className="px-3 py-1.5 bg-[#FAF9F5] dark:bg-[#252422] hover:bg-[#EFECE2] dark:hover:bg-[#2C2A26] text-[#5C5A54] dark:text-[#B5B2A8] rounded-xl text-xs font-semibold border border-[#DFDACB] dark:border-[#2C2B27] flex items-center gap-1.5 transition-colors cursor-pointer"
-              title="Download text file ready for desktop or mobile Anki import"
-            >
-              {copiedAnki ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Download className="w-3.5 h-3.5" />}
-              <span>{copiedAnki ? 'Downloaded .txt!' : 'Export to Anki'}</span>
-            </button>
+              <button
+                onClick={handleDownloadTsv}
+                className="px-3 py-1.5 bg-[#FAF9F5] dark:bg-[#252422] hover:bg-[#EFECE2] dark:hover:bg-[#2C2A26] text-[#5C5A54] dark:text-[#B5B2A8] rounded-xl text-xs font-semibold border border-[#DFDACB] dark:border-[#2C2B27] flex items-center gap-1.5 transition-colors cursor-pointer"
+                title="Download deck as tab-separated .tsv file"
+              >
+                {downloadedTsv ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Download className="w-3.5 h-3.5" />}
+                <span>{downloadedTsv ? 'Downloaded .tsv!' : 'Export TSV'}</span>
+              </button>
+            </>
+          )}
 
-            <a
-              href="https://quizlet.com/create-set"
-              target="_blank"
-              rel="noreferrer"
-              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-1 transition-colors shadow-xs"
-            >
-              <span>Open Quizlet</span>
-              <ExternalLink className="w-3 h-3" />
-            </a>
-          </div>
-        )}
+          <button
+            type="button"
+            onClick={() => setShowTsvImport((v) => !v)}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors shadow-xs cursor-pointer ${
+              showTsvImport
+                ? 'bg-[#D97757] text-white'
+                : 'bg-[#FAF9F5] dark:bg-[#252422] hover:bg-[#EFECE2] dark:hover:bg-[#2C2A26] text-[#141413] dark:text-[#FAF9F5] border border-[#DFDACB] dark:border-[#2C2B27]'
+            }`}
+          >
+            <Upload className="w-3.5 h-3.5" />
+            <span>Import TSV</span>
+          </button>
+        </div>
       </div>
+
+      {showTsvImport && (
+        <form
+          onSubmit={handleImportTsv}
+          className="bg-white dark:bg-[#1A1917] rounded-2xl border border-[#DFDACB] dark:border-[#2C2B27] p-5 shadow-xs space-y-3"
+        >
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <h3 className="text-xs font-bold uppercase tracking-wider text-[#141413] dark:text-[#FAF9F5]">
+                Import Tab-Separated (TSV) Flashcards
+              </h3>
+              <p className="text-[11px] text-[#8C897F] mt-0.5">
+                Paste Front[TAB]Back lines or upload a .tsv/.txt deck file.
+              </p>
+            </div>
+            <label className="px-3 py-1.5 bg-[#FAF9F5] dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] rounded-xl text-xs font-semibold cursor-pointer hover:border-[#D97757] inline-flex items-center gap-1.5 w-fit">
+              <Upload className="w-3.5 h-3.5 text-[#D97757]" />
+              <span>Choose .tsv / .txt</span>
+              <input type="file" accept=".tsv,.txt,text/tab-separated-values,text/plain" onChange={handleTsvFileChange} className="hidden" />
+            </label>
+          </div>
+          <input
+            type="text"
+            value={tsvTitle}
+            onChange={(e) => setTsvTitle(e.target.value)}
+            placeholder="Deck title (e.g. Organic Chemistry Mechanisms)"
+            className="w-full px-3 py-2 text-xs bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#D97757] text-[#141413] dark:text-[#FAF9F5]"
+          />
+          <textarea
+            rows={4}
+            value={tsvText}
+            onChange={(e) => setTsvText(e.target.value)}
+            placeholder={"Mitochondria\tSite of aerobic ATP synthesis\nATP Synthase\tEnzyme driven by the proton gradient"}
+            className="w-full px-3 py-2 text-xs font-mono bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#D97757] text-[#141413] dark:text-[#FAF9F5]"
+          />
+          {tsvImportError && (
+            <p className="text-xs text-rose-600 dark:text-rose-400" role="alert">
+              {tsvImportError}
+            </p>
+          )}
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setShowTsvImport(false)}
+              className="px-3 py-1.5 text-xs font-semibold text-[#5C5A54] dark:text-[#B5B2A8] cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-1.5 bg-[#D97757] hover:bg-[#C86646] text-white text-xs font-bold rounded-xl cursor-pointer"
+            >
+              Import Cards
+            </button>
+          </div>
+        </form>
+      )}
 
       {/* Main Studio Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -524,6 +658,13 @@ Example format:
                   className="w-full px-3 py-2 text-xs bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#D97757] text-[#141413] dark:text-[#FAF9F5]"
                 />
               </div>
+
+              {genError && (
+                <div className="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800 text-xs text-rose-700 dark:text-rose-300 flex items-start gap-2" role="alert">
+                  <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <span>{genError}</span>
+                </div>
+              )}
 
               <div className="flex justify-end pt-1">
                 <button
@@ -599,7 +740,13 @@ Example format:
               <div className="grid grid-cols-13 gap-1">
                 {(() => {
                   const map: Record<string, number> = {};
-                  decks.forEach(d=> d.cards.forEach(c=> (c as any).history?.forEach((h:any)=>{ map[h.date]=(map[h.date]||0)+1; })));
+                  decks.forEach((d) =>
+                    d.cards.forEach((c) =>
+                      c.history?.forEach((h) => {
+                        map[h.date] = (map[h.date] || 0) + 1;
+                      })
+                    )
+                  );
                   const today = new Date();
                   const cells = [];
                   for (let w=0; w<13; w++) {
@@ -835,7 +982,7 @@ Example format:
                   Select or Generate a Flashcard Deck
                 </h4>
                 <p className="text-xs text-[#8C897F] mt-1 max-w-sm mx-auto">
-                  Enter a topic in the generator on the left to create high-yield study cards for active recall and export to Quizlet &amp; Anki.
+                  Enter a topic in the generator on the left to create SM-2 study cards for active recall or import/export TSV decks.
                 </p>
               </div>
             )}

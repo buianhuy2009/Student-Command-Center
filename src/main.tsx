@@ -1,4 +1,5 @@
 import {StrictMode} from 'react';
+// @ts-ignore -- @types/react-dom is not installed in devDependencies
 import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';

@@ -112,6 +112,9 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
   const [selectedAlertId, setSelectedAlertId] = useState<string | null>(null);
   const [restoring, setRestoring] = useState(false);
   const [switching, setSwitching] = useState(false);
+  const [archivedIds, setArchivedIds] = useState<string[]>([]);
+  const [isArchivingSpam, setIsArchivingSpam] = useState(false);
+  const [spamActionError, setSpamActionError] = useState<string | null>(null);
   const [accountEmail, setAccountEmail] = useState<string | null>(connectedEmail);
   const [liveConnected, setLiveConnected] = useState<boolean>(isGoogleConnected);
   const autoTriedRef = useRef(false);
@@ -296,6 +299,7 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
   const filteredAlerts = useMemo(() => {
     const base = activeCategory === 'REVIEW' ? reviewAlerts : emailAlerts;
     return base.filter((alert) => {
+      if (archivedIds.includes(alert.id)) return false;
       if (!matchesCategory(alert, activeCategory)) return false;
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
@@ -307,7 +311,7 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
       return true;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [emailAlerts, activeCategory, searchQuery, reviewAlerts]);
+  }, [emailAlerts, activeCategory, searchQuery, reviewAlerts, archivedIds]);
 
   // Unread counts per category tab, derived from existing data only.
   // An alert counts as unread via its attached rawEmail flag, falling back
@@ -322,10 +326,52 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
     };
     const counts: Record<string, number> = {};
     for (const cat of ['ALL', 'ASSIGNMENT', 'EXAM', 'ANNOUNCEMENT', 'PROMOTIONS', 'SOCIAL', 'GENERAL']) {
-      counts[cat] = emailAlerts.filter((a) => matchesCategory(a, cat) && isUnread(a)).length;
+      counts[cat] = emailAlerts.filter(
+        (a) => !archivedIds.includes(a.id) && matchesCategory(a, cat) && isUnread(a)
+      ).length;
     }
     return counts;
-  }, [emailAlerts, rawEmails]);
+  }, [emailAlerts, rawEmails, archivedIds]);
+
+  const handleBulkArchiveSpam = async () => {
+    const spamIds = filteredAlerts.filter((a) => a.isSpam && a.id).map((a) => a.id);
+    if (spamIds.length === 0 || isArchivingSpam) return;
+
+    setIsArchivingSpam(true);
+    setSpamActionError(null);
+    try {
+      const res = await googleFetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/batchModify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: spamIds, removeLabelIds: ['INBOX'] }),
+      });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({} as any));
+        const apiMessage = errData?.error?.message || `HTTP ${res.status}`;
+        if (res.status === 401 || res.status === 403 || /scope|permission|insufficient/i.test(apiMessage)) {
+          setSpamActionError(
+            `Could not archive in Gmail (${apiMessage}). Reconnect Gmail with message-modify access (gmail.modify) to bulk archive spam.`
+          );
+        } else {
+          setSpamActionError(`Bulk archive failed: ${apiMessage}`);
+        }
+        return;
+      }
+      setArchivedIds((prev) => Array.from(new Set([...prev, ...spamIds])));
+      window.dispatchEvent(
+        new CustomEvent('scc-toast', {
+          detail: {
+            title: t('gmail_spam_archived'),
+            message: `${t('gmail_archived')} ${spamIds.length} ${t('gmail_spam_msgs')}`,
+          },
+        })
+      );
+    } catch (err: any) {
+      setSpamActionError(err?.message || 'Network error while archiving spam messages in Gmail.');
+    } finally {
+      setIsArchivingSpam(false);
+    }
+  };
 
   // Set initial selected alert if none selected
   const activeAlert = useMemo(() => {
@@ -463,14 +509,18 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
           </div>
 
           {/* Bulk archive spam */}
-          {filteredAlerts.some(a=>a.isSpam) && (
-            <button onClick={()=>{
-              const spamIds = filteredAlerts.filter(a=>a.isSpam).map(a=>a.id);
-              // dispatch bulk archive — parent will filter via future prop; for now just toast
-              window.dispatchEvent(new CustomEvent('scc-toast', { detail: { title: t('gmail_spam_archived'), message: `${t('gmail_archived')} ${spamIds.length} ${t('gmail_spam_msgs')}` }}));
-              // also try to call gmail archive via token if available (placeholder)
-            }} className="px-2.5 py-1.5 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 rounded-xl text-xs font-bold hover:bg-rose-100 dark:hover:bg-rose-900/40">
-              {t('gmail_archive_spam')} ({filteredAlerts.filter(a=>a.isSpam).length})
+          {filteredAlerts.some(a => a.isSpam) && (
+            <button
+              onClick={handleBulkArchiveSpam}
+              disabled={isArchivingSpam}
+              className="px-2.5 py-1.5 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 rounded-xl text-xs font-bold hover:bg-rose-100 dark:hover:bg-rose-900/40 disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
+            >
+              {isArchivingSpam && <RefreshCw className="w-3 h-3 animate-spin" />}
+              <span>
+                {isArchivingSpam
+                  ? 'Archiving...'
+                  : `${t('gmail_archive_spam')} (${filteredAlerts.filter(a => a.isSpam).length})`}
+              </span>
             </button>
           )}
 
@@ -484,6 +534,30 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Spam Archive Error Banner */}
+      {spamActionError && (
+        <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-xl flex items-center justify-between gap-3 text-xs text-rose-900 dark:text-rose-200" role="alert">
+          <div className="flex items-center gap-2 min-w-0">
+            <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+            <span className="break-words">{spamActionError}</span>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={handleConnectClick}
+              className="px-2.5 py-1 bg-[#D97757] hover:bg-[#C86646] text-white rounded-lg font-semibold cursor-pointer"
+            >
+              {t('gmail_connect')}
+            </button>
+            <button
+              onClick={() => setSpamActionError(null)}
+              className="px-2 py-1 border border-rose-300 dark:border-rose-700 rounded-lg font-semibold cursor-pointer"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Error Banner */}
       {gmailApiInfo ? (

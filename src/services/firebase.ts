@@ -32,20 +32,9 @@ export const effectiveFirebaseConfig = {
 
 const app = getApps().length === 0 ? initializeApp(effectiveFirebaseConfig) : getApp();
 export const auth = getAuth(app);
-// Ensure local persistence survives reloads and tab closes
+// Ensure local persistence survives reloads and tab closes (never run getRedirectResult eagerly on import)
 if (typeof window !== 'undefined') {
   setPersistence(auth, browserLocalPersistence).catch(() => {});
-  // Handle redirect result (fallback for popup-blocked browsers)
-  getRedirectResult(auth).then((result) => {
-    if (result?.user) {
-      const cred = GoogleAuthProvider.credentialFromResult(result);
-      if (cred?.accessToken) {
-        const uid = result.user?.uid || auth.currentUser?.uid || null;
-        if (uid) setActiveGoogleUid(uid);
-        setStoredGoogleToken(cred.accessToken, uid);
-      }
-    }
-  }).catch(() => {});
 }
 
 export const basicProvider = new GoogleAuthProvider();
@@ -686,23 +675,30 @@ export const signInWithRedirectFlow = async (
   await signInWithRedirect(auth, targetProvider);
 };
 
+let redirectResultPromise: Promise<{ user: User; accessToken: string } | null> | null = null;
+
 /**
  * Finish a redirect sign-in after Google returns to the app. Returns the user +
  * workspace token (if granted) or null when this load was not a redirect return.
- * Safe to call on every startup; resolves null immediately otherwise.
+ * Memoized per page load so repeated calls (e.g. React StrictMode) consume once cleanly.
  */
 export const consumeRedirectResult = async (): Promise<{ user: User; accessToken: string } | null> => {
-  try {
-    const result = await getRedirectResult(auth);
-    if (!result?.user) return null;
-    const credential = GoogleAuthProvider.credentialFromResult(result);
-    const uid: string | null = result.user?.uid || null;
-    if (uid) setActiveGoogleUid(uid);
-    if (credential?.accessToken) setStoredGoogleToken(credential.accessToken, uid);
-    return { user: result.user, accessToken: credential?.accessToken || '' };
-  } catch {
-    return null;
+  if (!redirectResultPromise) {
+    redirectResultPromise = (async () => {
+      try {
+        const result = await getRedirectResult(auth);
+        if (!result?.user) return null;
+        const credential = GoogleAuthProvider.credentialFromResult(result);
+        const uid: string | null = result.user?.uid || null;
+        if (uid) setActiveGoogleUid(uid);
+        if (credential?.accessToken) setStoredGoogleToken(credential.accessToken, uid);
+        return { user: result.user, accessToken: credential?.accessToken || '' };
+      } catch {
+        return null;
+      }
+    })();
   }
+  return redirectResultPromise;
 };
 
 export const googleSignIn = signInWithGoogle;

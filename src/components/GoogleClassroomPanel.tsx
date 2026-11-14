@@ -23,45 +23,6 @@ interface GoogleClassroomPanelProps {
   onRefresh?: () => void;
 }
 
-const MOCK_CLASSROOM_ASSIGNMENTS: CanvasAssignment[] = [
-  {
-    id: 'gclass-mock-1',
-    name: 'Literature Essay: Symbolism in Gatsby',
-    courseName: 'English Lit 101',
-    courseId: 'ENG-101',
-    dueAt: new Date(Date.now() + 86400000 * 3).toISOString().split('T')[0],
-    pointsPossible: 100,
-    htmlUrl: 'https://classroom.google.com/c/mock-course-1/a/mock-assignment-1',
-    description: 'Analyze how F. Scott Fitzgerald uses colors and the green light to represent Gatsby\'s hopes and dreams. Minimum 1200 words.',
-    isSynced: false,
-    submissionTypes: ['online_upload'],
-  },
-  {
-    id: 'gclass-mock-2',
-    name: 'Lab 4: Projectile Motion Simulations',
-    courseName: 'General Physics C',
-    courseId: 'PHYS-201',
-    dueAt: new Date(Date.now() + 86400000 * 5).toISOString().split('T')[0],
-    pointsPossible: 50,
-    htmlUrl: 'https://classroom.google.com/c/mock-course-2/a/mock-assignment-2',
-    description: 'Complete the PhET projectile simulation exercises and submit your graphs showing range vs launching angle.',
-    isSynced: false,
-    submissionTypes: ['online_upload'],
-  },
-  {
-    id: 'gclass-mock-3',
-    name: 'Syllabus Agreement & Study Goals Survey',
-    courseName: 'Intro to Computer Science',
-    courseId: 'CS-101',
-    dueAt: new Date(Date.now() + 86400000 * 1).toISOString().split('T')[0],
-    pointsPossible: 10,
-    htmlUrl: 'https://classroom.google.com/c/mock-course-3/a/mock-assignment-3',
-    description: 'Read the syllabus and fill out the Google Form indicating your target grades and weekly study availability.',
-    isSynced: true,
-    submissionTypes: ['online_upload'],
-  }
-];
-
 export const GoogleClassroomPanel: React.FC<GoogleClassroomPanelProps> = ({
   googleToken,
   isGoogleConnected,
@@ -75,7 +36,11 @@ export const GoogleClassroomPanel: React.FC<GoogleClassroomPanelProps> = ({
   const [internalAssignments, setInternalAssignments] = useState<CanvasAssignment[]>(() => {
     try {
       const saved = localStorage.getItem('scc_cached_classroom_assignments');
-      return saved ? JSON.parse(saved) : [];
+      if (!saved) return [];
+      const parsed: CanvasAssignment[] = JSON.parse(saved);
+      return Array.isArray(parsed)
+        ? parsed.filter((item) => !String(item?.id || '').startsWith('gclass-mock-'))
+        : [];
     } catch {
       return [];
     }
@@ -98,16 +63,15 @@ export const GoogleClassroomPanel: React.FC<GoogleClassroomPanelProps> = ({
       return;
     }
 
+    if (!googleToken) {
+      setInternalError('Your Google session token is missing or expired. Please reconnect your Google account to sync real Classroom coursework.');
+      return;
+    }
+
     setInternalLoading(true);
     setInternalError(null);
     try {
-      let data: CanvasAssignment[] = [];
-      if (googleToken) {
-        data = await fetchAllClassroomAssignments(googleToken);
-      } else {
-        // Fallback to mock data in demo mode
-        data = MOCK_CLASSROOM_ASSIGNMENTS;
-      }
+      const data = await fetchAllClassroomAssignments(googleToken);
       setInternalAssignments(data);
       try {
         localStorage.setItem('scc_cached_classroom_assignments', JSON.stringify(data));
@@ -251,6 +215,22 @@ export const GoogleClassroomPanel: React.FC<GoogleClassroomPanelProps> = ({
                   className="mt-3.5 px-4 py-2 bg-[#D97757] hover:bg-[#C86646] text-white rounded-xl text-xs font-bold transition-colors cursor-pointer shadow-xs"
                 >
                   Connect Google
+                </button>
+              )}
+            </div>
+          ) : !googleToken && assignments.length === 0 ? (
+            <div className="py-12 px-4 text-center bg-amber-50/70 dark:bg-amber-950/20 rounded-xl border border-dashed border-amber-300 dark:border-amber-800">
+              <AlertTriangle className="w-9 h-9 mx-auto text-amber-600 mb-2 opacity-90" />
+              <h4 className="text-sm font-bold text-[#141413] dark:text-[#FAF9F5]">Reconnect Google Account</h4>
+              <p className="text-xs text-[#5C5A54] dark:text-[#B5B2A8] mt-1 max-w-md mx-auto">
+                Your Google session token is missing or expired. Reconnect your account to load real coursework from Google Classroom.
+              </p>
+              {onConnectGoogle && (
+                <button
+                  onClick={onConnectGoogle}
+                  className="mt-3.5 px-4 py-2 bg-[#D97757] hover:bg-[#C86646] text-white rounded-xl text-xs font-bold transition-colors cursor-pointer shadow-xs"
+                >
+                  Re-connect Google
                 </button>
               )}
             </div>

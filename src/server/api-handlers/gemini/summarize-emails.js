@@ -1,16 +1,5 @@
-import { GoogleGenAI } from "@google/genai";
-import { SERVER_MODELS } from "./models.js";
-
-let genAI = null;
-function getGenAI() {
-  if (!genAI) {
-    const apiKey = process.env.GEMINI_API_KEY || "";
-    genAI = new GoogleGenAI({ apiKey });
-  }
-  return genAI;
-}
-
-const CANDIDATE_MODELS = SERVER_MODELS;
+import { applyApiCors } from "../cors.js";
+import { generateWithModelFallback, parseJsonLoose } from "./generate.js";
 
 const VI_WEEKDAYS = ["Chủ nhật", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
 const EN_WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -72,18 +61,6 @@ Return ONLY JSON:
 {"alerts":[{"id":"same id","sender":"clean sender name","subject":"email subject","oneLineSummary":"...","urgency":"HIGH|MEDIUM|LOW|INFO","category":"ASSIGNMENT|EXAM|GRADE|SCHEDULE|ANNOUNCEMENT|SPAM|PROMOTION|SOCIAL|GENERAL","categoryLabel":"e.g. 'Bài tập' or 'Khuyến mãi'","isSpam":false,"spamReason":"","language":"vi|en|other","confidence":0.9,"detectedAssignment":{"isAssignment":true,"name":"short task name","subject":"Toán","dueDate":"YYYY-MM-DD or empty","dueConfidence":"explicit|relative|none","dueEvidence":"exact quote or empty","priority":"High|Med|Low"}}]}`;
 }
 
-function parseJsonLoose(text) {
-  const raw = String(text || "").trim();
-  try {
-    return JSON.parse(raw);
-  } catch {
-    const s = raw.indexOf("{");
-    const e = raw.lastIndexOf("}");
-    if (s >= 0 && e > s) return JSON.parse(raw.slice(s, e + 1));
-    throw new Error("Model did not return JSON");
-  }
-}
-
 async function callGroq(prompt) {
   const key = process.env.GROQ_API_KEY;
   if (!key) throw new Error("No GROQ_API_KEY");
@@ -106,19 +83,14 @@ async function callGroq(prompt) {
 async function generateJson(prompt) {
   let lastError = null;
   if (process.env.GEMINI_API_KEY) {
-    const ai = getGenAI();
-    for (const model of CANDIDATE_MODELS) {
-      try {
-        const response = await ai.models.generateContent({
-          model,
-          contents: prompt,
-          config: { responseMimeType: "application/json", temperature: 0.1 },
-        });
-        return { parsed: parseJsonLoose(response.text || "{}"), model };
-      } catch (err) {
-        lastError = err;
-        console.warn(`Model ${model} failed: ${err?.message || err}. Trying next fallback...`);
-      }
+    try {
+      const { response, model } = await generateWithModelFallback({
+        contents: prompt,
+        config: { responseMimeType: "application/json", temperature: 0.1 },
+      });
+      return { parsed: parseJsonLoose(response?.text || "{}"), model };
+    } catch (err) {
+      lastError = err;
     }
   }
   try {
@@ -209,10 +181,10 @@ export function postProcessAlerts(emails, alerts, model) {
 }
 
 export default async function handler(req, res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  if (req.method === "OPTIONS") return res.status(200).end();
+  if (applyApiCors(req, res, "POST, OPTIONS")) return;
+  if (req.method && req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed", code: "method_not_allowed" });
+  }
 
   const { emails, today } = req.body || {};
   if (!emails || !Array.isArray(emails) || emails.length === 0) {

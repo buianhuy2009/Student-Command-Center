@@ -23,6 +23,7 @@ export const OpenLibraryWorkspace: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [savedNoteKey, setSavedNoteKey] = useState<string | null>(null);
 
   // Auto-search if prefilled from Assignment Tracker
   React.useEffect(() => {
@@ -59,16 +60,30 @@ export const OpenLibraryWorkspace: React.FC = () => {
       setTimeout(() => setCopiedKey(null), 2000);
     }
   };
-  const handleSaveBib = (book: OpenLibraryBook) => {
-    import('../../services/bibliography').then(m=>{
-      const authors = book.authorNames.join(', ');
-      const year = String(book.firstPublishYear||'2025');
-      const apa = `${authors} (${year}). ${book.title}. Open Library. ${book.openLibraryUrl}`;
-      const mla = `${authors}. "${book.title}." Open Library, ${year}, ${book.openLibraryUrl}.`;
-      const chicago = `${authors}. ${year}. "${book.title}." Open Library. ${book.openLibraryUrl}.`;
-      const bibtex = `@book{${book.key.replace(/[^a-zA-Z0-9]/g, '')}${year},\n  title = {${book.title}},\n  author = {${authors}},\n  year = {${year}},\n  url = {${book.openLibraryUrl}}\n}`;
-      m.saveBibliographyEntry({ id:`bib-${Date.now()}`, title: book.title, authors, year, apa, mla, chicago, bibtex, source: book.openLibraryUrl, createdAt: new Date().toISOString() });
-    });
+  const handleSaveToNotes = (book: OpenLibraryBook) => {
+    try {
+      const raw = localStorage.getItem('scc_markdown_notes_v1');
+      const notes = raw ? JSON.parse(raw) : [];
+      const authors = book.authorNames.join(', ') || 'Unknown Author';
+      const year = String(book.firstPublishYear || '');
+      const citeKey = `book${book.key.replace(/[^a-zA-Z0-9]/g, '')}${year || 'nd'}`;
+      const bibtex = `@book{${citeKey},\n  title = {${book.title}},\n  author = {${authors}},${year ? `\n  year = {${year}},` : ''}\n  url = {${book.openLibraryUrl}}\n}`;
+      const isbnLine = book.isbn && book.isbn.length > 0 ? `\n**ISBN:** ${book.isbn[0]}` : '';
+      const yearLine = year ? `\n**First Published:** ${year}` : '';
+      const content = `# ${book.title}\n\n**Authors:** ${authors}${yearLine}${isbnLine}\n**Open Library:** ${book.openLibraryUrl}\n\n## Citation (BibTeX)\n\`\`\`bibtex\n${bibtex}\n\`\`\`\n`;
+      const newNote = {
+        id: `note-${Date.now()}`,
+        title: `Book: ${book.title.slice(0, 60)}`,
+        subject: 'Reading List',
+        content,
+        updatedAt: new Date().toLocaleDateString(),
+      };
+      localStorage.setItem('scc_markdown_notes_v1', JSON.stringify([newNote, ...notes]));
+      setSavedNoteKey(book.key);
+      setTimeout(() => setSavedNoteKey(null), 2000);
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   return (
@@ -210,7 +225,22 @@ export const OpenLibraryWorkspace: React.FC = () => {
                     <ExternalLink className="w-3 h-3" />
                   </a>
                   </div>
-                  <button onClick={()=>handleSaveBib(book)} className="w-full py-1 text-[11px] font-bold bg-white dark:bg-[#1A1917] border border-[#DFDACB] dark:border-[#2C2B27] rounded-lg flex items-center justify-center gap-1 hover:border-violet-400"><Save className="w-3 h-3 text-violet-600" /> {t('lib_add_bib')}</button>
+                  <button
+                    onClick={() => handleSaveToNotes(book)}
+                    className="w-full py-1 text-[11px] font-bold bg-white dark:bg-[#1A1917] border border-[#DFDACB] dark:border-[#2C2B27] rounded-lg flex items-center justify-center gap-1 hover:border-violet-400 cursor-pointer"
+                  >
+                    {savedNoteKey === book.key ? (
+                      <>
+                        <Check className="w-3 h-3 text-emerald-600" />
+                        <span>Saved to Notes</span>
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-3 h-3 text-violet-600" />
+                        <span>Save to Notes</span>
+                      </>
+                    )}
+                  </button>
                 </div>
               </div>
             ))}

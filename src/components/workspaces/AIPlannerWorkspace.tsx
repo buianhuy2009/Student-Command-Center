@@ -239,7 +239,7 @@ interface DatedTask {
   dueISO: string;
   priority: 'High' | 'Med' | 'Low';
   minutes: number;
-  origin: 'assignment' | 'canvas' | 'classroom' | 'gmail' | 'moodle';
+  origin: 'assignment' | 'canvas' | 'classroom' | 'gmail';
   /** Deep link back to the source (tracker doc, Canvas/Classroom URL) when known. */
   url?: string;
   /** Deadline read by AI / from Gmail and not confirmed by the student yet. */
@@ -318,14 +318,6 @@ function harvestTasks(
   };
   for (const c of canvas || []) pushLms(c, 'c', 'canvas', 'Canvas');
   for (const c of classroom || []) pushLms(c, 'gclass', 'classroom', 'Classroom');
-  for (const m of readCachedArray('scc_cached_moodle_assignments')) {
-    pushLms(
-      { id: String(m?.id || m?.name || Math.random()), name: m?.name || m?.title, courseName: m?.courseName || m?.course || 'Moodle', dueAt: m?.dueAt || m?.dueDate, htmlUrl: m?.htmlUrl || m?.url } as CanvasAssignment,
-      'm',
-      'moodle',
-      'Moodle',
-    );
-  }
   // Gmail detections are never confirmed by the student → tentative; skip ones already in the tracker.
   const trackerNames = new Set((assignments || []).filter(Boolean).map((a) => normName(a.assignmentName)).filter(Boolean));
   const seenGmail = new Set<string>();
@@ -687,7 +679,6 @@ const ORIGIN_META: Record<DatedTask['origin'], { label: string; chip: string }> 
   canvas: { label: 'Canvas', chip: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300' },
   classroom: { label: 'Classroom', chip: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' },
   gmail: { label: 'Gmail', chip: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' },
-  moodle: { label: 'Moodle', chip: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300' },
 };
 
 function dueNote(dueISO: string): string {

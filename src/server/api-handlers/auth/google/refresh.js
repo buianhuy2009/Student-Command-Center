@@ -1,12 +1,11 @@
+import { applyApiCors } from "../../cors.js";
+
 // POST /api/auth/google/refresh — mint a fresh access token from a refresh token.
 // Body: { refresh_token }. Returns { access_token, expires_in }.
 // Revoked/expired grants surface as HTTP 401 { error: 'refresh_revoked' } so the
 // frontend can fall back to a fresh consent grant exactly once.
 export default async function handler(req, res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  if (req.method === "OPTIONS") return res.status(200).end();
+  if (applyApiCors(req, res, "POST, OPTIONS")) return;
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
   try {
     const { refresh_token } = req.body || {};

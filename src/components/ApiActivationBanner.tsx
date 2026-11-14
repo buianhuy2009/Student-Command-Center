@@ -6,6 +6,7 @@ interface ApiActivationBannerProps {
   info: ApiEnablementInfo;
   onRetry: () => void;
   isRetrying?: boolean;
+  compact?: boolean;
 }
 
 export const ApiActivationBanner: React.FC<ApiActivationBannerProps> = ({

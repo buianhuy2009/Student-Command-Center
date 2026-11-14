@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import {
   FileText,
   FolderOpen,
+  BookOpen,
   Plus,
   Trash2,
   Copy,
@@ -14,13 +15,10 @@ import {
   CheckSquare,
   Sparkles,
   Layers,
-  Scale,
-  Lightbulb,
   CheckCircle2,
   AlertTriangle,
   ArrowRight,
   Printer,
-  BookOpen,
   Brain,
   MessageSquare,
   Send,
@@ -28,21 +26,16 @@ import {
   FileCheck,
 } from 'lucide-react';
 import { MathMarkdown } from '../MathMarkdown';
-import { GoogleDriveTab } from '../GoogleDriveTab';
 import { createFormattedAssignmentDoc } from '../../services/googleWorkspace';
 import {
-  socraticRubricPreCheck,
-  feynmanSimplify,
-  feynmanExplainThreeTiers,
   analyzeEssayDraft,
   EssayAnalysisResult,
   socraticTutorStep,
   SocraticTurn,
 } from '../../services/gemini';
-import { MarkdownNote, SchoolFile, RubricPreCheckResult, ThreeTierFeynmanResult } from '../../types';
-import { loadBibliography, saveBibliography, toBibTeX, toAPA, toMLA, BibEntry } from '../../services/bibliography';
+import { MarkdownNote, SchoolFile } from '../../types';
 
-type DocHubTab = 'notes' | 'essay-proof' | 'socratic' | 'rubric' | 'feynman' | 'drive' | 'generator' | 'bibliography';
+type DocHubTab = 'notes' | 'generator' | 'essay-proof' | 'socratic';
 
 const LOCAL_NOTES_KEY = 'scc_markdown_notes_v1';
 
@@ -114,23 +107,6 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
 
   const [copiedNote, setCopiedNote] = useState(false);
 
-  // --- Rubric Pre-Checker State ---
-  const [essayDraft, setEssayDraft] = useState('');
-  const [rubricText, setRubricText] = useState('');
-  const [isEvaluatingRubric, setIsEvaluatingRubric] = useState(false);
-  const [rubricResult, setRubricResult] = useState<RubricPreCheckResult | null>(null);
-
-  // --- Feynman Simplifier State ---
-  const [denseConcept, setDenseConcept] = useState('');
-  const [isSimplifyingFeynman, setIsSimplifyingFeynman] = useState(false);
-  const [feynmanResult, setFeynmanResult] = useState<{
-    coreIdea: string;
-    simplified: string;
-    analogy: string;
-  } | null>(null);
-  const [threeTierResult, setThreeTierResult] = useState<ThreeTierFeynmanResult | null>(null);
-  const [selectedFeynmanTier, setSelectedFeynmanTier] = useState<'eli5' | 'highschool' | 'undergrad'>('highschool');
-
   // --- 1-Click Doc Generator State ---
   const [docTitle, setDocTitle] = useState('');
   const [docSubject, setDocSubject] = useState('');
@@ -145,16 +121,14 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
   const [essayPromptContext, setEssayPromptContext] = useState('');
   const [isAnalyzingEssay, setIsAnalyzingEssay] = useState(false);
   const [essayAnalysisResult, setEssayAnalysisResult] = useState<EssayAnalysisResult | null>(null);
+  const [essayError, setEssayError] = useState<string | null>(null);
 
   // --- Socratic Tutor State ---
   const [socraticTopic, setSocraticTopic] = useState('');
   const [socraticInput, setSocraticInput] = useState('');
   const [socraticHistory, setSocraticHistory] = useState<SocraticTurn[]>([]);
   const [isSocraticThinking, setIsSocraticThinking] = useState(false);
-
-  // --- Bibliography State ---
-  const [bibEntries, setBibEntries] = useState<BibEntry[]>(loadBibliography);
-  const [bibCopied, setBibCopied] = useState<string|null>(null);
+  const [socraticError, setSocraticError] = useState<string | null>(null);
 
   const [notesSubjectFilter, setNotesSubjectFilter] = useState<string>('ALL');
   const groupedNotes = useMemo(() => {
@@ -279,48 +253,6 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
     window.print();
   };
 
-  // Run Rubric Evaluation
-  const handlePreCheckRubric = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!essayDraft.trim() || !rubricText.trim() || isEvaluatingRubric) return;
-
-    setIsEvaluatingRubric(true);
-    setRubricResult(null);
-    try {
-      const res = await socraticRubricPreCheck({
-        draftText: essayDraft.trim(),
-        rubricText: rubricText.trim(),
-      });
-      setRubricResult(res);
-    } catch (err) {
-      console.error('Rubric evaluation failed:', err);
-    } finally {
-      setIsEvaluatingRubric(false);
-    }
-  };
-
-  // Run Feynman Simplifier
-  const handleFeynmanSimplify = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!denseConcept.trim() || isSimplifyingFeynman) return;
-
-    setIsSimplifyingFeynman(true);
-    setFeynmanResult(null);
-    setThreeTierResult(null);
-    try {
-      const [res, threeTier] = await Promise.all([
-        feynmanSimplify(denseConcept.trim()),
-        feynmanExplainThreeTiers(denseConcept.trim()),
-      ]);
-      setFeynmanResult(res);
-      setThreeTierResult(threeTier);
-    } catch (err) {
-      console.error('Feynman simplification failed:', err);
-    } finally {
-      setIsSimplifyingFeynman(false);
-    }
-  };
-
   // Run Google Doc Generator
   const handleGenerateDoc = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -369,14 +301,16 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
 
     setIsAnalyzingEssay(true);
     setEssayAnalysisResult(null);
+    setEssayError(null);
     try {
       const res = await analyzeEssayDraft({
         essayDraft: essayToProof.trim(),
         rubricOrPrompt: essayPromptContext.trim() || undefined,
       });
       setEssayAnalysisResult(res);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Essay analysis failed:', err);
+      setEssayError(err?.message || 'Essay analysis failed. Check your AI API key in Settings and try again.');
     } finally {
       setIsAnalyzingEssay(false);
     }
@@ -389,6 +323,7 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
 
     setIsSocraticThinking(true);
     setSocraticHistory([]);
+    setSocraticError(null);
     try {
       const initialQuestion = await socraticTutorStep({
         topic: socraticTopic.trim(),
@@ -396,8 +331,9 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
         userMessage: 'Hello! I want to understand and master this concept thoroughly. Please start our Socratic dialogue by asking a diagnostic question.',
       });
       setSocraticHistory([{ role: 'model', content: initialQuestion }]);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Socratic initialization error:', err);
+      setSocraticError(err?.message || 'Could not start Socratic dialogue. Check your AI API key in Settings and try again.');
     } finally {
       setIsSocraticThinking(false);
     }
@@ -412,6 +348,7 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
     setSocraticHistory(updatedHistory);
     setSocraticInput('');
     setIsSocraticThinking(true);
+    setSocraticError(null);
 
     try {
       const nextQuestion = await socraticTutorStep({
@@ -420,8 +357,9 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
         userMessage: userMsg,
       });
       setSocraticHistory([...updatedHistory, { role: 'model', content: nextQuestion }]);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Socratic reply error:', err);
+      setSocraticError(err?.message || 'Could not generate Socratic follow-up. Check your AI connection and try again.');
     } finally {
       setIsSocraticThinking(false);
     }
@@ -440,7 +378,7 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
               Dynamic Document &amp; Research Hub
             </h2>
             <p className="text-xs text-[#8C897F] mt-0.5">
-              Live split Markdown notes, Socratic Rubric Pre-checker, Feynman concept simplifier, and Drive
+              Markdown &amp; LaTeX notes, 1-Click Google Doc export, Essay proofreader, and Socratic tutor
             </p>
           </div>
         </div>
@@ -449,13 +387,9 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
         <div className="flex items-center gap-1.5 overflow-x-auto p-1 bg-[#FAF9F5] dark:bg-[#1F1E1B] rounded-xl border border-[#DFDACB] dark:border-[#2C2B27]">
           {[
             { id: 'notes', label: 'Markdown & LaTeX Notes', icon: FileText },
-            { id: 'bibliography', label: 'Bibliography & BibTeX', icon: BookOpen },
+            { id: 'generator', label: '1-Click Doc Generator', icon: Plus },
             { id: 'essay-proof', label: 'Essay & Thesis Proofreader', icon: FileCheck },
             { id: 'socratic', label: 'Socratic Dialogue Tutor', icon: MessageSquare },
-            { id: 'rubric', label: 'Socratic Rubric Checker', icon: Scale },
-            { id: 'feynman', label: 'Feynman Simplifier', icon: Lightbulb },
-            { id: 'drive', label: 'Google Drive Files', icon: FolderOpen },
-            { id: 'generator', label: '1-Click Doc Generator', icon: Plus },
           ].map((tab) => {
             const isActive = activeTab === tab.id;
             const Icon = tab.icon;
@@ -686,6 +620,13 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
                 />
               </div>
 
+              {essayError && (
+                <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800 text-xs text-rose-700 dark:text-rose-300 flex items-start gap-2" role="alert">
+                  <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <span>{essayError}</span>
+                </div>
+              )}
+
               <div className="flex items-center justify-between pt-2">
                 <span className="text-[11px] font-mono text-[#8C897F]">
                   {essayToProof.trim().split(/\s+/).filter(Boolean).length} words
@@ -871,6 +812,14 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
             )}
           </div>
 
+          {/* Socratic Error Alert */}
+          {socraticError && (
+            <div className="mt-2 p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800 text-xs text-rose-700 dark:text-rose-300 flex items-start gap-2 shrink-0" role="alert">
+              <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+              <span>{socraticError}</span>
+            </div>
+          )}
+
           {/* Socratic Reply Bar */}
           {socraticHistory.length > 0 && (
             <form onSubmit={handleSendSocraticAnswer} className="pt-3 border-t border-[#DFDACB]/60 dark:border-[#2C2B27]/60 flex gap-2 shrink-0">
@@ -891,306 +840,6 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
               </button>
             </form>
           )}
-        </div>
-      )}
-
-      {/* 4. Socratic Rubric Pre-Checker */}
-      {activeTab === 'rubric' && (
-        <div className="space-y-4">
-          <div className="bg-white dark:bg-[#1A1917] rounded-2xl p-6 border border-[#DFDACB] dark:border-[#2C2B27] shadow-xs space-y-4">
-            <div>
-              <h3 className="text-sm font-bold text-[#141413] dark:text-[#FAF9F5] flex items-center gap-2">
-                <Scale className="w-4 h-4 text-[#D97757]" />
-                <span>Socratic Rubric Pre-Checker (Gemini 2.5 Flash)</span>
-              </h3>
-              <p className="text-xs text-[#8C897F] mt-1">
-                Paste your essay or project draft alongside the grading rubric. Gemini grades each criterion, flags weak arguments, and delivers concrete structural revisions before you turn it in.
-              </p>
-            </div>
-
-            <form onSubmit={handlePreCheckRubric} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-[#5C5A54] dark:text-[#B5B2A8] mb-1.5">
-                    Assignment Grading Rubric *
-                  </label>
-                  <textarea
-                    rows={8}
-                    required
-                    value={rubricText}
-                    onChange={(e) => setRubricText(e.target.value)}
-                    placeholder="Paste rubric criteria (e.g. 20% Thesis statement, 30% Textual evidence, 25% Critical analysis, 25% Mechanics & citations)..."
-                    className="w-full p-3.5 text-xs bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#D97757] text-[#141413] dark:text-[#FAF9F5] resize-none leading-relaxed"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-[#5C5A54] dark:text-[#B5B2A8] mb-1.5">
-                    Student Essay / Project Draft *
-                  </label>
-                  <textarea
-                    rows={8}
-                    required
-                    value={essayDraft}
-                    onChange={(e) => setEssayDraft(e.target.value)}
-                    placeholder="Paste your draft essay paragraphs or argument outline here..."
-                    className="w-full p-3.5 text-xs bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#D97757] text-[#141413] dark:text-[#FAF9F5] resize-none leading-relaxed"
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end">
-                <button
-                  type="submit"
-                  disabled={isEvaluatingRubric || !essayDraft.trim() || !rubricText.trim()}
-                  className="px-6 py-2.5 bg-[#D97757] hover:bg-[#C86646] disabled:opacity-50 text-white rounded-xl text-xs font-bold flex items-center gap-2 transition-colors cursor-pointer shadow-xs"
-                >
-                  <Sparkles className={`w-3.5 h-3.5 ${isEvaluatingRubric ? 'animate-spin' : ''}`} />
-                  <span>{isEvaluatingRubric ? 'Evaluating Draft against Rubric...' : 'Run Rubric Pre-Check'}</span>
-                </button>
-              </div>
-            </form>
-          </div>
-
-          {rubricResult && (
-            <div className="bg-white dark:bg-[#1A1917] rounded-2xl p-6 border border-[#DFDACB] dark:border-[#2C2B27] shadow-xs space-y-5 animate-in fade-in">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-[#DFDACB] dark:border-[#2C2B27] gap-3">
-                <div>
-                  <span className="text-[10px] font-bold text-[#8C897F] uppercase tracking-wider">
-                    Evaluation Result
-                  </span>
-                  <h4 className="text-sm font-bold text-[#141413] dark:text-[#FAF9F5] mt-0.5">
-                    {rubricResult.overallFeedback}
-                  </h4>
-                </div>
-
-                <div className="px-4 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 font-bold text-center">
-                  <span className="text-xl">{rubricResult.overallScore}</span>
-                  <span className="text-xs"> / 100</span>
-                </div>
-              </div>
-
-              {/* Criteria Breakdown */}
-              <div className="space-y-3">
-                <span className="text-xs font-bold text-[#141413] dark:text-[#FAF9F5]">
-                  Criterion Assessment:
-                </span>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {rubricResult.criteria.map((c, i) => (
-                    <div
-                      key={i}
-                      className="p-3.5 bg-[#FAF9F5] dark:bg-[#1F1E1B] rounded-xl border border-[#DFDACB] dark:border-[#2C2B27] text-xs space-y-1"
-                    >
-                      <div className="flex items-center justify-between font-bold">
-                        <span className="text-[#141413] dark:text-[#FAF9F5]">{c.criterion}</span>
-                        <span className="text-[#D97757]">
-                          {c.pointsEarned} / {c.maxPoints} pts
-                        </span>
-                      </div>
-                      <p className="text-[#5C5A54] dark:text-[#B5B2A8]">{c.feedback}</p>
-                      <p className="text-amber-700 dark:text-amber-300 pt-1 font-medium">
-                        <strong>Suggestion:</strong> {c.suggestion}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Actionable Revisions */}
-              <div className="p-4 bg-amber-50/60 dark:bg-amber-950/20 rounded-xl border border-amber-200 dark:border-amber-800/80 space-y-2">
-                <span className="text-xs font-bold text-amber-900 dark:text-amber-200 uppercase tracking-wider flex items-center gap-1.5">
-                  <CheckSquare className="w-3.5 h-3.5 text-amber-600" />
-                  <span>Key Structural Revisions:</span>
-                </span>
-                <ul className="list-disc list-inside text-xs text-amber-800 dark:text-amber-300 space-y-1">
-                  {rubricResult.actionableRevisions.map((rev, i) => (
-                    <li key={i}>{rev}</li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* 3. Feynman Technique Concept Simplifier */}
-      {activeTab === 'feynman' && (
-        <div className="max-w-3xl mx-auto space-y-5">
-          <div className="bg-white dark:bg-[#1A1917] rounded-2xl p-6 border border-[#DFDACB] dark:border-[#2C2B27] shadow-xs space-y-4">
-            <div>
-              <h3 className="text-sm font-bold text-[#141413] dark:text-[#FAF9F5] flex items-center gap-2">
-                <Lightbulb className="w-4 h-4 text-[#D97757]" />
-                <span>The Feynman Technique Concept Simplifier</span>
-              </h3>
-              <p className="text-xs text-[#8C897F] mt-1">
-                Paste any dense academic paragraph or confusing theorem. Gemini boils it down to an ELI12 explanation with a relatable real-world analogy.
-              </p>
-            </div>
-
-            <form onSubmit={handleFeynmanSimplify} className="space-y-3">
-              <textarea
-                rows={5}
-                required
-                value={denseConcept}
-                onChange={(e) => setDenseConcept(e.target.value)}
-                placeholder="Paste complex textbook definition (e.g. 'Heisenberg Uncertainty Principle states that the position and momentum of a particle cannot both be measured with arbitrarily high precision...')"
-                className="w-full p-3.5 text-xs bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#D97757] text-[#141413] dark:text-[#FAF9F5] resize-none leading-relaxed"
-              />
-
-              <div className="flex justify-end">
-                <button
-                  type="submit"
-                  disabled={isSimplifyingFeynman || !denseConcept.trim()}
-                  className="px-6 py-2.5 bg-[#D97757] hover:bg-[#C86646] disabled:opacity-50 text-white rounded-xl text-xs font-bold flex items-center gap-2 transition-colors cursor-pointer shadow-xs"
-                >
-                  <Sparkles className={`w-3.5 h-3.5 ${isSimplifyingFeynman ? 'animate-spin' : ''}`} />
-                  <span>{isSimplifyingFeynman ? 'Simplifying...' : 'Apply Feynman Simplification'}</span>
-                </button>
-              </div>
-            </form>
-          </div>
-
-          {feynmanResult && (
-            <div className="bg-white dark:bg-[#1A1917] rounded-2xl p-6 border border-[#DFDACB] dark:border-[#2C2B27] shadow-xs space-y-4 animate-in fade-in">
-              <div className="p-3 bg-amber-50/60 dark:bg-amber-950/20 rounded-xl border border-amber-200 dark:border-amber-800/80">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300 block mb-1">
-                  Core Idea in One Sentence
-                </span>
-                <p className="text-xs font-bold text-[#141413] dark:text-[#FAF9F5]">
-                  <MathMarkdown>{`“${feynmanResult.coreIdea}”`}</MathMarkdown>
-                </p>
-              </div>
-
-              <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C897F] block mb-1">
-                  Plain English Explanation (ELI12)
-                </span>
-                <div className="text-xs text-[#5C5A54] dark:text-[#B5B2A8] leading-relaxed">
-                  <MathMarkdown>{feynmanResult.simplified}</MathMarkdown>
-                </div>
-              </div>
-
-              <div className="p-4 bg-[#FAF9F5] dark:bg-[#1F1E1B] rounded-xl border border-[#DFDACB] dark:border-[#2C2B27] space-y-1">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#D97757] flex items-center gap-1">
-                  <Lightbulb className="w-3.5 h-3.5" />
-                  <span>Real-World Everyday Analogy</span>
-                </span>
-                <div className="text-xs text-[#141413] dark:text-[#FAF9F5] italic leading-relaxed">
-                  <MathMarkdown>{feynmanResult.analogy}</MathMarkdown>
-                </div>
-              </div>
-
-              {/* 3-Tier Rigor Breakdown */}
-              {threeTierResult && (
-                <div className="pt-3 border-t border-[#DFDACB]/60 dark:border-[#2C2B27]/60 space-y-3">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <span className="text-xs font-bold text-[#141413] dark:text-[#FAF9F5]">
-                      3-Tier Rigor Progression
-                    </span>
-                    <div className="flex items-center gap-1 bg-[#FAF9F5] dark:bg-[#1F1E1B] p-1 rounded-xl border border-[#DFDACB] dark:border-[#2C2B27]">
-                      {[
-                        { id: 'eli5', label: 'ELI5' },
-                        { id: 'highschool', label: 'High School' },
-                        { id: 'undergrad', label: 'Undergraduate' },
-                      ].map((tier) => (
-                        <button
-                          key={tier.id}
-                          type="button"
-                          onClick={() => setSelectedFeynmanTier(tier.id as any)}
-                          className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors cursor-pointer ${
-                            selectedFeynmanTier === tier.id
-                              ? 'bg-[#D97757] text-white shadow-xs'
-                              : 'text-[#5C5A54] dark:text-[#B5B2A8] hover:text-[#141413] dark:hover:text-[#FAF9F5]'
-                          }`}
-                        >
-                          {tier.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="p-4 rounded-xl bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] text-xs leading-relaxed text-[#141413] dark:text-[#FAF9F5]">
-                    {selectedFeynmanTier === 'eli5' && (
-                      <div>
-                        <span className="text-[10px] font-bold text-[#D97757] uppercase tracking-wider block mb-1">
-                          Tier 1: Explain Like I&apos;m 5
-                        </span>
-                        <MathMarkdown>{threeTierResult.tier1_eli5}</MathMarkdown>
-                      </div>
-                    )}
-
-                    {selectedFeynmanTier === 'highschool' && (
-                      <div>
-                        <span className="text-[10px] font-bold text-[#D97757] uppercase tracking-wider block mb-1">
-                          Tier 2: High School Physical Intuition
-                        </span>
-                        <MathMarkdown>{threeTierResult.tier2_highschool}</MathMarkdown>
-                      </div>
-                    )}
-
-                    {selectedFeynmanTier === 'undergrad' && (
-                      <div>
-                        <span className="text-[10px] font-bold text-[#D97757] uppercase tracking-wider block mb-1">
-                          Tier 3: Undergraduate Mathematical Formalism
-                        </span>
-                        <MathMarkdown>{threeTierResult.tier3_undergrad}</MathMarkdown>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* 4. Google Drive Files */}
-      {activeTab === 'drive' && (
-        <GoogleDriveTab
-          recentFiles={recentFiles}
-          isLoadingFiles={isLoadingFiles}
-          onRefreshFiles={onRefreshFiles}
-          isGoogleConnected={isGoogleConnected}
-          googleToken={googleToken}
-        />
-      )}
-
-      {/* Bibliography Hub */}
-      {activeTab === 'bibliography' && (
-        <div className="space-y-4">
-          <div className="bg-white dark:bg-[#1A1917] rounded-2xl p-5 border border-[#DFDACB] dark:border-[#2C2B27] shadow-xs">
-            <div className="flex items-center justify-between pb-3 border-b border-[#DFDACB] dark:border-[#2C2B27]">
-              <h3 className="text-sm font-bold text-[#141413] dark:text-[#FAF9F5] flex items-center gap-2"><BookOpen className="w-4 h-4 text-violet-600" /> Bibliography & Citations ({bibEntries.length})</h3>
-              <div className="flex items-center gap-2">
-                <button onClick={()=>{ const bib=toBibTeX(bibEntries); navigator.clipboard.writeText(bib); setBibCopied('bib'); setTimeout(()=>setBibCopied(null),2000); }} className="px-3 py-1.5 text-xs font-bold bg-violet-600 hover:bg-violet-700 text-white rounded-xl flex items-center gap-1"><Copy className="w-3.5 h-3.5" /><span>{bibCopied==='bib'?'Copied BibTeX':'Copy BibTeX'}</span></button>
-                <button onClick={()=>{
-                  const blob=new Blob([toBibTeX(bibEntries)], {type:'text/plain'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='bibliography.bib'; a.click(); URL.revokeObjectURL(url);
-                }} className="px-3 py-1.5 text-xs font-bold bg-white dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] rounded-xl flex items-center gap-1"><Download className="w-3.5 h-3.5" /><span>Export .bib</span></button>
-                <button onClick={()=>{ if(confirm('Clear bibliography?')){ setBibEntries([]); saveBibliography([]); } }} className="px-2 py-1 text-xs text-rose-600 hover:bg-rose-50 rounded-lg"><Trash2 className="w-3.5 h-3.5" /></button>
-              </div>
-            </div>
-            <div className="mt-4 space-y-3 max-h-[520px] overflow-y-auto">
-              {bibEntries.length===0 ? <p className="text-xs text-[#8C897F] text-center py-12">No citations yet. Save arXiv papers or Open Library books — they auto-appear here.</p> : bibEntries.map((e,i)=>(
-                <div key={e.id} className="p-3 bg-[#FAF9F5] dark:bg-[#1F1E1B] rounded-xl border border-[#DFDACB] dark:border-[#2C2B27] space-y-2">
-                  <div className="flex items-start justify-between gap-2">
-                    <h4 className="text-xs font-bold text-[#141413] dark:text-[#FAF9F5] leading-snug">{e.title}</h4>
-                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-violet-100 text-violet-800 dark:bg-violet-950 dark:text-violet-300">{e.type}</span>
-                  </div>
-                  <p className="text-[11px] text-[#5C5A54] dark:text-[#B5B2A8]">{e.authors} • {e.year} • {e.journal||e.publisher}</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    <button onClick={()=>{ navigator.clipboard.writeText(toAPA(e)); setBibCopied(e.id+'-apa'); setTimeout(()=>setBibCopied(null),1500); }} className="px-2 py-1 text-[11px] font-bold bg-white dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] rounded-lg">{bibCopied===e.id+'-apa'?<Check className="w-3 h-3 text-emerald-600 inline mr-1"/>:null}APA</button>
-                    <button onClick={()=>{ navigator.clipboard.writeText(toMLA(e)); setBibCopied(e.id+'-mla'); setTimeout(()=>setBibCopied(null),1500); }} className="px-2 py-1 text-[11px] font-bold bg-white dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] rounded-lg">{bibCopied===e.id+'-mla'?<Check className="w-3 h-3 text-emerald-600 inline mr-1"/>:null}MLA</button>
-                    <button onClick={()=>{ navigator.clipboard.writeText((() => {
-                      const key = e.authors.split(' ')[0]?.toLowerCase() + e.year + e.title.split(' ')[0]?.toLowerCase();
-                      return e.type==='article' ? `@article{${key},\n  title={${e.title}},\n  author={${e.authors}},\n  year={${e.year}}\n}` : `@book{${key},\n  title={${e.title}},\n  author={${e.authors}},\n  year={${e.year}}\n}`;
-                    })()); setBibCopied(e.id+'-bib'); setTimeout(()=>setBibCopied(null),1500); }} className="px-2 py-1 text-[11px] font-bold bg-white dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] rounded-lg">{bibCopied===e.id+'-bib'?<Check className="w-3 h-3 text-emerald-600 inline mr-1"/>:null}BibTeX</button>
-                    <a href={e.url} target="_blank" rel="noreferrer" className="px-2 py-1 text-[11px] font-bold text-violet-600 hover:underline flex items-center gap-1"><ExternalLink className="w-3 h-3" />Source</a>
-                  </div>
-                  <p className="text-[11px] font-mono bg-white dark:bg-[#1A1917] p-2 rounded-lg border border-[#DFDACB]/40 text-[#5C5A54] dark:text-[#B5B2A8]">{toAPA(e)}</p>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
       )}
 

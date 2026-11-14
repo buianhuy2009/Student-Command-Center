@@ -31,7 +31,7 @@ export default defineConfig(() => {
           { name: 'New Task', short_name: 'Task', description: 'Create a new assignment', url: '/?newTask=1', icons: [{ src: '/icon-192.png', sizes: '192x192' }] },
           { name: 'Focus Mode', short_name: 'Focus', description: 'Start Pomodoro', url: '/?focus=1', icons: [{ src: '/icon-192.png', sizes: '192x192' }] },
           { name: 'Canvas LMS', short_name: 'Canvas', description: 'Open Canvas workspace', url: '/?w=canvas', icons: [{ src: '/icon-192.png', sizes: '192x192' }] },
-          { name: 'Create Quiz', short_name: 'Quiz', description: 'Generate practice quiz', url: '/?w=quiz-generator', icons: [{ src: '/icon-192.png', sizes: '192x192' }] },
+          { name: 'Flashcards', short_name: 'Flashcards', description: 'Review SM-2 flashcards', url: '/?w=flashcards', icons: [{ src: '/icon-192.png', sizes: '192x192' }] },
           { name: 'Search arXiv', short_name: 'arXiv', description: 'Search research papers', url: '/?w=arxiv', icons: [{ src: '/icon-192.png', sizes: '192x192' }] }
         ],
         share_target: { action: '/?share-target=1', method: 'GET', params: { title: 'title', text: 'text', url: 'url' }, enctype: 'multipart/form-data' as any }
@@ -86,9 +86,8 @@ export default defineConfig(() => {
             firebase: ['firebase/app','firebase/auth'],
             ai: ['@google/genai'],
             // Heavy deps split + lazy-loaded only on interaction (import() in components):
-            // mermaid (750k) → MermaidWorkspace only; katex fonts subset via CSS; editor/markdown chunk;
-            // canvas-confetti lazy via celebrateWin(); excalidraw deferred (no static import — iframe/lazy only).
-            mermaid: ['mermaid'],
+            // katex fonts subset via CSS; editor/markdown chunk;
+            // canvas-confetti lazy via celebrateWin(); excalidraw lazy-loaded on workspace open.
             katex: ['katex'],
             markdown: ['react-markdown', 'remark-math', 'rehype-katex', 'remark-gfm'],
             dnd: ['@dnd-kit/core','@dnd-kit/sortable','@dnd-kit/utilities'],

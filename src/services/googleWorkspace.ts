@@ -8,6 +8,7 @@ import {
 } from '../types';
 import { extractPlainBody } from '../utils/emailText';
 import { decodeTrustNotes, encodeTrustNotes } from '../utils/trust';
+import { auth, getActiveGoogleUid } from './firebase';
 
 import rawFirebaseConfig from '../../firebase-applet-config.json';
 
@@ -38,6 +39,20 @@ export class GoogleApiDisabledError extends Error {
     this.serviceId = serviceId;
     this.activationUrl = activationUrl;
     this.projectId = projectId;
+  }
+}
+
+async function assertGoogleResponseOk(
+  res: Response,
+  defaultServiceName: string,
+  defaultServiceId: string
+): Promise<void> {
+  if (res.status === 401) {
+    throw new Error(`${defaultServiceName} session expired or unauthorized (401).`);
+  }
+  if (!res.ok) {
+    const errBody = await res.text();
+    throw parseGoogleApiResponseError(res.status, errBody, defaultServiceName, defaultServiceId);
   }
 }
 
@@ -466,9 +481,19 @@ export async function createGmailDraft(
   }
 
   const result = await res.json();
+  let email = '';
+  try {
+    if (typeof localStorage !== 'undefined') {
+      email = localStorage.getItem('scc_google_email_v1')?.trim() || '';
+    }
+  } catch {}
+  const encodedId = encodeURIComponent(result.id);
+  const webUrl = email
+    ? `https://mail.google.com/mail/?authuser=${encodeURIComponent(email)}#drafts/${encodedId}`
+    : `https://mail.google.com/mail/#drafts/${encodedId}`;
   return {
     draftId: result.id,
-    webUrl: `https://mail.google.com/mail/u/0/#drafts/${result.id}`,
+    webUrl,
   };
 }
 
@@ -477,28 +502,95 @@ export async function createGmailDraft(
 // ==========================================
 
 export const MASTER_SHEET_TITLE = 'Student Master Assignment Tracker';
+const MASTER_SHEET_LEGACY_KEY = 'scc_master_sheet_id';
+const MASTER_SHEET_OWNER_KEY = 'scc_master_sheet_owner';
+
+function resolveSheetCacheUid(explicitUid?: string | null): string | null {
+  if (explicitUid && explicitUid.trim()) return explicitUid.trim();
+  try {
+    if (auth?.currentUser?.uid) return auth.currentUser.uid;
+  } catch {}
+  return getActiveGoogleUid();
+}
+
+function getScopedMasterSheetId(uid: string | null): string | null {
+  if (typeof localStorage === 'undefined') return null;
+  try {
+    if (uid) {
+      const scopedKey = `${MASTER_SHEET_LEGACY_KEY}_${uid}`;
+      const scoped = localStorage.getItem(scopedKey);
+      if (scoped) return scoped;
+      // One-time migration from legacy unscoped key if unowned or owned by the same user
+      const legacy = localStorage.getItem(MASTER_SHEET_LEGACY_KEY);
+      const owner = localStorage.getItem(MASTER_SHEET_OWNER_KEY);
+      if (legacy && (!owner || owner === uid)) {
+        localStorage.setItem(scopedKey, legacy);
+        localStorage.setItem(MASTER_SHEET_OWNER_KEY, uid);
+        localStorage.removeItem(MASTER_SHEET_LEGACY_KEY);
+        return legacy;
+      }
+      return null;
+    }
+    const owner = localStorage.getItem(MASTER_SHEET_OWNER_KEY);
+    if (owner && owner !== 'anonymous') return null;
+    return localStorage.getItem(MASTER_SHEET_LEGACY_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function setScopedMasterSheetId(spreadsheetId: string, uid: string | null): void {
+  if (typeof localStorage === 'undefined') return;
+  try {
+    if (uid) {
+      localStorage.setItem(`${MASTER_SHEET_LEGACY_KEY}_${uid}`, spreadsheetId);
+      localStorage.setItem(MASTER_SHEET_OWNER_KEY, uid);
+      localStorage.removeItem(MASTER_SHEET_LEGACY_KEY);
+    } else {
+      localStorage.setItem(MASTER_SHEET_LEGACY_KEY, spreadsheetId);
+      localStorage.setItem(MASTER_SHEET_OWNER_KEY, 'anonymous');
+    }
+  } catch {}
+}
+
+function clearScopedMasterSheetId(uid: string | null): void {
+  if (typeof localStorage === 'undefined') return;
+  try {
+    if (uid) {
+      localStorage.removeItem(`${MASTER_SHEET_LEGACY_KEY}_${uid}`);
+    } else {
+      localStorage.removeItem(MASTER_SHEET_LEGACY_KEY);
+    }
+  } catch {}
+}
 
 export async function findOrCreateMasterSpreadsheet(
-  token: string
+  token: string,
+  uid?: string | null
 ): Promise<{ spreadsheetId: string; spreadsheetUrl: string; isNew: boolean }> {
+  const resolvedUid = resolveSheetCacheUid(uid);
   try {
-    // 1. Check local cache first for instant sync without hitting Drive search
-    const cachedId = typeof window !== 'undefined' ? localStorage.getItem('scc_master_sheet_id') : null;
+    // 1. Check per-uid local cache first for instant sync without hitting Drive search
+    const cachedId = getScopedMasterSheetId(resolvedUid);
     if (cachedId) {
-      try {
-        const checkRes = await fetch(
-          `https://sheets.googleapis.com/v4/spreadsheets/${cachedId}?fields=spreadsheetId,spreadsheetUrl`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        if (checkRes.ok) {
-          const file = await checkRes.json();
-          return {
-            spreadsheetId: file.spreadsheetId,
-            spreadsheetUrl: file.spreadsheetUrl || `https://docs.google.com/spreadsheets/d/${file.spreadsheetId}/edit`,
-            isNew: false,
-          };
-        }
-      } catch {}
+      const checkRes = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${cachedId}?fields=spreadsheetId,spreadsheetUrl`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (checkRes.ok) {
+        const file = await checkRes.json();
+        return {
+          spreadsheetId: file.spreadsheetId,
+          spreadsheetUrl: file.spreadsheetUrl || `https://docs.google.com/spreadsheets/d/${file.spreadsheetId}/edit`,
+          isNew: false,
+        };
+      }
+      if (checkRes.status === 401) {
+        throw new Error('Google Sheets session expired or scope missing (401).');
+      }
+      if (checkRes.status === 404 || checkRes.status === 403) {
+        clearScopedMasterSheetId(resolvedUid);
+      }
     }
 
     // 2. Try Drive search if available
@@ -515,9 +607,7 @@ export async function findOrCreateMasterSpreadsheet(
         const data = await searchRes.json();
         if (data.files && data.files.length > 0) {
           const file = data.files[0];
-          if (typeof window !== 'undefined') {
-            try { localStorage.setItem('scc_master_sheet_id', file.id); } catch {}
-          }
+          setScopedMasterSheetId(file.id, resolvedUid);
           return {
             spreadsheetId: file.id,
             spreadsheetUrl: file.webViewLink || `https://docs.google.com/spreadsheets/d/${file.id}/edit`,
@@ -568,15 +658,13 @@ export async function findOrCreateMasterSpreadsheet(
 
     const createdSheet = await createRes.json();
     const spreadsheetId = createdSheet.spreadsheetId;
-    if (typeof window !== 'undefined') {
-      try { localStorage.setItem('scc_master_sheet_id', spreadsheetId); } catch {}
-    }
+    setScopedMasterSheetId(spreadsheetId, resolvedUid);
 
     const headerValues = [
       ['Subject', 'Assignment Name', 'Due Date', 'Priority', 'Status', 'Source', 'Doc Link', 'Notes'],
     ];
 
-    await fetch(
+    const headerRes = await fetch(
       `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Assignments!A1:H1?valueInputOption=USER_ENTERED`,
       {
         method: 'PUT',
@@ -587,6 +675,7 @@ export async function findOrCreateMasterSpreadsheet(
         body: JSON.stringify({ values: headerValues }),
       }
     );
+    await assertGoogleResponseOk(headerRes, 'Google Sheets API', 'sheets.googleapis.com');
 
     const formatPayload = {
       requests: [
@@ -612,7 +701,7 @@ export async function findOrCreateMasterSpreadsheet(
       ],
     };
 
-    await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`, {
+    const formatRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
@@ -620,6 +709,7 @@ export async function findOrCreateMasterSpreadsheet(
       },
       body: JSON.stringify(formatPayload),
     });
+    await assertGoogleResponseOk(formatRes, 'Google Sheets API', 'sheets.googleapis.com');
 
     return {
       spreadsheetId,
@@ -663,20 +753,26 @@ export async function readAssignmentsFromSheet(
     }
 
     const data = await res.json();
-    const rows = data.values || [];
+    const rows: string[][] = data.values || [];
 
-    return rows.map((row: string[], index: number) => ({
-      id: `sheet-${index + 2}`,
-      sheetRowIndex: index + 2,
-      subject: row[0] || 'General',
-      assignmentName: row[1] || 'Untitled Assignment',
-      dueDate: row[2] || '',
-      priority: (row[3] as any) || 'Med',
-      status: (row[4] as any) || 'Not Started',
-      source: (row[5] as any) || 'Google Sheet',
-      docUrl: row[6] || '',
-      ...decodeTrustNotes(row[7] || ''),
-    }));
+    return rows.reduce<Assignment[]>((acc, row: string[], index: number) => {
+      if (!Array.isArray(row) || row.every((cell) => !String(cell ?? '').trim())) {
+        return acc;
+      }
+      acc.push({
+        id: `sheet-${index + 2}`,
+        sheetRowIndex: index + 2,
+        subject: row[0] || 'General',
+        assignmentName: row[1] || 'Untitled Assignment',
+        dueDate: row[2] || '',
+        priority: (row[3] as any) || 'Med',
+        status: (row[4] as any) || 'Not Started',
+        source: (row[5] as any) || 'Google Sheet',
+        docUrl: row[6] || '',
+        ...decodeTrustNotes(row[7] || ''),
+      });
+      return acc;
+    }, []);
   } catch (error) {
     console.error('Error reading assignments from Sheet:', error);
     throw error;
@@ -768,13 +864,105 @@ export async function updateAssignmentInSheet(
   spreadsheetId: string,
   assignment: Assignment
 ): Promise<void> {
-  if (!assignment.sheetRowIndex) return;
-  return updateAssignmentStatusInSheet(
-    token,
-    spreadsheetId,
-    assignment.sheetRowIndex,
-    assignment.status
+  if (!assignment.sheetRowIndex || assignment.sheetRowIndex < 2) return;
+  const rowIndex = assignment.sheetRowIndex;
+  const row = [
+    assignment.subject,
+    assignment.assignmentName,
+    assignment.dueDate,
+    assignment.priority,
+    assignment.status,
+    assignment.source || 'Manual',
+    assignment.docUrl || assignment.sourceUrl || '',
+    encodeTrustNotes(assignment),
+  ];
+
+  let res = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Assignments!A${rowIndex}:H${rowIndex}?valueInputOption=USER_ENTERED`,
+    {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ values: [row] }),
+    }
   );
+
+  if (!res.ok && res.status === 400) {
+    const fallbackRes = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/A${rowIndex}:H${rowIndex}?valueInputOption=USER_ENTERED`,
+      {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ values: [row] }),
+      }
+    );
+    if (fallbackRes.ok || fallbackRes.status === 401) {
+      res = fallbackRes;
+    }
+  }
+
+  await assertGoogleResponseOk(res, 'Google Sheets API', 'sheets.googleapis.com');
+}
+
+export async function deleteAssignmentInSheet(
+  token: string,
+  spreadsheetId: string,
+  rowIndexOrAssignment: number | Assignment
+): Promise<void> {
+  const rowIndex =
+    typeof rowIndexOrAssignment === 'number'
+      ? rowIndexOrAssignment
+      : rowIndexOrAssignment.sheetRowIndex;
+  if (!rowIndex || rowIndex < 2) return;
+
+  const deleteRow = (sheetId: number) =>
+    fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        requests: [
+          {
+            deleteDimension: {
+              range: {
+                sheetId,
+                dimension: 'ROWS',
+                startIndex: rowIndex - 1,
+                endIndex: rowIndex,
+              },
+            },
+          },
+        ],
+      }),
+    });
+
+  let batchRes = await deleteRow(0);
+
+  if (!batchRes.ok && batchRes.status === 400) {
+    const metaRes = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?fields=sheets.properties(sheetId,title)`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    if (metaRes.ok) {
+      const meta = await metaRes.json();
+      const sheets: Array<{ properties?: { sheetId?: number; title?: string } }> = meta.sheets || [];
+      const targetSheet =
+        sheets.find((s) => s.properties?.title === 'Assignments') || sheets[0];
+      const resolvedSheetId = targetSheet?.properties?.sheetId;
+      if (typeof resolvedSheetId === 'number' && resolvedSheetId !== 0) {
+        batchRes = await deleteRow(resolvedSheetId);
+      }
+    }
+  }
+
+  await assertGoogleResponseOk(batchRes, 'Google Sheets API', 'sheets.googleapis.com');
 }
 
 export async function syncAllAssignmentsToSheet(
@@ -793,9 +981,8 @@ export async function syncAllAssignmentsToSheet(
     encodeTrustNotes(a),
   ]);
 
-  // 1. Clear existing range
-  try {
-    const clearRes = await fetch(
+  if (rows.length === 0) {
+    let clearRes = await fetch(
       `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Assignments!A2:H:clear`,
       {
         method: 'POST',
@@ -805,8 +992,8 @@ export async function syncAllAssignmentsToSheet(
         },
       }
     );
-    if (!clearRes.ok) {
-      await fetch(
+    if (!clearRes.ok && clearRes.status === 400) {
+      const fallbackClear = await fetch(
         `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/A2:H:clear`,
         {
           method: 'POST',
@@ -815,14 +1002,31 @@ export async function syncAllAssignmentsToSheet(
             'Content-Type': 'application/json',
           },
         }
-      ).catch(() => {});
+      );
+      if (fallbackClear.ok || fallbackClear.status === 401) {
+        clearRes = fallbackClear;
+      }
     }
-  } catch {}
+    await assertGoogleResponseOk(clearRes, 'Google Sheets API', 'sheets.googleapis.com');
+    return [];
+  }
 
-  // 2. Write new rows
-  if (rows.length > 0) {
-    await fetch(
-      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Assignments!A2:H${rows.length + 1}?valueInputOption=USER_ENTERED`,
+  // 1. Write new rows FIRST so existing sheet data is NEVER wiped if the write fails.
+  const endRow = rows.length + 1;
+  let putRes = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Assignments!A2:H${endRow}?valueInputOption=USER_ENTERED`,
+    {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ values: rows }),
+    }
+  );
+  if (!putRes.ok && putRes.status === 400) {
+    const fallbackPut = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/A2:H${endRow}?valueInputOption=USER_ENTERED`,
       {
         method: 'PUT',
         headers: {
@@ -832,6 +1036,41 @@ export async function syncAllAssignmentsToSheet(
         body: JSON.stringify({ values: rows }),
       }
     );
+    if (fallbackPut.ok || fallbackPut.status === 401) {
+      putRes = fallbackPut;
+    }
+  }
+  await assertGoogleResponseOk(putRes, 'Google Sheets API', 'sheets.googleapis.com');
+
+  // 2. Only after PUT succeeds, clear any extra trailing rows below the newly written range.
+  const trailingStart = endRow + 1;
+  let clearTrailingRes = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Assignments!A${trailingStart}:H:clear`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    }
+  );
+  if (!clearTrailingRes.ok && clearTrailingRes.status === 400) {
+    const fallbackTrailing = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/A${trailingStart}:H:clear`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+    if (fallbackTrailing.ok || fallbackTrailing.status === 401) {
+      clearTrailingRes = fallbackTrailing;
+    }
+  }
+  if (!clearTrailingRes.ok && clearTrailingRes.status !== 400) {
+    await assertGoogleResponseOk(clearTrailingRes, 'Google Sheets API', 'sheets.googleapis.com');
   }
 
   return assignments.map((a, index) => ({
@@ -999,7 +1238,7 @@ export async function createFormattedAssignmentDoc(
       ],
     };
 
-    await fetch(`https://docs.googleapis.com/v1/documents/${documentId}:batchUpdate`, {
+    const batchRes = await fetch(`https://docs.googleapis.com/v1/documents/${documentId}:batchUpdate`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
@@ -1007,6 +1246,7 @@ export async function createFormattedAssignmentDoc(
       },
       body: JSON.stringify(updatePayload),
     });
+    await assertGoogleResponseOk(batchRes, 'Google Docs API', 'docs.googleapis.com');
 
     return {
       documentId,
@@ -1052,65 +1292,4 @@ export async function shareGoogleDriveFile(token: string, fileId: string, emailA
   }
 
   return res.json();
-}
-
-/**
- * Create a formatted Google Doc in student's Google Drive as a NotebookLM source brief
- */
-export async function createNotebookLMSourceDoc(
-  token: string,
-  topic: string,
-  content: string
-): Promise<{ documentId: string; webViewLink: string }> {
-  try {
-    const title = `[NotebookLM Source] ${topic}`;
-    const createRes = await fetch('https://docs.googleapis.com/v1/documents', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ title }),
-    });
-
-    if (createRes.status === 401) {
-      throw new Error('Google Docs session expired or unauthorized (401).');
-    }
-
-    if (!createRes.ok) {
-      const errBody = await createRes.text();
-      throw parseGoogleApiResponseError(createRes.status, errBody, 'Google Docs API', 'docs.googleapis.com');
-    }
-
-    const createdDoc = await createRes.json();
-    const documentId = createdDoc.documentId;
-
-    const fullText = `SOURCE BRIEF FOR NOTEBOOKLM: ${topic.toUpperCase()}\nGenerated: ${new Date().toLocaleDateString()}\n\n${content}\n`;
-
-    await fetch(`https://docs.googleapis.com/v1/documents/${documentId}:batchUpdate`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        requests: [
-          {
-            insertText: {
-              location: { index: 1 },
-              text: fullText,
-            },
-          },
-        ],
-      }),
-    });
-
-    return {
-      documentId,
-      webViewLink: `https://docs.google.com/document/d/${documentId}/edit`,
-    };
-  } catch (error) {
-    console.error('Error creating NotebookLM Doc:', error);
-    throw error;
-  }
 }

@@ -3,18 +3,15 @@ import {
   Search,
   X,
   Pin,
-  PinOff,
-  ExternalLink,
-  Sparkles,
   ArrowLeft,
   CheckCircle2,
   Download,
+  ExternalLink,
   Star,
   Zap,
   Layers,
   Award,
   BookOpen,
-  Calculator,
   Palette,
   Timer,
 } from 'lucide-react';
@@ -34,14 +31,14 @@ export interface AppStoreItem {
 }
 
 export const APP_CATALOG: AppStoreItem[] = [
-  // 1. LMS & Schedule
+  // 1. Plan & Integrations
   {
     id: 'canvas',
     name: 'Canvas LMS',
     category: 'Plan',
     description: 'Sync coursework, due dates, course rubrics, and grades.',
-    longOverview: 'Synchronize your university and school coursework, course syllabi, assignment rubrics, and submission deadlines into a single high-density workspace.',
-    features: ['Real-time iCal calendar & REST API syncing', 'AI 1-click subtask deconstruction', 'Google Drive 1-click submission integration', 'Automatic overdue deadline alerts'],
+    longOverview: 'Synchronize your university and school coursework, course syllabi, assignment rubrics, and submission deadlines into a single workspace.',
+    features: ['iCal calendar & Canvas REST API syncing', 'AI subtask deconstruction', 'Google Drive submission integration', 'Overdue deadline alerts'],
     badge: 'Essential',
     isDefaultPinned: true,
     developer: 'Instructure',
@@ -49,22 +46,22 @@ export const APP_CATALOG: AppStoreItem[] = [
   },
   {
     id: 'radar',
-    name: 'Daily Schedule',
+    name: 'Daily Schedule & AI Planner',
     category: 'Plan',
-    description: 'Chronological agenda merging Google Calendar classes & focus blocks.',
-    longOverview: 'A master visual timetable uniting Google Calendar events, Canvas assignment deadlines, and focus blocks into an organized daily agenda.',
-    features: ['Live Google Calendar two-way sync', 'AI study block slot recommendation', 'Visual progress indicator for today', 'Direct Google Meet & Zoom launching'],
+    description: 'Chronological agenda and day-by-day AI study planner across Calendar, Canvas, Classroom & Gmail.',
+    longOverview: 'Unites your Google Calendar events, Canvas and Classroom deadlines, Gmail alerts, and Tracker tasks into both a live Daily Agenda and an editable day-by-day AI study planner.',
+    features: ['Live Google Calendar sync & collision-aware free-slot finder', 'Editable day-by-day AI study planner', 'Visual progress indicator for today', 'Direct Google Meet & Zoom launching'],
     badge: 'Essential',
     isDefaultPinned: true,
     developer: 'StudentOS Systems',
-    rating: 4.8,
+    rating: 4.9,
   },
   {
     id: 'tracker',
     name: 'Assignment Tracker',
     category: 'Plan',
     description: 'Master assignment checklist with Google Sheets two-way sync.',
-    longOverview: 'The central command center for all coursework. Syncs two-way with your Google Sheets master tracker, offers AI-powered natural language task parsing, and calculates effort matrices.',
+    longOverview: 'The central command center for all coursework. Syncs two-way with your Google Sheets master tracker, offers natural-language task parsing, and calculates effort matrices.',
     features: ['Google Sheets spreadsheet two-way sync', 'Natural text AI parser ("Study AP Bio tomorrow high priority")', 'Dynamic AI risk scoring & time estimates', 'Slide-over assignment inspector sheet'],
     badge: 'Essential',
     isDefaultPinned: true,
@@ -94,61 +91,17 @@ export const APP_CATALOG: AppStoreItem[] = [
     developer: 'Google for Education',
     rating: 4.7,
   },
-  {
-    id: 'moodle',
-    name: 'Moodle LMS',
-    category: 'Plan',
-    description: 'Sync university Moodle calendar feeds and deadlines.',
-    longOverview: 'Provides university Moodle integration via calendar feeds and tokenized REST endpoints, ensuring institutional tasks never slip through the cracks.',
-    features: ['Moodle iCal calendar feed parser', 'REST token API integration', 'Automated deadline normalization', 'Export to Master Tracker'],
-    badge: 'Integration',
-    developer: 'Moodle Community',
-    rating: 4.6,
-  },
-  {
-    id: 'splitscreen',
-    name: 'Dual Split Screen',
-    category: 'Plan',
-    description: 'Run any two tools side-by-side with adjustable split ratios.',
-    longOverview: 'Run any two tools side-by-side with an adjustable split ratio. Take notes while graphing on Desmos, or browse Google Drive while writing equations.',
-    features: ['Left & right independent pane selection', 'Adjustable 50/50, 60/40, and 70/30 split ratios', 'Swap panes with 1-click', 'Persistent multi-task state'],
-    badge: 'Productivity',
-    developer: 'StudentOS Systems',
-    rating: 4.8,
-  },
 
-  // 2. STEM & Math
+  // 2. Create — STEM & Visual Thinking
   {
-    id: 'desmos-graphing',
-    name: 'Desmos 2D Graphing',
+    id: 'excalidraw',
+    name: 'Excalidraw Whiteboard',
     category: 'Create',
-    description: 'Plot equations, calculus curves, and functions with live sliders.',
-    longOverview: 'The gold-standard 2D graphing calculator. Plot explicit, implicit, parametric, and polar equations with interactive sliders.',
-    features: ['Interactive sliders & parameter animations', 'Calculus tangent lines & derivatives', 'Table data import & regressions', 'Embedded offline calculation engine'],
-    badge: 'STEM',
-    developer: 'Desmos Studio',
-    rating: 4.9,
-  },
-  {
-    id: 'desmos-scientific',
-    name: 'Desmos Scientific',
-    category: 'Create',
-    description: 'Scientific calculator with fractions, radicals, and trig functions.',
-    longOverview: 'A clean, intuitive scientific calculator supporting fractions, square roots, trigonometric functions, statistics, and combinatorics.',
-    features: ['Natural fraction and radical formatting', 'Trigonometric & logarithmic functions', 'Full calculation history replay', 'Degree and Radian modes'],
-    badge: 'STEM',
-    developer: 'Desmos Studio',
-    rating: 4.8,
-  },
-  {
-    id: 'wolfram-symbolab',
-    name: 'Wolfram Alpha & Symbolab',
-    category: 'Create',
-    description: 'Step-by-step math solver for calculus, algebra, and physics.',
-    longOverview: 'Quickly access Wolfram Alpha computational knowledge engine and Symbolab step-by-step equation solvers directly inside your workspace.',
-    features: ['Calculus integrals & derivative steps', 'Symbolic equation factoring', 'Unit conversions & physical constants', 'Direct computation bridge'],
-    badge: 'Solver',
-    developer: 'Wolfram & Symbolab',
+    description: 'Hand-drawn virtual whiteboard for diagrams, brainstorming, and sketching.',
+    longOverview: 'A rapid virtual whiteboard for sketching mind maps, diagramming proofs, drawing anatomy models, and visual brainstorms directly in the browser.',
+    features: ['Hand-drawn organic aesthetic', 'Vector shapes, arrows, and text labels', 'Full undo/redo history', 'Local storage autosave & PNG/SVG export'],
+    badge: 'Diagramming',
+    developer: 'Excalidraw Open Source',
     rating: 4.9,
   },
   {
@@ -163,143 +116,53 @@ export const APP_CATALOG: AppStoreItem[] = [
     rating: 4.8,
   },
   {
+    id: 'desmos-graphing',
+    name: 'Desmos 2D Graphing',
+    category: 'Create',
+    description: 'Plot equations, calculus curves, and functions with live sliders.',
+    longOverview: 'The gold-standard 2D graphing calculator. Plot explicit, implicit, parametric, and polar equations with interactive sliders in the embedded Desmos calculator.',
+    features: ['Interactive sliders & parameter animations', 'Calculus tangent lines & derivatives', 'Table data import & regressions', 'Interactive web calculator powered by Desmos'],
+    badge: 'STEM',
+    developer: 'Desmos Studio',
+    rating: 4.9,
+  },
+  {
     id: 'phet',
     name: 'PhET Interactive Simulations',
     category: 'Create',
     description: 'Interactive physics, chemistry, and biology laboratory simulations.',
-    longOverview: 'Over 100 interactive STEM laboratory simulations from the University of Colorado Boulder. Experiment with circuit construction, optics, projectile motion, and chemical kinetics.',
+    longOverview: 'Curated interactive STEM laboratory simulations from the University of Colorado Boulder. Experiment with circuit construction, optics, projectile motion, and chemical kinetics.',
     features: ['Circuit construction AC/DC simulator', 'Wave interference & optics sandbox', 'Atomic orbital & molecular geometry models', 'Interactive projectile physics lab'],
     badge: 'Simulations',
     developer: 'University of Colorado Boulder',
     rating: 5.0,
   },
-  {
-    id: 'scribble-latex',
-    name: 'Photo Math OCR',
-    category: 'Create',
-    description: 'Scan handwritten math into formatted LaTeX and step-by-step solutions.',
-    longOverview: 'Upload a picture of handwritten equations or textbook problems. Gemini Multimodal OCR parses the math, formats clean LaTeX, and solves the derivation step-by-step.',
-    features: ['Multimodal handwriting to LaTeX parsing', 'Step-by-step error diagnostic breakdown', 'Desmos-compatible equation export', '1-click copy LaTeX code to clipboard'],
-    badge: 'OCR & Vision',
-    developer: 'StudentOS Cognitive Labs',
-    rating: 4.9,
-  },
-  {
-    id: 'periodic-table',
-    name: 'Interactive Periodic Table',
-    category: 'Create',
-    description: '118-element periodic table with atomic stats & electron configs.',
-    longOverview: 'Explore all 118 chemical elements with accurate atomic masses, electron configurations, Pauling electronegativities, and chemical classifications.',
-    features: ['118-element IUPAC standard periodic table', 'Element family filters (Alkali, Halogens, Noble Gases)', 'Search by name, symbol, or atomic number', 'Detailed element inspector drawer'],
-    badge: 'Chemistry',
-    developer: 'StudentOS STEM Lab',
-    rating: 5.0,
-  },
-  {
-    id: 'unit-converter',
-    name: 'Scientific Unit Converter',
-    category: 'Create',
-    description: 'Convert length, mass, temperature, speed, energy, and storage units.',
-    longOverview: 'Convert length, mass, temperature, speed, energy, pressure, and digital storage units with high precision. Includes built-in expression calculator.',
-    features: ['7 major scientific unit categories', 'Two-way live conversion with instant swap', 'Built-in trigonometric & algebraic expression evaluator', '1-click copy equation to clipboard'],
-    badge: 'Physics & STEM',
-    developer: 'StudentOS STEM Lab',
-    rating: 4.9,
-  },
 
-  // 3. Visual & Design
-  {
-    id: 'excalidraw',
-    name: 'Excalidraw Whiteboard',
-    category: 'Create',
-    description: 'Hand-drawn virtual whiteboard for diagrams, brainstorming, and sketching.',
-    longOverview: 'A rapid virtual whiteboard for sketching mind maps, diagramming proofs, drawing anatomy models, and visual brainstorms with high fidelity.',
-    features: ['Hand-drawn organic aesthetic', 'Vector shapes, arrows, and text labels', 'Full undo/redo history', 'Local storage autosave & PNG export'],
-    badge: 'Diagramming',
-    developer: 'Excalidraw Open Source',
-    rating: 4.9,
-  },
-  {
-    id: 'mermaid',
-    name: 'Mermaid Flowcharts',
-    category: 'Create',
-    description: 'Generate clean architectural diagrams, flowcharts, and mind maps from text.',
-    longOverview: 'Create flowcharts, state machines, sequence diagrams, and class hierarchies simply by describing relationships in text or letting AI generate the syntax.',
-    features: ['AI text-to-diagram generation', 'Flowcharts, Sequence, Gantt & Mindmaps', 'Live syntax error detection', '1-click SVG & PNG export'],
-    badge: 'Architecture',
-    developer: 'Mermaid JS',
-    rating: 4.8,
-  },
-  {
-    id: 'canva',
-    name: 'Canva',
-    category: 'Create',
-    description: 'Design presentation slides, research posters, and infographics.',
-    longOverview: 'Quick access to your Canva presentations, academic research posters, group project slide decks, and visual infographics.',
-    features: ['Direct Canva workspace bridge', 'Poster & presentation templates', 'Group project visual collaboration', 'Export to PDF and slide decks'],
-    badge: 'Design',
-    developer: 'Canva',
-    rating: 4.9,
-  },
-
-  // 4. Study & Retention
+  // 3. Learn — Study & Focus
   {
     id: 'flashcards',
-    name: 'Quizlet & Anki (SM-2)',
+    name: 'Flashcards (SM-2)',
     category: 'Learn',
-    description: 'SM-2 active recall flashcards with Anki & Quizlet import/export.',
-    longOverview: 'A high-yield spaced repetition flashcard studio powered by the SuperMemo SM-2 algorithm. Generate decks from notes with AI, review cards daily, and export to Anki or Quizlet.',
-    features: ['SuperMemo SM-2 spaced repetition engine', 'AI 1-click deck generator from text', 'CSV, Anki & Quizlet import/export', 'Mastery streak & ease factor tracking'],
+    description: 'SM-2 active recall flashcards with review heatmap and TSV import/export.',
+    longOverview: 'A high-yield spaced repetition flashcard studio powered by the SuperMemo SM-2 algorithm. Generate decks from notes with AI, review cards daily, track your review heatmap, and import/export TSV decks.',
+    features: ['SuperMemo SM-2 spaced repetition engine', 'AI 1-click deck generator from text', 'TSV deck import & export', 'Review heatmap & ease factor tracking'],
     badge: 'Spaced Repetition',
     developer: 'StudentOS Cognitive Labs',
     rating: 5.0,
   },
   {
-    id: 'notebooklm',
-    name: 'Google NotebookLM',
-    category: 'Learn',
-    description: 'Google AI source binder and research notes synthesizer.',
-    longOverview: 'Organize your course PDF readings, lecture notes, and Google Docs into AI notebooks. Prepare grounded source binders and listen to deep-dive audio discussions.',
-    features: ['Source prepper & text synthesizer', '1-click save to Google Drive', 'Grounded AI citations & summaries', 'Direct NotebookLM portal link'],
-    badge: 'AI Research',
-    developer: 'Google Labs',
-    rating: 4.9,
-  },
-  {
-    id: 'viva',
-    name: 'Oral Exam Practice (Viva)',
-    category: 'Learn',
-    description: 'Simulated professor voice examination with live spoken feedback.',
-    longOverview: 'Practice for high-stakes oral exams, thesis defenses, and professor questioning. AI asks progressive questions via voice synthesis and evaluates your spoken answers.',
-    features: ['Interactive SpeechSynthesis professor audio', 'Speech-to-text live student dictation', '0-100 scoring & conceptual gap analysis', 'Multi-turn progressive oral examination'],
-    badge: 'Voice AI',
-    developer: 'StudentOS Cognitive Labs',
-    rating: 4.9,
-  },
-  {
     id: 'pomodoro',
     name: 'Pomodoro Focus Station',
     category: 'Learn',
-    description: 'Fullscreen focus timer with warm ambient soundscapes.',
-    longOverview: 'Enter deep uninterrupted flow states with a minimalist 25-minute Pomodoro timer, ambient Brownian noise / rain synthesizer, and instant fullscreen zen mode.',
-    features: ['Automatic fullscreen on session start', 'Authentic Brownian noise & realistic rain synthesizer', 'Daily session streak tracker', 'Distraction-free scratchpad'],
+    description: 'Fullscreen focus timer with ambient soundscapes and session history.',
+    longOverview: 'Enter deep uninterrupted flow states with a customizable Pomodoro timer, built-in ambient soundscapes, and daily focus streak tracking.',
+    features: ['Customizable focus & break durations', 'Built-in ambient audio soundscapes', 'Daily session streak tracker', 'Distraction-free fullscreen mode'],
     badge: 'Zen Focus',
     developer: 'StudentOS Focus Station',
     rating: 4.8,
   },
-  {
-    id: 'quiz-generator',
-    name: 'AI Practice Quiz Generator',
-    category: 'Learn',
-    description: 'Generate practice multiple-choice quizzes with explanations from notes.',
-    longOverview: 'Paste lecture notes, study outlines, or textbook excerpts to instantly generate multiple choice quizzes with detailed conceptual explanations for each answer choice.',
-    features: ['Instant active retrieval question generation', 'Interactive test taking with instant feedback', 'Detailed rationale explanations per question', 'Score tracking and mastery review'],
-    badge: 'Quizzes',
-    developer: 'StudentOS Cognitive Labs',
-    rating: 5.0,
-  },
 
-  // 5. Writing & Research
+  // 4. Research — Files, Writing & Sources
   {
     id: 'drive',
     name: 'Google Drive',
@@ -316,44 +179,12 @@ export const APP_CATALOG: AppStoreItem[] = [
     id: 'notes-markdown',
     name: 'Markdown Notes & LaTeX',
     category: 'Research',
-    description: 'Live Markdown and LaTeX math lecture note-taker.',
-    longOverview: 'A rapid note-taker featuring live LaTeX math rendering via KaTeX, real-time word stats, and 1-click Markdown export.',
-    features: ['KaTeX math equation rendering ($..$ & $$..$$)', 'Real-time word & estimated reading time stats', 'Local storage auto-persistence', 'Clean distraction-free typography'],
+    description: 'Live Markdown and LaTeX math note-taker with 1-click Google Doc export.',
+    longOverview: 'A rapid lecture note-taker featuring live LaTeX math rendering via KaTeX, version snapshots, and 1-click Google Docs formatted export.',
+    features: ['KaTeX math equation rendering ($..$ & $$..$$)', '1-click Google Docs academic template export', 'Version snapshots & word stats', 'Local storage auto-persistence'],
     badge: 'Writing',
+    isDefaultPinned: true,
     developer: 'StudentOS Notes',
-    rating: 4.8,
-  },
-  {
-    id: 'rubric',
-    name: 'Essay Rubric Checker',
-    category: 'Research',
-    description: 'AI essay pre-checker with thesis evaluation and rubric scoring.',
-    longOverview: 'Paste your draft essay and assignment grading rubric. Gemini grades your draft against each rubric criterion and gives actionable revisions.',
-    features: ['Criterion-by-criterion score estimation', 'Weakness detection & revision coaching', 'Evidence-to-claim alignment check', 'Estimated letter grade preview'],
-    badge: 'Feedback',
-    developer: 'StudentOS Writing Lab',
-    rating: 4.9,
-  },
-  {
-    id: 'feynman',
-    name: 'Feynman Concept Explainer',
-    category: 'Research',
-    description: 'Translate dense academic theories into simple analogies and models.',
-    longOverview: 'Master difficult concepts by applying the Feynman Technique. AI translates dense theories into intuitive analogies, real-world models, and rigorous derivations.',
-    features: ['3-tier conceptual translation (ELI5, HS, College)', 'Intuitive everyday real-world analogies', 'Identification of technical jargon & pitfalls', '1-click copy to notes'],
-    badge: 'Pedagogy',
-    developer: 'StudentOS Cognitive Labs',
-    rating: 4.9,
-  },
-  {
-    id: 'pdf-reader',
-    name: 'PDF Reader & Annotator',
-    category: 'Research',
-    description: 'Read course PDFs, annotate pages, and export markdown notes.',
-    longOverview: 'View your course slides, syllabus, and textbook PDFs directly inside StudentOS. Add page-referenced study notes and export clean Markdown summaries with zero server uploads.',
-    features: ['In-browser PDF rendering with page jumping', 'Page-linked markdown study notes', 'Live word count and local auto-save', 'Zero server upload (100% private)'],
-    badge: 'Study Tool',
-    developer: 'StudentOS Document Hub',
     rating: 4.8,
   },
   {
@@ -361,8 +192,8 @@ export const APP_CATALOG: AppStoreItem[] = [
     name: 'arXiv Research Papers',
     category: 'Research',
     description: 'Search Cornell arXiv preprints in CS, Math, and Physics with direct PDFs.',
-    longOverview: 'Search the complete global arXiv preprint repository. Read abstracts, inspect author credits, copy formatted APA citations, and download official research PDFs.',
-    features: ['Live query to export.arxiv.org API', 'Filters across CS, Math, Physics, Biology & Econ', '1-click APA citation copy', 'Direct PDF access'],
+    longOverview: 'Search the Cornell arXiv preprint repository. Read abstracts, inspect author credits, copy formatted citations, and open official research PDFs.',
+    features: ['Live query to export.arxiv.org API', 'Filters across CS, Math, Physics, Biology & Econ', '1-click citation copy', 'Direct PDF access'],
     badge: 'Research',
     developer: 'Cornell University (Open Access)',
     rating: 5.0,
@@ -372,189 +203,35 @@ export const APP_CATALOG: AppStoreItem[] = [
     name: 'Open Library Textbooks',
     category: 'Research',
     description: 'Search course textbooks with ISBNs and Internet Archive borrow links.',
-    longOverview: 'Search millions of textbooks, classic literature, and syllabus readings from the Open Library global catalog. View cover art, publication years, ISBNs, and read links.',
+    longOverview: 'Search textbooks, classic literature, and syllabus readings from the Open Library global catalog. View cover art, publication years, ISBNs, and read links.',
     features: ['Live query to openlibrary.org API', 'Textbook and author search', 'ISBN lookup & 1-click copy', 'Direct Internet Archive read/borrow links'],
     badge: 'Books',
     developer: 'Internet Archive',
     rating: 4.9,
   },
-  {
-    id: 'timetable',
-    name: 'Weekly Timetable',
-    category: 'Plan',
-    description: 'Drag-drop weekly class grid → Google Calendar events.',
-    longOverview: 'Weekly timetable grid for all courses. Drag-drop to reschedule, click to add, syncs directly to Google Calendar via insertCalendarEvent.',
-    features: ['Mon-Sun 8am-8pm grid', 'Drag-drop reschedule', 'Google Calendar two-way sync', 'Local persistence + offline'],
-    badge: 'New',
-    developer: 'StudentOS',
-    rating: 4.9,
-  },
-  {
-    id: 'citation-vault',
-    name: 'Citation Vault',
-    category: 'Research',
-    description: 'Zotero-style vault: APA/MLA/Chicago/BibTeX generator + vault.',
-    longOverview: 'Generate accurate academic citations via Gemini for any source, preview APA/MLA/Chicago/BibTeX, copy 1-click, and save to local vault.',
-    features: ['APA 7th / MLA 9th / Chicago 17th / BibTeX', 'Gemini AI citation generation', '1-click copy & vault save', '20-item local vault'],
-    badge: 'New',
-    developer: 'StudentOS Writing Lab',
-    rating: 5.0,
-  },
-  {
-    id: 'scholarship-tracker',
-    name: 'Scholarship Tracker',
-    category: 'Plan',
-    description: 'Kanban for scholarships & internships: Not Started → Offer.',
-    longOverview: 'Track scholarship and internship applications through Kanban stages, move cards, and store locally.',
-    features: ['4-stage Kanban', 'Add/move/archive cards', 'Local persistence', 'Progress count per stage'],
-    badge: 'New',
-    developer: 'StudentOS',
-    rating: 4.8,
-  },
-  {
-    id: 'group-project',
-    name: 'Group Project Hub',
-    category: 'Plan',
-    description: 'Shared Drive folder per course + member tasks + peer review.',
-    longOverview: 'Create group projects, link a shared Drive folder, add member tasks and peer review stubs.',
-    features: ['Project per course', 'Drive folder link', 'Member tasks', 'Peer review placeholder'],
-    badge: 'Collab',
-    developer: 'StudentOS',
-    rating: 4.7,
-  },
-  {
-    id: 'peer-qa',
-    name: 'Peer Q&A',
-    category: 'Learn',
-    description: 'Anonymous course Q&A (Piazza-style) with AI moderation.',
-    longOverview: 'Ask questions anonymously per course, peers reply, AI moderation flags spam/abuse.',
-    features: ['Anonymous per-course Q&A', 'AI moderation', 'Course filtering', 'Local persistence'],
-    badge: 'Community',
-    developer: 'StudentOS',
-    rating: 4.6,
-  },
-  {
-    id: 'notion-import',
-    name: 'Notion Import',
-    category: 'Research',
-    description: 'Bulk import Notion markdown notes → Markdown vault.',
-    longOverview: 'Select multiple .md files from Notion export, bulk import to MarkdownNote vault with Dexie persistence.',
-    features: ['Multi-.md bulk import', 'Subject grouping', 'Dexie + localStorage sync', 'Instant vault access'],
-    badge: 'Import',
-    developer: 'StudentOS',
-    rating: 4.8,
-  },
-  {
-    id: 'deadline-gantt',
-    name: 'Deadline Gantt',
-    category: 'Plan',
-    description: 'Gantt timeline auto-generated from assignments & Canvas.',
-    longOverview: 'Mermaid Gantt code auto-generated from your assignments and Canvas deadlines, grouping by course for Mermaid rendering.',
-    features: ['Auto Gantt from assignments', 'Grouped by course', 'Copy Mermaid code', 'MermaidWorkspace render'],
-    badge: 'Timeline',
-    developer: 'StudentOS',
-    rating: 4.8,
-  },
-  {
-    id: 'ai-planner',
-    name: 'AI Planner',
-    category: 'Plan',
-    description: 'Day-by-day study plan from Tracker, Canvas, Classroom, Gmail & meetings — times editable.',
-    longOverview: 'Scans your assignments, Canvas, Classroom and Gmail deadlines, works around meetings and timetable, and lays out a day-by-day plan. Times are editable, sources stay linked in-panel, chat to reschedule in plain words.',
-    features: ['Day-by-day agenda', 'Editable block times', 'Connected sources in-panel', 'Read-only calendar — never writes'],
-    developer: 'StudentOS',
-    rating: 5.0,
-  },
-  {
-    id: 'grade-forecaster',
-    name: 'Grade Forecaster',
-    category: 'Plan',
-    description: 'What-if GPA calculator: 84% → 90% with 30% final = need 96%.',
-    longOverview: 'Interactive GPA what-if calculator using calculateGradePrediction. Slide final weight, target grade, see required final score & status (Guaranteed/Achievable/High Risk).',
-    features: ['Slider 84% → 90% need 96% calc', 'Cumulative & per-semester GPA', 'Target grade status', '1-click link from CanvasSyncTab'],
-    badge: 'New',
-    developer: 'StudentOS',
-    rating: 5.0,
-  },
-  {
-    id: 'budget-tracker',
-    name: 'Budget Tracker',
-    category: 'Plan',
-    description: 'Student expense tracker: rent, books, food, stipend.',
-    longOverview: 'Simple student budget tracker with categories, monthly total, Dexie persistence, export CSV.',
-    features: ['Expense categories', 'Monthly sum & remaining', 'Dexie local', 'CSV export'],
-    badge: 'Finance',
-    developer: 'StudentOS',
-    rating: 4.7,
-  },
-  {
-    id: 'code-runner',
-    name: 'Code Runner (Pyodide)',
-    category: 'Create',
-    description: 'In-browser Python runner via Pyodide for CS courses.',
-    longOverview: 'Run Python 3 in browser via Pyodide WebAssembly. No server, instant exec, stdout + error capture, share snippet.',
-    features: ['Pyodide WASM Python 3', 'Instant exec & stdout', 'Error traceback', 'Share snippet via URL hash'],
-    badge: 'CS Lab',
-    developer: 'Pyodide • StudentOS',
-    rating: 4.9,
-  },
-  {
-    id: 'resume-builder',
-    name: 'Resume Builder',
-    category: 'Research',
-    description: 'Markdown → PDF resume with LaTeX template.',
-    longOverview: 'Build resume from markdown, preview LaTeX-styled PDF, export print-ready, ATS keywords check via Gemini.',
-    features: ['Markdown editor', 'LaTeX PDF preview', 'ATS check', 'Export PDF'],
-    badge: 'Career',
-    developer: 'StudentOS',
-    rating: 4.8,
-  },
-  {
-    id: 'model-training',
-    name: 'Train My Model Lab',
-    category: 'Learn',
-    description: 'Train a tiny text/image classifier in your browser — offline, honest AI lab.',
-    longOverview: 'Age-appropriate machine-learning lab: 2–4 labels, 8+ examples each, hold-out accuracy, confusion check, export model.json, evidence snapshot for the Division A dossier.',
-    features: ['Text + image tiny classifiers', 'Hold-out accuracy report', 'Offline — photos never upload', 'Evidence snapshot + Prompt Log'],
-    badge: 'Division A',
-    developer: 'StudentOS AI Lab',
-    rating: 5.0,
-  },
-  {
-    id: 'few-shot-lab',
-    name: 'Few-Shot Calibration Lab',
-    category: 'Learn',
-    description: 'Calibrate prompts with 2–5 examples over Vietnamese academic datasets.',
-    longOverview: 'Preview few-shot prompts for task parsing and email classification, run the offline evaluation suite (accuracy, precision, recall, F1), log every run to the Prompt Log.',
-    features: ['Dataset viewer + add example', 'Prompt preview', 'Offline evaluation suite', 'Auto Prompt Log'],
-    badge: 'Division A',
-    developer: 'StudentOS AI Lab',
-    rating: 5.0,
-  },
-  {
-    id: 'competition-dossier',
-    name: 'Competition Dossier — Bảng A',
-    category: 'Plan',
-    description: '8-section Mẫu 1 dossier, Prompt Log, video scripts, testing log, timeline.',
-    longOverview: 'Division A compliance kit: team roster, 8-section dossier with page estimator and PDF export, Prompt Log export, 5/3/10-minute video scripts, testing log, 48h stability monitor, anonymization and license checks.',
-    features: ['Mẫu 1 eight sections', 'Prompt Log export', 'Video script generator', '48h stability monitor'],
-    badge: 'Division A',
-    developer: 'StudentOS',
-    rating: 5.0,
-  },
 ];
 
-// Top 8 Recommended Highlight Apps (Exactly 8) — AI Planner first.
+// Top 8 Recommended Highlight Apps (Exactly 8)
 export const TOP_8_HIGHLIGHT_IDS = [
-  'ai-planner',
-  'canvas',
   'radar',
+  'canvas',
   'tracker',
   'gmail',
+  'notes-markdown',
   'desmos-graphing',
-  'pomodoro',
   'flashcards',
+  'pomodoro',
 ];
+
+const VALID_APP_IDS = new Set(APP_CATALOG.map((a) => a.id));
+const LEGACY_APP_MAP: Record<string, string> = {
+  'ai-planner': 'radar',
+  timetable: 'radar',
+  documents: 'notes-markdown',
+  quizlet: 'flashcards',
+  anki: 'flashcards',
+  'desmos-scientific': 'desmos-graphing',
+};
 
 const CATEGORIES = [
   'Highlights',
@@ -568,15 +245,16 @@ const CATEGORIES = [
 const LOCAL_PINNED_APPS_KEY = 'scc_pinned_apps_v2';
 
 export function loadPinnedAppIds(): string[] {
-  const defaults = ['ai-planner', 'canvas', 'radar', 'tracker', 'gmail', 'drive'];
+  const defaults = ['canvas', 'radar', 'tracker', 'gmail', 'drive', 'notes-markdown'];
   try {
     const saved = localStorage.getItem(LOCAL_PINNED_APPS_KEY);
     if (saved) {
       const parsed = JSON.parse(saved);
       if (Array.isArray(parsed) && parsed.length) {
-        // Ensure 5 defaults are present (migration from filtered pinned)
-        const merged = [...defaults.filter(id => !parsed.includes(id)), ...parsed];
-        // Deduplicate and keep order: defaults first then user adds
+        const normalized = parsed
+          .map((id: string) => LEGACY_APP_MAP[id] || id)
+          .filter((id: string) => VALID_APP_IDS.has(id));
+        const merged = [...defaults.filter(id => !normalized.includes(id)), ...normalized];
         return [...new Set(merged)];
       }
     }
@@ -616,22 +294,28 @@ export const AppStoreModal: React.FC<AppStoreModalProps> = ({
       const usage: Record<string, number> = usageRaw ? JSON.parse(usageRaw) : {};
       const coursesRaw = localStorage.getItem('scc_canvas_courses_v1');
       const courses: string[] = coursesRaw ? JSON.parse(coursesRaw) : [];
-      const mostUsed = Object.entries(usage).sort((a,b)=> b[1]-a[1]).slice(0,4).map(([id])=> id);
+      const mostUsed = Object.entries(usage)
+        .sort((a,b)=> b[1]-a[1])
+        .map(([id])=> LEGACY_APP_MAP[id] || id)
+        .filter((id)=> VALID_APP_IDS.has(id))
+        .slice(0,4);
       const tokens = courses.join(' ').toLowerCase().split(/[^a-z]+/).filter(Boolean);
       const tokenSet = new Set(tokens);
       const has = (...keys: string[]) => keys.some(k=> tokenSet.has(k));
       const recommended: string[] = [];
-      if (has('math','calculus','algebra','physics','geometry','trigonometry')) recommended.push('desmos-graphing','wolfram-symbolab','geogebra');
-      if (has('history','english','literature','writing','essay')) recommended.push('citation-vault','drive','rubric');
-      if (has('chemistry','chem','biology','bio','organic')) recommended.push('periodic-table','phet');
-      if (has('computer','cs','programming','code')) recommended.push('mermaid','excalidraw');
+      if (has('math','calculus','algebra','physics','geometry','trigonometry')) recommended.push('desmos-graphing','geogebra');
+      if (has('history','english','literature','writing','essay')) recommended.push('notes-markdown','drive','open-library');
+      if (has('chemistry','chem','biology','bio','organic')) recommended.push('phet','arxiv');
+      if (has('computer','cs','programming','code')) recommended.push('excalidraw','arxiv');
       if (recommended.length===0) {
         // explicit user picking onboarding: check scc_onboarding_picks
         try {
           const picks = JSON.parse(localStorage.getItem('scc_onboarding_picks')||'[]');
-          if (Array.isArray(picks) && picks.length) recommended.push(...picks.slice(0,2));
+          if (Array.isArray(picks) && picks.length) {
+            recommended.push(...picks.map((id: string) => LEGACY_APP_MAP[id] || id).filter((id: string) => VALID_APP_IDS.has(id)).slice(0,2));
+          }
         } catch {}
-        if (recommended.length===0) recommended.push('timetable','scholarship-tracker');
+        if (recommended.length===0) recommended.push('flashcards','pomodoro');
       }
       const dynamicIds = [...new Set([...mostUsed, ...recommended, ...TOP_8_HIGHLIGHT_IDS])].slice(0,8);
       const ids = dynamicIds.length>=8 ? dynamicIds : [...new Set([...TOP_8_HIGHLIGHT_IDS, ...dynamicIds])].slice(0,8);
@@ -704,7 +388,7 @@ export const AppStoreModal: React.FC<AppStoreModalProps> = ({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search tools, Canvas, Desmos, Wolfram, Quizlet, Notes..."
+                placeholder="Search tools, Canvas, Desmos, Flashcards, Notes..."
                 className="w-full pl-10 pr-4 py-2 text-xs bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#D97757] text-[#141413] dark:text-[#FAF9F5]"
               />
             </div>
@@ -819,14 +503,6 @@ export const AppStoreModal: React.FC<AppStoreModalProps> = ({
                   ))}
                 </div>
               </div>
-              {/* Extra detail: permissions, size, updated, changelog */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                <div className="p-3 bg-[#FAF9F5] dark:bg-[#1F1E1B] rounded-xl border"><div className="font-bold text-[#6B6860]">Size</div><div>~45KB • JS chunk</div></div>
-                <div className="p-3 bg-[#FAF9F5] dark:bg-[#1F1E1B] rounded-xl border"><div className="font-bold text-[#6B6860]">Permissions</div><div>Browser only</div></div>
-                <div className="p-3 bg-[#FAF9F5] dark:bg-[#1F1E1B] rounded-xl border"><div className="font-bold text-[#6B6860]">Last updated</div><div>Sep 2026 • v2.1</div></div>
-                <div className="p-3 bg-[#FAF9F5] dark:bg-[#1F1E1B] rounded-xl border"><div className="font-bold text-[#6B6860]">Screenshots</div><div className="text-[#D97757]">Dashboard • Workspace</div></div>
-              </div>
-              <div className="text-[11px] text-[#6B6860]">Changelog: Added to v2.1 • No telemetry until you connect Google. Verified open-source.</div>
             </div>
 
           </div>
@@ -841,7 +517,7 @@ export const AppStoreModal: React.FC<AppStoreModalProps> = ({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search tools, Canvas, Desmos, Quizlet..."
+                placeholder="Search tools, Canvas, Desmos, Flashcards..."
                 aria-label="Search apps"
                 className="w-full pl-10 pr-4 py-2 text-xs bg-white dark:bg-[#1A1917] border border-[#DFDACB] dark:border-[#2C2B27] rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#D97757] text-[#141413] dark:text-[#FAF9F5]"
               />
@@ -850,7 +526,7 @@ export const AppStoreModal: React.FC<AppStoreModalProps> = ({
             {/* Category Filter Pills — sticky + count badges */}
             <div className="sticky top-0 z-10 bg-[#FAF9F5] dark:bg-[#141413] py-2 flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none border-b border-[#DFDACB]/40 dark:border-[#2C2B27]/40 -mx-6 sm:-mx-10 px-6 sm:px-10">
               {CATEGORIES.map((cat) => {
-                const count = cat==='Highlights' ? 8 : cat==='All Apps' ? APP_CATALOG.length : APP_CATALOG.filter(a=>a.category===cat).length;
+                const count = cat==='Highlights' ? top8Highlights.length : cat==='All Apps' ? APP_CATALOG.length : APP_CATALOG.filter(a=>a.category===cat).length;
                 return (
                 <button
                   key={cat}
@@ -920,8 +596,8 @@ export const AppStoreModal: React.FC<AppStoreModalProps> = ({
                               const coursesRaw = localStorage.getItem('scc_canvas_courses_v1');
                               const courses: string[] = coursesRaw ? JSON.parse(coursesRaw) : [];
                               const hasCourse = courses.join(' ').toLowerCase();
-                              if (hasCourse.includes('calculus') || hasCourse.includes('math')) return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#D97757]/10 text-[#D97757] border border-[#D97757]/25">Because you have Calculus — Try Desmos & Wolfram</span>;
-                              if (hasCourse.includes('chemistry') || hasCourse.includes('chem')) return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#D97757]/10 text-[#D97757] border border-[#D97757]/25">Because you have Chemistry — Periodic Table & PhET</span>;
+                              if (hasCourse.includes('calculus') || hasCourse.includes('math')) return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#D97757]/10 text-[#D97757] border border-[#D97757]/25">Because you have Calculus — Try Desmos & GeoGebra</span>;
+                              if (hasCourse.includes('chemistry') || hasCourse.includes('chem')) return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#D97757]/10 text-[#D97757] border border-[#D97757]/25">Because you have Chemistry — Try PhET Simulations</span>;
                               if (hasCourse) return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#D97757]/10 text-[#D97757] border border-[#D97757]/25">Recommended for your courses: {courses.slice(0,2).join(', ')}</span>;
                               try { const usage = JSON.parse(localStorage.getItem('scc_app_usage_v1')||'{}'); const top = Object.entries(usage).sort((a:any,b:any)=>b[1]-a[1])[0]; if (top) return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#D97757]/10 text-[#D97757] border border-[#D97757]/20">Because you use {top[0]} most</span>; } catch {}
                               return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#141413]/5 dark:bg-[#FAF9F5]/10 text-[#6B6860] dark:text-[#B5B2A8] border border-[#DFDACB] dark:border-[#2C2B27]">Starter essentials — add your courses to personalize</span>;

@@ -1,6 +1,60 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 
+const STREAK_HISTORY_KEY = 'scc_streak_history';
+
+/** Parse `scc_streak_history`, migrating legacy `string[]` date lists into `Record<string, number>`. */
+export function parseStreakHistory(raw: string | null): Record<string, number> {
+  if (!raw) return {};
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      const out: Record<string, number> = {};
+      for (const item of parsed) {
+        if (typeof item === 'string' && item.trim()) {
+          out[item] = Math.max(out[item] || 0, 1);
+        }
+      }
+      return out;
+    }
+    if (parsed && typeof parsed === 'object') {
+      const out: Record<string, number> = {};
+      for (const [key, val] of Object.entries(parsed as Record<string, unknown>)) {
+        if (key.trim() && typeof val === 'number' && Number.isFinite(val) && val > 0) {
+          out[key] = val;
+        }
+      }
+      return out;
+    }
+  } catch {}
+  return {};
+}
+
+/** Record or increment a date in `scc_streak_history` (`Record<string, number>`), keeping the latest `maxDays` entries. */
+export function recordStreakDate(
+  dateStr: string,
+  opts: { increment?: boolean; maxDays?: number } = {}
+): Record<string, number> {
+  const { increment = false, maxDays = 30 } = opts;
+  const history = parseStreakHistory(
+    typeof localStorage !== 'undefined' ? localStorage.getItem(STREAK_HISTORY_KEY) : null
+  );
+  if (increment) {
+    history[dateStr] = (history[dateStr] || 0) + 1;
+  } else if (!history[dateStr]) {
+    history[dateStr] = 1;
+  }
+  const trimmed = Object.fromEntries(
+    Object.entries(history)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .slice(-maxDays)
+  );
+  try {
+    localStorage.setItem(STREAK_HISTORY_KEY, JSON.stringify(trimmed));
+  } catch {}
+  return trimmed;
+}
+
 interface PomodoroState {
   sprintGoal: number;
   completedSessions: number;
@@ -25,14 +79,12 @@ export const usePomodoroStore = create<PomodoroState>()(
         try {
           const today=new Date().toISOString().slice(0,10);
           const raw=localStorage.getItem('scc_focus_sessions_log');
-          const log: {date:string, minutes:number}[] = raw? JSON.parse(raw):[];
+          const parsedLog=raw? JSON.parse(raw):[];
+          const log: {date:string, minutes:number}[] = Array.isArray(parsedLog) ? parsedLog : [];
           log.push({date: today, minutes: 25});
           localStorage.setItem('scc_focus_sessions_log', JSON.stringify(log));
           // also maintain scc_streak_history for compatibility
-          const shRaw=localStorage.getItem('scc_streak_history');
-          const sh: Record<string,number>=shRaw? JSON.parse(shRaw):{};
-          sh[today]=(sh[today]||0)+1;
-          localStorage.setItem('scc_streak_history', JSON.stringify(sh));
+          recordStreakDate(today, { increment: true });
         } catch {}
         try { new BroadcastChannel('scc-pomo').postMessage({ type: 'increment', value: next }); } catch {}
         set({ completedSessions: next });

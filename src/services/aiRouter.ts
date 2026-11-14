@@ -22,12 +22,20 @@ export function pickModelForTask(task: AITaskKind, override?: AIModelId): AIMode
 }
 
 export function getGeminiKey(): string {
-  try { return localStorage.getItem('scc_gemini_api_key') || (import.meta as any).env?.VITE_GEMINI_API_KEY || ''; }
-  catch { return ''; }
+  try {
+    const local = typeof localStorage !== 'undefined' ? localStorage.getItem('scc_gemini_api_key') || '' : '';
+    return local || (import.meta as any).env?.VITE_GEMINI_API_KEY || '';
+  } catch {
+    return '';
+  }
 }
 export function getGroqKey(): string {
-  try { return localStorage.getItem('scc_groq_api_key') || (import.meta as any).env?.GROQ_API_KEY || (import.meta as any).env?.VITE_GROQ_API_KEY || ''; }
-  catch { return ''; }
+  try {
+    const local = typeof localStorage !== 'undefined' ? localStorage.getItem('scc_groq_api_key') || '' : '';
+    return local || (import.meta as any).env?.GROQ_API_KEY || (import.meta as any).env?.VITE_GROQ_API_KEY || '';
+  } catch {
+    return '';
+  }
 }
 export function hasAnyAIKey(): boolean { return Boolean(getGeminiKey() || getGroqKey()); }
 
@@ -60,10 +68,42 @@ export interface StreamCallbacks {
   signal?: AbortSignal;
 }
 
+function resolveApiModelName(model: AIModelId): string {
+  switch (model) {
+    case 'gemini-flash-lite':
+      return 'gemini-flash-lite-latest';
+    case 'gemini-pro':
+      return 'gemini-2.5-flash';
+    case 'gemini-flash':
+    case 'groq-llama':
+    default:
+      return 'gemini-flash-latest';
+  }
+}
+
+async function emitChunkedAnswer(
+  text: string,
+  sources: AISource[],
+  model: string,
+  task: AITaskKind,
+  callbacks: StreamCallbacks
+): Promise<void> {
+  const finalOutput = sources.length > 0 ? `${text}${formatSourcesFooter(sources)}` : text;
+  const words = finalOutput.split(/(\s+)/);
+  let full = '';
+  for (const w of words) {
+    if (callbacks.signal?.aborted) break;
+    full += w;
+    callbacks.onToken(w);
+    await new Promise((r) => setTimeout(r, 8));
+  }
+  await logTokenUsage(model, Math.ceil(full.length / 4), task);
+  callbacks.onDone(full);
+}
+
 /**
- * Stream an answer. Uses server /api/ai route when available, else falls back to
- * direct Gemini REST (BYOK) with a non-streaming call chunked for UI. Never black-box:
- * caller passes `sources`, we append them under the answer.
+ * Stream an answer. Uses server `/api/gemini/generate` JSON route when available, else falls back
+ * to direct Gemini REST or Groq (BYOK) when configured, strictly rejecting non-JSON HTML responses.
  */
 export async function streamAnswerWithSources(
   prompt: string,
@@ -71,55 +111,95 @@ export async function streamAnswerWithSources(
   opts: { model?: AIModelId; task?: AITaskKind; callbacks: StreamCallbacks },
 ): Promise<void> {
   const { callbacks } = opts;
-  const model = pickModelForTask(opts.task ?? 'chat', opts.model);
-  try {
-    const res = await fetch('/api/ai/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt, model, stream: true }),
-      signal: callbacks.signal,
-    });
-    if (res.ok && res.body) {
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let full = '';
-      for (;;) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
-        full += chunk;
-        callbacks.onToken(chunk);
-      }
-      await logTokenUsage(model, Math.ceil(full.length / 4), opts.task ?? 'chat');
-      callbacks.onDone(full);
-      return;
-    }
-    throw new Error(`AI route ${res.status}`);
-  } catch (e: any) {
-    // Fallback: direct Gemini REST single-shot, then emit in word chunks so UI still streams
+  const task = opts.task ?? 'chat';
+  const model = pickModelForTask(task, opts.model);
+  const apiModel = resolveApiModelName(model);
+  let primaryError = '';
+
+  if (model !== 'groq-llama') {
     try {
-      const key = getGeminiKey();
-      if (!key) throw new Error('No AI key. Add one in Settings → AI (BYOK), or use Groq fallback.');
-      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${encodeURIComponent(key)}`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt.slice(0, 12000) }] }] }),
+      const res = await fetch('/api/gemini/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: prompt.slice(0, 12000), model: apiModel }),
         signal: callbacks.signal,
       });
-      const j = await r.json().catch(() => ({}));
-      const text = j?.candidates?.[0]?.content?.parts?.map((p: any) => p.text).join('') || 'No answer returned.';
-      const words = text.split(/(\s+)/);
-      let full = '';
-      for (const w of words) {
-        if (callbacks.signal?.aborted) break;
-        full += w;
-        callbacks.onToken(w);
-        await new Promise((res2) => setTimeout(res2, 12));
+      const contentType = res.headers?.get?.('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        throw new Error(`Unexpected response from /api/gemini/generate (${res.status}, content-type: ${contentType || 'unknown'})`);
       }
-      await logTokenUsage(model, Math.ceil(full.length / 4), opts.task ?? 'chat');
-      callbacks.onDone(full);
-    } catch (err: any) {
-      callbacks.onError?.(err?.message || 'AI request failed');
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data?.error || `AI route error (${res.status})`);
+      }
+      const text = String(data?.text || '').trim();
+      if (!text) {
+        throw new Error('Server AI endpoint returned an empty response.');
+      }
+      await emitChunkedAnswer(text, sources, data?.model || model, task, callbacks);
+      return;
+    } catch (e: any) {
+      if (callbacks.signal?.aborted) return;
+      primaryError = e?.message || 'Server AI request failed';
     }
+  }
+
+  // Fallback: direct BYOK Gemini REST or Groq if user configured local API keys
+  try {
+    const geminiKey = getGeminiKey();
+    if (geminiKey && model !== 'groq-llama') {
+      const r = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(apiModel)}:generateContent?key=${encodeURIComponent(geminiKey)}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contents: [{ parts: [{ text: prompt.slice(0, 12000) }] }] }),
+          signal: callbacks.signal,
+        }
+      );
+      const rType = r.headers?.get?.('content-type') || '';
+      if (!rType.includes('application/json')) {
+        throw new Error(`Unexpected non-JSON response from Gemini API (${r.status})`);
+      }
+      const j = await r.json();
+      if (!r.ok) {
+        throw new Error(j?.error?.message || `Gemini API error (${r.status})`);
+      }
+      const text = String(j?.candidates?.[0]?.content?.parts?.map((p: any) => p.text).join('') || '').trim();
+      if (!text) throw new Error('Gemini returned an empty answer.');
+      await emitChunkedAnswer(text, sources, model, task, callbacks);
+      return;
+    }
+
+    const groqKey = getGroqKey();
+    if (groqKey) {
+      const gr = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${groqKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'llama-3.3-70b-versatile',
+          messages: [{ role: 'user', content: prompt.slice(0, 12000) }],
+          temperature: 0.3,
+        }),
+        signal: callbacks.signal,
+      });
+      const grType = gr.headers?.get?.('content-type') || '';
+      if (!grType.includes('application/json')) {
+        throw new Error(`Unexpected non-JSON response from Groq API (${gr.status})`);
+      }
+      const gd = await gr.json();
+      if (!gr.ok) {
+        throw new Error(gd?.error?.message || `Groq API error (${gr.status})`);
+      }
+      const text = String(gd?.choices?.[0]?.message?.content || '').trim();
+      if (!text) throw new Error('Groq returned an empty answer.');
+      await emitChunkedAnswer(text, sources, 'groq-llama', task, callbacks);
+      return;
+    }
+
+    throw new Error(primaryError || 'No AI key configured. Add one in Settings -> AI (BYOK).');
+  } catch (err: any) {
+    callbacks.onError?.(err?.message || primaryError || 'AI request failed');
   }
 }
 

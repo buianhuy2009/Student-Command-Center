@@ -196,12 +196,14 @@ export const CanvasSyncTab: React.FC<CanvasSyncTabProps> = ({
   };
 
   const handleExtractSubtasks = async (assignment: CanvasAssignment) => {
+    setActionError(null);
     setExtractingIds((prev) => ({ ...prev, [assignment.id]: true }));
     try {
       const result = await extractSubtasksFromCanvas(assignment);
       setSubtaskData((prev) => ({ ...prev, [assignment.id]: result }));
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error extracting subtasks:', err);
+      setActionError(err?.message || 'Could not break down Canvas assignment with AI. Check your AI key in Settings.');
     } finally {
       setExtractingIds((prev) => ({ ...prev, [assignment.id]: false }));
     }
@@ -280,22 +282,45 @@ export const CanvasSyncTab: React.FC<CanvasSyncTabProps> = ({
   return (
     <div className="space-y-4">
       {/* Sync error banner — single channel (no duplicate toast). Ember palette. */}
-      {errorMessage && (
-        <div className="p-4 rounded-2xl border border-[#E8E6DC] dark:border-[#4F4A3E] bg-white dark:bg-[#262624] flex items-start gap-3" role="alert">
-          <AlertTriangle className="w-5 h-5 text-[#C96442] shrink-0 mt-0.5" />
-          <div className="flex-1 min-w-0">
-            <h4 className="text-xs font-bold text-[#141413] dark:text-[#F5F4ED]">{t('canvas_sync_failed')}</h4>
-            <p className="text-xs text-[#5E5D59] dark:text-[#B5B2A8] mt-0.5 break-words">{errorMessage}</p>
-            <p className="text-[11px] text-[#5E5D59] dark:text-[#B5B2A8] mt-1">{t('canvas_kept_below')}</p>
+      {errorMessage && (() => {
+        const isHostNotAllowlisted = /host-not-allowlisted|not on.*allowlist|allowlist/i.test(errorMessage);
+        return (
+          <div className="p-4 rounded-2xl border border-[#E8E6DC] dark:border-[#4F4A3E] bg-white dark:bg-[#262624] flex flex-col sm:flex-row items-start gap-3" role="alert">
+            <AlertTriangle className="w-5 h-5 text-[#C96442] shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <h4 className="text-xs font-bold text-[#141413] dark:text-[#F5F4ED]">
+                {isHostNotAllowlisted ? 'School Canvas Domain Not Allowlisted' : t('canvas_sync_failed')}
+              </h4>
+              <p className="text-xs text-[#5E5D59] dark:text-[#B5B2A8] mt-0.5 break-words">{errorMessage}</p>
+              {isHostNotAllowlisted ? (
+                <div className="mt-2 p-2.5 rounded-xl bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#E8E6DC] dark:border-[#3A3832] text-[11px] text-[#4A4945] dark:text-[#C5C2B8] space-y-1">
+                  <p className="font-semibold text-[#141413] dark:text-[#F5F4ED]">How to connect a custom or self-hosted Canvas school URL:</p>
+                  <p>1. <strong>Recommended (instant):</strong> Open Connection Settings and switch to your school&apos;s <strong>Canvas Calendar Feed (.ics URL)</strong> from Canvas Calendar &rarr; Calendar Feed.</p>
+                  <p>2. <strong>REST API Token:</strong> For live REST API proxying, your deployment admin must add your school hostname to <code className="px-1 py-0.5 bg-black/5 dark:bg-white/10 rounded font-mono">CANVAS_ALLOWED_HOSTS</code> on the server.</p>
+                </div>
+              ) : (
+                <p className="text-[11px] text-[#5E5D59] dark:text-[#B5B2A8] mt-1">{t('canvas_kept_below')}</p>
+              )}
+            </div>
+            <div className="flex items-center gap-2 shrink-0 flex-wrap">
+              {isHostNotAllowlisted && (
+                <button
+                  onClick={() => setShowSettingsDrawer(true)}
+                  className="px-3 py-2 bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#3A3832] hover:border-[#C96442] text-[#141413] dark:text-[#F5F4ED] rounded-xl text-xs font-bold min-h-[44px] inline-flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Sliders className="w-3.5 h-3.5" /> Connection Settings
+                </button>
+              )}
+              <button
+                onClick={() => onFetchCanvas()}
+                className="px-3 py-2 bg-[#C96442] hover:bg-[#A94E33] text-white rounded-xl text-xs font-bold shrink-0 min-h-[44px] inline-flex items-center gap-1.5 cursor-pointer"
+              >
+                <RefreshCw className="w-3.5 h-3.5" /> {t('retry')}
+              </button>
+            </div>
           </div>
-          <button
-            onClick={() => onFetchCanvas()}
-            className="px-3 py-2 bg-[#C96442] hover:bg-[#A94E33] text-white rounded-xl text-xs font-bold shrink-0 min-h-[44px] inline-flex items-center gap-1.5"
-          >
-            <RefreshCw className="w-3.5 h-3.5" /> {t('retry')}
-          </button>
-        </div>
-      )}
+        );
+      })()}
       {/* Inline action-error banner (sync-all / Drive submit) — same channel, no raw throws. */}
       {actionError && !errorMessage && (
         <div className="p-3 rounded-2xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 flex items-start gap-2.5" role="alert">

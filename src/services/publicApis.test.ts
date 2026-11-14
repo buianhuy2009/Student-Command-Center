@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { isApodCacheFresh } from './publicApis';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import { isApodCacheFresh, searchArxiv, searchOpenLibrary } from './publicApis';
 
 describe('isApodCacheFresh', () => {
   it('returns true when cached date equals today', () => {
@@ -21,5 +21,21 @@ describe('APOD mediaType handling', () => {
     // Card shows <img> only for image; video shows Watch-video link
     expect(image.mediaType === 'image').toBe(true);
     expect(video.mediaType === 'image').toBe(false);
+  });
+});
+
+describe('searchArxiv & searchOpenLibrary error handling', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('searchArxiv throws on non-OK HTTP responses instead of returning empty', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(new Response('Service Unavailable', { status: 503, statusText: 'Service Unavailable' })));
+    await expect(searchArxiv('quantum')).rejects.toThrow(/arXiv API error \(503/i);
+  });
+
+  it('searchOpenLibrary throws on non-OK HTTP responses instead of returning empty', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(new Response('Bad Gateway', { status: 502, statusText: 'Bad Gateway' })));
+    await expect(searchOpenLibrary('calculus')).rejects.toThrow(/Open Library API error \(502/i);
   });
 });

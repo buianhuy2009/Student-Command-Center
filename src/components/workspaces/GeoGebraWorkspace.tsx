@@ -291,7 +291,7 @@ export const GeoGebraWorkspace: React.FC = () => {
               </div>
             )}
             <iframe
-              src={FALLBACK_IFRAME_SRC}
+              src={url || FALLBACK_IFRAME_SRC}
               title={t('geo_iframe_title')}
               onLoad={handleIframeLoad}
               onError={() => setPhase('error')}

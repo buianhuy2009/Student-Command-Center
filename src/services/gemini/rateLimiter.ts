@@ -1,3 +1,5 @@
+import { checkDailyQuota } from './providers';
+
 export class GeminiRateLimiter {
   private tokens = 15;
   private maxTokens = 15;
@@ -51,8 +53,27 @@ export class GeminiRateLimiter {
     }
     this.isProcessing = false;
   }
+  getStatus() {
+    this.refill();
+    return {
+      availableTokens: this.tokens,
+      maxTokens: this.maxTokens,
+      queueLength: this.queue.length,
+      nextRefillInMs: Math.max(0, this.refillIntervalMs - (Date.now() - this.lastRefill)),
+    };
+  }
+  canProceed(): boolean {
+    if (!checkDailyQuota()) return false;
+    this.refill();
+    return this.tokens > 0 || this.queue.length < this.maxTokens;
+  }
 }
 export const rateLimiter = new GeminiRateLimiter();
 
-// Server check stub — real check requires Upstash Redis per-IP
-export async function serverRateCheck(): Promise<boolean> { return true; }
+/**
+ * Checks whether a Gemini request can proceed under the client token bucket
+ * and daily quota budget (server routes enforce per-IP rate limits independently).
+ */
+export async function canMakeGeminiRequest(): Promise<boolean> {
+  return rateLimiter.canProceed();
+}

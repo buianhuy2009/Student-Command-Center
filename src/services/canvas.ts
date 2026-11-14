@@ -24,7 +24,21 @@ export function canvasKeyFor(uid?: string | null): string {
 // Tracks which account wrote the legacy global mirror, so a *different*
 // account signing in later never inherits it (no cross-account mixing).
 const CANVAS_OWNER_KEY = 'scc_canvas_settings_owner';
+function hasUsableLocalStorage(): boolean {
+  try {
+    return (
+      typeof localStorage !== 'undefined' &&
+      localStorage !== null &&
+      typeof localStorage.getItem === 'function' &&
+      typeof localStorage.setItem === 'function'
+    );
+  } catch {
+    return false;
+  }
+}
+
 function getCanvasMirrorOwner(): string | null {
+  if (!hasUsableLocalStorage()) return null;
   try {
     return localStorage.getItem(CANVAS_OWNER_KEY);
   } catch {
@@ -34,6 +48,7 @@ function getCanvasMirrorOwner(): string | null {
 
 /** True when any Canvas settings exist (legacy global or any per-uid vault). */
 export function hasAnyCanvasSettings(): boolean {
+  if (!hasUsableLocalStorage()) return false;
   try {
     if (localStorage.getItem(LOCAL_STORAGE_CANVAS_KEY)) return true;
     for (let i = 0; i < localStorage.length; i++) {
@@ -169,6 +184,7 @@ function normalizeSettingsShape(parsed: any): CanvasSettings {
 }
 
 function readCanvasKey(key: string): CanvasSettings | null {
+  if (!hasUsableLocalStorage()) return null;
   try {
     const saved = localStorage.getItem(key);
     if (saved) return normalizeSettingsShape(JSON.parse(saved));
@@ -211,6 +227,7 @@ export function hydrateCanvasSettingsForUser(uid: string): CanvasSettings {
 }
 
 export function saveCanvasSettings(settings: CanvasSettings, uid?: string | null) {
+  if (!hasUsableLocalStorage()) return;
   try {
     const normalized = {
       ...settings,
@@ -892,16 +909,19 @@ export async function fetchCanvasAssignmentsFromApi(
 const LOCAL_STORAGE_CANVAS_COMPLETED_KEY = 'scc_canvas_completed_ids_v1';
 
 export function loadCompletedCanvasIds(): string[] {
+  if (!hasUsableLocalStorage()) return [];
   try {
     const saved = localStorage.getItem(LOCAL_STORAGE_CANVAS_COMPLETED_KEY);
-    if (saved) return JSON.parse(saved);
-  } catch (e) {
-    console.error('Error loading completed Canvas IDs:', e);
+    if (!saved) return [];
+    const parsed = JSON.parse(saved);
+    return Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === 'string') : [];
+  } catch {
+    return [];
   }
-  return [];
 }
 
 export function saveCompletedCanvasIds(ids: string[]) {
+  if (!hasUsableLocalStorage()) return;
   try {
     localStorage.setItem(LOCAL_STORAGE_CANVAS_COMPLETED_KEY, JSON.stringify(ids));
   } catch (e) {

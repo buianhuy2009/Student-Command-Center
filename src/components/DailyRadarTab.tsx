@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Calendar as CalendarIcon,
   Clock,
@@ -13,9 +13,11 @@ import {
   Mail,
   ArrowRight,
   BookOpen,
+  AlertTriangle,
 } from 'lucide-react';
-import { CalendarEvent, CanvasAssignment, ApiEnablementInfo, Assignment } from '../types';
+import { CalendarEvent, CanvasAssignment, ApiEnablementInfo, Assignment, EmailAlert } from '../types';
 import { ApiActivationBanner } from './ApiActivationBanner';
+import { AIPlannerWorkspace } from './workspaces/AIPlannerWorkspace';
 import { toMobileDeepLink } from '../services/canvas';
 import { suggestStudySlots, StudySlotResult, StudySlotSuggestion } from '../services/gemini';
 import { t, useLang } from '../services/i18n';
@@ -34,7 +36,129 @@ interface DailyRadarTabProps {
   calendarApiInfo?: ApiEnablementInfo | null;
   pendingAssignments?: Assignment[];
   onAddStudyBlock?: (eventData: { title: string; description: string; startDateTime: string; endDateTime: string }) => Promise<void>;
+  initialMode?: 'agenda' | 'planner' | 'schedule';
+  classroomAssignments?: CanvasAssignment[];
+  emailAlerts?: EmailAlert[];
 }
+
+interface BusyInterval {
+  startMs: number;
+  endMs: number;
+}
+
+interface FreeStudySlot {
+  dateStr: string;
+  startTime: string;
+  endTime: string;
+  startMs: number;
+  endMs: number;
+  assignmentName: string;
+  subject: string;
+}
+
+function parseDateTimeMs(value?: string): number | null {
+  if (!value) return null;
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+/** Finds up to 3 collision-free 45-min study windows across the next 7 days. */
+function findCollisionFreeStudySlots(params: {
+  events: CalendarEvent[];
+  canvasAssignments: CanvasAssignment[];
+  pendingAssignments: Assignment[];
+  chronotype: 'morning' | 'balanced' | 'evening';
+  now?: Date;
+  maxBlocks?: number;
+}): FreeStudySlot[] {
+  const {
+    events,
+    canvasAssignments,
+    pendingAssignments,
+    chronotype,
+    now = new Date(),
+    maxBlocks = 3,
+  } = params;
+
+  if (pendingAssignments.length === 0) return [];
+
+  const busy: BusyInterval[] = [];
+  for (const evt of events) {
+    const startMs = parseDateTimeMs(evt.start?.dateTime);
+    const endMs = parseDateTimeMs(evt.end?.dateTime);
+    if (startMs !== null && endMs !== null && endMs > startMs) {
+      busy.push({ startMs, endMs });
+    }
+  }
+  for (const ca of canvasAssignments) {
+    if (ca.isCompleted || !ca.dueAt || !ca.dueAt.includes('T')) continue;
+    const dueMs = parseDateTimeMs(ca.dueAt);
+    if (dueMs !== null) {
+      busy.push({ startMs: dueMs - 45 * 60_000, endMs: dueMs + 15 * 60_000 });
+    }
+  }
+
+  const prioRank: Record<string, number> = { High: 0, Medium: 1, Low: 2 };
+  const orderedTasks = [...pendingAssignments].sort((a, b) => {
+    const aDue = a.dueDate || '9999-12-31';
+    const bDue = b.dueDate || '9999-12-31';
+    if (aDue !== bDue) return aDue.localeCompare(bDue);
+    return (prioRank[a.priority] ?? 1) - (prioRank[b.priority] ?? 1);
+  });
+
+  const windowsByChronotype: Record<'morning' | 'balanced' | 'evening', Array<[number, number]>> = {
+    morning: [[8, 0], [9, 0], [10, 0], [11, 0], [14, 0], [15, 0], [16, 0], [19, 0]],
+    balanced: [[10, 0], [11, 0], [14, 0], [15, 0], [9, 0], [16, 0], [19, 0], [20, 0]],
+    evening: [[19, 0], [20, 0], [16, 0], [15, 0], [14, 0], [10, 0], [11, 0], [9, 0]],
+  };
+  const candidateTimes = windowsByChronotype[chronotype];
+  const minStartMs = now.getTime() + 15 * 60_000;
+  const pad2 = (n: number) => String(n).padStart(2, '0');
+
+  const chosen: FreeStudySlot[] = [];
+  for (let dayOffset = 1; dayOffset <= 7 && chosen.length < maxBlocks; dayOffset++) {
+    const dayDate = new Date(now);
+    dayDate.setDate(dayDate.getDate() + dayOffset);
+    const dateStr = `${dayDate.getFullYear()}-${pad2(dayDate.getMonth() + 1)}-${pad2(dayDate.getDate())}`;
+
+    for (const [hour, minute] of candidateTimes) {
+      const startMs = new Date(
+        dayDate.getFullYear(),
+        dayDate.getMonth(),
+        dayDate.getDate(),
+        hour,
+        minute,
+        0,
+        0
+      ).getTime();
+      const endMs = startMs + 45 * 60_000;
+      if (startMs < minStartMs) continue;
+
+      const overlapsBusy = busy.some((b) => startMs < b.endMs && endMs > b.startMs);
+      const overlapsChosen = chosen.some((c) => startMs < c.endMs && endMs > c.startMs);
+      if (overlapsBusy || overlapsChosen) continue;
+
+      const task = orderedTasks[chosen.length % orderedTasks.length];
+      const totalEndMins = hour * 60 + minute + 45;
+      chosen.push({
+        dateStr,
+        startTime: `${pad2(hour)}:${pad2(minute)}`,
+        endTime: `${pad2(Math.floor(totalEndMins / 60))}:${pad2(totalEndMins % 60)}`,
+        startMs,
+        endMs,
+        assignmentName: task.assignmentName || 'Focused Study',
+        subject: task.subject || 'General',
+      });
+      busy.push({ startMs, endMs });
+      break;
+    }
+  }
+
+  return chosen;
+}
+
+const resolveRadarMode = (mode?: 'agenda' | 'planner' | 'schedule'): 'agenda' | 'planner' =>
+  mode === 'planner' ? 'planner' : 'agenda';
 
 export const DailyRadarTab: React.FC<DailyRadarTabProps> = ({
   events,
@@ -50,8 +174,17 @@ export const DailyRadarTab: React.FC<DailyRadarTabProps> = ({
   calendarApiInfo,
   pendingAssignments = [],
   onAddStudyBlock,
+  initialMode,
+  classroomAssignments = [],
+  emailAlerts = [],
 }) => {
   useLang();
+  const [viewMode, setViewMode] = useState<'agenda' | 'planner'>(() => resolveRadarMode(initialMode));
+  useEffect(() => {
+    if (initialMode) {
+      setViewMode(resolveRadarMode(initialMode));
+    }
+  }, [initialMode]);
   const now = new Date();
   
   // Format current date as YYYY-MM-DD in local time
@@ -81,14 +214,59 @@ export const DailyRadarTab: React.FC<DailyRadarTabProps> = ({
   const [isSuggestingSlots, setIsSuggestingSlots] = useState(false);
   const [studySlotResult, setStudySlotResult] = useState<StudySlotResult | null>(null);
   const [schedulingSlotIndex, setSchedulingSlotIndex] = useState<number | null>(null);
+  const [slotError, setSlotError] = useState<string | null>(null);
+  const [autoBlockSummary, setAutoBlockSummary] = useState<string | null>(null);
 
   const handleGenerateSlots = async () => {
     setIsSuggestingSlots(true);
+    setSlotError(null);
+    setAutoBlockSummary(null);
     try {
       const result = await suggestStudySlots(events, pendingAssignments, chronotype, todayStr);
       setStudySlotResult(result);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to suggest study slots:', err);
+      setSlotError(err?.message || 'Could not generate AI study slot suggestions. Check your AI API key or use Auto-Block / AI Planner.');
+    } finally {
+      setIsSuggestingSlots(false);
+    }
+  };
+
+  const handleAutoBlockWeek = async () => {
+    setSlotError(null);
+    setAutoBlockSummary(null);
+    if (!onAddStudyBlock) {
+      setSlotError('Connect Google Calendar before auto-blocking study sessions.');
+      return;
+    }
+    const freeSlots = findCollisionFreeStudySlots({
+      events,
+      canvasAssignments: allCanvasAssignments,
+      pendingAssignments,
+      chronotype,
+      now,
+      maxBlocks: 3,
+    });
+    if (freeSlots.length === 0) {
+      setSlotError('No collision-free 45-minute windows found over the next 7 days. Open AI Planner to customize blocked hours.');
+      return;
+    }
+    setIsSuggestingSlots(true);
+    try {
+      const scheduledLabels: string[] = [];
+      for (const s of freeSlots) {
+        await onAddStudyBlock({
+          title: `Focus: ${s.assignmentName} (${s.subject})`,
+          description: `Collision-free 45m study block (${chronotype} chronotype) avoiding ${events.length} calendar events and Canvas due cutoffs.`,
+          startDateTime: `${s.dateStr}T${s.startTime}:00`,
+          endDateTime: `${s.dateStr}T${s.endTime}:00`,
+        });
+        scheduledLabels.push(`${s.dateStr} ${s.startTime}`);
+      }
+      setAutoBlockSummary(`Scheduled ${scheduledLabels.length} conflict-free study block(s): ${scheduledLabels.join(' · ')}`);
+    } catch (err: any) {
+      console.error('Auto-block scheduling failed:', err);
+      setSlotError(err?.message || 'Could not save study blocks to Google Calendar.');
     } finally {
       setIsSuggestingSlots(false);
     }
@@ -97,6 +275,7 @@ export const DailyRadarTab: React.FC<DailyRadarTabProps> = ({
   const handleApplySlot = async (slot: StudySlotSuggestion, idx: number) => {
     if (!onAddStudyBlock) return;
     setSchedulingSlotIndex(idx);
+    setSlotError(null);
     try {
       const startDateTime = `${todayStr}T${slot.startTime}:00`;
       const endDateTime = `${todayStr}T${slot.endTime}:00`;
@@ -114,8 +293,9 @@ export const DailyRadarTab: React.FC<DailyRadarTabProps> = ({
             }
           : null
       );
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error applying study slot:', err);
+      setSlotError(err?.message || 'Could not schedule study block in Google Calendar.');
     } finally {
       setSchedulingSlotIndex(null);
     }
@@ -185,39 +365,79 @@ export const DailyRadarTab: React.FC<DailyRadarTabProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
-          <button
-            onClick={() => setShowChronotypePanel(!showChronotypePanel)}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer border ${
-              showChronotypePanel
-                ? 'bg-[#D97757] text-white border-[#D97757] shadow-xs'
-                : 'bg-[#D97757]/10 text-[#D97757] dark:text-[#E59A7C] hover:bg-[#D97757]/20 border-[#D97757]/30'
-            }`}
-            title={t('radar_chrono_title')}
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>{t('radar_chrono')}</span>
-          </button>
+        <div className="flex items-center gap-2 shrink-0 flex-wrap">
+          <div className="inline-flex items-center p-1 rounded-xl bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27]">
+            <button
+              type="button"
+              onClick={() => setViewMode('agenda')}
+              className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+                viewMode === 'agenda'
+                  ? 'bg-[#D97757] text-white shadow-2xs'
+                  : 'text-[#5C5A54] dark:text-[#B5B2A8] hover:text-[#141413] dark:hover:text-[#FAF9F5]'
+              }`}
+            >
+              Agenda
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('planner')}
+              className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors cursor-pointer flex items-center gap-1 ${
+                viewMode === 'planner'
+                  ? 'bg-[#D97757] text-white shadow-2xs'
+                  : 'text-[#5C5A54] dark:text-[#B5B2A8] hover:text-[#141413] dark:hover:text-[#FAF9F5]'
+              }`}
+            >
+              <Sparkles className="w-3 h-3" />
+              <span>AI Planner</span>
+            </button>
+          </div>
 
-          <button
-            onClick={() => onOpenScheduleModal()}
-            className="px-3.5 py-1.5 bg-[#D97757] hover:bg-[#C86646] text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>{t('radar_add_focus')}</span>
-          </button>
+          {viewMode === 'agenda' && (
+            <>
+              <button
+                onClick={() => setShowChronotypePanel(!showChronotypePanel)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer border ${
+                  showChronotypePanel
+                    ? 'bg-[#D97757] text-white border-[#D97757] shadow-xs'
+                    : 'bg-[#D97757]/10 text-[#D97757] dark:text-[#E59A7C] hover:bg-[#D97757]/20 border-[#D97757]/30'
+                }`}
+                title={t('radar_chrono_title')}
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>{t('radar_chrono')}</span>
+              </button>
 
-          <button
-            id="btn-refresh-schedule-radar"
-            onClick={onRefreshEvents}
-            className="p-1.5 rounded-xl hover:bg-[#FAF9F5] dark:hover:bg-[#252422] text-[#8C897F] dark:text-[#B5B2A8] hover:text-[#D97757] dark:hover:text-[#E59A7C] transition-colors cursor-pointer border border-transparent hover:border-[#DFDACB] dark:hover:border-[#2C2B27]"
-            title={t('radar_sync_title')}
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-          </button>
+              <button
+                onClick={() => onOpenScheduleModal()}
+                className="px-3.5 py-1.5 bg-[#D97757] hover:bg-[#C86646] text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>{t('radar_add_focus')}</span>
+              </button>
+
+              <button
+                id="btn-refresh-schedule-radar"
+                onClick={onRefreshEvents}
+                className="p-1.5 rounded-xl hover:bg-[#FAF9F5] dark:hover:bg-[#252422] text-[#8C897F] dark:text-[#B5B2A8] hover:text-[#D97757] dark:hover:text-[#E59A7C] transition-colors cursor-pointer border border-transparent hover:border-[#DFDACB] dark:hover:border-[#2C2B27]"
+                title={t('radar_sync_title')}
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+              </button>
+            </>
+          )}
         </div>
       </div>
 
+      {viewMode === 'planner' ? (
+        <AIPlannerWorkspace
+          assignments={pendingAssignments}
+          canvasAssignments={allCanvasAssignments}
+          classroomAssignments={classroomAssignments}
+          emailAlerts={emailAlerts}
+          meetings={events}
+        />
+      ) : (
+      <>
       {showChronotypePanel && (
         <div className="p-4 bg-[#D97757]/5 dark:bg-[#D97757]/10 border border-[#D97757]/30 rounded-2xl space-y-4 animate-in slide-in-from-top-3 duration-250">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -280,28 +500,8 @@ export const DailyRadarTab: React.FC<DailyRadarTabProps> = ({
                 <span>{isSuggestingSlots ? t('radar_calculating') : t('radar_generate')}</span>
               </button>
               <button
-                onClick={async ()=>{
-                  if(!onAddStudyBlock) return;
-                  // Auto-Block My Week: generate 3 optimized pomodoro blocks across next 7 days
-                  setIsSuggestingSlots(true);
-                  try {
-                    // heuristic: find next 3 free slots: tomorrow 9am, +2days 2pm, +4days 10am
-                    const base = new Date();
-                    const slots = [
-                      { days:1, start:'09:00', end:'09:45' },
-                      { days:3, start:'14:00', end:'14:45' },
-                      { days:5, start:'10:00', end:'10:45' },
-                    ];
-                    for (const s of slots) {
-                      const d = new Date(base); d.setDate(d.getDate()+s.days);
-                      const ds = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-                      const task = pendingAssignments[0]?.assignmentName || 'Focused Study';
-                      const subj = pendingAssignments[0]?.subject || 'General';
-                      await onAddStudyBlock({ title:`Auto-Block: ${task} (${subj})`, description:`AI Automatic Scheduler • 45m pomodoro • avoids existing events`, startDateTime:`${ds}T${s.start}:00`, endDateTime:`${ds}T${s.end}:00` });
-                    }
-                  } finally { setIsSuggestingSlots(false); }
-                }}
-                disabled={isSuggestingSlots || pendingAssignments.length===0}
+                onClick={handleAutoBlockWeek}
+                disabled={isSuggestingSlots || pendingAssignments.length === 0}
                 className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
               >
                 <CalendarIcon className="w-3.5 h-3.5" />
@@ -309,6 +509,20 @@ export const DailyRadarTab: React.FC<DailyRadarTabProps> = ({
               </button>
             </div>
           </div>
+
+          {slotError && (
+            <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800 text-xs text-rose-800 dark:text-rose-200 flex items-start gap-2" role="alert">
+              <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+              <span>{slotError}</span>
+            </div>
+          )}
+
+          {autoBlockSummary && (
+            <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-xs text-emerald-800 dark:text-emerald-200 flex items-start gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+              <span>{autoBlockSummary}</span>
+            </div>
+          )}
 
           {/* Render Suggestions */}
           {studySlotResult && (
@@ -627,6 +841,8 @@ export const DailyRadarTab: React.FC<DailyRadarTabProps> = ({
             <ArrowRight className="w-4 h-4 text-[#6B6860] dark:text-[#B5B2A8] group-hover:translate-x-1 transition-transform" />
           </div>
         </div>
+      )}
+      </>
       )}
     </div>
   );

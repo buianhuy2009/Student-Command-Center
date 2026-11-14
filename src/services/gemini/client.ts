@@ -24,7 +24,7 @@ function extractErrorText(err: any): string {
 export async function testGeminiApiKeyDetailed(key: string): Promise<{ ok: boolean; error?: string; model?: string }> {
   const trimmed = (key || '').trim();
   if (!trimmed) return { ok: false, error: 'Please enter an API key first.' };
-  const candidates = [GEMINI_DEFAULT_MODEL, GEMINI_FALLBACK_MODEL];
+  const candidates = Array.from(new Set([GEMINI_DEFAULT_MODEL, GEMINI_FALLBACK_MODEL]));
   let lastError = '';
   for (const model of candidates) {
     try {
@@ -64,41 +64,74 @@ export async function testGroqApiKeyDetailed(key: string): Promise<{ ok: boolean
   }
 }
 
-export async function callGemini(params: { contents:any; config?:any; model?:string }): Promise<string> {
-  if (!checkDailyQuota()) throw new Error(`Daily quota reached (50/day). Try tomorrow or set own key.`);
-  return rateLimiter.execute(async ()=>{
+export async function callGemini(params: { contents: any; config?: any; model?: string }): Promise<string> {
+  if (!checkDailyQuota()) throw new Error('Daily Gemini quota reached (50/day). Try tomorrow or set your own API key.');
+  return rateLimiter.execute(async () => {
     incrementQuota();
-    const clientKey=getClientGeminiApiKey();
-    const targetModel=params.model||GEMINI_DEFAULT_MODEL;
-    if(clientKey){
-      const attempts = targetModel === GEMINI_DEFAULT_MODEL ? [GEMINI_DEFAULT_MODEL, GEMINI_FALLBACK_MODEL, ...GEMINI_SAFETY_MODELS] : [targetModel, GEMINI_DEFAULT_MODEL, GEMINI_FALLBACK_MODEL, ...GEMINI_SAFETY_MODELS];
-      let lastErr: any = null;
+    const clientKey = getClientGeminiApiKey();
+    const targetModel = params.model || GEMINI_DEFAULT_MODEL;
+    let lastErrorMessage = '';
+
+    if (clientKey) {
+      const attempts = Array.from(
+        new Set([targetModel, GEMINI_DEFAULT_MODEL, GEMINI_FALLBACK_MODEL, ...GEMINI_SAFETY_MODELS])
+      );
       for (const m of attempts) {
-        try{
-          const ai=new GoogleGenAI({apiKey:clientKey});
-          const res=await ai.models.generateContent({model:m, contents:params.contents, config:params.config});
-          return res.text||'';
-        } catch(e:any){
-          lastErr = e;
-          if(e?.status===429||e?.message?.includes('429')) throw e;
-          const isModelNotFound = e?.status===404 || /NOT_FOUND|not found|Retired|deprecated/i.test(String(e?.message||''));
-          if(!isModelNotFound) break;
+        try {
+          const ai = new GoogleGenAI({ apiKey: clientKey });
+          const res = await ai.models.generateContent({ model: m, contents: params.contents, config: params.config });
+          if (!res.text || !res.text.trim()) throw new Error(`Empty response returned by ${m}.`);
+          return res.text;
+        } catch (e: any) {
+          lastErrorMessage = extractErrorText(e);
+          if (e?.status === 429 || e?.message?.includes('429')) throw e;
+          const isModelNotFound = e?.status === 404 || /NOT_FOUND|not found|Retired|deprecated/i.test(String(e?.message || ''));
+          if (!isModelNotFound) break;
         }
       }
-      console.warn('client Gemini failed fallback',lastErr);
+      console.warn('Client Gemini failed, trying server proxy:', lastErrorMessage);
     }
-    try{
-      const serverRes=await fetch('/api/gemini/generate',{method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({contents:params.contents, config:params.config, model:targetModel})});
-      if(serverRes.ok){ const data=await serverRes.json(); return data.text||''; }
-    } catch(e){ console.warn('server proxy failed',e); }
-    try{
-      let promptText='';
-      if(typeof params.contents==='string') promptText=params.contents;
-      else if(Array.isArray(params.contents)) promptText=params.contents.map((c:any)=> typeof c==='string'?c:c.text||'').join('\n');
-      else if(params.contents?.text) promptText=params.contents.text;
-      const isJson=params.config?.responseMimeType==='application/json';
-      return await callGroqDirect(promptText||'Summarize academic task', isJson);
-    }catch(e){ console.error('All providers failed',e); throw new Error('AI temporarily unavailable across providers. Check API key.'); }
+
+    try {
+      const serverRes = await fetch('/api/gemini/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: params.contents, config: params.config, model: targetModel }),
+      });
+      const contentType = serverRes.headers?.get?.('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        throw new Error(`Unexpected response from /api/gemini/generate (${serverRes.status}, content-type: ${contentType || 'unknown'}).`);
+      }
+      const data = await serverRes.json();
+      if (serverRes.ok) {
+        if (!data?.text || !String(data.text).trim()) {
+          throw new Error('Server returned an empty AI response.');
+        }
+        return String(data.text);
+      }
+      lastErrorMessage = data?.error || `Server AI proxy error (${serverRes.status}).`;
+      if (serverRes.status === 429) {
+        throw new Error(lastErrorMessage);
+      }
+    } catch (e: any) {
+      if (!lastErrorMessage) lastErrorMessage = e?.message || String(e);
+      console.warn('Server proxy failed:', lastErrorMessage);
+    }
+
+    if (getClientGroqApiKey()) {
+      try {
+        let promptText = '';
+        if (typeof params.contents === 'string') promptText = params.contents;
+        else if (Array.isArray(params.contents)) promptText = params.contents.map((c: any) => (typeof c === 'string' ? c : c.text || '')).join('\n');
+        else if (params.contents?.text) promptText = params.contents.text;
+        const isJson = params.config?.responseMimeType === 'application/json';
+        return await callGroqDirect(promptText || 'Summarize academic task', isJson);
+      } catch (e: any) {
+        lastErrorMessage = e?.message || lastErrorMessage;
+      }
+    }
+
+    throw new Error(lastErrorMessage || 'AI service unavailable across configured providers. Check your API key or try again.');
   });
 }
 

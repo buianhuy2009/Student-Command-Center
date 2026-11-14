@@ -1,55 +1,66 @@
+import "dotenv/config";
 import express from "express";
 import path from "path";
-import { createServer as createViteServer } from "vite";
-import {
-  handleHealth,
-  handleCanvasProxy,
-  handleAssistant,
-  handleParseAssignment,
-  handleSummarizeEmails,
-  handleQuickDraft,
-  handleExtractSubtasks,
-  handleEstimateEffort,
-  handleSuggestStudySlots,
-  handleGenerate,
-} from "./src/server/handlers";
+import { dispatchApiRequest } from "./src/server/api-handlers/router.js";
 
-async function startServer() {
+export async function createServerApp(options: { skipFrontend?: boolean } = {}) {
   const app = express();
-  const PORT = Number(process.env.PORT) || 3000;
 
   app.use(express.json({ limit: "5mb" }));
 
-  // API Endpoints
-  app.get("/api/health", handleHealth);
-  app.all("/api/canvas/proxy", handleCanvasProxy);
-  app.post("/api/gemini/assistant", handleAssistant);
-  app.post("/api/gemini/parse-assignment", handleParseAssignment);
-  app.post("/api/gemini/summarize-emails", handleSummarizeEmails);
-  app.post("/api/gemini/quick-draft", handleQuickDraft);
-  app.post("/api/gemini/extract-subtasks", handleExtractSubtasks);
-  app.post("/api/gemini/estimate-effort", handleEstimateEffort);
-  app.post("/api/gemini/suggest-study-slots", handleSuggestStudySlots);
-  app.post("/api/gemini/generate", handleGenerate);
+  // Return JSON 400 on malformed JSON bodies targeting /api/* instead of Express HTML error pages.
+  app.use(
+    "/api",
+    (
+      err: unknown,
+      _req: express.Request,
+      res: express.Response,
+      next: express.NextFunction
+    ) => {
+      if (err instanceof SyntaxError) {
+        return res.status(400).json({ error: "Invalid JSON request body", code: "invalid_json" });
+      }
+      return next(err);
+    }
+  );
 
-  // Vite middleware setup
-  if (process.env.NODE_ENV !== "production") {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: "spa",
-    });
-    app.use(vite.middlewares);
-  } else {
-    const distPath = path.join(process.cwd(), "dist");
-    app.use(express.static(distPath));
-    app.get("*", (req, res) => {
-      res.sendFile(path.join(distPath, "index.html"));
-    });
+  // Canonical API router — identical route table, CORS, rate limits, and 404 JSON as api/index.js.
+  app.all(["/api", "/api/*"], (req: express.Request, res: express.Response) => {
+    return dispatchApiRequest(req, res);
+  });
+
+  if (!options.skipFrontend) {
+    if (process.env.NODE_ENV !== "production") {
+      const { createServer: createViteServer } = await import("vite");
+      const vite = await createViteServer({
+        server: { middlewareMode: true },
+        appType: "spa",
+      });
+      app.use(vite.middlewares);
+    } else {
+      const distPath = path.join(process.cwd(), "dist");
+      app.use(express.static(distPath));
+      app.get("*", (req: express.Request, res: express.Response) => {
+        if (req.path === "/api" || req.path.startsWith("/api/")) {
+          return res.status(404).json({ error: "API endpoint not found" });
+        }
+        return res.sendFile(path.join(distPath, "index.html"));
+      });
+    }
   }
+
+  return app;
+}
+
+async function startServer() {
+  const app = await createServerApp();
+  const PORT = Number(process.env.PORT) || 3000;
 
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Student Command Center Server running on http://localhost:${PORT}`);
   });
 }
 
-startServer();
+if (!process.env.VITEST) {
+  startServer();
+}

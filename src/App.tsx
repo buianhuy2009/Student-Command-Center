@@ -34,77 +34,25 @@ function lazyRetry<T extends { default: React.ComponentType<any> }>(importer: ()
     })
   );
 }
-const AcademicRadarWorkspace = lazyRetry(() => import('./components/workspaces/AcademicRadarWorkspace').then(m => ({ default: m.AcademicRadarWorkspace })));
-const StemLabWorkspace = lazyRetry(() => import('./components/workspaces/StemLabWorkspace').then(m => ({ default: m.StemLabWorkspace })));
-const CreationStudioWorkspace = lazyRetry(() => import('./components/workspaces/CreationStudioWorkspace').then(m => ({ default: m.CreationStudioWorkspace })));
-const RetentionVaultWorkspace = lazyRetry(() => import('./components/workspaces/RetentionVaultWorkspace').then(m => ({ default: m.RetentionVaultWorkspace })));
 const DocumentHubWorkspace = lazyRetry(() => import('./components/workspaces/DocumentHubWorkspace').then(m => ({ default: m.DocumentHubWorkspace })));
 const DesmosWorkspace = lazyRetry(() => import('./components/workspaces/DesmosWorkspace').then(m => ({ default: m.DesmosWorkspace })));
 const GeoGebraWorkspace = lazyRetry(() => import('./components/workspaces/GeoGebraWorkspace').then(m => ({ default: m.GeoGebraWorkspace })));
 const ExcalidrawWorkspace = lazyRetry(() => import('./components/workspaces/ExcalidrawWorkspace').then(m => ({ default: m.ExcalidrawWorkspace })));
 const PhETWorkspace = lazyRetry(() => import('./components/workspaces/PhETWorkspace').then(m => ({ default: m.PhETWorkspace })));
-const MermaidWorkspace = lazyRetry(() => import('./components/workspaces/MermaidWorkspace').then(m => ({ default: m.MermaidWorkspace })));
-const WolframWorkspace = lazyRetry(() => import('./components/workspaces/WolframWorkspace').then(m => ({ default: m.WolframWorkspace })));
-const RubricCheckerWorkspace = lazyRetry(() => import('./components/workspaces/RubricCheckerWorkspace').then(m => ({ default: m.RubricCheckerWorkspace })));
-const FeynmanWorkspace = lazyRetry(() => import('./components/workspaces/FeynmanWorkspace').then(m => ({ default: m.FeynmanWorkspace })));
-const PhotoMathWorkspace = lazyRetry(() => import('./components/workspaces/PhotoMathWorkspace').then(m => ({ default: m.PhotoMathWorkspace })));
-const PdfReaderWorkspace = lazyRetry(() => import('./components/workspaces/PdfReaderWorkspace').then(m => ({ default: m.PdfReaderWorkspace })));
-const QuizGeneratorWorkspace = lazyRetry(() => import('./components/workspaces/QuizGeneratorWorkspace').then(m => ({ default: m.QuizGeneratorWorkspace })));
 const PomodoroWorkspace = lazyRetry(() => import('./components/workspaces/PomodoroWorkspace').then(m => ({ default: m.PomodoroWorkspace })));
-const PeriodicTableWorkspace = lazyRetry(() => import('./components/workspaces/PeriodicTableWorkspace').then(m => ({ default: m.PeriodicTableWorkspace })));
-const UnitConverterWorkspace = lazyRetry(() => import('./components/workspaces/UnitConverterWorkspace').then(m => ({ default: m.UnitConverterWorkspace })));
 const ArxivWorkspace = lazyRetry(() => import('./components/workspaces/ArxivWorkspace').then(m => ({ default: m.ArxivWorkspace })));
 const OpenLibraryWorkspace = lazyRetry(() => import('./components/workspaces/OpenLibraryWorkspace').then(m => ({ default: m.OpenLibraryWorkspace })));
-const CitationVaultWorkspace = lazyRetry(() => import('./components/workspaces/CitationVaultWorkspace').then(m => ({ default: m.CitationVaultWorkspace })));
-const TimetableWorkspace = lazyRetry(() => import('./components/workspaces/TimetableWorkspace').then(m => ({ default: m.TimetableWorkspace })));
-const ScholarshipTrackerWorkspace = lazyRetry(() => import('./components/workspaces/ScholarshipTrackerWorkspace').then(m => ({ default: m.ScholarshipTrackerWorkspace })));
-const GroupProjectWorkspace = lazyRetry(() => import('./components/workspaces/GroupProjectWorkspace').then(m => ({ default: m.GroupProjectWorkspace })));
-const PeerQAWorkspace = lazyRetry(() => import('./components/workspaces/PeerQAWorkspace').then(m => ({ default: m.PeerQAWorkspace })));
-const NotionImportWorkspace = lazyRetry(() => import('./components/workspaces/NotionImportWorkspace').then(m => ({ default: m.NotionImportWorkspace })));
-const DeadlineGanttWorkspace = lazyRetry(() => import('./components/workspaces/DeadlineGanttWorkspace').then(m => ({ default: m.DeadlineGanttWorkspace })));
-const AIPlannerWorkspace = lazyRetry(() => import('./components/workspaces/AIPlannerWorkspace').then(m => ({ default: m.AIPlannerWorkspace })));
-const GradeForecasterWorkspace = lazyRetry(() => import('./components/workspaces/NewAppsWorkspaces').then(m => ({ default: m.GradeForecasterWorkspace })));
-const ExamModeWorkspace = lazyRetry(() => import('./components/workspaces/NewAppsWorkspaces').then(m => ({ default: m.ExamModeWorkspace })));
-const InternshipTrackerWorkspace = lazyRetry(() => import('./components/workspaces/NewAppsWorkspaces').then(m => ({ default: m.InternshipTrackerWorkspace })));
-const BudgetWorkspace = lazyRetry(() => import('./components/workspaces/NewAppsWorkspaces').then(m => ({ default: m.BudgetWorkspace })));
-const HabitSleepWorkspace = lazyRetry(() => import('./components/workspaces/NewAppsWorkspaces').then(m => ({ default: m.HabitSleepWorkspace })));
-const TimetableOptimizerWorkspace = lazyRetry(() => import('./components/workspaces/NewAppsWorkspaces').then(m => ({ default: m.TimetableOptimizerWorkspace })));
-const CodeRunnerWorkspace = lazyRetry(() => import('./components/workspaces/NewAppsWorkspaces').then(m => ({ default: m.CodeRunnerWorkspace })));
-const ResumeBuilderWorkspace = lazyRetry(() => import('./components/workspaces/NewAppsWorkspaces').then(m => ({ default: m.ResumeBuilderWorkspace })));
-const PresentationCoachWorkspace = lazyRetry(() => import('./components/workspaces/NewAppsWorkspaces').then(m => ({ default: m.PresentationCoachWorkspace })));
-const LabReportWorkspace = lazyRetry(() => import('./components/workspaces/NewAppsWorkspaces').then(m => ({ default: m.LabReportWorkspace })));
-const EssayOutlinerWorkspace = lazyRetry(() => import('./components/workspaces/NewAppsWorkspaces').then(m => ({ default: m.EssayOutlinerWorkspace })));
-const ImageOcclusionWorkspace = lazyRetry(() => import('./components/workspaces/NewAppsWorkspaces').then(m => ({ default: m.ImageOcclusionWorkspace })));
-const FSRSSchedulerInfo = lazyRetry(() => import('./components/workspaces/NewAppsWorkspaces').then(m => ({ default: m.FSRSSchedulerInfo })));
-const VivaWorkspace = lazyRetry(() => import('./components/workspaces/NewAppsWorkspaces').then(m => ({ default: m.VivaWorkspace })));
-const LanguageLabWorkspace = lazyRetry(() => import('./components/workspaces/NewAppsWorkspaces').then(m => ({ default: m.LanguageLabWorkspace })));
-const ZoteroImportWorkspace = lazyRetry(() => import('./components/workspaces/NewAppsWorkspaces').then(m => ({ default: m.ZoteroImportWorkspace })));
-const PaperChatWorkspace = lazyRetry(() => import('./components/workspaces/NewAppsWorkspaces').then(m => ({ default: m.PaperChatWorkspace })));
-const DatasetFinderWorkspace = lazyRetry(() => import('./components/workspaces/NewAppsWorkspaces').then(m => ({ default: m.DatasetFinderWorkspace })));
-const StudyRoomPanel = lazyRetry(() => import('./components/collab').then(m => ({ default: m.StudyRoomPanel })));
-const TeacherShareView = lazyRetry(() => import('./components/collab').then(m => ({ default: m.TeacherShareView })));
-const LectureCopilot = lazyRetry(() => import('./components/collab').then(m => ({ default: m.LectureCopilot })));
-const ApiDocsPanel = lazyRetry(() => import('./components/collab').then(m => ({ default: m.ApiDocsPanel })));
-const ExtensionHelper = lazyRetry(() => import('./components/collab').then(m => ({ default: m.ExtensionHelper })));
 const WikipediaLookupModal = lazyRetry(() => import('./components/WikipediaLookupModal').then(m => ({ default: m.WikipediaLookupModal })));
 const StudyCardModal = lazyRetry(() => import('./components/StudyCardModal').then(m => ({ default: m.StudyCardModal })));
-const PortfolioExportModal = lazyRetry(() => import('./components/PortfolioExportModal').then(m => ({ default: m.PortfolioExportModal })));
 const MorningCheckInModal = lazyRetry(() => import('./components/MorningCheckInModal').then(m => ({ default: m.MorningCheckInModal })));
 const OnboardingChecklist = lazyRetry(() => import('./components/OnboardingChecklist').then(m => ({ default: m.OnboardingChecklist })));
-const ModelTrainingWorkspace = lazyRetry(() => import('./components/workspaces/ModelTrainingWorkspace').then(m => ({ default: m.ModelTrainingWorkspace })));
-const FewShotLabWorkspace = lazyRetry(() => import('./components/workspaces/FewShotLabWorkspace').then(m => ({ default: m.FewShotLabWorkspace })));
-const CompetitionDossierWorkspace = lazyRetry(() => import('./components/workspaces/CompetitionDossierWorkspace').then(m => ({ default: m.CompetitionDossierWorkspace })));
-const SplitScreenStudio = lazyRetry(() => import('./components/SplitScreenStudio').then(m => ({ default: m.SplitScreenStudio })));
 const DailyRadarTab = lazyRetry(() => import('./components/DailyRadarTab').then(m => ({ default: m.DailyRadarTab })));
 const GmailRadarTab = lazyRetry(() => import('./components/GmailRadarTab').then(m => ({ default: m.GmailRadarTab })));
 const AssignmentTrackerTab = lazyRetry(() => import('./components/AssignmentTrackerTab').then(m => ({ default: m.AssignmentTrackerTab })));
 const CanvasSyncTab = lazyRetry(() => import('./components/CanvasSyncTab').then(m => ({ default: m.CanvasSyncTab })));
 const GoogleDriveTab = lazyRetry(() => import('./components/GoogleDriveTab').then(m => ({ default: m.GoogleDriveTab })));
-const NotebookLMStudioTab = lazyRetry(() => import('./components/NotebookLMStudioTab').then(m => ({ default: m.NotebookLMStudioTab })));
 const FlashcardStudioTab = lazyRetry(() => import('./components/FlashcardStudioTab').then(m => ({ default: m.FlashcardStudioTab })));
-const CanvaStudioTab = lazyRetry(() => import('./components/CanvaStudioTab').then(m => ({ default: m.CanvaStudioTab })));
 const GoogleClassroomPanel = lazyRetry(() => import('./components/GoogleClassroomPanel').then(m => ({ default: m.GoogleClassroomPanel })));
-const MoodlePanel = lazyRetry(() => import('./components/MoodlePanel').then(m => ({ default: m.MoodlePanel })));
 import { AppStoreModal, loadPinnedAppIds, savePinnedAppIds } from './components/AppStoreModal';
 import { ChangelogModal, CURRENT_VERSION } from './components/ChangelogModal';
 const StudyPlanGeneratorModal = lazyRetry(() => import('./components/StudyPlanGeneratorModal').then(m => ({ default: m.StudyPlanGeneratorModal })));
@@ -125,10 +73,9 @@ const GeminiSettingsModal = lazyRetry(() => import('./components/GeminiSettingsM
 const AiAcademicSuiteModal = lazyRetry(() => import('./components/AiAcademicSuiteModal').then(m => ({ default: m.AiAcademicSuiteModal })));
 const GoogleSyncHubModal = lazyRetry(() => import('./components/GoogleSyncHubModal').then(m => ({ default: m.GoogleSyncHubModal })));
 import { ToastContainer } from './components/Toast';
-import confetti from 'canvas-confetti';
-import { WorkspaceId, AgentAction } from './types';
+import { AppTab, AgentAction } from './types';
 import { loadSRSDecks, saveSRSDecks, createNewSRSCard, SRSDeck } from './services/srsEngine';
-import { usePomodoroStore } from './stores/pomodoroStore';
+import { usePomodoroStore, recordStreakDate } from './stores/pomodoroStore';
 import { trackEvent } from './services/analytics';
 import { db } from './services/db';
 
@@ -157,11 +104,12 @@ import {
   clearGoogleGrant,
 } from './services/googleAuth';
 import type { SignInDiagnosis } from './services/firebase';
-import {
+import * as googleWorkspaceApi from './services/googleWorkspace';
+import type { FetchEmailOptions } from './services/googleWorkspace';
+const {
   fetchTodayCalendarEvents,
   insertCalendarEvent,
   fetchAcademicEmails,
-  FetchEmailOptions,
   createGmailDraft,
   getOrCreateMasterSheet,
   fetchSheetAssignments,
@@ -170,7 +118,13 @@ import {
   syncAllAssignmentsToSheet,
   fetchRecentSchoolFiles,
   shareGoogleDriveFile,
-} from './services/googleWorkspace';
+} = googleWorkspaceApi;
+
+const deleteAssignmentInSheetFn = (
+  googleWorkspaceApi as Record<string, any>
+).deleteAssignmentInSheet as
+  | ((token: string, spreadsheetId: string, rowIndexOrAssignment: number | Assignment) => Promise<void>)
+  | undefined;
 import { fetchAllClassroomAssignments, fetchRecentClassroomAnnouncements } from './services/googleClassroom';
 import {
   loadCanvasSettings,
@@ -213,6 +167,68 @@ import { PrivacyModal } from './components/PrivacyModal';
 const LOCAL_ASSIGNMENTS_KEY = 'scc_user_assignments_v2';
 const LOCAL_EMAIL_ALERTS_KEY = 'scc_cached_email_alerts_v2';
 const LOCAL_RAW_EMAILS_KEY = 'scc_cached_raw_emails_v2';
+
+const KEPT_APP_TABS: ReadonlySet<string> = new Set<AppTab>([
+  'dashboard',
+  'canvas',
+  'classroom',
+  'gmail',
+  'drive',
+  'radar',
+  'tracker',
+  'notes-markdown',
+  'flashcards',
+  'excalidraw',
+  'geogebra',
+  'desmos-graphing',
+  'phet',
+  'arxiv',
+  'open-library',
+  'pomodoro',
+]);
+
+const TAB_LABELS: Record<AppTab, string> = {
+  dashboard: 'Academic Dashboard',
+  canvas: 'Canvas LMS',
+  classroom: 'Google Classroom',
+  gmail: 'Gmail AI Scanner',
+  drive: 'Google Drive',
+  radar: 'Daily Schedule & AI Planner',
+  tracker: 'Assignment Tracker',
+  'notes-markdown': 'Markdown Notes & Docs',
+  flashcards: 'Flashcards (SM-2)',
+  excalidraw: 'Excalidraw Whiteboard',
+  geogebra: 'GeoGebra Math Suite',
+  'desmos-graphing': 'Desmos Graphing',
+  phet: 'PhET Simulations',
+  arxiv: 'arXiv Research Papers',
+  'open-library': 'Open Library & Textbooks',
+  pomodoro: 'Focus Station',
+};
+
+function normalizeAppTab(raw: string): AppTab {
+  if (raw === 'academic' || raw === 'ws-academic') return 'canvas';
+  if (raw === 'ai-planner') return 'radar';
+  if (raw === 'documents') return 'notes-markdown';
+  if (raw === 'quizlet' || raw === 'anki') return 'flashcards';
+  if (raw === 'desmos-scientific') return 'desmos-graphing';
+  return KEPT_APP_TABS.has(raw) ? (raw as AppTab) : 'dashboard';
+}
+
+async function celebrateWin(opts: {
+  particleCount?: number;
+  spread?: number;
+  origin?: { y?: number };
+  colors?: string[];
+}): Promise<void> {
+  try {
+    if (typeof window === 'undefined' || !window.matchMedia('(prefers-reduced-motion: no-preference)').matches) {
+      return;
+    }
+    const { default: confetti } = await import('canvas-confetti');
+    confetti(opts);
+  } catch {}
+}
 
 function loadSavedAssignments(): Assignment[] {
   try {
@@ -385,32 +401,34 @@ export default function App() {
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [isDemoMode, setIsDemoMode] = useState(false);
 
-  // 5-Workspace Student OS Active Workspace
-  const [activeWorkspace, setActiveWorkspace] = useState<WorkspaceId>(() => {
+  // Unified Active Tab (replaces dead activeWorkspace + activeTab split)
+  const [radarInitialMode, setRadarInitialMode] = useState<'schedule' | 'planner'>(() => {
+    try {
+      return localStorage.getItem('scc_active_workspace_v1') === 'ai-planner' ? 'planner' : 'schedule';
+    } catch {
+      return 'schedule';
+    }
+  });
+  const [activeTab, setActiveTab] = useState<AppTab>(() => {
     try {
       const saved = localStorage.getItem('scc_active_workspace_v1');
-      return (saved as WorkspaceId) || 'dashboard';
+      if (!saved) return 'dashboard';
+      const normalized = normalizeAppTab(saved);
+      if (normalized !== saved) localStorage.setItem('scc_active_workspace_v1', normalized);
+      return normalized;
     } catch {
       return 'dashboard';
     }
   });
-
-  const handleWorkspaceTransition = useCallback((newWorkspace: WorkspaceId) => {
-    setAiChatOpen(false);
-    if (typeof document !== 'undefined' && (document as any).startViewTransition) {
-      (document as any).startViewTransition(() => {
-        setActiveWorkspace(newWorkspace);
-      });
-    } else {
-      setActiveWorkspace(newWorkspace);
-    }
+  const [pomodoroFocusMinutes, setPomodoroFocusMinutes] = useState<number | undefined>(() => {
     try {
-      localStorage.setItem('scc_active_workspace_v1', newWorkspace);
-    } catch {}
-  }, []);
-
-  // Active Tab - Dashboard Home is default entry point
-  const [activeTab, setActiveTab] = useState('dashboard');
+      const saved = localStorage.getItem('scc_pomo_preset_mins_v1');
+      const parsed = saved ? parseInt(saved, 10) : NaN;
+      return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+    } catch {
+      return undefined;
+    }
+  });
   const [accountSettingsOpen, setAccountSettingsOpen] = useState(false);
   const [aiSuiteOpen, setAiSuiteOpen] = useState(false);
   const [aiSuiteTab, setAiSuiteTab] = useState<'planner' | 'syllabus' | 'quiz' | 'grades'>('planner');
@@ -418,18 +436,15 @@ export default function App() {
   const [isWikipediaModalOpen, setIsWikipediaModalOpen] = useState(false);
   const [wikipediaInitialQuery, setWikipediaInitialQuery] = useState('');
   const [isStudyCardOpen, setIsStudyCardOpen] = useState(false);
-  const [isPortfolioExportOpen, setIsPortfolioExportOpen] = useState(false);
   const [isMorningCheckInOpen, setIsMorningCheckInOpen] = useState(false);
   const [isChangelogOpen, setIsChangelogOpen] = useState(false);
   const [isStudyPlanOpen, setIsStudyPlanOpen] = useState(false);
   const [isIntroTourOpen, setIsIntroTourOpen] = useState(false);
   const [showChangelogDot, setShowChangelogDot] = useState(false);
-  const onboardingDialogRef = useRef<HTMLDialogElement | null>(null);
 
   // Dynamic title for SEO per workspace — MUST be after activeTab declaration to avoid TDZ
   useEffect(() => {
-    const labelMap: Record<string,string> = { dashboard:'Dashboard', canvas:'Canvas LMS', radar:'Daily Schedule', tracker:'Assignment Tracker', gmail:'Gmail AI', drive:'Google Drive', splitscreen:'Split Screen' };
-    const label = labelMap[activeTab] || activeTab || 'Dashboard';
+    const label = TAB_LABELS[activeTab] || 'Dashboard';
     document.title = `StudentOS — ${label} | Canvas + Workspace Academic OS`;
   }, [activeTab]);
 
@@ -470,13 +485,12 @@ export default function App() {
     localStorage.setItem('scc_daily_intention', intention);
     localStorage.setItem('scc_target_focus_hours', String(targetHours));
     try { if (mood) localStorage.setItem('scc_last_morning_mood', mood); } catch {}
-    // streak + confetti on 7-day
+    // streak + confetti on 7-day (compatible with pomodoroStore.ts Record<string, number>)
     try {
-      const raw = localStorage.getItem('scc_streak_history');
-      const arr: string[] = raw ? JSON.parse(raw) : [];
-      if (!arr.includes(todayStr)) { arr.push(todayStr); localStorage.setItem('scc_streak_history', JSON.stringify(arr.slice(-30))); }
-      if (arr.length % 7 === 0 && arr.length>0 && typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: no-preference)').matches) {
-        confetti({ particleCount: 80, spread: 60, origin: { y: 0.6 }, colors: ['#C96442','#10b981','#7C3AED'] });
+      const history = recordStreakDate(todayStr, { increment: false });
+      const streakDays = Object.keys(history).length;
+      if (streakDays % 7 === 0 && streakDays > 0) {
+        void celebrateWin({ particleCount: 80, spread: 60, origin: { y: 0.6 }, colors: ['#C96442', '#10b981', '#7C3AED'] });
       }
     } catch {}
     addToast({
@@ -486,16 +500,21 @@ export default function App() {
     });
   };
 
-  // Smooth View Transitions for workspace switching — now unified with workspaceStore + recent + usage tracking
-  const handleTabTransition = useCallback((newTab: string) => {
-    // Legacy mapping: academic workspace no longer exists (now Pinned)
-    if (newTab === 'academic') newTab = 'canvas';
-    if (newTab === 'ws-academic') newTab = 'canvas';
-    if (newTab === 'ai-suite') {
+  // Unified AppTab navigation with legacy tab normalization & View Transitions support
+  const handleTabTransition = useCallback((rawTab: string) => {
+    if (rawTab === 'ai-suite') {
       setAiSuiteTab('planner');
       setAiSuiteOpen(true);
       return;
     }
+    if (rawTab === 'ai-planner') {
+      setRadarInitialMode('planner');
+      try { window.dispatchEvent(new CustomEvent('scc-radar-mode', { detail: { mode: 'planner' } })); } catch {}
+    } else if (rawTab === 'radar') {
+      setRadarInitialMode('schedule');
+      try { window.dispatchEvent(new CustomEvent('scc-radar-mode', { detail: { mode: 'schedule' } })); } catch {}
+    }
+    const newTab = normalizeAppTab(rawTab);
 
     setClearedTabBadges((prev) => new Set(prev).add(newTab));
     setAiChatOpen(false);
@@ -504,13 +523,12 @@ export default function App() {
     try {
       const recentRaw = localStorage.getItem('scc_recent_tabs_v1');
       const recent: string[] = recentRaw ? JSON.parse(recentRaw) : [];
-      const nextRecent = [newTab, ...recent.filter((x:string)=> x!==newTab)].slice(0,10);
+      const nextRecent = Array.from(new Set([newTab, ...recent.map((x: string) => normalizeAppTab(x))])).slice(0, 10);
       localStorage.setItem('scc_recent_tabs_v1', JSON.stringify(nextRecent));
       const usageRaw = localStorage.getItem('scc_app_usage_v1');
       const usage: Record<string, number> = usageRaw ? JSON.parse(usageRaw) : {};
-      usage[newTab] = (usage[newTab]||0)+1;
+      usage[newTab] = (usage[newTab] || 0) + 1;
       localStorage.setItem('scc_app_usage_v1', JSON.stringify(usage));
-      // also sync to workspaceStore for single source of truth
       try { localStorage.setItem('scc_active_workspace_v1', newTab); } catch {}
     } catch {}
     try { trackEvent('command_executed', { command: newTab }); } catch {}
@@ -546,6 +564,10 @@ export default function App() {
   const emailAlertsRef = useRef(emailAlerts);
   emailAlertsRef.current = emailAlerts;
   const [assignments, setAssignments] = useState<Assignment[]>(loadSavedAssignments());
+  const assignmentsRef = useRef(assignments);
+  assignmentsRef.current = assignments;
+  const canvasSettingsRef = useRef<CanvasSettings | null>(null);
+  const masterSheetIdRef = useRef<string | undefined>(undefined);
   const [recentFiles, setRecentFiles] = useState<SchoolFile[]>([]);
   const [canvasAssignments, setCanvasAssignments] = useState<CanvasAssignment[]>(() => {
     try {
@@ -566,6 +588,7 @@ export default function App() {
   const [isLoadingClassroom, setIsLoadingClassroom] = useState(false);
   const [classroomError, setClassroomError] = useState<string | null>(null);
   const [canvasSettings, setCanvasSettings] = useState<CanvasSettings>(loadCanvasSettings());
+  canvasSettingsRef.current = canvasSettings;
 
   // Sidebar expanded / collapsed state (persisted in localStorage)
   const [isSidebarExpanded, setIsSidebarExpanded] = useState<boolean>(() => {
@@ -669,18 +692,6 @@ export default function App() {
 
   // Zen Focus Mode (Distraction-Free Experience)
   const [zenFocusMode, setZenFocusMode] = useState<boolean>(false);
-  const [focusTimerSeconds, setFocusTimerSeconds] = useState<number>(25 * 60);
-  const [isFocusTimerRunning, setIsFocusTimerRunning] = useState<boolean>(false);
-
-  useEffect(() => {
-    let interval: any;
-    if (isFocusTimerRunning && focusTimerSeconds > 0) {
-      interval = setInterval(() => {
-        setFocusTimerSeconds((prev) => (prev > 0 ? prev - 1 : 0));
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [isFocusTimerRunning, focusTimerSeconds]);
 
   // Zen Focus: opt-in fullscreen (respects user preference, iOS-safe, Esc to exit)
   useEffect(() => {
@@ -734,6 +745,7 @@ export default function App() {
 
   // Master Sheet metadata
   const [masterSheetId, setMasterSheetId] = useState<string | undefined>();
+  masterSheetIdRef.current = masterSheetId;
   const [masterSheetUrl, setMasterSheetUrl] = useState<string | undefined>();
 
   // Loading States
@@ -913,8 +925,8 @@ export default function App() {
         if (isPdf || isImage) {
           try { localStorage.setItem('scc_shared_file_url', url || text); } catch {}
           setTimeout(() => {
-            handleTabTransition('pdf-reader');
-            addToast({ type: 'info', title: 'Shared file opened', message: isPdf ? 'PDF opened in Reader' : 'Image shared' });
+            handleTabTransition('drive');
+            addToast({ type: 'info', title: 'Shared file saved', message: isPdf ? 'Opened Google Drive for PDF access' : 'Image shared' });
           }, 500);
         } else {
           const name = title || text.slice(0, 80) || url || 'Shared note';
@@ -929,10 +941,10 @@ export default function App() {
       }
       // also handle file share via POST (if service worker forwards)
       if (params.get('fileShared') === '1') {
-        handleTabTransition('pdf-reader');
+        handleTabTransition('drive');
       }
     } catch {}
-  }, [addToast]);
+  }, [addToast, handleTabTransition]);
 
   // Offline queue retry with exponential backoff via Dexie + navigator.onLine + Background Sync
   useEffect(() => {
@@ -946,13 +958,26 @@ export default function App() {
         for (const item of queued) {
           try {
             const anyItem: any = item;
+            const normalizedAssign: Assignment = {
+              id: anyItem.id,
+              assignmentName: anyItem.assignmentName,
+              subject: anyItem.subject,
+              dueDate: anyItem.dueDate,
+              priority: anyItem.priority === 'High' || anyItem.priority === 'Low' ? anyItem.priority : 'Med',
+              status: anyItem.status === 'In Progress' || anyItem.status === 'Done' ? anyItem.status : 'Not Started',
+              sheetRowIndex: anyItem.sheetRowIndex,
+              source: anyItem.source === 'Canvas' || anyItem.source === 'Gmail' ? anyItem.source : 'Manual',
+            };
             if (anyItem._op === 'update' && anyItem.sheetRowIndex) {
-              await updateAssignmentInSheet(token, masterSheetId, anyItem.sheetRowIndex, anyItem);
+              await updateAssignmentInSheet(token, masterSheetId, normalizedAssign);
             } else if (anyItem._op === 'delete' && anyItem.sheetRowIndex) {
-              // delete not yet implemented on server — fallback to syncAll
-              await syncAllAssignmentsToSheet(token, masterSheetId, assignments);
+              if (deleteAssignmentInSheetFn) {
+                await deleteAssignmentInSheetFn(token, masterSheetId, anyItem.sheetRowIndex);
+              } else {
+                await syncAllAssignmentsToSheet(token, masterSheetId, assignments);
+              }
             } else {
-              await appendAssignmentToSheet(token, masterSheetId, item);
+              await appendAssignmentToSheet(token, masterSheetId, normalizedAssign);
             }
             await db.assignmentsQueue.delete(item.id);
           } catch (e) { console.warn('Queue retry failed', e); }
@@ -977,25 +1002,16 @@ export default function App() {
   const handleExecuteAgentAction = useCallback((action: AgentAction) => {
     switch (action.type) {
       case 'setWorkspaceLayout': {
-        const splitConfig = {
-          leftTool: action.payload.leftPane,
-          rightTool: action.payload.rightPane,
-          ratio: action.payload.ratio || '50/50',
-          activeFullscreenPane: null,
-        };
-        try {
-          localStorage.setItem('scc_splitscreen_config_v1', JSON.stringify(splitConfig));
-        } catch {}
-        handleWorkspaceTransition('splitscreen');
+        handleTabTransition(normalizeAppTab(action.payload.leftPane || 'notes-markdown'));
         break;
       }
 
       case 'injectDesmosEquation': {
-        handleWorkspaceTransition('stem');
+        handleTabTransition('desmos-graphing');
         addToast({
           type: 'success',
-          title: 'Equations Injected',
-          message: `Desmos ready with ${action.payload.expressions.length} equations plotted!`,
+          title: 'Equations Ready',
+          message: `Desmos Graphing opened (${action.payload.expressions.length} expressions prepared)!`,
         });
         break;
       }
@@ -1034,7 +1050,7 @@ export default function App() {
           ),
         };
         saveSRSDecks([newDeck, ...currentDecks]);
-        handleWorkspaceTransition('retention');
+        handleTabTransition('flashcards');
         addToast({
           type: 'success',
           title: 'SRS Deck Created',
@@ -1044,11 +1060,11 @@ export default function App() {
       }
 
       case 'generateMermaidDiagram': {
-        handleWorkspaceTransition('creation');
+        handleTabTransition('excalidraw');
         addToast({
           type: 'info',
-          title: 'Diagram Synthesized',
-          message: `Rendered "${action.payload.title}" in Visual Studio!`,
+          title: 'Visual Whiteboard Ready',
+          message: `Opened Excalidraw to sketch "${action.payload.title}"!`,
         });
         break;
       }
@@ -1068,7 +1084,7 @@ export default function App() {
           ),
         };
         saveSRSDecks([newDeck, ...currentDecks]);
-        handleWorkspaceTransition('retention');
+        handleTabTransition('flashcards');
         addToast({
           type: 'success',
           title: 'Flashcard Preview Ready',
@@ -1081,7 +1097,7 @@ export default function App() {
         try {
           localStorage.setItem('scc_agent_outline_v1', JSON.stringify({ topic: action.payload.topic, minutes: action.payload.minutes || 5, at: new Date().toISOString() }));
         } catch {}
-        handleWorkspaceTransition('creation');
+        handleTabTransition('notes-markdown');
         addToast({
           type: 'info',
           title: 'Outline Drafted',
@@ -1090,27 +1106,12 @@ export default function App() {
         break;
       }
     }
-  }, [handleWorkspaceTransition, addToast]);
+  }, [handleTabTransition, addToast]);
 
   // Save assignments locally whenever state changes
   useEffect(() => {
     saveSavedAssignments(assignments);
   }, [assignments]);
-
-  // Show Onboarding Tour dialog on initial visit
-  useEffect(() => {
-    try {
-      const tourSeen = localStorage.getItem('scc_tour_seen');
-      if (!tourSeen && onboardingDialogRef.current) {
-        const timer = setTimeout(() => {
-          onboardingDialogRef.current?.showModal();
-        }, 800);
-        return () => clearTimeout(timer);
-      }
-    } catch {
-      // ignore
-    }
-  }, []);
 
   // When demo mode is toggled, populate interactive sample data
   useEffect(() => {
@@ -1292,9 +1293,10 @@ export default function App() {
   // Token/Canvas settings live in per-uid vaults: relogin restores them,
   // switching accounts swaps bundles instead of mixing them.
   const authUidRef = useRef<string | null>(null);
+  const tokenHydrationRef = useRef<Promise<void>>(Promise.resolve());
+  const isHydratingAuthRef = useRef(false);
   useEffect(() => {
     const unsubscribe = onAuthStateChangedListener((currentUser) => {
-      setUser(currentUser);
       const uid = currentUser?.uid || null;
       const uidChanged = authUidRef.current !== uid;
       authUidRef.current = uid;
@@ -1307,7 +1309,9 @@ export default function App() {
           } catch {}
         }
         // Restore this account's Google token bundle, then cross-device grant.
-        hydrateGoogleTokenForUser(uid).then(async (restored) => {
+        // Track promise so useEffect([user]) waits for hydration before runFullSync.
+        isHydratingAuthRef.current = true;
+        tokenHydrationRef.current = hydrateGoogleTokenForUser(uid).then(async (restored) => {
           const cur = restored ?? getStoredGoogleToken();
           setGoogleToken(cur);
           if (!getValidGoogleToken()) {
@@ -1321,12 +1325,17 @@ export default function App() {
           }
         }).catch(() => {
           setGoogleToken(getStoredGoogleToken());
+        }).finally(() => {
+          isHydratingAuthRef.current = false;
         });
       } else {
         setActiveGoogleUid(null);
         setActiveCanvasUid(null);
         setGoogleToken(null);
+        tokenHydrationRef.current = Promise.resolve();
+        isHydratingAuthRef.current = false;
       }
+      setUser(currentUser);
       const curToken = getStoredGoogleToken();
       if (currentUser && (getValidGoogleToken() || hasRefreshToken() || curToken)) {
         setIsDemoMode(false);
@@ -1411,7 +1420,7 @@ export default function App() {
   }, [addToast]);
 
   // Fetch Academic Emails & Summarize with Gemini (access auto-renews silently)
-  const loadEmailsAndAlerts = useCallback(async (isSilent = false, forceResort = false, options?: FetchEmailOptions) => {
+  const loadEmailsAndAlerts = useCallback(async (isSilent = false, forceResort = false, options?: FetchEmailOptions, _retried = false) => {
     const token = await ensureFreshGoogleToken();
     if (!token) {
       setRawEmails([]);
@@ -1487,25 +1496,37 @@ export default function App() {
       }
     } catch (err: any) {
       console.error('Email fetch error:', err);
-      if (err?.isServiceDisabled) {
-        setGmailApiInfo({
-          serviceName: err.serviceName || 'Gmail API',
-          serviceId: err.serviceId || 'gmail.googleapis.com',
-          activationUrl: err.activationUrl,
-          projectId: err.projectId || (import.meta as any).env?.VITE_GOOGLE_PROJECT_ID || '',
-        });
-      } else {
-        setGmailApiInfo(null);
+      const is401 = err?.status === 401 || /401|expired/i.test(err?.message || '');
+      if (is401 && !_retried) {
+        if (await refreshGoogleAccessToken(true)) {
+          return loadEmailsAndAlerts(isSilent, forceResort, options, true);
+        }
       }
-      setEmailError(err.message || 'Could not scan live Gmail inbox.');
-      if (!isSilent) {
-        addToast({
-          type: 'warning',
-          title: err?.isServiceDisabled ? 'Gmail API Disabled' : 'Gmail Scanner',
-          message: err.message || 'Could not scan live Gmail inbox.',
-          actionLabel: err?.activationUrl ? 'Enable in Cloud' : undefined,
-          actionUrl: err?.activationUrl,
-        });
+      if (is401) {
+        await clearGoogleGrant();
+        setGoogleToken(null);
+        setEmailError('Google disconnected. Reconnect to resume Gmail sync — your cached emails are kept.');
+      } else {
+        if (err?.isServiceDisabled) {
+          setGmailApiInfo({
+            serviceName: err.serviceName || 'Gmail API',
+            serviceId: err.serviceId || 'gmail.googleapis.com',
+            activationUrl: err.activationUrl,
+            projectId: err.projectId || (import.meta as any).env?.VITE_GOOGLE_PROJECT_ID || '',
+          });
+        } else {
+          setGmailApiInfo(null);
+        }
+        setEmailError(err.message || 'Could not scan live Gmail inbox.');
+        if (!isSilent) {
+          addToast({
+            type: 'warning',
+            title: err?.isServiceDisabled ? 'Gmail API Disabled' : 'Gmail Scanner',
+            message: err.message || 'Could not scan live Gmail inbox.',
+            actionLabel: err?.activationUrl ? 'Enable in Cloud' : undefined,
+            actionUrl: err?.activationUrl,
+          });
+        }
       }
     } finally {
       if (!isSilent) setIsLoadingEmails(false);
@@ -1715,7 +1736,7 @@ export default function App() {
   }, []);
 
   // Fetch Google Classroom coursework (access auto-renews silently)
-  const loadClassroomData = useCallback(async (isSilent = false) => {
+  const loadClassroomData = useCallback(async (isSilent = false, _retried = false) => {
     const token = await ensureFreshGoogleToken();
     if (!token) {
       setClassroomError(null);
@@ -1734,14 +1755,26 @@ export default function App() {
       } catch {}
     } catch (err: any) {
       console.error('Classroom fetch error:', err);
-      const errMsg = err?.message || 'Could not fetch Google Classroom coursework.';
-      setClassroomError(errMsg);
-      if (!isSilent) {
-        addToast({
-          type: 'warning',
-          title: 'Google Classroom Sync',
-          message: errMsg,
-        });
+      const is401 = err?.status === 401 || /401|expired/i.test(err?.message || '');
+      if (is401 && !_retried) {
+        if (await refreshGoogleAccessToken(true)) {
+          return loadClassroomData(isSilent, true);
+        }
+      }
+      if (is401) {
+        await clearGoogleGrant();
+        setGoogleToken(null);
+        setClassroomError('Google disconnected. Reconnect to resume Google Classroom sync.');
+      } else {
+        const errMsg = err?.message || 'Could not fetch Google Classroom coursework.';
+        setClassroomError(errMsg);
+        if (!isSilent) {
+          addToast({
+            type: 'warning',
+            title: 'Google Classroom Sync',
+            message: errMsg,
+          });
+        }
       }
     } finally {
       if (!isSilent) setIsLoadingClassroom(false);
@@ -1755,7 +1788,7 @@ export default function App() {
   // credentials, hits the early-return below, clears the list and shows no
   // error — the silent "load none, no red flag" bug.
   const loadCanvasData = useCallback(async (isSilent = false, settingsOverride?: CanvasSettings) => {
-    const effectiveSettings = settingsOverride ?? canvasSettings;
+    const effectiveSettings = settingsOverride ?? canvasSettingsRef.current ?? canvasSettings;
     const feedUrl = effectiveSettings.calendarFeedUrl?.trim() || '';
     const apiToken = effectiveSettings.apiToken?.trim() || '';
     const apiDomain = effectiveSettings.apiDomain?.trim()
@@ -1840,7 +1873,8 @@ export default function App() {
 
       const fetched = Array.from(mergedMap.values());
 
-      const crossRef = crossReferenceCanvasWithSheet(fetched, assignments);
+      const currentAssignments = assignmentsRef.current;
+      const crossRef = crossReferenceCanvasWithSheet(fetched, currentAssignments);
       // Single-channel error policy: the inline banner is the source of truth.
       // Never toast the same message (that was the duplicate banner+toast bug),
       // and never overwrite the list with [] on failure — keep previous items.
@@ -1909,9 +1943,11 @@ export default function App() {
 
       // Auto-Sync Canvas Completion to Master Sheet Tracker
       const token = await ensureFreshGoogleToken();
+      const sheetId = masterSheetIdRef.current;
       let updatedSheetCount = 0;
+      const completedAssignmentIds = new Set<string>();
 
-      const updatedAssignments = assignments.map((sheetItem) => {
+      assignmentsRef.current.forEach((sheetItem) => {
         const sName = String(sheetItem?.assignmentName ?? '').toLowerCase().trim();
         const sSub = String(sheetItem?.subject ?? '').toLowerCase().trim();
 
@@ -1932,19 +1968,22 @@ export default function App() {
 
         if (matchingCanvas && matchingCanvas.isCompleted && sheetItem.status !== 'Done') {
           updatedSheetCount++;
+          completedAssignmentIds.add(sheetItem.id);
           const doneItem = { ...sheetItem, status: 'Done' as const };
-          if (token && masterSheetId && sheetItem.sheetRowIndex) {
-            updateAssignmentInSheet(token, masterSheetId, doneItem).catch((e) =>
+          if (token && sheetId && sheetItem.sheetRowIndex) {
+            updateAssignmentInSheet(token, sheetId, doneItem).catch((e) =>
               console.warn('Auto-sync status to sheet error:', e)
             );
           }
-          return doneItem;
         }
-        return sheetItem;
       });
 
       if (updatedSheetCount > 0) {
-        setAssignments(updatedAssignments);
+        setAssignments((prev) =>
+          prev.map((item) =>
+            completedAssignmentIds.has(item.id) ? { ...item, status: 'Done' as const } : item
+          )
+        );
       }
 
       if (!isSilent) {
@@ -1965,7 +2004,7 @@ export default function App() {
     } finally {
       if (!isSilent) setIsLoadingCanvas(false);
     }
-  }, [canvasSettings, assignments, addToast]);
+  }, [addToast]);
 
   // Comprehensive Auto-Sync Routine — debounced + AbortController + isSyncing guard
   const syncAbortRef = useRef<AbortController | null>(null);
@@ -2018,8 +2057,10 @@ export default function App() {
         setUser(resumed.user);
         setIsDemoMode(false);
         setOauthGuideModalOpen(false);
+        setActiveGoogleUid(resumed.user.uid);
         if (resumed.accessToken) {
           setGoogleToken(resumed.accessToken);
+          try { await hydrateRefreshGrant(resumed.user.uid); } catch {}
           await runFullSync(false);
           addToast({
             type: 'success',
@@ -2054,18 +2095,27 @@ export default function App() {
     }
   }, [runFullSync, addToast]);
 
-  // 1. Auto-Sync on App Startup and when User Auth resolves or changes
+  // 1. Auto-Sync on App Startup and when User Auth resolves or changes (wait for token hydration first)
   useEffect(() => {
-    runFullSync(true);
+    let cancelled = false;
+    (async () => {
+      try {
+        await tokenHydrationRef.current;
+      } catch {}
+      if (!cancelled) {
+        await runFullSync(true);
+      }
+    })();
+    return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-  // 1b. Real-Time Auto-Sync on Google Token Acquisition or Refresh
+  // 1b. Real-Time Auto-Sync on Google Token Acquisition or Refresh (skip redundant fire during initial hydration)
   useEffect(() => {
     const handleTokenUpdated = (e: any) => {
       const updated = e.detail?.token ?? getStoredGoogleToken();
       setGoogleToken(updated);
-      if (updated) {
+      if (updated && !isHydratingAuthRef.current) {
         runFullSync(false);
       }
     };
@@ -2153,6 +2203,37 @@ export default function App() {
   const handleGoogleSignIn = async (requestWorkspace = true) => {
     setIsLoggingIn(true);
     try {
+      // Already signed in (reconnect / Connect Workspace inside app): use single offline-grant popup
+      if (requestWorkspace && user && isOfflineGrantSupported()) {
+        setOauthGuideModalOpen(false);
+        setOauthDiagnosis(null);
+        setCalendarError(null);
+        setEmailError(null);
+        setSheetError(null);
+        setDriveError(null);
+        setCanvasError(null);
+        setClassroomError(null);
+        const offlineToken = await requestOfflineGrant();
+        if (!offlineToken) {
+          addToast({
+            type: 'info',
+            title: 'Sign-In Cancelled',
+            message: 'Workspace authorization was cancelled.',
+            duration: 5000,
+          });
+          return;
+        }
+        setGoogleToken(offlineToken);
+        try { await hydrateRefreshGrant(user.uid); } catch {}
+        await runFullSync(false);
+        addToast({
+          type: 'success',
+          title: 'Google Workspace Connected',
+          message: `Connected as ${user.displayName || user.email || 'User'}. Permanent sync enabled — no more hourly reconnects.`,
+        });
+        return;
+      }
+
       const result = await signInWithGoogle({ requestWorkspace });
       if (!result) {
         // User closed or dismissed the popup - clean exit
@@ -2180,20 +2261,14 @@ export default function App() {
 
       if (result.accessToken) {
         setGoogleToken(result.accessToken);
-        // One-time upgrade: trade the 1-hour popup token for a permanent
-        // offline grant (silent refresh forever). Dismiss = keep hourly token.
+        // Silently restore cross-device offline grant if one exists (avoid second consent popup)
         let permanent = false;
         try {
-          if (isOfflineGrantSupported()) {
-            const offlineToken = await requestOfflineGrant();
-            if (offlineToken) {
-              setGoogleToken(offlineToken);
-              permanent = true;
-              try { await hydrateRefreshGrant(result.user?.uid); } catch {}
-            }
+          if (result.user?.uid) {
+            permanent = await hydrateRefreshGrant(result.user.uid);
           }
         } catch (grantErr) {
-          console.warn('Offline grant unavailable, keeping hourly token:', grantErr);
+          console.warn('Offline grant check skipped, keeping hourly token:', grantErr);
         }
         await runFullSync(false);
         addToast({
@@ -2221,20 +2296,46 @@ export default function App() {
   const handleConnectGmail = async () => {
     setIsLoggingIn(true);
     try {
+      // Single consent popup when already Firebase-signed-in
+      if (user && isOfflineGrantSupported()) {
+        const offlineToken = await requestOfflineGrant({ gmail: true });
+        if (!offlineToken) {
+          addToast({
+            type: 'info',
+            title: 'Gmail Connection Cancelled',
+            message: 'Gmail permission popup was closed.',
+            duration: 4000,
+          });
+          return;
+        }
+        setGoogleToken(offlineToken);
+        setEmailError(null);
+        try { await hydrateRefreshGrant(user.uid); } catch {}
+        await loadEmailsAndAlerts(false);
+        addToast({
+          type: 'success',
+          title: 'Gmail Academic Connected',
+          message: 'Academic email scanning is now active — permanently, no hourly reconnects.',
+        });
+        return;
+      }
+
       const result = await signInWithGoogle({ requestWorkspace: true, includeGmail: true });
+      if (result?.user) {
+        setUser(result.user);
+        setIsDemoMode(false);
+        setActiveGoogleUid(result.user.uid);
+      }
       if (result?.accessToken) {
         setGoogleToken(result.accessToken);
+        setEmailError(null);
         let permanent = false;
         try {
-          if (isOfflineGrantSupported()) {
-            const offlineToken = await requestOfflineGrant({ gmail: true });
-            if (offlineToken) {
-              setGoogleToken(offlineToken);
-              permanent = true;
-            }
+          if (result.user?.uid) {
+            permanent = await hydrateRefreshGrant(result.user.uid);
           }
         } catch (grantErr) {
-          console.warn('Offline grant unavailable, keeping hourly token:', grantErr);
+          console.warn('Offline grant check skipped, keeping hourly token:', grantErr);
         }
         await loadEmailsAndAlerts(false);
         addToast({
@@ -2693,14 +2794,12 @@ export default function App() {
       );
 
       // Trigger celebration confetti — respect prefers-reduced-motion
-      if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: no-preference)').matches) {
-        confetti({
-          particleCount: 120,
-          spread: 80,
-          origin: { y: 0.65 },
-          colors: ['#3b82f6', '#10b981', '#6366f1', '#f59e0b'],
-        });
-      }
+      void celebrateWin({
+        particleCount: 120,
+        spread: 80,
+        origin: { y: 0.65 },
+        colors: ['#3b82f6', '#10b981', '#6366f1', '#f59e0b'],
+      });
 
       addToast({
         type: 'success',
@@ -2754,14 +2853,14 @@ export default function App() {
       else if (e.key === '3') handleTabTransition('tracker');
       else if (e.key === '4') handleTabTransition('gmail');
       else if (e.key === '5') handleTabTransition('drive');
-      else if (e.key === '6') handleTabTransition('splitscreen');
+      else if (e.key === '6') handleTabTransition('notes-markdown');
       else if ((e.key === 'r' || e.key === 'R') && shortcutSettings.keys.sync) handleRefreshAll();
       else if (e.key === '?' && shortcutSettings.keys.help) setAccountSettingsOpen(true);
       else if (e.key === 'Escape') { if (zenFocusMode) setZenFocusMode(false); setAccountSettingsOpen(false); setAiChatOpen(false); setCommandPaletteOpen(false); }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleRefreshAll, shortcutSettings, handleWorkspaceTransition, zenFocusMode]);
+  }, [handleRefreshAll, shortcutSettings, handleTabTransition, zenFocusMode]);
 
   if (!user && !isDemoMode) {
     return (
@@ -2796,7 +2895,7 @@ export default function App() {
               setPrivacyOpen(false);
             }}
             onDeleteAll={async () => {
-              try { await clearGoogleGrant(user?.uid || null); } catch {}
+              try { await clearGoogleGrant(null); } catch {}
               try { await db.delete(); } catch {}
               try { localStorage.clear(); sessionStorage.clear(); } catch {}
               try { await signOutUser(); } catch {}
@@ -2920,44 +3019,7 @@ export default function App() {
           {activeTab !== 'dashboard' && (
             <ErrorBoundary fallback={<header className="h-12 bg-white dark:bg-[#141413] border-b border-[#E8E6DC] dark:border-[#2C2B27] px-4 sm:px-6 flex items-center justify-between z-20 text-xs font-semibold text-[#5E5D59]"><button onClick={() => window.dispatchEvent(new CustomEvent('scc-navigate', { detail: 'dashboard' }))} className="hover:text-[#C96442]">StudentOS / Dashboard</button></header>}>
             <Navbar
-              activeTabLabel={
-                {
-                  canvas: 'Canvas LMS',
-                  radar: 'Daily Schedule',
-                  tracker: 'Assignment Tracker',
-                  gmail: 'Gmail AI Scanner',
-                  drive: 'Google Drive',
-                  classroom: 'Google Classroom',
-                  moodle: 'Moodle LMS',
-                  notebooklm: 'Google NotebookLM',
-                  flashcards: 'Quizlet & Anki Flashcards',
-                  quizlet: 'Quizlet & Anki Flashcards',
-                  anki: 'Quizlet & Anki Flashcards',
-                  canva: 'Canva',
-                  'desmos-graphing': 'Desmos Graphing',
-                  'desmos-scientific': 'Desmos Scientific',
-                  geogebra: 'GeoGebra Math Suite',
-                  phet: 'PhET Simulations',
-                  'scribble-latex': 'Photo Math OCR',
-                  'wolfram-symbolab': 'Wolfram Alpha & Symbolab',
-                  wolfram: 'Wolfram Alpha & Symbolab',
-                  excalidraw: 'Excalidraw Whiteboard',
-                  mermaid: 'Mermaid Flowcharts',
-                  viva: 'Oral Exam Practice',
-                  pomodoro: 'Focus Station',
-                  'notes-markdown': 'Markdown Notes',
-                  'pdf-reader': 'PDF Reader & Annotator',
-                  'quiz-generator': 'AI Practice Quiz Generator',
-                  'periodic-table': 'Interactive Periodic Table',
-                  'unit-converter': 'Scientific Unit Converter',
-                  arxiv: 'arXiv Research Papers',
-                  'open-library': 'Open Library & Textbooks',
-                  rubric: 'Essay Rubric Checker',
-                  feynman: 'Feynman Concept Explainer',
-                  splitscreen: 'Dual Split Screen',
-                  dashboard: 'Academic Dashboard',
-                }[activeTab] || 'Workspace'
-              }
+              activeTabLabel={TAB_LABELS[activeTab] || 'Workspace'}
               onOpenCommandPalette={() => setCommandPaletteOpen(true)}
               onToggleAiChat={() => setAiChatOpen(!aiChatOpen)}
               notifications={notifications}
@@ -3041,7 +3103,7 @@ export default function App() {
                 {activeTab === 'canvas' && (
                   <CanvasSyncTab
                     settings={canvasSettings}
-                    onSaveSettings={(newSettings) => {
+                    onSaveSettings={(newSettings: CanvasSettings) => {
                       setCanvasSettings(newSettings);
                       saveCanvasSettings(newSettings, user?.uid || null);
                     }}
@@ -3065,7 +3127,7 @@ export default function App() {
                     events={calendarEvents}
                     isLoadingEvents={isLoadingEvents}
                     onRefreshEvents={loadCalendarEvents}
-                    onOpenScheduleModal={(evt) => {
+                    onOpenScheduleModal={(evt?: Partial<CalendarEvent>) => {
                       setSelectedEventForSchedule(evt || null);
                       setSelectedAssignmentForSchedule(null);
                       setScheduleModalOpen(true);
@@ -3079,6 +3141,11 @@ export default function App() {
                     calendarApiInfo={calendarApiInfo}
                     pendingAssignments={assignments.filter((a) => a.status !== 'Done')}
                     onAddStudyBlock={handleScheduleStudyBlock}
+                    {...({
+                      initialMode: radarInitialMode,
+                      classroomAssignments,
+                      emailAlerts: allAlerts,
+                    } as Record<string, any>)}
                   />
                 )}
 
@@ -3091,7 +3158,7 @@ export default function App() {
                     onRefresh={loadSheetAssignments}
                     onAddAssignment={handleAddAssignment}
                     onUpdateStatus={handleUpdateStatus}
-                    onScheduleStudyBlock={(assignment) => {
+                    onScheduleStudyBlock={(assignment: Assignment) => {
                       setSelectedAssignmentForSchedule(assignment);
                       setSelectedEventForSchedule(null);
                       setScheduleModalOpen(true);
@@ -3104,7 +3171,7 @@ export default function App() {
                     onConfirmDue={handleConfirmDue}
                     sheetError={sheetError}
                     sheetApiInfo={sheetApiInfo}
-                    onOpenLibrarySearch={(q) => {
+                    onOpenLibrarySearch={(q: string) => {
                       try { localStorage.setItem('scc_openlib_prefill_v1', q); } catch {}
                       handleTabTransition('open-library');
                     }}
@@ -3117,8 +3184,10 @@ export default function App() {
                     onForceAIRead={handleForceAIRead}
                     rawEmails={rawEmails}
                     isLoadingEmails={isLoadingEmails}
-                    onRefreshEmails={(forceResort, options) => loadEmailsAndAlerts(false, forceResort ?? true, options)}
-                    onOpenQuickDraft={(email, alert) => {
+                    onRefreshEmails={(forceResort?: boolean, options?: FetchEmailOptions) =>
+                      loadEmailsAndAlerts(false, forceResort ?? true, options)
+                    }
+                    onOpenQuickDraft={(email?: EmailMessage, alert?: EmailAlert) => {
                       setDraftInitialEmail(email || null);
                       setDraftInitialAlert(alert || null);
                       setQuickDraftModalOpen(true);
@@ -3157,30 +3226,12 @@ export default function App() {
                   />
                 )}
 
-                {activeTab === 'moodle' && (
-                  <MoodlePanel
-                    onSyncToSheet={handleSyncCanvasToSheet}
-                  />
-                )}
-
-                {activeTab === 'notebooklm' && (
-                  <NotebookLMStudioTab />
-                )}
-
-                {(activeTab === 'flashcards' || activeTab === 'quizlet' || activeTab === 'anki') && (
+                {activeTab === 'flashcards' && (
                   <FlashcardStudioTab />
-                )}
-
-                {activeTab === 'canva' && (
-                  <CanvaStudioTab />
                 )}
 
                 {activeTab === 'desmos-graphing' && (
                   <DesmosWorkspace mode="graphing" />
-                )}
-
-                {activeTab === 'desmos-scientific' && (
-                  <DesmosWorkspace mode="scientific" />
                 )}
 
                 {activeTab === 'geogebra' && (
@@ -3195,44 +3246,12 @@ export default function App() {
                   <ExcalidrawWorkspace />
                 )}
 
-                {activeTab === 'mermaid' && (
-                  <MermaidWorkspace />
-                )}
-
-                {(activeTab === 'wolfram' || activeTab === 'wolfram-symbolab') && (
-                  <WolframWorkspace />
-                )}
-
-                {activeTab === 'scribble-latex' && (
-                  <PhotoMathWorkspace />
-                )}
-
-                {activeTab === 'rubric' && (
-                  <RubricCheckerWorkspace />
-                )}
-
-                {activeTab === 'feynman' && (
-                  <FeynmanWorkspace />
-                )}
-
-                {activeTab === 'pdf-reader' && (
-                  <PdfReaderWorkspace />
-                )}
-
-                {activeTab === 'quiz-generator' && (
-                  <QuizGeneratorWorkspace />
-                )}
-
                 {activeTab === 'pomodoro' && (
-                  <PomodoroWorkspace />
-                )}
-
-                {activeTab === 'periodic-table' && (
-                  <PeriodicTableWorkspace />
-                )}
-
-                {activeTab === 'unit-converter' && (
-                  <UnitConverterWorkspace />
+                  <PomodoroWorkspace
+                    {...(pomodoroFocusMinutes
+                      ? ({ initialMinutes: pomodoroFocusMinutes } as Record<string, any>)
+                      : {})}
+                  />
                 )}
 
                 {activeTab === 'arxiv' && (
@@ -3243,186 +3262,7 @@ export default function App() {
                   <OpenLibraryWorkspace />
                 )}
 
-                {activeTab === 'citation-vault' && (
-                  <CitationVaultWorkspace />
-                )}
-
-                {activeTab === 'timetable' && (
-                  <TimetableWorkspace />
-                )}
-
-                {activeTab === 'scholarship-tracker' && (
-                  <ScholarshipTrackerWorkspace />
-                )}
-
-                {activeTab === 'group-project' && (
-                  <GroupProjectWorkspace />
-                )}
-
-                {activeTab === 'peer-qa' && (
-                  <PeerQAWorkspace />
-                )}
-
-                {activeTab === 'notion-import' && (
-                  <NotionImportWorkspace />
-                )}
-
-                {activeTab === 'deadline-gantt' && (
-                  <DeadlineGanttWorkspace assignments={assignments} canvasAssignments={canvasAssignments} />
-                )}
-
-                {activeTab === 'ai-planner' && (
-                  <AIPlannerWorkspace assignments={assignments} canvasAssignments={canvasAssignments} classroomAssignments={classroomAssignments} emailAlerts={allAlerts} meetings={calendarEvents} />
-                )}
-
-                {activeTab === 'grade-forecaster' && (
-                  <Suspense fallback={<div className="p-6 text-xs">Loading Grade Forecaster…</div>}>
-                    <GradeForecasterWorkspace />
-                  </Suspense>
-                )}
-                {activeTab === 'exam-mode' && (
-                  <Suspense fallback={<div className="p-6 text-xs">Loading Exam Mode…</div>}>
-                    <ExamModeWorkspace />
-                  </Suspense>
-                )}
-                {activeTab === 'internship-tracker' && (
-                  <Suspense fallback={<div className="p-6 text-xs">Loading…</div>}>
-                    <InternshipTrackerWorkspace />
-                  </Suspense>
-                )}
-                {activeTab === 'budget-tracker' && (
-                  <Suspense fallback={<div className="p-6 text-xs">Loading…</div>}>
-                    <BudgetWorkspace />
-                  </Suspense>
-                )}
-                {activeTab === 'habit-sleep' && (
-                  <Suspense fallback={<div className="p-6 text-xs">Loading…</div>}>
-                    <HabitSleepWorkspace />
-                  </Suspense>
-                )}
-                {activeTab === 'timetable-optimizer' && (
-                  <Suspense fallback={<div className="p-6 text-xs">Loading…</div>}>
-                    <TimetableOptimizerWorkspace />
-                  </Suspense>
-                )}
-                {activeTab === 'code-runner' && (
-                  <Suspense fallback={<div className="p-6 text-xs">Loading…</div>}>
-                    <CodeRunnerWorkspace />
-                  </Suspense>
-                )}
-                {activeTab === 'resume-builder' && (
-                  <Suspense fallback={<div className="p-6 text-xs">Loading…</div>}>
-                    <ResumeBuilderWorkspace />
-                  </Suspense>
-                )}
-                {activeTab === 'presentation-coach' && (
-                  <Suspense fallback={<div className="p-6 text-xs">Loading…</div>}>
-                    <PresentationCoachWorkspace />
-                  </Suspense>
-                )}
-                {activeTab === 'lab-report' && (
-                  <Suspense fallback={<div className="p-6 text-xs">Loading…</div>}>
-                    <LabReportWorkspace />
-                  </Suspense>
-                )}
-                {activeTab === 'essay-outliner' && (
-                  <Suspense fallback={<div className="p-6 text-xs">Loading…</div>}>
-                    <EssayOutlinerWorkspace />
-                  </Suspense>
-                )}
-                {activeTab === 'image-occlusion' && (
-                  <Suspense fallback={<div className="p-6 text-xs">Loading…</div>}>
-                    <ImageOcclusionWorkspace />
-                  </Suspense>
-                )}
-                {activeTab === 'fsrs' && (
-                  <Suspense fallback={<div className="p-6 text-xs">Loading…</div>}>
-                    <FSRSSchedulerInfo />
-                  </Suspense>
-                )}
-                {activeTab === 'viva-voice' && (
-                  <Suspense fallback={<div className="p-6 text-xs">Loading…</div>}>
-                    <VivaWorkspace />
-                  </Suspense>
-                )}
-                {activeTab === 'language-lab' && (
-                  <Suspense fallback={<div className="p-6 text-xs">Loading…</div>}>
-                    <LanguageLabWorkspace />
-                  </Suspense>
-                )}
-                {activeTab === 'zotero-import' && (
-                  <Suspense fallback={<div className="p-6 text-xs">Loading…</div>}>
-                    <ZoteroImportWorkspace />
-                  </Suspense>
-                )}
-                {activeTab === 'paper-chat' && (
-                  <Suspense fallback={<div className="p-6 text-xs">Loading…</div>}>
-                    <PaperChatWorkspace />
-                  </Suspense>
-                )}
-                {activeTab === 'dataset-finder' && (
-                  <Suspense fallback={<div className="p-6 text-xs">Loading…</div>}>
-                    <DatasetFinderWorkspace />
-                  </Suspense>
-                )}
-                {activeTab === 'study-rooms' && (
-                  <Suspense fallback={<div className="p-6 text-xs">Loading…</div>}>
-                    <div className="max-w-2xl mx-auto"><StudyRoomPanel /></div>
-                  </Suspense>
-                )}
-                {activeTab === 'teacher-view' && (
-                  <Suspense fallback={<div className="p-6 text-xs">Loading…</div>}>
-                    <div className="max-w-2xl mx-auto"><TeacherShareView upcoming={assignments.slice(0,5).map((a:any)=>`${a.assignmentName} — due ${a.dueDate}`)} focusMin={120} streak={3} /></div>
-                  </Suspense>
-                )}
-                {activeTab === 'lecture-copilot' && (
-                  <Suspense fallback={<div className="p-6 text-xs">Loading…</div>}>
-                    <div className="max-w-2xl mx-auto"><LectureCopilot /></div>
-                  </Suspense>
-                )}
-                {activeTab === 'api-docs' && (
-                  <Suspense fallback={<div className="p-6 text-xs">Loading…</div>}>
-                    <div className="max-w-2xl mx-auto"><ApiDocsPanel /></div>
-                  </Suspense>
-                )}
-                {activeTab === 'extension' && (
-                  <Suspense fallback={<div className="p-6 text-xs">Loading…</div>}>
-                    <div className="max-w-2xl mx-auto"><ExtensionHelper /></div>
-                  </Suspense>
-                )}
-                {activeTab === 'model-training' && (
-                  <Suspense fallback={<div className="p-6 text-xs">Loading Model Lab…</div>}>
-                    <ModelTrainingWorkspace />
-                  </Suspense>
-                )}
-                {activeTab === 'few-shot-lab' && (
-                  <Suspense fallback={<div className="p-6 text-xs">Loading Few-Shot Lab…</div>}>
-                    <FewShotLabWorkspace />
-                  </Suspense>
-                )}
-                {activeTab === 'competition-dossier' && (
-                  <Suspense fallback={<div className="p-6 text-xs">Loading Dossier…</div>}>
-                    <CompetitionDossierWorkspace />
-                  </Suspense>
-                )}
-
-                {activeTab === 'stem' && (
-                  <StemLabWorkspace />
-                )}
-
-                {activeTab === 'creation' && (
-                  <CreationStudioWorkspace />
-                )}
-
-                {(activeTab === 'viva' || activeTab === 'retention') && (
-                  <RetentionVaultWorkspace
-                    googleToken={googleToken || undefined}
-                    isGoogleConnected={isGoogleConnected}
-                    onStartFocus={() => setZenFocusMode(true)}
-                  />
-                )}
-
-                {(activeTab === 'notes-markdown' || activeTab === 'documents') && (
+                {activeTab === 'notes-markdown' && (
                   <DocumentHubWorkspace
                     recentFiles={recentFiles}
                     isLoadingFiles={isLoadingFiles}
@@ -3432,18 +3272,14 @@ export default function App() {
                   />
                 )}
 
-                {activeTab === 'splitscreen' && (
-                  <SplitScreenStudio />
-                )}
-
                 {activeTab === 'dashboard' && (
                   <div className="space-y-6">
                     {/* Home hierarchy fix (v2.5.0): greeting + Today Plan stay above the fold — checklist demoted below DashboardHome */}
                     <DashboardHome
                       assignments={assignments}
                       onToggleAssignment={handleToggleAssignmentById}
-                      onNavigateWorkspace={(ws) => handleTabTransition(ws)}
-                      onOpenQuickDraft={(emailAlert) => {
+                      onNavigateWorkspace={(ws: string) => handleTabTransition(ws)}
+                      onOpenQuickDraft={(emailAlert?: EmailAlert) => {
                         if (emailAlert) {
                           setDraftInitialEmail(emailAlert.rawEmail || null);
                           setDraftInitialAlert(emailAlert);
@@ -3453,7 +3289,7 @@ export default function App() {
                         }
                         setQuickDraftModalOpen(true);
                       }}
-                      onOpenAiSuite={(tab) => {
+                      onOpenAiSuite={(tab?: 'planner' | 'syllabus' | 'quiz' | 'grades') => {
                         setAiSuiteTab(tab || 'planner');
                         setAiSuiteOpen(true);
                       }}
@@ -3626,14 +3462,14 @@ export default function App() {
       <CommandPalette
         isOpen={commandPaletteOpen}
         onClose={() => setCommandPaletteOpen(false)}
-        onSelectWorkspace={handleWorkspaceTransition}
+        onSelectWorkspace={handleTabTransition}
         onOpenQuickDraft={() => {
           setDraftInitialEmail(null);
           setDraftInitialAlert(null);
           setQuickDraftModalOpen(true);
         }}
         onOpenNewAssignment={() => {
-          handleWorkspaceTransition('academic');
+          handleTabTransition('tracker');
         }}
         onToggleAiChat={() => setAiChatOpen(!aiChatOpen)}
         onToggleDarkMode={toggleDarkMode}
@@ -3702,8 +3538,8 @@ export default function App() {
         isOpen={aiSuiteOpen}
         onClose={() => setAiSuiteOpen(false)}
         assignments={assignments}
-        onAddAssignments={(newItems) => {
-          newItems.forEach((item) => {
+        onAddAssignments={(newItems: Partial<Assignment>[]) => {
+          newItems.forEach((item: Partial<Assignment>) => {
             handleAddAssignment({
               assignmentName: item.assignmentName || 'Assignment',
               subject: item.subject || 'General',
@@ -3726,76 +3562,6 @@ export default function App() {
       />
       )}
 
-      {/* Declarative Native <dialog> Onboarding Tour */}
-      <dialog
-        ref={onboardingDialogRef}
-        id="onboarding-tour-dialog"
-        className="backdrop:bg-black/60 backdrop:backdrop-blur-xs rounded-2xl p-0 border border-[#E8E6DC] dark:border-[#2C2B27] shadow-2xl bg-[#F5F4ED] dark:bg-[#1A1917] text-[#141413] dark:text-[#F5F4ED] max-w-lg w-full m-auto overflow-hidden"
-      >
-        <div className="p-6 space-y-5">
-          <div className="flex items-center justify-between pb-3 border-b border-[#E8E6DC] dark:border-[#2C2B27]">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-tr from-amber-500 to-[#C96442] rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-md shadow-[#C96442]/30">
-                S
-              </div>
-              <div>
-                <h3 className="text-base font-bold leading-tight">Welcome to Student Command Center</h3>
-                <p className="text-xs text-[#5E5D59]">Eye-friendly, distraction-free academic workspace</p>
-              </div>
-            </div>
-            <button
-              onClick={() => {
-                localStorage.setItem('scc_tour_seen', 'true');
-                onboardingDialogRef.current?.close();
-              }}
-              className="p-1.5 text-[#8C897F] hover:text-[#141413] dark:hover:text-[#F5F4ED] rounded-lg cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-
-          <div className="space-y-3 text-xs">
-            <div className="p-3 rounded-xl bg-white dark:bg-[#252422] border border-[#E8E6DC] dark:border-[#2C2B27] flex items-start gap-3">
-              <span className="p-1.5 rounded-lg bg-[#C96442]/15 text-[#C96442] shrink-0 font-bold">1</span>
-              <div>
-                <strong className="text-[#141413] dark:text-[#F5F4ED] block font-semibold">Canvas LMS Direct Sync</strong>
-                <p className="text-[#5E5D59] mt-0.5">Filter unfinished vs. completed homework, open quizzes directly in Canvas, or submit files from Google Drive.</p>
-              </div>
-            </div>
-
-            <div className="p-3 rounded-xl bg-white dark:bg-[#252422] border border-[#E8E6DC] dark:border-[#2C2B27] flex items-start gap-3">
-              <span className="p-1.5 rounded-lg bg-[#C96442]/15 text-[#C96442] shrink-0 font-bold">2</span>
-              <div>
-                <strong className="text-[#141413] dark:text-[#F5F4ED] block font-semibold">Unified Daily Timeline</strong>
-                <p className="text-[#5E5D59] mt-0.5">Your Google Calendar classes, study focus blocks, and today's Canvas deadlines merged in chronological order.</p>
-              </div>
-            </div>
-
-            <div className="p-3 rounded-xl bg-white dark:bg-[#252422] border border-[#E8E6DC] dark:border-[#2C2B27] flex items-start gap-3">
-              <span className="p-1.5 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 shrink-0 font-bold">3</span>
-              <div>
-                <strong className="text-[#141413] dark:text-[#F5F4ED] block font-semibold">Anti-Eyestrain Linen Theme</strong>
-                <p className="text-[#5E5D59] mt-0.5">Warm cream #F5F4ED light and charcoal #141413 dark with terracotta accent eliminate glare during late study sessions.</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="pt-2 flex items-center justify-between gap-3">
-            <span className="text-[11px] text-[#8C897F] font-mono">Press 1-5 for fast keyboard switching</span>
-            <button
-              onClick={() => {
-                localStorage.setItem('scc_tour_seen', 'true');
-                onboardingDialogRef.current?.close();
-              }}
-              className="px-5 py-2 bg-[#C96442] hover:bg-[#A94E33] text-white text-xs font-bold rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
-            >
-              <span>Get Started</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </div>
-      </dialog>
-
       {/* Wikipedia Quick Look Modal — gated so its chunk only loads when opened */}
       {isWikipediaModalOpen && (
       <WikipediaLookupModal
@@ -3812,16 +3578,6 @@ export default function App() {
         onClose={() => setIsStudyCardOpen(false)}
         userName={user?.displayName || 'Student'}
         completedTasksCount={assignments.filter((a) => a.status === 'Done').length}
-      />
-      )}
-
-      {/* 1-Page Academic Portfolio Export Modal — gated so its chunk only loads when opened */}
-      {isPortfolioExportOpen && (
-      <PortfolioExportModal
-        isOpen={isPortfolioExportOpen}
-        onClose={() => setIsPortfolioExportOpen(false)}
-        userName={user?.displayName || 'Student'}
-        completedAssignments={assignments.filter((a) => a.status === 'Done')}
       />
       )}
 
@@ -3850,9 +3606,19 @@ export default function App() {
         onClose={() => setIsStudyPlanOpen(false)}
         assignments={assignments}
         onAddStudyBlock={handleScheduleStudyBlock}
-        onStartFocusSession={(mins) => {
-          setActiveTab('pomodoro');
+        onStartFocusSession={(mins: number) => {
+          setPomodoroFocusMinutes(mins);
+          try {
+            localStorage.setItem('scc_pomo_preset_mins_v1', String(mins));
+            window.dispatchEvent(new CustomEvent('scc-pomo-start', { detail: { minutes: mins } }));
+          } catch {}
+          handleTabTransition('pomodoro');
           setZenFocusMode(true);
+          addToast({
+            type: 'info',
+            title: `${mins}-Minute Focus Session`,
+            message: `Pomodoro timer set to ${mins} minutes — press Start when ready.`,
+          });
         }}
       />
       )}

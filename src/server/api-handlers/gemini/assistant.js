@@ -1,42 +1,12 @@
-import { GoogleGenAI } from "@google/genai";
-import { SERVER_MODELS } from "./models.js";
+import { applyApiCors } from "../cors.js";
+import { generateWithModelFallback, sendAiFailure } from "./generate.js";
 import { TUTOR_POLICY, HOMEWORK_DUMP_REMINDER, isHomeworkDump } from "./tutorPolicy.js";
 
-let genAI = null;
-function getGenAI() {
-  if (!genAI) {
-    const apiKey = process.env.GEMINI_API_KEY || "";
-    genAI = new GoogleGenAI({ apiKey });
-  }
-  return genAI;
-}
-
-const CANDIDATE_MODELS = SERVER_MODELS;
-
-async function generateWithModelFallback(params) {
-  const ai = getGenAI();
-  let lastError = null;
-  for (const model of CANDIDATE_MODELS) {
-    try {
-      const response = await ai.models.generateContent({
-        model,
-        contents: params.contents,
-        config: params.config,
-      });
-      return response;
-    } catch (err) {
-      lastError = err;
-      console.warn(`Model ${model} attempt failed: ${err.message || err}. Trying next fallback...`);
-    }
-  }
-  throw lastError || new Error("All candidate Gemini models failed.");
-}
-
 export default async function handler(req, res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  if (req.method === "OPTIONS") return res.status(200).end();
+  if (applyApiCors(req, res, "POST, OPTIONS")) return;
+  if (req.method && req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed", code: "method_not_allowed" });
+  }
 
   try {
     const { messages, context } = req.body || {};
@@ -82,23 +52,21 @@ ${JSON.stringify(context || {}, null, 2)}`;
       });
     }
 
-    const response = await generateWithModelFallback({
+    const { response } = await generateWithModelFallback({
       contents: formattedContents,
       config: {
         systemInstruction,
       },
     });
 
-    res.status(200).json({
-      reply:
-        response.text ||
-        "I'm here to help you organize and conquer your school tasks!",
-    });
+    const reply = String(response?.text || "").trim();
+    if (!reply) {
+      throw new Error("Empty reply from AI model");
+    }
+
+    return res.status(200).json({ reply });
   } catch (err) {
     console.error("Study assistant error:", err);
-    res.status(200).json({
-      reply:
-        "I am ready to help you plan your study blocks, organize your assignments, and draft emails to your teachers! Let me know which task or class you want to tackle first.",
-    });
+    return sendAiFailure(res, "Study assistant failed", err);
   }
 }

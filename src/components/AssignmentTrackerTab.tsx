@@ -20,6 +20,7 @@ import {
   List,
   ArrowRight,
   Brain,
+  AlertTriangle,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Assignment, PriorityLevel, AssignmentStatus, ApiEnablementInfo } from '../types';
@@ -143,9 +144,11 @@ export const AssignmentTrackerTab: React.FC<AssignmentTrackerTabProps> = ({
   const [effortEstimates, setEffortEstimates] = useState<Record<string, EffortEstimate>>({});
   const [isEstimating, setIsEstimating] = useState(false);
   const [sortByAIFocus, setSortByAIFocus] = useState(false);
+  const [estimateError, setEstimateError] = useState<string | null>(null);
 
   const handleRunAIEstimates = async () => {
     setIsEstimating(true);
+    setEstimateError(null);
     try {
       const estimates = await estimateAssignmentEffort(assignments);
       const map: Record<string, EffortEstimate> = {};
@@ -154,8 +157,9 @@ export const AssignmentTrackerTab: React.FC<AssignmentTrackerTabProps> = ({
       });
       setEffortEstimates(map);
       setSortByAIFocus(true);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error running AI estimates:', err);
+      setEstimateError(err?.message || 'Could not estimate assignment effort. Configure Gemini or Groq in Settings and try again.');
     } finally {
       setIsEstimating(false);
     }
@@ -364,6 +368,17 @@ export const AssignmentTrackerTab: React.FC<AssignmentTrackerTabProps> = ({
       )}
       {sheetApiInfo && (
         <ApiActivationBanner info={sheetApiInfo} onRetry={onRefresh} compact />
+      )}
+      {estimateError && (
+        <div className="p-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800 rounded-xl flex items-center justify-between gap-2 text-xs text-rose-800 dark:text-rose-200" role="alert">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+            <span>{estimateError}</span>
+          </div>
+          <button onClick={() => setEstimateError(null)} className="px-2 py-0.5 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-900/50 font-semibold cursor-pointer">
+            Dismiss
+          </button>
+        </div>
       )}
       {/* Top Header — decluttered: stats + search + 4 primary actions. Filters, export, sheet link live in the Filters panel below. */}
       <div className="bg-white dark:bg-[#1A1917] rounded-2xl border border-[#E8E6DC] dark:border-[#2C2B27] p-3 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">

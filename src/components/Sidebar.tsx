@@ -20,7 +20,7 @@ const L = (vi: string, en: string) => (getLang() === 'vi' ? vi : en);
 const MAIN_FLOW: Array<{ id: string; vi: string; en: string; descVi: string; descEn: string; badgeKey?: string }> = [
   { id: 'gmail', vi: 'Hộp thư bài tập', en: 'School inbox', descVi: 'Gmail + Classroom, AI đọc', descEn: 'Gmail + Classroom, AI-read', badgeKey: 'gmail' },
   { id: 'tracker', vi: 'Bài tập & hạn nộp', en: 'Assignments & due', descVi: 'Đã xác nhận / chưa xác nhận', descEn: 'Confirmed / unconfirmed', badgeKey: 'tracker' },
-  { id: 'ai-planner', vi: 'Lịch học tuần', en: 'Weekly plan', descVi: 'AI xếp, bạn khoá', descEn: 'AI plans, you lock' },
+  { id: 'radar', vi: 'Lịch học tuần', en: 'Weekly plan', descVi: 'Lịch ngày & AI xếp lịch', descEn: 'Daily agenda & AI planner', badgeKey: 'schedule' },
   { id: 'classroom', vi: 'Google Classroom', en: 'Google Classroom', descVi: 'Bài tập & thông báo', descEn: 'Coursework & posts' },
   { id: 'canvas', vi: 'Canvas', en: 'Canvas', descVi: 'Bài tập Canvas', descEn: 'Canvas assignments', badgeKey: 'canvas' },
 ];
@@ -106,7 +106,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const APP_META: Record<string, { label: string; desc: string; key?: string; badgeKey?: string }> = {
     canvas: { label: 'Canvas LMS', desc: 'Assignments & grades', key: '1', badgeKey: 'canvas' },
-    radar: { label: 'Daily Schedule', desc: 'Visual schedule & blocks', key: '2', badgeKey: 'schedule' },
+    radar: { label: 'Daily Schedule & AI Planner', desc: 'Agenda & study planner', key: '2', badgeKey: 'schedule' },
     tracker: { label: 'Assignment Tracker', desc: 'Master checklist & sync', key: '3', badgeKey: 'tracker' },
     gmail: { label: 'Gmail AI Scanner', desc: 'Academic inbox & drafter', key: '4', badgeKey: 'gmail' },
     drive: { label: 'Google Drive', desc: 'School docs & slides', key: '5' },
@@ -120,20 +120,27 @@ export const Sidebar: React.FC<SidebarProps> = ({
   }, [pinnedAppIds]);
 
   const recentApps = useMemo(() => {
+    const legacyMap: Record<string, string> = { 'ai-planner': 'radar', documents: 'notes-markdown', quizlet: 'flashcards', anki: 'flashcards', 'desmos-scientific': 'desmos-graphing' };
     try {
-      const storeRecent = (() => { try { const w = localStorage.getItem('scc_workspace_store'); if (w) { const j = JSON.parse(w); const state = j.state || j; if (state.recentTabs) return state.recentTabs; } } catch {} return null; })();
-      const raw = storeRecent || (() => { try { return JSON.parse(localStorage.getItem('scc_recent_tabs_v1') || '[]'); } catch { return []; } })();
+      const raw = (() => { try { return JSON.parse(localStorage.getItem('scc_recent_tabs_v1') || '[]'); } catch { return []; } })();
       const ids = Array.isArray(raw) ? raw : [];
-      const list: string[] = ids.map((x:any)=> typeof x==='string'? x : x.id).filter(Boolean).slice(0,3) as string[];
+      const mapped = ids
+        .map((x: any) => (typeof x === 'string' ? x : x.id))
+        .filter(Boolean)
+        .map((id: string) => legacyMap[id] || id);
+      const list: string[] = [...new Set(mapped)].slice(0, 3) as string[];
       if (list.length < 3) {
         const usageRaw = localStorage.getItem('scc_app_usage_v1');
         if (usageRaw) {
           const usage = JSON.parse(usageRaw);
-          const sorted = Object.entries(usage).sort((a:any,b:any)=> b[1]-a[1]).map(([k])=>k).filter(k=> !list.includes(k) && !pinnedAppIds.includes(k));
-          list.push(...sorted.slice(0, 3-list.length));
+          const sorted = Object.entries(usage)
+            .sort((a: any, b: any) => b[1] - a[1])
+            .map(([k]) => legacyMap[k] || k)
+            .filter((k) => !list.includes(k) && !pinnedAppIds.includes(k) && !MAIN_FLOW_IDS.has(k));
+          list.push(...sorted.slice(0, 3 - list.length));
         }
       }
-      return list.slice(0,3).map((id:string) => APP_CATALOG.find(a=>a.id===id)).filter(Boolean) as typeof APP_CATALOG;
+      return list.slice(0, 3).map((id: string) => APP_CATALOG.find((a) => a.id === id)).filter(Boolean) as typeof APP_CATALOG;
     } catch { return []; }
   }, [activeTab, pinnedAppIds]);
 

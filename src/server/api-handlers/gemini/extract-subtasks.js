@@ -1,46 +1,16 @@
-import { GoogleGenAI } from "@google/genai";
-import { SERVER_MODELS } from "./models.js";
-
-let genAI = null;
-function getGenAI() {
-  if (!genAI) {
-    const apiKey = process.env.GEMINI_API_KEY || "";
-    genAI = new GoogleGenAI({ apiKey });
-  }
-  return genAI;
-}
-
-const CANDIDATE_MODELS = SERVER_MODELS;
-
-async function generateWithModelFallback(params) {
-  const ai = getGenAI();
-  let lastError = null;
-  for (const model of CANDIDATE_MODELS) {
-    try {
-      const response = await ai.models.generateContent({
-        model,
-        contents: params.contents,
-        config: params.config,
-      });
-      return response;
-    } catch (err) {
-      lastError = err;
-      console.warn(`Model ${model} attempt failed: ${err.message || err}. Trying next fallback...`);
-    }
-  }
-  throw lastError || new Error("All candidate Gemini models failed.");
-}
+import { applyApiCors } from "../cors.js";
+import { generateWithModelFallback, parseJsonLoose, sendAiFailure } from "./generate.js";
 
 export default async function handler(req, res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  if (req.method === "OPTIONS") return res.status(200).end();
+  if (applyApiCors(req, res, "POST, OPTIONS")) return;
+  if (req.method && req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed", code: "method_not_allowed" });
+  }
 
   try {
     const { assignmentName, courseName, description, dueAt, pointsPossible } = req.body || {};
     if (!assignmentName) {
-      return res.status(400).json({ error: "Assignment name is required" });
+      return res.status(400).json({ error: "Assignment name is required", code: "missing_assignment_name" });
     }
 
     const prompt = `You are an AI academic task planner for a student command center.
@@ -71,25 +41,18 @@ Respond with valid JSON:
 }
 Return only JSON.`;
 
-    const response = await generateWithModelFallback({
+    const { response } = await generateWithModelFallback({
       contents: prompt,
       config: { responseMimeType: "application/json" },
     });
 
-    const parsed = JSON.parse(response.text || "{}");
-    res.status(200).json(parsed);
+    const parsed = parseJsonLoose(response?.text);
+    if (!parsed || !Array.isArray(parsed.subtasks)) {
+      throw new Error("Invalid subtasks payload from AI");
+    }
+    return res.status(200).json(parsed);
   } catch (err) {
     console.error("Extract subtasks error:", err);
-    res.status(200).json({
-      subtasks: [
-        { title: "Read the assignment instructions carefully", estimatedMinutes: 10, order: 1 },
-        { title: "Research and gather materials", estimatedMinutes: 30, order: 2 },
-        { title: "Create first draft", estimatedMinutes: 45, order: 3 },
-        { title: "Review, proofread, and finalize", estimatedMinutes: 20, order: 4 },
-        { title: "Submit before deadline", estimatedMinutes: 5, order: 5 },
-      ],
-      totalEstimatedMinutes: 110,
-      difficulty: "Medium",
-    });
+    return sendAiFailure(res, "Extract subtasks failed", err);
   }
 }

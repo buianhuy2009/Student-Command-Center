@@ -19,7 +19,6 @@ import {
 } from 'lucide-react';
 import { runAutonomousAgent } from '../services/gemini';
 import { MathMarkdown } from './MathMarkdown';
-import { logPrompt } from '../services/promptLog';
 import { AgentAction } from '../types';
 
 interface FloatingAiCopilotProps {
@@ -76,18 +75,6 @@ export const FloatingAiCopilot: React.FC<FloatingAiCopilotProps> = ({
 
     try {
       const res = await runAutonomousAgent(userMsg, appContext);
-
-      // Division A: log agent reply + actions JSON to Prompt Log (never auto-apply)
-      try {
-        logPrompt({
-          feature: 'agent-playground',
-          model: 'gemini autonomous agent',
-          systemPromptExcerpt: 'runAutonomousAgent — proposes safe workspace actions as JSON',
-          userPrompt: userMsg,
-          outputExcerpt: `${res.reply.slice(0, 200)} | actions: ${JSON.stringify(res.actions || []).slice(0, 200)}`,
-          contribution: 'ai-assisted',
-        });
-      } catch {}
 
       // Hold actions for student confirmation instead of executing immediately
       if (res.actions && res.actions.length > 0) {
@@ -178,14 +165,6 @@ export const FloatingAiCopilot: React.FC<FloatingAiCopilotProps> = ({
         icon = Network;
         label = `Rendered diagram: "${action.payload.title}"`;
         break;
-      case 'createQuizFromNotes':
-        icon = Brain;
-        label = `Quiz preview from notes`;
-        break;
-      case 'summarizePdfToDeck':
-        icon = Brain;
-        label = `PDF → deck preview: "${(action as any).payload?.fileName || 'file'}"`;
-        break;
       case 'draftEmailFromAssignment':
         icon = Send;
         label = `Email draft preview (never auto-sent)`;
@@ -267,11 +246,11 @@ export const FloatingAiCopilot: React.FC<FloatingAiCopilotProps> = ({
           {/* Quick Prompt Action Pills */}
           <div className="p-2.5 bg-[#FAF9F5]/70 dark:bg-[#1F1E1B]/70 border-b border-[#DFDACB]/60 dark:border-[#2C2B27]/60 flex items-center gap-1.5 overflow-x-auto text-[11px]">
             {[
-              'Split screen with Canvas and Desmos',
+              'Schedule exam prep milestones for upcoming deadlines',
               'Plot damped sine wave in Desmos',
               'Build 5-card flashcard deck on Cell Respiration',
               'Create mindmap of World War 2',
-              'Arrange my workspace for geometry revision',
+              'Draft Pomodoro revision plan for calculus midterm',
             ].map((pill, i) => (
               <button
                 key={i}

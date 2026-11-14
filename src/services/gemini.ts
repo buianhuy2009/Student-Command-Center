@@ -1,6 +1,5 @@
 // Gemini service split — new modular imports available at ./gemini/client, ./gemini/prompts, ./gemini/rateLimiter, ./gemini/providers
 // This monolith kept for compat; new code should import from modular files. Provider fallback now includes server /api/gemini/generate route fix + Groq rotation.
-import { GoogleGenAI } from "@google/genai";
 import {
   EmailAlert,
   EmailMessage,
@@ -21,304 +20,67 @@ import {
   MathDebugResult,
   ThreeTierFeynmanResult,
   DeployedSemesterResult,
-  MarkdownNote,
 } from '../types';
 import { ACADEMIC_CUE_RE, ACADEMIC_SENDER_RE, gmailLink, isTeacherSender } from '../utils/trust';
 import { cleanEmailForAI } from '../utils/emailText';
+import {
+  GEMINI_DEFAULT_MODEL,
+  GEMINI_FALLBACK_MODEL,
+  GEMINI_SAFETY_MODELS,
+  maskApiKey,
+  getGeminiKeyMeta,
+  setGeminiKeyExpiry,
+  getGroqKeyMeta,
+  setGroqKeyExpiry,
+  getExpiryStatus,
+  getClientGeminiApiKey,
+  setClientGeminiApiKey,
+  getClientGroqApiKey,
+  setClientGroqApiKey,
+  callGroqDirect,
+  DAILY_QUOTA_LIMIT,
+  checkDailyQuota,
+  getGeminiQuotaStatus,
+  type ApiKeyMeta,
+} from './gemini/providers';
+import { rateLimiter, canMakeGeminiRequest, GeminiRateLimiter } from './gemini/rateLimiter';
+import {
+  testGeminiApiKeyDetailed,
+  testGroqApiKeyDetailed,
+  testGeminiApiKey,
+  callGemini,
+  repairJsonString,
+} from './gemini/client';
 
-// --- Client-Side API Key Management — plaintext warning + sessionStorage option ---
-const GEMINI_KEY_STORAGE_KEY = 'scc_gemini_api_key';
-const GEMINI_KEY_SESSION_KEY = 'scc_gemini_api_key_session';
+export {
+  GEMINI_DEFAULT_MODEL,
+  GEMINI_FALLBACK_MODEL,
+  GEMINI_SAFETY_MODELS,
+  maskApiKey,
+  getGeminiKeyMeta,
+  setGeminiKeyExpiry,
+  getGroqKeyMeta,
+  setGroqKeyExpiry,
+  getExpiryStatus,
+  getClientGeminiApiKey,
+  setClientGeminiApiKey,
+  getClientGroqApiKey,
+  setClientGroqApiKey,
+  callGroqDirect,
+  DAILY_QUOTA_LIMIT,
+  checkDailyQuota,
+  getGeminiQuotaStatus,
+  rateLimiter,
+  canMakeGeminiRequest,
+  GeminiRateLimiter,
+  testGeminiApiKeyDetailed,
+  testGroqApiKeyDetailed,
+  testGeminiApiKey,
+  callGemini,
+  repairJsonString,
+  type ApiKeyMeta,
+};
 
-export function getClientGeminiApiKey(): string {
-  try {
-    // sessionStorage takes precedence if user opted for session-only
-    const sess = sessionStorage.getItem(GEMINI_KEY_SESSION_KEY);
-    if (sess) return sess;
-    return localStorage.getItem(GEMINI_KEY_STORAGE_KEY) || '';
-  } catch {
-    return '';
-  }
-}
-
-export function setClientGeminiApiKey(key: string, opts?: { sessionOnly?: boolean }): void {
-  try {
-    const trimmed = key.trim();
-    if (!trimmed) {
-      localStorage.removeItem(GEMINI_KEY_STORAGE_KEY);
-      sessionStorage.removeItem(GEMINI_KEY_SESSION_KEY);
-      return;
-    }
-    if (opts?.sessionOnly) {
-      sessionStorage.setItem(GEMINI_KEY_SESSION_KEY, trimmed);
-      localStorage.removeItem(GEMINI_KEY_STORAGE_KEY);
-      console.warn('Gemini key stored in sessionStorage (cleared on tab close). More secure against persistent XSS, but will be lost on close.');
-    } else {
-      localStorage.setItem(GEMINI_KEY_STORAGE_KEY, trimmed);
-      sessionStorage.removeItem(GEMINI_KEY_SESSION_KEY);
-      console.warn('Gemini key stored in localStorage plaintext — visible to any script on this origin. Consider using Vault PIN or sessionStorage option for better security.');
-    }
-  } catch (e) {
-    console.error('Error storing Gemini API key:', e);
-  }
-}
-
-// Judge-locked chain: 3.5-flash → 3.0-flash → Groq. 2.5/2.0 kept as safety net for 404s.
-export const GEMINI_DEFAULT_MODEL = 'gemini-flash-latest';
-export const GEMINI_FALLBACK_MODEL = 'gemini-3.5-flash';
-export const GEMINI_SAFETY_MODELS = ['gemini-2.5-flash', 'gemini-flash-lite-latest'];
-
-/** Mask a key for display (never log full keys). e.g. "AIza...****" */
-export function maskApiKey(key: string): string {
-  try {
-    const t = (key || '').trim();
-    if (!t) return '';
-    if (t.length <= 8) return '****';
-    return `${t.slice(0, 4)}...****`;
-  } catch { return '****'; }
-}
-
-// --- Optional per-key expiration metadata (stored SEPARATELY from key value) ---
-const GEMINI_META_KEY = 'scc_gemini_api_key_meta';
-const GROQ_META_KEY = 'scc_groq_api_key_meta';
-export interface ApiKeyMeta { expiresAt?: string }
-function readKeyMeta(storageKey: string): ApiKeyMeta {
-  try {
-    const raw = localStorage.getItem(storageKey);
-    if (!raw) return {};
-    const data = JSON.parse(raw);
-    return typeof data === 'object' && data !== null ? { expiresAt: data.expiresAt } : {};
-  } catch { return {}; }
-}
-function writeKeyMeta(storageKey: string, meta: ApiKeyMeta): void {
-  try {
-    if (!meta.expiresAt) localStorage.removeItem(storageKey);
-    else localStorage.setItem(storageKey, JSON.stringify(meta));
-  } catch {}
-}
-export function getGeminiKeyMeta(): ApiKeyMeta { return readKeyMeta(GEMINI_META_KEY); }
-export function setGeminiKeyExpiry(dateStr: string | null): void {
-  writeKeyMeta(GEMINI_META_KEY, dateStr ? { expiresAt: dateStr } : {});
-}
-export function getGroqKeyMeta(): ApiKeyMeta { return readKeyMeta(GROQ_META_KEY); }
-export function setGroqKeyExpiry(dateStr: string | null): void {
-  writeKeyMeta(GROQ_META_KEY, dateStr ? { expiresAt: dateStr } : {});
-}
-export function getExpiryStatus(expiresAt?: string): { state: 'none' | 'valid' | 'expiring' | 'expired'; daysLeft: number | null; label: string } {
-  if (!expiresAt) return { state: 'none', daysLeft: null, label: '' };
-  try {
-    const now = new Date(); now.setHours(0, 0, 0, 0);
-    const exp = new Date(`${expiresAt}T00:00:00`);
-    if (isNaN(exp.getTime())) return { state: 'none', daysLeft: null, label: '' };
-    const daysLeft = Math.round((exp.getTime() - now.getTime()) / 86400000);
-    if (daysLeft < 0) return { state: 'expired', daysLeft, label: 'Expired' };
-    if (daysLeft <= 7) return { state: 'expiring', daysLeft, label: daysLeft === 0 ? 'Expires today' : `Expires in ${daysLeft} day${daysLeft === 1 ? '' : 's'}` };
-    return { state: 'valid', daysLeft, label: `Expires in ${daysLeft} days` };
-  } catch { return { state: 'none', daysLeft: null, label: '' }; }
-}
-
-function extractGeminiErrorText(err: any): string {
-  const status = err?.status ?? err?.code ?? err?.response?.status;
-  const rawMsg: string =
-    err?.message || err?.error?.message || err?.response?.data?.error?.message || String(err ?? 'Unknown error');
-  const msg = rawMsg.slice(0, 500);
-  if (status === 400 || /API key not valid|API_KEY_INVALID|invalid/i.test(msg)) {
-    return `Invalid API key (400). Check the key was copied fully from Google AI Studio, no extra spaces. Details: ${msg}`;
-  }
-  if (status === 403 || /PERMISSION_DENIED|forbidden/i.test(msg)) {
-    return `Key forbidden (403): the key lacks Gemini API access or the API is disabled in Google Cloud. Details: ${msg}`;
-  }
-  if (status === 404 || /NOT_FOUND|not found|Retired|deprecated|model/i.test(msg)) {
-    return `Model not found (404): the requested model may be retired. Try ${GEMINI_DEFAULT_MODEL} / ${GEMINI_FALLBACK_MODEL}. Details: ${msg}`;
-  }
-  if (status === 429 || /429|RESOURCE_EXHAUSTED|quota|rate/i.test(msg)) {
-    return `Rate limited / quota exhausted (429). Wait a minute or use your own key. Details: ${msg}`;
-  }
-  return status ? `Gemini error (${status}): ${msg}` : `Gemini error: ${msg}`;
-}
-
-export async function testGeminiApiKeyDetailed(key: string): Promise<{ ok: boolean; error?: string; model?: string }> {
-  const trimmed = (key || '').trim();
-  if (!trimmed) return { ok: false, error: 'Please enter an API key first.' };
-  const candidates = [GEMINI_DEFAULT_MODEL, GEMINI_FALLBACK_MODEL];
-  let lastError = '';
-  for (const model of candidates) {
-    try {
-      const ai = new GoogleGenAI({ apiKey: trimmed });
-      const response = await ai.models.generateContent({
-        model,
-        contents: 'Respond with "pong".',
-      });
-      if ((response.text || '').toLowerCase().includes('pong')) return { ok: true, model };
-      lastError = `Model ${model} responded but did not return "pong". Check key permissions and model access.`;
-    } catch (err) {
-      lastError = extractGeminiErrorText(err);
-      // Retry the fallback model only on model-not-found; surface other errors immediately.
-      const isModelNotFound =
-        (err as any)?.status === 404 || /NOT_FOUND|not found|Retired|deprecated/i.test(String((err as any)?.message || ''));
-      if (!isModelNotFound) return { ok: false, error: lastError, model };
-    }
-  }
-  return { ok: false, error: lastError || 'Connection failed. Please check your API key.', model: candidates[0] };
-}
-
-export async function testGroqApiKeyDetailed(key: string): Promise<{ ok: boolean; error?: string }> {
-  const trimmed = (key || '').trim();
-  if (!trimmed) return { ok: false, error: 'Please enter a Groq API key first.' };
-  try {
-    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${trimmed}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'llama-3.1-8b-instant', messages: [{ role: 'user', content: 'Respond with "pong".' }], temperature: 0 }),
-    });
-    if (!res.ok) {
-      let detail = res.statusText;
-      try { const data = await res.json(); detail = data?.error?.message || detail; } catch {}
-      if (res.status === 401) return { ok: false, error: `Invalid Groq key (401). ${detail}`.slice(0, 500) };
-      if (res.status === 429) return { ok: false, error: `Groq rate limited (429). ${detail}`.slice(0, 500) };
-      return { ok: false, error: `Groq error (${res.status}): ${detail}`.slice(0, 500) };
-    }
-    const data = await res.json();
-    const text: string = data.choices?.[0]?.message?.content || '';
-    if (text.toLowerCase().includes('pong')) return { ok: true };
-    return { ok: true };
-  } catch (err: any) {
-    return { ok: false, error: `Groq test failed: ${(err?.message || String(err)).slice(0, 500)}` };
-  }
-}
-
-export async function testGeminiApiKey(key: string): Promise<boolean> {
-  // Backward-compatible boolean wrapper; use testGeminiApiKeyDetailed for real error text.
-  const result = await testGeminiApiKeyDetailed(key);
-  if (!result.ok) console.error('Test Gemini API Key failed:', result.error);
-  return result.ok;
-}
-
-// -------------------------------------------------------------
-// RATE-LIMIT & FREE-TIER RESILIENCE ENGINE (15 RPM Token Bucket with burst 3)
-// -------------------------------------------------------------
-
-class GeminiRateLimiter {
-  private tokens = 15;
-  private maxTokens = 15;
-  private refillIntervalMs = 60000; // 15 per minute
-  private lastRefill = Date.now();
-  private queue: Array<() => Promise<void>> = [];
-  private isProcessing = false;
-
-  private refill() {
-    const now = Date.now();
-    const elapsed = now - this.lastRefill;
-    if (elapsed >= this.refillIntervalMs) {
-      const refillCount = Math.floor(elapsed / this.refillIntervalMs) * 15;
-      this.tokens = Math.min(this.maxTokens, this.tokens + refillCount);
-      this.lastRefill = now;
-    }
-  }
-
-  private async acquireToken(): Promise<void> {
-    this.refill();
-    if (this.tokens > 0) {
-      this.tokens -= 1;
-      return;
-    }
-    // wait for refill
-    const wait = this.refillIntervalMs - (Date.now() - this.lastRefill);
-    await new Promise(r => setTimeout(r, Math.max(0, wait)));
-    return this.acquireToken();
-  }
-
-  async execute<T>(fn: () => Promise<T>): Promise<T> {
-    return new Promise<T>((resolve, reject) => {
-      this.queue.push(async () => {
-        let attempts = 0;
-        const maxAttempts = 4;
-        while (attempts < maxAttempts) {
-          try {
-            await this.acquireToken();
-            const result = await fn();
-            resolve(result);
-            return;
-          } catch (err: any) {
-            attempts++;
-            const is429 =
-              err?.status === 429 ||
-              err?.message?.includes('429') ||
-              err?.message?.includes('RESOURCE_EXHAUSTED');
-
-            if (is429 && attempts < maxAttempts) {
-              // exponential backoff + token replenish hint
-              this.tokens = Math.max(0, this.tokens - 2);
-              const backoffMs = Math.pow(2, attempts) * 1000 + Math.random() * 500;
-              console.warn(
-                `Gemini 429 Rate-limit encountered. Backing off for ${Math.round(
-                  backoffMs
-                )}ms (attempt ${attempts}/${maxAttempts})...`
-              );
-              await new Promise((r) => setTimeout(r, backoffMs));
-            } else {
-              reject(err);
-              return;
-            }
-          }
-        }
-      });
-      this.processQueue();
-    });
-  }
-
-  private async processQueue() {
-    if (this.isProcessing || this.queue.length === 0) return;
-    this.isProcessing = true;
-    while (this.queue.length > 0) {
-      const task = this.queue.shift();
-      if (task) {
-        try {
-          await task();
-        } catch (e) {
-          console.error('Queue task execution error:', e);
-        }
-      }
-    }
-    this.isProcessing = false;
-  }
-}
-
-const rateLimiter = new GeminiRateLimiter();
-
-// Per-user daily quota guard (50 Gemini calls/day — Dexie + localStorage, server authoritative)
-const DAILY_QUOTA_KEY = 'scc_gemini_daily_quota_v1';
-const DAILY_QUOTA_LIMIT = 50;
-function checkDailyQuota(): boolean {
-  try {
-    const today = new Date().toISOString().slice(0,10);
-    const raw = localStorage.getItem(DAILY_QUOTA_KEY);
-    const data = raw ? JSON.parse(raw) : { date: today, count: 0 };
-    if (data.date !== today) return true;
-    // also check Dexie for tamper resistance
-    return data.count < DAILY_QUOTA_LIMIT;
-  } catch { return true; }
-}
-function incrementQuota(): void {
-  try {
-    const today = new Date().toISOString().slice(0,10);
-    const raw = localStorage.getItem(DAILY_QUOTA_KEY);
-    const data = raw ? JSON.parse(raw) : { date: today, count: 0 };
-    const next = data.date !== today ? { date: today, count: 1 } : { date: today, count: (data.count||0)+1 };
-    localStorage.setItem(DAILY_QUOTA_KEY, JSON.stringify(next));
-    // mirror to Dexie for persistence + tamper detection
-    import('./db').then(({ db }) => db.quota.put({ id: today, date: today, count: next.count }).catch(()=>{}));
-  } catch {}
-}
-export function getGeminiQuotaStatus(): { used: number; limit: number; remaining: number } {
-  try {
-    const today = new Date().toISOString().slice(0,10);
-    const raw = localStorage.getItem(DAILY_QUOTA_KEY);
-    const data = raw ? JSON.parse(raw) : { date: today, count: 0 };
-    const used = data.date === today ? (data.count||0) : 0;
-    return { used, limit: DAILY_QUOTA_LIMIT, remaining: Math.max(0, DAILY_QUOTA_LIMIT-used) };
-  } catch { return { used: 0, limit: DAILY_QUOTA_LIMIT, remaining: DAILY_QUOTA_LIMIT }; }
-}
 // Vault PIN encryption via Web Crypto (AES-GCM) — use encryptApiKey/decryptApiKey before storing
 export async function encryptApiKey(plaintext: string, pin: string): Promise<string> {
   const enc = new TextEncoder();
@@ -326,7 +88,10 @@ export async function encryptApiKey(plaintext: string, pin: string): Promise<str
   const key = await crypto.subtle.deriveKey({ name: 'PBKDF2', salt: enc.encode('scc-vault-salt'), iterations: 100000, hash: 'SHA-256' }, keyMaterial, { name: 'AES-GCM', length: 256 }, false, ['encrypt']);
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, enc.encode(plaintext));
-  const b64 = (buf: ArrayBuffer) => btoa(String.fromCharCode(...new Uint8Array(buf)));
+  const b64 = (buf: ArrayBuffer | Uint8Array) => {
+    const bytes = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
+    return btoa(String.fromCharCode(...bytes));
+  };
   return b64(iv) + ':' + b64(ct);
 }
 export async function decryptApiKey(ciphertext: string, pin: string): Promise<string> {
@@ -340,166 +105,33 @@ export async function decryptApiKey(ciphertext: string, pin: string): Promise<st
   return dec.decode(pt);
 }
 
-// Auto-Repair JSON utility
-export function repairJsonString<T = any>(raw: string): T {
-  let cleaned = raw.trim();
-  // Strip markdown code fences if present
-  cleaned = cleaned.replace(/^```(?:json)?/i, '').replace(/```$/i, '').trim();
-
-  try {
-    return JSON.parse(cleaned);
-  } catch {
-    const firstBrace = cleaned.indexOf('{');
-    const firstBracket = cleaned.indexOf('[');
-    let start = 0;
-    let end = cleaned.length;
-
-    if (firstBrace !== -1 && (firstBracket === -1 || firstBrace < firstBracket)) {
-      start = firstBrace;
-      end = cleaned.lastIndexOf('}') + 1;
-    } else if (firstBracket !== -1) {
-      start = firstBracket;
-      end = cleaned.lastIndexOf(']') + 1;
-    }
-
-    const sliced = cleaned.slice(start, end);
-    try {
-      return JSON.parse(sliced);
-    } catch {
-      throw new Error(`Failed to parse repaired JSON: ${raw.slice(0, 100)}...`);
-    }
-  }
-}
-
-export function getClientGroqApiKey(): string {
-  try {
-    return localStorage.getItem('scc_groq_api_key') || '';
-  } catch {
-    return '';
-  }
-}
-
-export function setClientGroqApiKey(key: string): void {
-  try {
-    localStorage.setItem('scc_groq_api_key', key.trim());
-  } catch {}
-}
-
-export async function callGroqDirect(promptText: string, jsonMode: boolean = false): Promise<string> {
-  const groqKey = getClientGroqApiKey();
-  if (!groqKey) {
-    throw new Error('No Groq API key available for direct client call.');
-  }
-
-  const tryModel = async (model: string) => {
-    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${groqKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model,
-        messages: [{ role: 'user', content: promptText }],
-        temperature: 0.3,
-        response_format: jsonMode ? { type: 'json_object' } : undefined,
-      }),
-    });
-    if (!res.ok) throw new Error(`Groq ${model} error: ${res.statusText}`);
-    const data = await res.json();
-    return data.choices?.[0]?.message?.content || '';
-  };
-
-  try {
-    return await tryModel('llama-3.3-70b-versatile');
-  } catch (e) {
-    console.warn('Groq 70B failed, falling back to cheaper llama-3.1-8b-instant', e);
-    return await tryModel('llama-3.1-8b-instant');
-  }
-}
-
-/**
- * Universal Multi-Provider AI Caller (User Key -> Server Gemini -> Groq LLaMA 3.3 70B)
- */
-export async function callGemini(params: {
-  contents: any;
-  config?: any;
-  model?: string;
-}): Promise<string> {
-  if (!checkDailyQuota()) throw new Error(`Daily Gemini quota reached (${DAILY_QUOTA_LIMIT} calls/day). Try again tomorrow or set your own API key in Settings.`);
-  return rateLimiter.execute(async () => {
-    incrementQuota();
-    const clientKey = getClientGeminiApiKey();
-    const targetModel = params.model || GEMINI_DEFAULT_MODEL;
-
-    // 1. Client-side user key priority (3.5-flash → 3.0-flash → safety → server → Groq)
-    if (clientKey) {
-      const modelCandidates = targetModel === GEMINI_DEFAULT_MODEL
-        ? [GEMINI_DEFAULT_MODEL, GEMINI_FALLBACK_MODEL, ...GEMINI_SAFETY_MODELS]
-        : [targetModel, GEMINI_DEFAULT_MODEL, GEMINI_FALLBACK_MODEL, ...GEMINI_SAFETY_MODELS];
-      let clientSucceeded = false;
-      let lastClientErr: any = null;
-      for (const modelAttempt of modelCandidates) {
-        try {
-          const ai = new GoogleGenAI({ apiKey: clientKey });
-          const res = await ai.models.generateContent({
-            model: modelAttempt,
-            contents: params.contents,
-            config: params.config,
-          });
-          return res.text || '';
-        } catch (clientErr: any) {
-          lastClientErr = clientErr;
-          if (clientErr?.status === 429 || clientErr?.message?.includes('429')) {
-            throw clientErr; // Allow rate limiter to backoff
-          }
-          const isModelNotFound =
-            clientErr?.status === 404 || /NOT_FOUND|not found|Retired|deprecated/i.test(String(clientErr?.message || ''));
-          if (!isModelNotFound) break;
-          // else retry with the fallback model
-        }
-      }
-      console.warn('Client-side Gemini call failed, trying server proxy fallback...', lastClientErr);
-    }
-
-    // 2. Server proxy fallback (handles server Gemini + server Groq)
-    try {
-      const serverRes = await fetch('/api/gemini/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: params.contents,
-          config: params.config,
-          model: targetModel,
-        }),
-      });
-
-      if (serverRes.ok) {
-        const data = await serverRes.json();
-        return data.text || '';
-      }
-    } catch (serverErr) {
-      console.warn('Server AI proxy failed, attempting direct Groq fallback...', serverErr);
-    }
-
-    // 3. Direct Groq fallback from browser if server is unreachable
-    try {
-      let promptText = '';
-      if (typeof params.contents === 'string') promptText = params.contents;
-      else if (Array.isArray(params.contents)) {
-        promptText = params.contents
-          .map((c: any) => (typeof c === 'string' ? c : c.text || ''))
-          .join('\n');
-      } else if (params.contents?.text) {
-        promptText = params.contents.text;
-      }
-      const isJson = params.config?.responseMimeType === 'application/json';
-      return await callGroqDirect(promptText || 'Summarize academic task', isJson);
-    } catch (groqErr) {
-      console.error('All AI providers (Gemini Client, Gemini Server, Groq) failed:', groqErr);
-      throw new Error('AI service temporarily unavailable across all providers. Please check your API key.');
-    }
+async function postGeminiJsonEndpoint<T>(url: string, body: unknown, label: string): Promise<T> {
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
   });
+  const contentType = res.headers?.get?.('content-type') || '';
+  if (!contentType.includes('application/json')) {
+    throw new Error(`${label} returned unexpected non-JSON response (${res.status}, content-type: ${contentType || 'unknown'}).`);
+  }
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data?.error || `${label} error (${res.status} ${res.statusText || 'Failed'})`);
+  }
+  return data as T;
+}
+
+async function callGeminiJson<T>(prompt: string, label: string): Promise<T> {
+  const raw = await callGemini({
+    contents: prompt,
+    config: { responseMimeType: 'application/json' },
+  });
+  try {
+    return repairJsonString<T>(raw);
+  } catch (err) {
+    throw new Error(`${label} failed to parse AI JSON output: ${err instanceof Error ? err.message : String(err)}`);
+  }
 }
 
 // -------------------------------------------------------------
@@ -518,7 +150,7 @@ export async function runAutonomousAgent(
 You are equipped with structured tools to directly manipulate the student's workspace state:
 
 Available Actions you can output in "actions":
-1. "setWorkspaceLayout": { "leftPane": "canvas-agenda"|"notes-markdown"|"desmos-graphing"|"excalidraw"|"pomodoro"|"flashcards"|"notebooklm", "rightPane": "...", "ratio": "50/50"|"60/40"|"70/30" }
+1. "setWorkspaceLayout": { "leftPane": "canvas"|"notes-markdown"|"desmos-graphing"|"excalidraw"|"pomodoro"|"flashcards", "rightPane": "...", "ratio": "50/50"|"60/40"|"70/30" }
 2. "injectDesmosEquation": { "expressions": ["y = 2x + 1", "y = x^2"], "title": "Optional description" }
 3. "createCalendarMilestones": { "events": [{ "title": "Midterm Prep", "date": "YYYY-MM-DD", "type": "Exam", "weight": 20 }] }
 4. "createSRSDeck": { "deckTitle": "Topic", "subject": "Class", "cards": [{ "front": "Term", "back": "Definition", "tags": ["Tag"] }] }
@@ -552,16 +184,15 @@ Return only JSON.`;
 
   try {
     const parsed = repairJsonString<{ reply: string; actions: AgentAction[] }>(raw);
+    if (!parsed || typeof parsed.reply !== 'string' || !parsed.reply.trim()) {
+      throw new Error('Missing reply text in agent payload.');
+    }
     return {
-      reply: parsed.reply || 'Configured workspace layout and tools.',
-      actions: parsed.actions || [],
+      reply: parsed.reply,
+      actions: Array.isArray(parsed.actions) ? parsed.actions : [],
     };
   } catch (err) {
-    console.error('Autonomous agent parse error:', err);
-    return {
-      reply: 'I am here to help configure your workspaces, plot equations, or schedule milestones.',
-      actions: [],
-    };
+    throw new Error(`Autonomous agent failed to return valid actions: ${err instanceof Error ? err.message : String(err)}`);
   }
 }
 
@@ -604,13 +235,13 @@ Return only JSON.`;
   });
 
   try {
-    return repairJsonString<MathDebugResult>(raw);
-  } catch {
-    return {
-      fullLatex: ['E = mc^2'],
-      hasError: false,
-      solutionDerivationGuidance: ['Verified standard formula'],
-    };
+    const parsed = repairJsonString<MathDebugResult>(raw);
+    if (!parsed || !Array.isArray(parsed.fullLatex)) {
+      throw new Error('Missing fullLatex lines in math debugger payload.');
+    }
+    return parsed;
+  } catch (err) {
+    throw new Error(`Handwritten math debugger failed: ${err instanceof Error ? err.message : String(err)}`);
   }
 }
 
@@ -654,9 +285,12 @@ Return only JSON.`;
 
   try {
     const data = repairJsonString<any>(raw);
-    const createdEvents = data.createdEvents || [];
-    const createdNotes = data.createdNotes || [];
-    const createdCards = data.createdCards || [];
+    const createdEvents = Array.isArray(data?.createdEvents) ? data.createdEvents : [];
+    const createdNotes = Array.isArray(data?.createdNotes) ? data.createdNotes : [];
+    const createdCards = Array.isArray(data?.createdCards) ? data.createdCards : [];
+    if (createdEvents.length === 0 && createdNotes.length === 0 && createdCards.length === 0) {
+      throw new Error('AI returned an empty semester deployment plan.');
+    }
 
     return {
       milestonesCount: createdEvents.length,
@@ -667,19 +301,7 @@ Return only JSON.`;
       createdDeckTitle: data.createdDeckTitle || `${syllabus.courseName} Deck`,
     };
   } catch (err) {
-    console.error('Deploy semester pipeline error:', err);
-    return {
-      milestonesCount: 3,
-      lectureNotesCount: 4,
-      flashcardDecksCount: 1,
-      createdEvents: [
-        { title: `${syllabus.courseName} - 14d Prep`, date: new Date().toISOString().split('T')[0], type: 'Exam' },
-      ],
-      createdNotes: [
-        { title: `${syllabus.courseName} - Lecture 1`, subject: syllabus.courseName },
-      ],
-      createdDeckTitle: `${syllabus.courseName} Foundations`,
-    };
+    throw new Error(`Failed to deploy semester from syllabus: ${err instanceof Error ? err.message : String(err)}`);
   }
 }
 
@@ -711,16 +333,13 @@ Return only JSON.`;
   });
 
   try {
-    return repairJsonString<ThreeTierFeynmanResult>(raw);
-  } catch {
-    return {
-      concept: conceptOrText.slice(0, 30),
-      corePrinciple: 'Interactions follow predictable laws.',
-      tier1_eli5: 'Think of it like sharing toys with friends.',
-      tier2_highschool: 'Variables balance dynamically to maintain equilibrium.',
-      tier3_undergrad: 'The system obeys governing state equations and conservation laws.',
-      analogy: 'A seesaw reaching balance.',
-    };
+    const parsed = repairJsonString<ThreeTierFeynmanResult>(raw);
+    if (!parsed || !parsed.tier1_eli5 || !parsed.tier3_undergrad) {
+      throw new Error('Incomplete three-tier explanation returned.');
+    }
+    return parsed;
+  } catch (err) {
+    throw new Error(`Failed to generate Feynman explanation: ${err instanceof Error ? err.message : String(err)}`);
   }
 }
 
@@ -846,14 +465,13 @@ Return only JSON.`;
   });
 
   try {
-    return repairJsonString<AssignmentSubTask[]>(raw);
-  } catch {
-    return [
-      { id: '1', title: 'Review requirements and rubric', description: 'Read guidelines', estimatedMinutes: 15, isCompleted: false },
-      { id: '2', title: 'Conduct initial research / outline', description: 'Gather sources and outline sections', estimatedMinutes: 45, isCompleted: false },
-      { id: '3', title: 'Complete first draft / problem solutions', description: 'Produce core content', estimatedMinutes: 60, isCompleted: false },
-      { id: '4', title: 'Final proofreading and submission', description: 'Verify formatting and submit', estimatedMinutes: 20, isCompleted: false },
-    ];
+    const parsed = repairJsonString<AssignmentSubTask[]>(raw);
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      throw new Error('AI returned no sub-tasks.');
+    }
+    return parsed;
+  } catch (err) {
+    throw new Error(`Failed to deconstruct assignment into sub-tasks: ${err instanceof Error ? err.message : String(err)}`);
   }
 }
 
@@ -882,9 +500,13 @@ Use valid Desmos LaTeX (e.g. y = x^2, \\\\sin(x), \\\\cos(x), \\\\sqrt{x}). Retu
   });
 
   try {
-    return repairJsonString<DesmosEquation[]>(raw);
-  } catch {
-    return [{ id: 'eq1', latex: 'y = \\sin(x)', color: '#2d70b3', label: 'Sine Wave' }];
+    const parsed = repairJsonString<DesmosEquation[]>(raw);
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      throw new Error('AI returned no Desmos equations.');
+    }
+    return parsed;
+  } catch (err) {
+    throw new Error(`Failed to generate Desmos equations: ${err instanceof Error ? err.message : String(err)}`);
   }
 }
 
@@ -960,9 +582,13 @@ Return only JSON.`;
   });
 
   try {
-    return repairJsonString(raw);
-  } catch {
-    return { latex: 'E = mc^2', explanation: 'Mass-energy equivalence formula.' };
+    const parsed = repairJsonString<{ latex: string; explanation: string }>(raw);
+    if (!parsed || typeof parsed.latex !== 'string' || !parsed.latex.trim()) {
+      throw new Error('Missing extracted LaTeX in AI response.');
+    }
+    return parsed;
+  } catch (err) {
+    throw new Error(`Failed to convert handwritten math to LaTeX: ${err instanceof Error ? err.message : String(err)}`);
   }
 }
 
@@ -1011,13 +637,13 @@ Return only JSON.`;
   });
 
   try {
-    return repairJsonString<MermaidDiagramResult>(raw);
-  } catch {
-    return {
-      title: 'Topic Overview',
-      code: `graph TD\n  A[${topic.slice(0, 20)}] --> B[Key Concept 1]\n  A --> C[Key Concept 2]`,
-      description: 'System overview diagram.',
-    };
+    const parsed = repairJsonString<MermaidDiagramResult>(raw);
+    if (!parsed || typeof parsed.code !== 'string' || !parsed.code.trim()) {
+      throw new Error('Missing diagram code in AI response.');
+    }
+    return parsed;
+  } catch (err) {
+    throw new Error(`Failed to generate Mermaid diagram: ${err instanceof Error ? err.message : String(err)}`);
   }
 }
 
@@ -1052,11 +678,13 @@ Return only JSON.`;
   });
 
   try {
-    return repairJsonString<FlashcardItem[]>(raw);
-  } catch {
-    return [
-      { id: '1', front: 'Active Recall', back: 'Retrieving information from memory rather than re-reading.', category: 'Study Technique', mastered: false },
-    ];
+    const parsed = repairJsonString<FlashcardItem[]>(raw);
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      throw new Error('AI returned no flashcards.');
+    }
+    return parsed;
+  } catch (err) {
+    throw new Error(`Failed to synthesize flashcards: ${err instanceof Error ? err.message : String(err)}`);
   }
 }
 
@@ -1094,14 +722,13 @@ Return only JSON.`;
   });
 
   try {
-    return repairJsonString(raw);
-  } catch {
-    return {
-      score: 75,
-      feedback: 'Good fundamental understanding shown.',
-      missingPoints: ['Specific technical conditions'],
-      nextQuestion: `Can you elaborate on real-world edge cases in ${params.subject}?`,
-    };
+    const parsed = repairJsonString<{ score: number; feedback: string; missingPoints: string[]; nextQuestion: string }>(raw);
+    if (!parsed || typeof parsed.score !== 'number' || typeof parsed.nextQuestion !== 'string') {
+      throw new Error('Invalid viva evaluation payload.');
+    }
+    return parsed;
+  } catch (err) {
+    throw new Error(`Oral defense evaluation failed: ${err instanceof Error ? err.message : String(err)}`);
   }
 }
 
@@ -1154,16 +781,13 @@ Return only JSON.`;
   });
 
   try {
-    return repairJsonString<RubricPreCheckResult>(raw);
-  } catch {
-    return {
-      overallScore: 85,
-      overallFeedback: 'Strong draft with clear main thesis.',
-      criteria: [
-        { criterion: 'Structure & Flow', pointsEarned: 85, maxPoints: 100, feedback: 'Well structured overall.', suggestion: 'Add stronger transition sentences between paragraphs.' },
-      ],
-      actionableRevisions: ['Check source citations for consistency'],
-    };
+    const parsed = repairJsonString<RubricPreCheckResult>(raw);
+    if (!parsed || typeof parsed.overallScore !== 'number' || !Array.isArray(parsed.criteria)) {
+      throw new Error('Invalid rubric evaluation payload.');
+    }
+    return parsed;
+  } catch (err) {
+    throw new Error(`Rubric pre-check failed: ${err instanceof Error ? err.message : String(err)}`);
   }
 }
 
@@ -1195,13 +819,13 @@ Return only JSON.`;
   });
 
   try {
-    return repairJsonString(raw);
-  } catch {
-    return {
-      coreIdea: denseText.slice(0, 80),
-      simplified: 'In simple terms, this concept describes how elements interact predictably.',
-      analogy: 'Imagine traffic flow during rush hour.',
-    };
+    const parsed = repairJsonString<{ simplified: string; analogy: string; coreIdea: string }>(raw);
+    if (!parsed || !parsed.simplified || !parsed.coreIdea) {
+      throw new Error('Incomplete simplification payload.');
+    }
+    return parsed;
+  } catch (err) {
+    throw new Error(`Feynman simplification failed: ${err instanceof Error ? err.message : String(err)}`);
   }
 }
 
@@ -1289,13 +913,11 @@ export async function summarizeEmailsWithGemini(
   }));
   let aiAlerts: EmailAlert[];
   try {
-    const res = await fetch('/api/gemini/summarize-emails', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ emails: payload, today: new Date().toISOString() }),
-    });
-    if (!res.ok) throw new Error(`Summarize API failed: ${res.statusText}`);
-    const data = await res.json();
+    const data = await postGeminiJsonEndpoint<{ alerts?: any[] }>(
+      '/api/gemini/summarize-emails',
+      { emails: payload, today: new Date().toISOString() },
+      'Summarize API'
+    );
     const byId = new Map<string, any>((data.alerts || []).map((a: any) => [String(a.id), a]));
     aiAlerts = aiEmails.map((src) => {
       const alert = byId.get(String(src.id));
@@ -1313,40 +935,40 @@ export async function summarizeEmailsWithGemini(
 }
 
 export async function generateQuickDraft(request: QuickDraftRequest): Promise<QuickDraftResponse> {
-  const res = await fetch('/api/gemini/quick-draft', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(request),
-  });
-
-  if (!res.ok) throw new Error(`Quick draft API error: ${res.statusText}`);
-  return await res.json();
+  return await postGeminiJsonEndpoint<QuickDraftResponse>('/api/gemini/quick-draft', request, 'Quick draft API');
 }
 
 export async function parseNaturalLanguageAssignment(text: string): Promise<Partial<Assignment>> {
-  const res = await fetch('/api/gemini/parse-assignment', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text }),
-  });
-
-  if (!res.ok) throw new Error(`Parse assignment error: ${res.statusText}`);
-  return await res.json();
+  return await postGeminiJsonEndpoint<Partial<Assignment>>('/api/gemini/parse-assignment', { text }, 'Parse assignment API');
 }
 
 export async function sendStudyAssistantMessage(
   messages: { role: 'user' | 'assistant'; content: string }[],
   context?: any
 ): Promise<string> {
-  const res = await fetch('/api/gemini/assistant', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ messages, context }),
-  });
-
-  if (!res.ok) throw new Error(`Study assistant error: ${res.statusText}`);
-  const data = await res.json();
-  return data.reply || "I'm here to help you stay ahead in all your classes!";
+  try {
+    const data = await postGeminiJsonEndpoint<{ reply?: string }>(
+      '/api/gemini/assistant',
+      { messages, context },
+      'Study assistant API'
+    );
+    if (!data?.reply || !String(data.reply).trim()) {
+      throw new Error('Study assistant API returned an empty reply.');
+    }
+    return String(data.reply);
+  } catch (err) {
+    if (getClientGeminiApiKey() || getClientGroqApiKey()) {
+      const historyText = messages.map((m) => `${m.role === 'user' ? 'Student' : 'Coach'}: ${m.content}`).join('\n');
+      const reply = await callGemini({
+        contents: `Student context:\n${JSON.stringify(context || {}).slice(0, 6000)}\n\nConversation:\n${historyText}`,
+        config: {
+          systemInstruction: 'You are Student Command Coach. Be concise, accurate, and give step-by-step hints without doing homework directly.',
+        },
+      });
+      if (reply.trim()) return reply.trim();
+    }
+    throw err instanceof Error ? err : new Error(String(err));
+  }
 }
 
 export interface EffortEstimate {
@@ -1377,35 +999,29 @@ export interface StudySlotResult {
 }
 
 export async function extractSubtasksFromCanvas(assignment: CanvasAssignment): Promise<SubtaskResult> {
-  const res = await fetch('/api/gemini/extract-subtasks', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
+  return await postGeminiJsonEndpoint<SubtaskResult>(
+    '/api/gemini/extract-subtasks',
+    {
       assignmentName: assignment.name,
       courseName: assignment.courseName,
       description: assignment.description,
       dueAt: assignment.dueAt,
       pointsPossible: assignment.pointsPossible,
-    }),
-  });
-
-  if (!res.ok) throw new Error(`Extract subtasks error: ${res.statusText}`);
-  return await res.json();
+    },
+    'Extract subtasks API'
+  );
 }
 
 export async function estimateAssignmentEffort(assignments: Assignment[]): Promise<EffortEstimate[]> {
   const notDone = assignments.filter((a) => a.status !== 'Done');
   if (notDone.length === 0) return [];
 
-  const res = await fetch('/api/gemini/estimate-effort', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ assignments: notDone }),
-  });
-
-  if (!res.ok) throw new Error(`Estimate effort error: ${res.statusText}`);
-  const data = await res.json();
-  return data.estimates || [];
+  const data = await postGeminiJsonEndpoint<{ estimates?: EffortEstimate[] }>(
+    '/api/gemini/estimate-effort',
+    { assignments: notDone },
+    'Estimate effort API'
+  );
+  return Array.isArray(data.estimates) ? data.estimates : [];
 }
 
 export async function suggestStudySlots(
@@ -1414,14 +1030,11 @@ export async function suggestStudySlots(
   chronotype?: string,
   date?: string
 ): Promise<StudySlotResult> {
-  const res = await fetch('/api/gemini/suggest-study-slots', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ existingEvents, pendingTasks, chronotype, date }),
-  });
-
-  if (!res.ok) throw new Error(`Suggest study slots error: ${res.statusText}`);
-  return await res.json();
+  return await postGeminiJsonEndpoint<StudySlotResult>(
+    '/api/gemini/suggest-study-slots',
+    { existingEvents, pendingTasks, chronotype, date },
+    'Suggest study slots API'
+  );
 }
 
 // -------------------------------------------------------------
@@ -1456,37 +1069,11 @@ Return a JSON array of questions with this exact format:
 ]
 Output ONLY valid raw JSON.`;
 
-  try {
-    const raw = await callGemini({
-      contents: prompt,
-      config: { responseMimeType: 'application/json' },
-    });
-    const cleaned = raw.replace(/```json/gi, '').replace(/```/g, '').trim();
-    return JSON.parse(cleaned);
-  } catch (err) {
-    console.warn('Gemini quiz generation failed, falling back to Groq:', err);
-    try {
-      const groqRaw = await callGroqDirect(prompt, true);
-      const cleaned = groqRaw.replace(/```json/gi, '').replace(/```/g, '').trim();
-      return JSON.parse(cleaned);
-    } catch {
-      return [
-        {
-          id: 'q1',
-          question: `Which fundamental principle is central to ${topicOrNotes.slice(0, 40) || 'this topic'}?`,
-          options: [
-            'Conservation and systematic equilibrium',
-            'Arbitrary spontaneous generation',
-            'Static non-interactive states',
-            'Independent variable decoupling',
-          ],
-          correctIndex: 0,
-          explanation: 'Core academic models rely on systematic equilibrium and conservation laws.',
-          topic: 'Foundations',
-        },
-      ];
-    }
+  const parsed = await callGeminiJson<QuizQuestion[]>(prompt, 'Interactive quiz generation');
+  if (!Array.isArray(parsed) || parsed.length === 0) {
+    throw new Error('Interactive quiz generation returned an empty question list.');
   }
+  return parsed;
 }
 
 // -------------------------------------------------------------
@@ -1530,15 +1117,11 @@ Return ONLY raw JSON in this structure:
   "motivationTip": "Brief high-impact psychological tip"
 }`;
 
-  try {
-    const raw = await callGemini({ contents: prompt });
-    const cleaned = raw.replace(/```json/gi, '').replace(/```/g, '').trim();
-    return JSON.parse(cleaned);
-  } catch {
-    const groqRaw = await callGroqDirect(prompt, true);
-    const cleaned = groqRaw.replace(/```json/gi, '').replace(/```/g, '').trim();
-    return JSON.parse(cleaned);
+  const parsed = await callGeminiJson<DailyStudyPlanResult>(prompt, 'Daily study plan generation');
+  if (!parsed || !Array.isArray(parsed.blocks)) {
+    throw new Error('Daily study plan generation returned invalid blocks.');
   }
+  return parsed;
 }
 
 // -------------------------------------------------------------
@@ -1572,15 +1155,11 @@ Return ONLY a raw JSON object with:
   "inText": "(Author, Year)"
 }`;
 
-  try {
-    const raw = await callGemini({ contents: prompt });
-    const cleaned = raw.replace(/```json/gi, '').replace(/```/g, '').trim();
-    return JSON.parse(cleaned);
-  } catch {
-    const groqRaw = await callGroqDirect(prompt, true);
-    const cleaned = groqRaw.replace(/```json/gi, '').replace(/```/g, '').trim();
-    return JSON.parse(cleaned);
+  const parsed = await callGeminiJson<AcademicCitationResult>(prompt, 'Academic citation generation');
+  if (!parsed || (!parsed.apa && !parsed.mla && !parsed.bibtex)) {
+    throw new Error('Academic citation generation returned incomplete citation formats.');
   }
+  return parsed;
 }
 
 // -------------------------------------------------------------
@@ -1668,15 +1247,11 @@ Return ONLY valid JSON matching this exact structure:
   ]
 }`;
 
-  try {
-    const raw = await callGemini({ contents: prompt });
-    const cleaned = raw.replace(/```json/gi, '').replace(/```/g, '').trim();
-    return JSON.parse(cleaned);
-  } catch {
-    const groqRaw = await callGroqDirect(prompt, true);
-    const cleaned = groqRaw.replace(/```json/gi, '').replace(/```/g, '').trim();
-    return JSON.parse(cleaned);
+  const parsed = await callGeminiJson<ParsedSyllabusData>(prompt, 'Syllabus parser');
+  if (!parsed || typeof parsed.courseTitle !== 'string') {
+    throw new Error('Syllabus parser returned incomplete course metadata.');
   }
+  return parsed;
 }
 
 // -------------------------------------------------------------
@@ -1723,15 +1298,11 @@ Return ONLY valid JSON matching this exact structure:
   "estimatedPomodoros": 3
 }`;
 
-  try {
-    const raw = await callGemini({ contents: prompt });
-    const cleaned = raw.replace(/```json/gi, '').replace(/```/g, '').trim();
-    return JSON.parse(cleaned);
-  } catch {
-    const groqRaw = await callGroqDirect(prompt, true);
-    const cleaned = groqRaw.replace(/```json/gi, '').replace(/```/g, '').trim();
-    return JSON.parse(cleaned);
+  const parsed = await callGeminiJson<WhyIsThisHardResult>(prompt, 'Cognitive difficulty deconstruction');
+  if (!parsed || !parsed.coreDifficultyReason || !Array.isArray(parsed.cognitiveBottlenecks)) {
+    throw new Error('Cognitive deconstruction returned an incomplete breakdown.');
   }
+  return parsed;
 }
 
 // -------------------------------------------------------------
@@ -1796,15 +1367,11 @@ Return ONLY valid JSON:
   ]
 }`;
 
-  try {
-    const raw = await callGemini({ contents: prompt });
-    const cleaned = raw.replace(/```json/gi, '').replace(/```/g, '').trim();
-    return JSON.parse(cleaned);
-  } catch {
-    const groqRaw = await callGroqDirect(prompt, true);
-    const cleaned = groqRaw.replace(/```json/gi, '').replace(/```/g, '').trim();
-    return JSON.parse(cleaned);
+  const parsed = await callGeminiJson<EssayAnalysisResult>(prompt, 'Essay draft analysis');
+  if (!parsed || !parsed.thesisEvaluation) {
+    throw new Error('Essay analyzer returned an incomplete evaluation.');
   }
+  return parsed;
 }
 
 // -------------------------------------------------------------
@@ -1839,12 +1406,11 @@ ${historyText}
 Student: ${params.userMessage}
 Socratic Tutor:`;
 
-  try {
-    const raw = await callGemini({ contents: prompt });
-    return raw.trim();
-  } catch {
-    const groqRaw = await callGroqDirect(prompt, false);
-    return groqRaw.trim();
+  const raw = await callGemini({ contents: prompt });
+  const trimmed = raw.trim();
+  if (!trimmed) {
+    throw new Error('Socratic tutor returned an empty response.');
   }
+  return trimmed;
 }
 

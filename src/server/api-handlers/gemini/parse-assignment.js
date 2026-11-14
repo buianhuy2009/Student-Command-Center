@@ -1,14 +1,6 @@
-import { GoogleGenAI } from "@google/genai";
+import { applyApiCors } from "../cors.js";
+import { generateWithModelFallback, parseJsonLoose } from "./generate.js";
 import { SERVER_MODELS } from "./models.js";
-
-let genAI = null;
-function getGenAI() {
-  if (!genAI) {
-    const apiKey = process.env.GEMINI_API_KEY || "";
-    genAI = new GoogleGenAI({ apiKey });
-  }
-  return genAI;
-}
 
 const CANDIDATE_MODELS = SERVER_MODELS;
 const VI_WEEKDAYS = ["Chủ nhật", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
@@ -26,46 +18,41 @@ Return ONLY JSON:
 }
 
 export default async function handler(req, res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  if (req.method === "OPTIONS") return res.status(200).end();
+  if (applyApiCors(req, res, "POST, OPTIONS")) return;
+  if (req.method && req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed", code: "method_not_allowed" });
+  }
 
   const { text } = req.body || {};
   if (!text) {
     return res.status(400).json({ error: "Text is required" });
   }
   const prompt = buildParsePrompt(text);
-  let lastError = null;
-  for (const model of CANDIDATE_MODELS) {
-    try {
-      const response = await getGenAI().models.generateContent({
-        model,
-        contents: prompt,
-        config: { responseMimeType: "application/json", temperature: 0.1 },
-      });
-      const parsed = JSON.parse(response.text || "{}");
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(String(parsed.dueDate || ""))) {
-        parsed.dueDate = "";
-        parsed.dueConfidence = "none";
-      }
-      return res.status(200).json({ ...parsed, aiStatus: "ok" });
-    } catch (err) {
-      lastError = err;
-      console.warn(`Parse assignment: ${model} failed: ${err?.message || err}`);
+  try {
+    const { response } = await generateWithModelFallback({
+      contents: prompt,
+      config: { responseMimeType: "application/json", temperature: 0.1 },
+    });
+    const parsed = parseJsonLoose(response?.text);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(parsed.dueDate || ""))) {
+      parsed.dueDate = "";
+      parsed.dueConfidence = "none";
     }
+    return res.status(200).json({ ...parsed, aiStatus: "ok" });
+  } catch (err) {
+    console.error("Parse assignment error:", err);
+    // Honest fallback: keep the student's words, invent nothing — the confirm card asks for the date.
+    return res.status(200).json({
+      subject: "",
+      assignmentName: String(text).slice(0, 120),
+      dueDate: "",
+      dueConfidence: "none",
+      dueEvidence: "",
+      priority: "Med",
+      status: "Not Started",
+      estimatedMinutes: 45,
+      aiStatus: "failed",
+      candidateModelsTried: CANDIDATE_MODELS.length,
+    });
   }
-  console.error("Parse assignment error:", lastError);
-  // Honest fallback: keep the student's words, invent nothing — the confirm card asks for the date.
-  res.status(200).json({
-    subject: "",
-    assignmentName: String(text).slice(0, 120),
-    dueDate: "",
-    dueConfidence: "none",
-    dueEvidence: "",
-    priority: "Med",
-    status: "Not Started",
-    estimatedMinutes: 45,
-    aiStatus: "failed",
-  });
 }

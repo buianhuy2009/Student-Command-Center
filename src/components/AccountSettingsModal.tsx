@@ -1275,9 +1275,6 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                 {[
                   { name: 'Canvas LMS', desc: 'Sync via iCal calendar URL & token', badge: 'Active', icon: Layers },
                   { name: 'Google Classroom', desc: 'Sync coursework and materials', badge: 'Ready', icon: GraduationCap },
-                  { name: 'Moodle LMS', desc: 'Direct iCal and REST endpoints', badge: 'Ready', icon: BookOpen },
-                  { name: 'Google NotebookLM', desc: 'AI source binder & study exporter', badge: 'Connected', icon: Bot },
-                  { name: 'Canva Studio', desc: 'Direct presentation & slide design bridge', badge: 'Ready', icon: Palette },
                 ].map((integ) => {
                   const Icon = integ.icon;
                   return (

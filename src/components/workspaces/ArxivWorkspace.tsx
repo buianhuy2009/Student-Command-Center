@@ -69,19 +69,13 @@ export const ArxivWorkspace: React.FC = () => {
     try {
       const raw = localStorage.getItem('scc_markdown_notes_v1');
       const notes = raw ? JSON.parse(raw) : [];
-      const content = `# ${paper.title}\n\n**Authors:** ${paper.authors.join(', ')}\n**Category:** ${paper.primaryCategory} • **Published:** ${paper.published}\n**arXiv:** ${paper.arxivUrl}\n**PDF:** ${paper.pdfUrl}\n\n## Abstract\n${paper.summary}\n`;
+      const authors = paper.authors.join(', ');
+      const year = paper.published.slice(0, 4) || '2025';
+      const citeKey = `arxiv${year}${paper.id.replace(/[^a-zA-Z0-9]/g, '').slice(-12)}`;
+      const bibtex = `@article{${citeKey},\n  title = {${paper.title}},\n  author = {${authors}},\n  year = {${year}},\n  url = {${paper.pdfUrl}}\n}`;
+      const content = `# ${paper.title}\n\n**Authors:** ${authors}\n**Category:** ${paper.primaryCategory} • **Published:** ${paper.published}\n**arXiv:** ${paper.arxivUrl}\n**PDF:** ${paper.pdfUrl}\n\n## Abstract\n${paper.summary}\n\n## Citation (BibTeX)\n\`\`\`bibtex\n${bibtex}\n\`\`\`\n`;
       const newNote = { id: `note-${Date.now()}`, title: `arXiv: ${paper.title.slice(0, 60)}`, subject: paper.primaryCategory || 'Research', content, updatedAt: new Date().toLocaleDateString() };
       localStorage.setItem('scc_markdown_notes_v1', JSON.stringify([newNote, ...notes]));
-      // bibliography
-      import('../../services/bibliography').then(m=> {
-        const authors = paper.authors.join(', ');
-        const year = paper.published.slice(-4)||'2025';
-        const apa = `${authors} (${year}). ${paper.title}. arXiv:${paper.primaryCategory}. ${paper.pdfUrl}`;
-        const mla = `${authors}. "${paper.title}." arXiv:${paper.primaryCategory}, ${year}, ${paper.pdfUrl}.`;
-        const chicago = `${authors}. ${year}. "${paper.title}." arXiv:${paper.primaryCategory}. ${paper.pdfUrl}.`;
-        const bibtex = `@article{arxiv${year}${paper.id.replace(/[^a-zA-Z0-9]/g, '').slice(-12)},\n  title = {${paper.title}},\n  author = {${authors}},\n  year = {${year}},\n  url = {${paper.pdfUrl}}\n}`;
-        m.saveBibliographyEntry({ id:`bib-${Date.now()}`, title: paper.title, authors, year, apa, mla, chicago, bibtex, source: paper.pdfUrl, createdAt: new Date().toISOString() });
-      });
       setSavedToNotesId(paper.id);
       setTimeout(() => setSavedToNotesId(null), 2000);
     } catch (e) { console.error(e); }

@@ -32,12 +32,12 @@ export interface SRSDeck {
 export type ReviewQuality = 0 | 1 | 2 | 3 | 4 | 5;
 
 export const QUALITY_LABELS: Record<ReviewQuality, { label: string; desc: string; color: string }> = {
-  0: { label: 'Blackout (0)', desc: 'Complete memory lapse', color: 'bg-rose-600 text-white' },
-  1: { label: 'Wrong (1)', desc: 'Remembered upon reveal', color: 'bg-rose-500 text-white' },
-  2: { label: 'Hard (2)', desc: 'Incorrect, but familiar', color: 'bg-amber-600 text-white' },
-  3: { label: 'Difficult (3)', desc: 'Correct with serious effort', color: 'bg-amber-500 text-white' },
-  4: { label: 'Good (4)', desc: 'Correct after hesitation', color: 'bg-blue-600 text-white' },
-  5: { label: 'Perfect (5)', desc: 'Instant, confident recall', color: 'bg-emerald-600 text-white' },
+  0: { label: 'Blackout (0)', desc: 'Complete memory lapse', color: 'bg-rose-800 text-white' },
+  1: { label: 'Wrong (1)', desc: 'Remembered upon reveal', color: 'bg-rose-700 text-white' },
+  2: { label: 'Hard (2)', desc: 'Incorrect, but familiar', color: 'bg-amber-800 text-white' },
+  3: { label: 'Difficult (3)', desc: 'Correct with serious effort', color: 'bg-amber-700 text-white' },
+  4: { label: 'Good (4)', desc: 'Correct after hesitation', color: 'bg-blue-700 text-white' },
+  5: { label: 'Perfect (5)', desc: 'Instant, confident recall', color: 'bg-emerald-700 text-white' },
 };
 
 /**
@@ -115,8 +115,10 @@ const LOCAL_DECKS_STORAGE_KEY = 'scc_srs_decks_v2';
 
 export function loadSRSDecks(): SRSDeck[] {
   try {
-    const raw = localStorage.getItem(LOCAL_DECKS_STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
+    if (typeof localStorage !== 'undefined') {
+      const raw = localStorage.getItem(LOCAL_DECKS_STORAGE_KEY);
+      if (raw) return JSON.parse(raw);
+    }
   } catch (err) {
     console.error('Failed to load SRS decks:', err);
   }
@@ -166,6 +168,7 @@ export function loadSRSDecks(): SRSDeck[] {
 }
 
 export function saveSRSDecks(decks: SRSDeck[]): void {
+  if (typeof localStorage === 'undefined') return;
   try {
     localStorage.setItem(LOCAL_DECKS_STORAGE_KEY, JSON.stringify(decks));
   } catch (err) {

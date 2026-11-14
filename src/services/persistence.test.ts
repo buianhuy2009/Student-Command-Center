@@ -8,11 +8,37 @@ const UID_B = 'test-uid-bob-002';
 const TOKEN_A = 'ya29.test-token-alice-abcdef1234567890';
 const TOKEN_B = 'ya29.test-token-bob-abcdef1234567890';
 
+function createMemoryStorage(): Storage {
+  const store = new Map<string, string>();
+  return {
+    get length() { return store.size; },
+    clear() { store.clear(); },
+    getItem(k: string) { return store.has(k) ? store.get(k)! : null; },
+    key(i: number) { return Array.from(store.keys())[i] ?? null; },
+    removeItem(k: string) { store.delete(k); },
+    setItem(k: string, v: string) { store.set(k, String(v)); },
+  };
+}
+
+function ensureWebStorage() {
+  for (const name of ['localStorage', 'sessionStorage'] as const) {
+    if (typeof (globalThis as any)[name]?.getItem !== 'function') {
+      const jsdomStorage = (globalThis as any).jsdom?.window?.[name];
+      const impl = jsdomStorage && typeof jsdomStorage.getItem === 'function' ? jsdomStorage : createMemoryStorage();
+      Object.defineProperty(globalThis, name, { value: impl, configurable: true, writable: true });
+      if (typeof window !== 'undefined' && window !== globalThis) {
+        try {
+          Object.defineProperty(window, name, { value: impl, configurable: true, writable: true });
+        } catch {}
+      }
+    }
+  }
+}
+
 function wipeStorage() {
-  try {
-    localStorage.clear();
-    sessionStorage.clear();
-  } catch {}
+  ensureWebStorage();
+  try { localStorage.clear(); } catch {}
+  try { sessionStorage.clear(); } catch {}
 }
 
 beforeEach(async () => {

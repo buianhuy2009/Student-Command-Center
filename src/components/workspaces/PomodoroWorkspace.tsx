@@ -17,14 +17,29 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { ambientAudio, AMBIENT_TRACKS, TrackId } from '../../services/ambientAudio';
+import { usePomodoroStore, recordStreakDate } from '../../stores/pomodoroStore';
 import { t, useLang } from '../../services/i18n';
 
-export const PomodoroWorkspace: React.FC = () => {
+export interface PomodoroWorkspaceProps {
+  initialMinutes?: number;
+}
+
+export const PomodoroWorkspace: React.FC<PomodoroWorkspaceProps> = ({ initialMinutes }) => {
   useLang();
   // Timer States
+  const initialWorkMins = typeof initialMinutes === 'number' && initialMinutes > 0 ? initialMinutes : 25;
   const [mode, setMode] = useState<'work' | 'short' | 'long'>('work');
-  const [durationMinutes, setDurationMinutes] = useState<number>(25);
-  const [timeLeftSeconds, setTimeLeftSeconds] = useState<number>(25 * 60);
+  const [durationMinutes, setDurationMinutes] = useState<number>(initialWorkMins);
+  const [timeLeftSeconds, setTimeLeftSeconds] = useState<number>(initialWorkMins * 60);
+
+  useEffect(() => {
+    if (typeof initialMinutes === 'number' && initialMinutes > 0) {
+      setMode('work');
+      setDurationMinutes(initialMinutes);
+      setTimeLeftSeconds(initialMinutes * 60);
+      setIsRunning(false);
+    }
+  }, [initialMinutes]);
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [completedSessions, setCompletedSessions] = useState<number>(() => {
     try {
@@ -40,7 +55,7 @@ export const PomodoroWorkspace: React.FC = () => {
   const lastAnnouncedMinuteRef = useRef<number>(-1);
   const [liveAnnouncement, setLiveAnnouncement] = useState<string>('');
 
-  // Ambient Sound Engine (Web Audio API)
+  // Ambient Sound Engine (shared singleton service)
   const [activeSound, setActiveSound] = useState<TrackId>(ambientAudio.getTrack());
   const [soundVolume, setSoundVolume] = useState<number>(0.5);
 
@@ -48,9 +63,6 @@ export const PomodoroWorkspace: React.FC = () => {
     const unsub = ambientAudio.subscribe((tr) => setActiveSound(tr));
     return () => unsub();
   }, []);
-  const audioCtxRef = useRef<AudioContext | null>(null);
-  const gainNodeRef = useRef<GainNode | null>(null);
-  const sourceNodesRef = useRef<any[]>([]);
 
   // Scratchpad State
   const [scratchpadText, setScratchpadText] = useState<string>(() => {
@@ -83,6 +95,19 @@ export const PomodoroWorkspace: React.FC = () => {
         setCompletedSessions(nextCount);
         try {
           localStorage.setItem('scc_pomo_completed_v1', nextCount.toString());
+          const todayStr = new Date().toISOString().slice(0, 10);
+          const rawLog = localStorage.getItem('scc_focus_sessions_log');
+          const parsedLog = rawLog ? JSON.parse(rawLog) : [];
+          const log: { date: string; minutes: number }[] = Array.isArray(parsedLog) ? parsedLog : [];
+          log.push({ date: todayStr, minutes: durationMinutes });
+          localStorage.setItem('scc_focus_sessions_log', JSON.stringify(log));
+
+          // Maintain scc_streak_history as Record<string, number> (shared with pomodoroStore + App.tsx; migrates legacy string[])
+          recordStreakDate(todayStr, { increment: true });
+        } catch {}
+        try {
+          usePomodoroStore.setState({ completedSessions: nextCount });
+          new BroadcastChannel('scc-pomo').postMessage({ type: 'increment', value: nextCount });
         } catch {}
         if (document.visibilityState === 'visible' && !document.hidden) {
           confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 } });
@@ -90,7 +115,7 @@ export const PomodoroWorkspace: React.FC = () => {
       }
     }
     return () => clearInterval(interval);
-  }, [isRunning, timeLeftSeconds, mode, completedSessions]);
+  }, [isRunning, timeLeftSeconds, mode, completedSessions, durationMinutes]);
 
   // Sync document.title with the timer countdown while running, restore previous title on unmount
   useEffect(() => {
@@ -135,162 +160,6 @@ export const PomodoroWorkspace: React.FC = () => {
       }
     }
   }, [timeLeftSeconds, mode]);
-  const stopAudio = () => {
-    sourceNodesRef.current.forEach((node) => {
-      try {
-        node.stop?.();
-        node.disconnect?.();
-      } catch {}
-    });
-    sourceNodesRef.current = [];
-  };
-
-  const startSynthesizer = (type: TrackId) => {
-    stopAudio();
-    if (type === 'none') {
-      setActiveSound('none');
-      return;
-    }
-
-    try {
-      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-      if (!audioCtxRef.current) {
-        audioCtxRef.current = new AudioCtx();
-      }
-      const ctx = audioCtxRef.current;
-      if (ctx.state === 'suspended') {
-        ctx.resume();
-      }
-
-      const gainNode = ctx.createGain();
-      gainNode.gain.value = soundVolume;
-      gainNode.connect(ctx.destination);
-      gainNodeRef.current = gainNode;
-
-      if (type === 'brown') {
-        // True Brownian / Red noise with warm bass resonance
-        const bufferSize = 3 * ctx.sampleRate;
-        const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-        const output = noiseBuffer.getChannelData(0);
-        let lastOut = 0.0;
-        for (let i = 0; i < bufferSize; i++) {
-          const white = Math.random() * 2 - 1;
-          lastOut = (lastOut + 0.02 * white) / 1.02;
-          output[i] = lastOut * 3.2;
-        }
-
-        const brownSource = ctx.createBufferSource();
-        brownSource.buffer = noiseBuffer;
-        brownSource.loop = true;
-
-        const lowpass = ctx.createBiquadFilter();
-        lowpass.type = 'lowpass';
-        lowpass.frequency.value = 320;
-        lowpass.Q.value = 1.0;
-
-        brownSource.connect(lowpass);
-        lowpass.connect(gainNode);
-        brownSource.start();
-        sourceNodesRef.current.push(brownSource);
-      } else if (type === 'rain') {
-        // Multi-layered realistic rain: ambient wash + randomized raindrop patter
-        const bufferSize = 4 * ctx.sampleRate;
-        const rainBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-        const output = rainBuffer.getChannelData(0);
-        let b0 = 0, b1 = 0, b2 = 0;
-
-        for (let i = 0; i < bufferSize; i++) {
-          const white = Math.random() * 2 - 1;
-          // Pink noise generator core
-          b0 = 0.99765 * b0 + white * 0.0990460;
-          b1 = 0.96300 * b1 + white * 0.2965164;
-          b2 = 0.57000 * b2 + white * 1.0526913;
-          let sample = (b0 + b1 + b2 + white * 0.1848) * 0.18;
-
-          // Randomized raindrop texture
-          if (Math.random() < 0.012) {
-            sample += (Math.random() * 2 - 1) * 0.5;
-          }
-          output[i] = sample;
-        }
-
-        const rainSource = ctx.createBufferSource();
-        rainSource.buffer = rainBuffer;
-        rainSource.loop = true;
-
-        const bandpass = ctx.createBiquadFilter();
-        bandpass.type = 'bandpass';
-        bandpass.frequency.value = 1400;
-        bandpass.Q.value = 0.6;
-
-        rainSource.connect(bandpass);
-        bandpass.connect(gainNode);
-        rainSource.start();
-        sourceNodesRef.current.push(rainSource);
-      } else if (type === 'pink') {
-        // True Paul Kellet 3dB/octave pink noise
-        const bufferSize = 3 * ctx.sampleRate;
-        const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-        const output = noiseBuffer.getChannelData(0);
-        let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
-
-        for (let i = 0; i < bufferSize; i++) {
-          const white = Math.random() * 2 - 1;
-          b0 = 0.99886 * b0 + white * 0.0555179;
-          b1 = 0.99332 * b1 + white * 0.0750759;
-          b2 = 0.96900 * b2 + white * 0.1538520;
-          b3 = 0.86650 * b3 + white * 0.3104856;
-          b4 = 0.55000 * b4 + white * 0.5329522;
-          b5 = -0.7616 * b5 - white * 0.0168980;
-          output[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.11;
-          b6 = white * 0.115926;
-        }
-
-        const pinkSource = ctx.createBufferSource();
-        pinkSource.buffer = noiseBuffer;
-        pinkSource.loop = true;
-        pinkSource.connect(gainNode);
-        pinkSource.start();
-        sourceNodesRef.current.push(pinkSource);
-      } else if (type === 'white') {
-        const bufferSize = 2 * ctx.sampleRate;
-        const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-        const output = noiseBuffer.getChannelData(0);
-        for (let i = 0; i < bufferSize; i++) {
-          output[i] = (Math.random() * 2 - 1) * 0.12;
-        }
-        const whiteSource = ctx.createBufferSource();
-        whiteSource.buffer = noiseBuffer;
-        whiteSource.loop = true;
-        whiteSource.connect(gainNode);
-        whiteSource.start();
-        sourceNodesRef.current.push(whiteSource);
-      } else if (type === 'binaural') {
-        // 40Hz Gamma Focus frequency (200Hz Left, 240Hz Right)
-        const merger = ctx.createChannelMerger(2);
-
-        const oscL = ctx.createOscillator();
-        oscL.type = 'sine';
-        oscL.frequency.value = 200;
-        oscL.connect(merger, 0, 0);
-
-        const oscR = ctx.createOscillator();
-        oscR.type = 'sine';
-        oscR.frequency.value = 240;
-        oscR.connect(merger, 0, 1);
-
-        merger.connect(gainNode);
-        oscL.start();
-        oscR.start();
-        sourceNodesRef.current.push(oscL, oscR);
-      }
-
-      setActiveSound(type);
-    } catch (err) {
-      console.error('Audio synthesizer error:', err);
-    }
-  };
-
   // Onboarding ("Start Pomodoro") reads localStorage `scc_pomo_completed_v1`
   // (see OnboardingChecklist + pomodoroStore). This workspace does not use the
   // store, so mirror its format (integer string) with a minimal try/catch write.
@@ -312,13 +181,14 @@ export const PomodoroWorkspace: React.FC = () => {
         }
       } catch (e) {}
 
-      // 2. Auto-turn on Brown Noise by default if silent
+      // 2. Auto-turn on Brown Noise by default if silent (through shared ambientAudio)
       if (activeSound === 'none') {
-        startSynthesizer('brown');
+        ambientAudio.setVolume(soundVolume);
+        ambientAudio.playTrack('brown');
       }
 
       // 3. Persist onboarding key when a focus (work-mode) session starts.
-      // Completion path (timer tick below) persists via increment; start only
+      // Completion path (timer tick above) persists via increment; start only
       // ensures the key exists so "Start Pomodoro" marks done without waiting
       // 25 minutes. Break presets never touch the key.
       if (mode === 'work') {
@@ -331,11 +201,9 @@ export const PomodoroWorkspace: React.FC = () => {
     }
   };
 
-  // Update volume live
+  // Update volume live via shared ambientAudio engine
   useEffect(() => {
-    if (gainNodeRef.current) {
-      gainNodeRef.current.gain.value = soundVolume;
-    }
+    ambientAudio.setVolume(soundVolume);
   }, [soundVolume]);
 
   // Keyboard shortcuts: Space, P, or K toggle the timer. Ignore edits in form fields.
@@ -354,13 +222,10 @@ export const PomodoroWorkspace: React.FC = () => {
     handleToggleTimer();
   };
 
-  // Clean up audio on unmount
+  // Clean up ambient audio on unmount
   useEffect(() => {
     return () => {
-      stopAudio();
-      if (audioCtxRef.current) {
-        audioCtxRef.current.close().catch(() => {});
-      }
+      ambientAudio.stop();
     };
   }, []);
 

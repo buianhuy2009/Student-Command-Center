@@ -214,44 +214,54 @@ export interface ApiEnablementInfo {
   rawMessage?: string;
 }
 
-export type IACategory = 'Plan' | 'Create' | 'Learn' | 'Research';
-// IA hierarchy: 4 categories Plan|Create|Learn|Research — splitscreen is now a layout mode, not a workspace
-export const IA_CATEGORY_MAP: Record<string, IACategory> = {
-  dashboard: 'Plan',
-  canvas: 'Plan', radar: 'Plan', tracker: 'Plan', gmail: 'Plan', drive: 'Plan', classroom: 'Plan', moodle: 'Plan', timetable: 'Plan', 'scholarship-tracker': 'Plan', 'deadline-gantt': 'Plan', 'group-project': 'Plan', 'ai-planner': 'Plan',
-  'desmos-graphing': 'Create', 'desmos-scientific': 'Create', geogebra: 'Create', phet: 'Create', excalidraw: 'Create', mermaid: 'Create', canva: 'Create', 'wolfram-symbolab': 'Create', 'scribble-latex': 'Create', 'periodic-table': 'Create', 'unit-converter': 'Create',
-  flashcards: 'Learn', quizlet: 'Learn', anki: 'Learn', notebooklm: 'Learn', viva: 'Learn', pomodoro: 'Learn', 'quiz-generator': 'Learn', 'peer-qa': 'Learn',
-  drive: 'Research', 'notes-markdown': 'Research', rubric: 'Research', feynman: 'Research', 'pdf-reader': 'Research', arxiv: 'Research', 'open-library': 'Research', 'citation-vault': 'Research', 'notion-import': 'Research',
-};
-export type WorkspaceId =
+export type AppTab =
   | 'dashboard'
-  | 'academic'
-  | 'stem'
-  | 'creation'
-  | 'retention'
-  | 'documents'
-  | 'splitscreen'
-  | 'ai-planner';
+  | 'canvas'
+  | 'classroom'
+  | 'gmail'
+  | 'drive'
+  | 'radar'
+  | 'tracker'
+  | 'notes-markdown'
+  | 'flashcards'
+  | 'excalidraw'
+  | 'geogebra'
+  | 'desmos-graphing'
+  | 'phet'
+  | 'arxiv'
+  | 'open-library'
+  | 'pomodoro';
+
+export type IACategory = 'Plan' | 'Create' | 'Learn' | 'Research';
+export const IA_CATEGORY_MAP: Record<AppTab, IACategory> = {
+  dashboard: 'Plan',
+  canvas: 'Plan',
+  classroom: 'Plan',
+  gmail: 'Plan',
+  radar: 'Plan',
+  tracker: 'Plan',
+  excalidraw: 'Create',
+  geogebra: 'Create',
+  'desmos-graphing': 'Create',
+  phet: 'Create',
+  flashcards: 'Learn',
+  pomodoro: 'Learn',
+  drive: 'Research',
+  'notes-markdown': 'Research',
+  arxiv: 'Research',
+  'open-library': 'Research',
+};
+export type WorkspaceId = AppTab;
 
 export type SplitScreenToolId =
+  | 'canvas'
   | 'desmos-graphing'
-  | 'desmos-scientific'
   | 'geogebra'
   | 'excalidraw'
-  | 'canvas-agenda'
   | 'notes-markdown'
   | 'pomodoro'
-  | 'phet-sims'
-  | 'flashcards'
-  | 'notebooklm'
-  | 'canva';
-
-export interface SplitScreenConfig {
-  leftTool: SplitScreenToolId;
-  rightTool: SplitScreenToolId;
-  ratio: '50/50' | '60/40' | '70/30' | '40/60' | '30/70';
-  activeFullscreenPane?: 'left' | 'right' | null;
-}
+  | 'phet'
+  | 'flashcards';
 
 export type DashboardWidgetId =
   | 'today-glance'
@@ -435,17 +445,11 @@ export type AgentAction =
         title: string;
       };
     }
-  | { type: 'createQuizFromNotes'; payload: { noteId: string; count?: number; difficulty?: 'easy' | 'mixed' | 'exam' } }
-  | { type: 'summarizePdfToDeck'; payload: { fileName: string; cards?: number } }
   | { type: 'draftEmailFromAssignment'; payload: { assignmentId: string; intent: 'extension' | 'question' | 'follow-up' } }
   | { type: 'scheduleFocusWeek'; payload: { assignmentIds: string[]; minutesPerDay?: number } }
   | { type: 'explainCanvasFeedback'; payload: { courseName: string; feedback: string } }
-  // Division A safe additions (student-approved previews only — never auto-delete/submit/send)
   | { type: 'createStudyFlashcardsPreview'; payload: { topic: string; count?: number } }
-  | { type: 'draftPresentationOutline'; payload: { topic: string; minutes?: 5 | 10 } }
-  // Division A Track 4 (Sec 6.4, collab.tsx previews): reversible dossier helpers — src/types.ts:414-415
-  | { type: 'createTestingChecklist'; payload: { feature: string } }
-  | { type: 'draftPromptLogSummary'; payload: { feature: string } };
+  | { type: 'draftPresentationOutline'; payload: { topic: string; minutes?: 5 | 10 } };
 
 export interface MathDebugResult {
   fullLatex: string[];

@@ -51,6 +51,7 @@ export const GoogleDriveTab: React.FC<GoogleDriveTabProps> = ({
   const [shareEmail, setShareEmail] = useState('');
   const [isSharing, setIsSharing] = useState(false);
   const [shareSuccess, setShareSuccess] = useState(false);
+  const [shareError, setShareError] = useState<string | null>(null);
 
   const getFileTypeDetails = (mimeType: string) => {
     if (mimeType.includes('document') || mimeType.includes('docx')) {
@@ -101,15 +102,21 @@ export const GoogleDriveTab: React.FC<GoogleDriveTabProps> = ({
 
   const handleShareFile = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!activeFile || !shareEmail.trim() || !googleToken) return;
+    if (!activeFile || !shareEmail.trim()) return;
+    if (!googleToken) {
+      setShareError('Your Google session expired or is disconnected. Reconnect Google before sharing files.');
+      return;
+    }
     setIsSharing(true);
     setShareSuccess(false);
+    setShareError(null);
     try {
       await shareGoogleDriveFile(googleToken, activeFile.id, shareEmail.trim());
       setShareSuccess(true);
       setTimeout(() => setShareSuccess(false), 4000);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error sharing file:', err);
+      setShareError(err?.message || 'Could not share this Drive file. Verify the email address and Google Drive permissions.');
     } finally {
       setIsSharing(false);
     }
@@ -316,6 +323,20 @@ export const GoogleDriveTab: React.FC<GoogleDriveTabProps> = ({
                     <div className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-bold animate-in fade-in">
                       <Check className="w-3.5 h-3.5" />
                       <span>{t('drive_shared_ok')}</span>
+                    </div>
+                  )}
+                  {shareError && (
+                    <div className="text-xs text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800 rounded-xl p-2.5 flex items-center justify-between gap-2" role="alert">
+                      <span>{shareError}</span>
+                      {!googleToken && onConnectGoogle && (
+                        <button
+                          type="button"
+                          onClick={onConnectGoogle}
+                          className="px-2.5 py-1 bg-[#D97757] text-white rounded-lg font-semibold shrink-0 cursor-pointer"
+                        >
+                          {t('drive_connect')}
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>

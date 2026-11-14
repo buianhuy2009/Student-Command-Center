@@ -128,12 +128,17 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
   const streakMap = useMemo(() => {
     try {
       const raw = localStorage.getItem('scc_focus_sessions_log');
-      const log: {date:string, minutes:number}[] = raw ? JSON.parse(raw) : [];
+      const parsed = raw ? JSON.parse(raw) : [];
+      const log: { date: string; minutes: number }[] = Array.isArray(parsed) ? parsed : [];
       const map = new Map<string, number>();
-      log.forEach(e => map.set(e.date, (map.get(e.date)||0)+e.minutes));
-      if (map.size===0 && safeCompletedFocusSessions>0) {
-        const today = new Date().toISOString().slice(0,10);
-        map.set(today, safeCompletedFocusSessions*25);
+      log.forEach((e) => {
+        if (e && typeof e.date === 'string' && typeof e.minutes === 'number' && Number.isFinite(e.minutes) && e.minutes > 0) {
+          map.set(e.date, (map.get(e.date) || 0) + e.minutes);
+        }
+      });
+      if (map.size === 0 && safeCompletedFocusSessions > 0) {
+        const today = new Date().toISOString().slice(0, 10);
+        map.set(today, safeCompletedFocusSessions * 25);
       }
       return map;
     } catch { return new Map<string, number>(); }

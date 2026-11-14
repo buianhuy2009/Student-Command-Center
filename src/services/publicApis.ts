@@ -22,6 +22,9 @@ export async function searchArxiv(query: string, category = 'all', maxResults = 
 
     const url = `https://export.arxiv.org/api/query?search_query=${searchQuery}&start=0&max_results=${maxResults}&sortBy=submittedDate&sortOrder=descending`;
     const res = await fetch(url);
+    if (!res.ok) {
+      throw new Error(`arXiv API error (${res.status} ${res.statusText || 'Request failed'})`);
+    }
     const xmlText = await res.text();
 
     const parser = new DOMParser();
@@ -75,7 +78,7 @@ export async function searchArxiv(query: string, category = 'all', maxResults = 
     return papers;
   } catch (err) {
     console.error('arXiv API fetch error:', err);
-    return [];
+    throw err instanceof Error ? err : new Error(String(err));
   }
 }
 
@@ -97,6 +100,9 @@ export async function searchOpenLibrary(query: string, limit = 12): Promise<Open
     if (!query.trim()) return [];
     const url = `https://openlibrary.org/search.json?q=${encodeURIComponent(query.trim())}&limit=${limit}`;
     const res = await fetch(url);
+    if (!res.ok) {
+      throw new Error(`Open Library API error (${res.status} ${res.statusText || 'Request failed'})`);
+    }
     const data = await res.json();
 
     if (!data.docs) return [];
@@ -118,7 +124,7 @@ export async function searchOpenLibrary(query: string, limit = 12): Promise<Open
     });
   } catch (err) {
     console.error('Open Library API fetch error:', err);
-    return [];
+    throw err instanceof Error ? err : new Error(String(err));
   }
 }
 
@@ -192,6 +198,7 @@ export function isApodCacheFresh(cachedDate: string | undefined | null, today = 
 }
 
 export function getApodCache(): { date: string; data: NasaApod } | null {
+  if (typeof localStorage === 'undefined') return null;
   try {
     const raw = localStorage.getItem(NASA_APOD_CACHE_KEY);
     if (!raw) return null;
@@ -202,6 +209,7 @@ export function getApodCache(): { date: string; data: NasaApod } | null {
 }
 
 export function setApodCache(data: NasaApod): void {
+  if (typeof localStorage === 'undefined') return;
   if (!data || typeof data.url !== 'string' || !data.url.trim()) return;
   try {
     localStorage.setItem(NASA_APOD_CACHE_KEY, JSON.stringify({ date: todayDateStr(), data }));
@@ -210,6 +218,7 @@ export function setApodCache(data: NasaApod): void {
 }
 
 export function clearApodCache(): void {
+  if (typeof localStorage === 'undefined') return;
   try { localStorage.removeItem(NASA_APOD_CACHE_KEY); } catch {}
 }
 

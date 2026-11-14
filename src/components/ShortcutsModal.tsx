@@ -1,6 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Keyboard, X } from 'lucide-react';
-import { APP_CATALOG } from './AppStoreModal';
 import { t, useLang } from '../services/i18n';
 
 interface ShortcutsModalProps {
@@ -13,24 +12,21 @@ export const ShortcutsModal: React.FC<ShortcutsModalProps> = ({ isOpen, onClose 
   const [query, setQuery] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const dynamicAppShortcuts = useMemo(() => {
-    return APP_CATALOG.slice(0, 12).map((app, idx) => ({
-      key: idx < 5 ? `${idx+1}` : `g ${app.id.slice(0,2)}`,
-      description: `Open ${app.name} (${app.category})`,
-    }));
-  }, []);
-
   const shortcuts = [
     { key: '⌘ + K / Ctrl + K', description: t('keys_d_open_palette') },
+    { key: '0', description: 'Dashboard Home' },
     { key: '1', description: t('keys_d_canvas') },
     { key: '2', description: t('keys_d_schedule') },
     { key: '3', description: t('keys_d_tracker') },
     { key: '4', description: t('keys_d_gmail') },
     { key: '5', description: t('keys_d_drive') },
-    ...dynamicAppShortcuts.slice(5, 8),
+    { key: 'g d', description: 'Go to Dashboard' },
+    { key: 'g c', description: 'Go to Canvas LMS' },
+    { key: 'g t', description: 'Go to Assignment Tracker' },
+    { key: 'g m', description: 'Go to Gmail AI' },
+    { key: 'n', description: 'Quick jump to Assignment Tracker' },
+    { key: 'f', description: 'Toggle Zen Focus Mode' },
     { key: 'R', description: t('keys_d_sync') },
-    { key: 'D', description: t('keys_d_theme') },
-    { key: 'A', description: t('keys_d_ai') },
     { key: '?', description: t('keys_d_help') },
     { key: 'Esc', description: t('keys_d_close') },
   ];
