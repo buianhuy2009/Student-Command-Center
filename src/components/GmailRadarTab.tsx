@@ -413,21 +413,21 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
     <div className="space-y-4">
       {/* Gmail connection status: silent auto-restore on mount, manual
           Connect fallback, explicit account switching, email + Disconnect. */}
-      <div className="bg-white dark:bg-[#1A1917] rounded-2xl border border-[#DFDACB] dark:border-[#2C2B27] px-3 py-2 flex flex-wrap items-center justify-between gap-2 shadow-xs text-xs">
+      <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] px-3 py-2 flex flex-wrap items-center justify-between gap-2 shadow-xs text-xs">
         {restoring ? (
-          <span className="flex items-center gap-2 text-[#5C5A54] dark:text-[#B5B2A8] font-semibold">
-            <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#D97757]" />
+          <span className="flex items-center gap-2 text-[var(--text-secondary)] font-semibold">
+            <RefreshCw className="w-3.5 h-3.5 animate-spin text-[var(--accent-text)]" />
             {t('gmail_reconnecting')}
           </span>
         ) : showConnected ? (
           <span className="flex items-center gap-2 min-w-0">
             <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-            <span className="font-bold text-[#141413] dark:text-[#FAF9F5] truncate">
+            <span className="font-bold text-[var(--text-primary)] truncate">
               {accountEmail ? t('gmail_connected_as', { email: accountEmail }) : t('gmail_connected_fallback')}
             </span>
           </span>
         ) : (
-          <span className="font-semibold text-[#5C5A54] dark:text-[#B5B2A8]">
+          <span className="font-semibold text-[var(--text-secondary)]">
             {t('gmail_not_connected')}
           </span>
         )}
@@ -437,13 +437,13 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
               <button
                 onClick={handleUseAnotherAccount}
                 disabled={switching}
-                className="px-2.5 py-1 bg-[#FAF9F5] dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] hover:border-[#D97757] text-[#141413] dark:text-[#FAF9F5] rounded-lg font-semibold cursor-pointer disabled:opacity-60"
+                className="px-2.5 py-1 bg-[var(--bg-subtle)] border border-[var(--border-default)] hover:border-[var(--accent-fill)] text-[var(--text-primary)] rounded-lg font-semibold cursor-pointer disabled:opacity-60"
               >
                 {switching ? t('gmail_switching') : t('gmail_use_another')}
               </button>
               <button
                 onClick={handleDisconnectClick}
-                className="px-2.5 py-1 bg-transparent border border-[#DFDACB] dark:border-[#2C2B27] text-[#5C5A54] dark:text-[#B5B2A8] hover:text-rose-600 hover:border-rose-300 rounded-lg font-semibold cursor-pointer"
+                className="px-2.5 py-1 bg-transparent border border-[var(--border-default)] text-[var(--text-secondary)] hover:text-rose-600 hover:border-rose-300 rounded-lg font-semibold cursor-pointer"
               >
                 {t('gmail_disconnect')}
               </button>
@@ -452,14 +452,14 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
             <>
               <button
                 onClick={handleConnectClick}
-                className="px-2.5 py-1 bg-[#D97757] hover:bg-[#C86646] text-white rounded-lg font-semibold cursor-pointer"
+                className="px-2.5 py-1 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-lg font-semibold cursor-pointer"
               >
                 {t('gmail_connect')}
               </button>
               <button
                 onClick={handleUseAnotherAccount}
                 disabled={switching}
-                className="px-2.5 py-1 bg-[#FAF9F5] dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] hover:border-[#D97757] text-[#141413] dark:text-[#FAF9F5] rounded-lg font-semibold cursor-pointer disabled:opacity-60"
+                className="px-2.5 py-1 bg-[var(--bg-subtle)] border border-[var(--border-default)] hover:border-[var(--accent-fill)] text-[var(--text-primary)] rounded-lg font-semibold cursor-pointer disabled:opacity-60"
               >
                 {switching ? t('gmail_switching') : t('gmail_use_another')}
               </button>
@@ -468,7 +468,7 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
         </div>
       </div>
       {/* Top Filter Bar */}
-      <div className="bg-white dark:bg-[#1A1917] rounded-2xl border border-[#DFDACB] dark:border-[#2C2B27] p-3 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
+      <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-3 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
         
         {/* Category Filter Pills — ALL default, PROMOTIONS = spam+promo, SOCIAL separate */}
         <div className="flex items-center gap-1.5 flex-wrap">
@@ -478,8 +478,8 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
               onClick={() => setActiveCategory(cat)}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                 activeCategory === cat
-                  ? 'bg-[#D97757] text-white shadow-xs'
-                  : 'bg-[#FAF9F5] dark:bg-[#252422] text-[#5C5A54] dark:text-[#B5B2A8] hover:bg-[#EFECE2] dark:hover:bg-[#2C2A26] border border-[#DFDACB] dark:border-[#2C2B27]'
+                  ? 'bg-[var(--accent-fill)] text-white shadow-xs'
+                  : 'bg-[var(--bg-subtle)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] border border-[var(--border-default)]'
               }`}
             >
               {cat === 'REVIEW'
@@ -498,7 +498,7 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
                 ? t('gmail_social')
                 : t('gmail_general')}
               {cat === 'REVIEW' && reviewAlerts.length > 0 && (
-                <span className={`ml-1.5 inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full text-[10px] font-extrabold leading-none ${activeCategory === cat ? 'bg-white text-amber-700' : 'bg-amber-500 text-white'}`}>
+                <span className={`ml-1.5 inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full text-[10px] font-extrabold leading-none ${activeCategory === cat ? 'bg-[var(--bg-surface)] text-[var(--status-warn-text)]' : 'bg-[var(--status-warn-text)] text-white'}`}>
                   {reviewAlerts.length}
                 </span>
               )}
@@ -506,7 +506,7 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
                 <span
                   aria-label={`${unreadCounts[cat]} ${t('gmail_unread')}`}
                   className={`ml-1.5 inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full text-[10px] font-extrabold leading-none ${
-                    activeCategory === cat ? 'bg-white text-[#D97757]' : 'bg-[#D97757] text-white'
+                    activeCategory === cat ? 'bg-white text-[var(--accent-text)]' : 'bg-[var(--accent-fill)] text-white'
                   }`}
                 >
                   {unreadCounts[cat]}
@@ -519,13 +519,13 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
           {/* Right Controls */}
         <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
           <div className="relative w-full sm:w-48">
-            <Search className="w-3.5 h-3.5 text-[#6B6860] absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-3.5 h-3.5 text-[var(--text-muted)] absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={t('gmail_search_ph')}
-              className="w-full pl-8 pr-3 py-1.5 text-xs bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] rounded-xl focus:outline-none focus:ring-1 focus:ring-[#D97757] text-[#141413] dark:text-[#FAF9F5]"
+              className="w-full pl-8 pr-3 py-1.5 text-xs bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-xl focus:outline-none focus:ring-1 focus:ring-[var(--accent-fill)] text-[var(--text-primary)]"
             />
           </div>
 
@@ -551,10 +551,10 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
                 href="https://mail.google.com/mail/#search/category%3Apromotions"
                 target="_blank"
                 rel="noreferrer"
-                className="px-2.5 py-1.5 bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] hover:border-[#D97757] text-[#141413] dark:text-[#FAF9F5] rounded-xl text-xs font-bold inline-flex items-center gap-1"
+                className="px-2.5 py-1.5 bg-[var(--bg-subtle)] border border-[var(--border-default)] hover:border-[var(--accent-fill)] text-[var(--text-primary)] rounded-xl text-xs font-bold inline-flex items-center gap-1"
               >
                 <span>{t('gmail_open_in_gmail')}</span>
-                <ExternalLink className="w-3 h-3 text-[#D97757]" />
+                <ExternalLink className="w-3 h-3 text-[var(--accent-text)]" />
               </a>
             </div>
           )}
@@ -562,10 +562,10 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
           <button
             onClick={() => (showConnected ? onRefreshEmails(true) : handleConnectClick())}
             disabled={isLoadingEmails}
-            className="p-1.5 bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] hover:border-[#D97757] text-[#5C5A54] dark:text-[#B5B2A8] rounded-xl transition-colors cursor-pointer"
+            className="p-1.5 bg-[var(--bg-subtle)] border border-[var(--border-default)] hover:border-[var(--accent-fill)] text-[var(--text-secondary)] rounded-xl transition-colors cursor-pointer"
             title={showConnected ? t('gmail_refresh_inbox') : t('gmail_connect')}
           >
-            <RefreshCw className={`w-4 h-4 ${isLoadingEmails ? 'animate-spin text-[#D97757]' : ''}`} strokeWidth={1.75} />
+            <RefreshCw className={`w-4 h-4 ${isLoadingEmails ? 'animate-spin text-[var(--accent-text)]' : ''}`} strokeWidth={1.75} />
           </button>
         </div>
       </div>
@@ -580,7 +580,7 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
           <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={handleConnectClick}
-              className="px-2.5 py-1 bg-[#D97757] hover:bg-[#C86646] text-white rounded-lg font-semibold cursor-pointer"
+              className="px-2.5 py-1 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-lg font-semibold cursor-pointer"
             >
               {t('gmail_connect')}
             </button>
@@ -598,9 +598,9 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
       {gmailApiInfo ? (
         <ApiActivationBanner info={gmailApiInfo} onRetry={() => onRefreshEmails(true)} isRetrying={isLoadingEmails} />
       ) : emailError ? (
-        <div className="p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl flex items-center justify-between gap-3 text-xs text-amber-900 dark:text-amber-200">
+        <div className="p-3 bg-[var(--status-warn-bg)] border border-[var(--status-warn-border)] rounded-xl flex items-center justify-between gap-3 text-xs text-[var(--status-warn-text)]">
           <span>{emailError}</span>
-          <button onClick={handleConnectClick} className="px-2.5 py-1 bg-amber-600 text-white rounded-lg font-semibold cursor-pointer">
+          <button onClick={handleConnectClick} className="px-2.5 py-1 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-lg font-semibold cursor-pointer">
             {t('gmail_connect')}
           </button>
         </div>
@@ -611,7 +611,7 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
         <button
           type="button"
           onClick={() => setActiveCategory('REVIEW')}
-          className="w-full text-left p-3 rounded-2xl border border-amber-300 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/40 text-xs text-amber-900 dark:text-amber-200 flex items-start gap-2 hover:border-amber-500"
+          className="w-full text-left p-3 rounded-2xl border border-[var(--status-warn-border)] bg-[var(--status-warn-bg)] text-xs text-[var(--status-warn-text)] flex items-start gap-2 hover:border-[var(--border-strong)]"
         >
           <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
           <span>
@@ -623,29 +623,29 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
       )}
 
       {/* TWO-PANE MASTER-DETAIL LAYOUT */}
-      <div className="bg-white dark:bg-[#1A1917] rounded-2xl border border-[#DFDACB] dark:border-[#2C2B27] overflow-hidden shadow-xs flex flex-col md:flex-row h-[600px]">
+      <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] overflow-hidden shadow-xs flex flex-col md:flex-row h-[600px]">
         
         {/* LEFT MASTER PANE: Compact Email List */}
-        <div className="w-full md:w-80 lg:w-96 border-r border-[#DFDACB] dark:border-[#2C2B27] flex flex-col bg-[#FAF9F5] dark:bg-[#1F1E1B] overflow-hidden">
-          <div className="p-3 border-b border-[#DFDACB]/60 dark:border-[#2C2B27]/60 flex items-center justify-between text-xs font-bold text-[#8C897F]">
+        <div className="w-full md:w-80 lg:w-96 border-r border-[var(--border-default)] flex flex-col bg-[var(--bg-subtle)] overflow-hidden">
+          <div className="p-3 border-b border-[var(--border-default)] flex items-center justify-between text-xs font-bold text-[var(--text-muted)]">
             <span>{t('gmail_inbox_items')}</span>
             <span>{filteredAlerts.length} {t('gmail_messages')}</span>
           </div>
 
-          <div className="flex-1 overflow-y-auto divide-y divide-[#DFDACB]/40 dark:divide-[#2C2B27]/40">
+          <div className="flex-1 overflow-y-auto divide-y divide-[var(--border-default)]">
             {isLoadingEmails ? (
-              <div className="p-12 text-center text-[#8C897F] flex flex-col items-center justify-center gap-2">
-                <RefreshCw className="w-5 h-5 animate-spin text-[#D97757]" />
+              <div className="p-12 text-center text-[var(--text-muted)] flex flex-col items-center justify-center gap-2">
+                <RefreshCw className="w-5 h-5 animate-spin text-[var(--accent-text)]" />
                 <span className="text-xs">{t('gmail_scanning')}</span>
               </div>
             ) : filteredAlerts.length === 0 ? (
-              <div className="p-8 text-center text-[#8C897F] text-xs space-y-3">
+              <div className="p-8 text-center text-[var(--text-muted)] text-xs space-y-3">
                 <p>{!showConnected ? t('gmail_connect_empty') : t('gmail_empty')}</p>
                 {!showConnected && (
                   <button
                     type="button"
                     onClick={handleConnectClick}
-                    className="px-3.5 py-2 bg-[#D97757] hover:bg-[#C86646] text-white rounded-xl font-bold cursor-pointer inline-flex items-center gap-1.5"
+                    className="px-3.5 py-2 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-xl font-bold cursor-pointer inline-flex items-center gap-1.5"
                   >
                     <Mail className="w-3.5 h-3.5" />
                     <span>{t('gmail_connect')}</span>
@@ -661,15 +661,15 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
                   <div
                     key={alert.id}
                     onClick={() => setSelectedAlertId(alert.id)}
-                    className={`p-3.5 hover:bg-white dark:hover:bg-[#141413] transition-colors cursor-pointer text-left ${
-                      isSelected ? 'bg-white dark:bg-[#141413] font-semibold border-l-3 border-[#D97757]' : ''
+                    className={`p-3.5 hover:bg-[var(--bg-hover)] transition-colors cursor-pointer text-left ${
+                      isSelected ? 'bg-[var(--bg-surface)] font-semibold border-l-3 border-[var(--accent-fill)]' : ''
                     }`}
                   >
                     <div className="flex items-center justify-between gap-1 mb-1">
-                      <span className="text-[11px] font-bold text-[#141413] dark:text-[#FAF9F5] truncate max-w-[160px]">
+                      <span className="text-[11px] font-bold text-[var(--text-primary)] truncate max-w-[160px]">
                         {alert.sender}
                       </span>
-                      <span className="text-[10px] text-[#8C897F] shrink-0">
+                      <span className="text-[10px] text-[var(--text-muted)] shrink-0">
                         {alert.detectedAssignment?.isAssignment
                           ? alert.detectedAssignment.dueDate
                             ? t('gmail_due_unconfirmed', { date: formatShortDueDate(alert.detectedAssignment.dueDate, formatDate) })
@@ -678,7 +678,7 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
                       </span>
                     </div>
 
-                    <div className="text-xs text-[#141413] dark:text-[#FAF9F5] font-semibold truncate mb-1">
+                    <div className="text-xs text-[var(--text-primary)] font-semibold truncate mb-1">
                       {alert.subject}
                     </div>
 
@@ -686,11 +686,11 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
                       {alert.origin === 'classroom' && (
                         <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">{t('gmail_classroom_badge')}</span>
                       )}
-                      <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-[#D97757]/15 text-[#D97757]">
+                      <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-[var(--accent-soft)] text-[var(--accent-text)] border border-[var(--accent-border)]">
                         {alert.aiStatus === 'skipped' ? t('gmail_ai_not_read') : alert.aiStatus === 'failed' ? t('gmail_ai_error') : alert.category}
                       </span>
                       {isReview(alert) && alert.needsReview && (
-                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">
+                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-[var(--status-warn-bg)] text-[var(--status-warn-text)] border border-[var(--status-warn-border)]">
                           {t('gmail_review_badge')}
                         </span>
                       )}
@@ -708,18 +708,18 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
         </div>
 
         {/* RIGHT DETAIL PANE: Full Email Reader & Action Studio */}
-        <div className="flex-1 flex flex-col min-w-0 bg-white dark:bg-[#141413] overflow-hidden">
+        <div className="flex-1 flex flex-col min-w-0 bg-[var(--bg-surface)] overflow-hidden">
           {activeAlert ? (
             <div className="flex-1 flex flex-col h-full overflow-hidden">
               
               {/* Reader Header */}
-              <div className="p-6 border-b border-[#DFDACB]/60 dark:border-[#2C2B27]/60 flex items-start justify-between gap-4 bg-[#FAF9F5]/40 dark:bg-[#1F1E1B]/40">
+              <div className="p-6 border-b border-[var(--border-default)] flex items-start justify-between gap-4 bg-[var(--bg-subtle)]/40">
                 <div className="min-w-0 space-y-1">
-                  <h3 className="text-base font-bold text-[#141413] dark:text-[#FAF9F5] leading-snug">
+                  <h3 className="text-base font-bold text-[var(--text-primary)] leading-snug">
                     {activeAlert.subject}
                   </h3>
-                  <div className="flex items-center gap-2 text-xs text-[#8C897F]">
-                    <span>{t('gmail_from')} <strong className="text-[#141413] dark:text-[#FAF9F5]">{activeAlert.sender}</strong></span>
+                  <div className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
+                    <span>{t('gmail_from')} <strong className="text-[var(--text-primary)]">{activeAlert.sender}</strong></span>
                     <span>•</span>
                     <span>{activeRawEmail?.date || t('gmail_recent')}</span>
                   </div>
@@ -731,22 +731,22 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
                     href={activeAlert.sourceUrl || gmailLink(activeAlert.id)}
                     target="_blank"
                     rel="noreferrer"
-                    className="px-3 py-1.5 bg-[#FAF9F5] dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] hover:border-[#D97757] text-[#141413] dark:text-[#FAF9F5] rounded-xl text-xs font-bold flex items-center gap-1.5"
+                    className="px-3 py-1.5 bg-[var(--bg-subtle)] border border-[var(--border-default)] hover:border-[var(--accent-fill)] text-[var(--text-primary)] rounded-xl text-xs font-bold flex items-center gap-1.5"
                   >
-                    <ExternalLink className="w-3.5 h-3.5 text-[#D97757]" />
+                    <ExternalLink className="w-3.5 h-3.5 text-[var(--accent-text)]" />
                     <span>{activeAlert.origin === 'classroom' ? t('gmail_open_post') : t('gmail_open_email')}</span>
                   </a>
                   <button
                     onClick={() => onExtractAssignment(activeAlert)}
-                    className="px-3 py-1.5 bg-[#FAF9F5] dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] hover:border-[#D97757] text-[#141413] dark:text-[#FAF9F5] rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5"
+                    className="px-3 py-1.5 bg-[var(--bg-subtle)] border border-[var(--border-default)] hover:border-[var(--accent-fill)] text-[var(--text-primary)] rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5"
                   >
-                    <Plus className="w-3.5 h-3.5 text-[#D97757]" />
+                    <Plus className="w-3.5 h-3.5 text-[var(--accent-text)]" />
                     <span>{t('gmail_create_task')}</span>
                   </button>
 
                   <button
                     onClick={() => onOpenQuickDraft(activeRawEmail || undefined, activeAlert)}
-                    className="px-3.5 py-1.5 bg-[#D97757] hover:bg-[#C86646] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-1.5"
+                    className="px-3.5 py-1.5 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-1.5"
                   >
                     <Send className="w-3.5 h-3.5" />
                     <span>{t('gmail_draft_reply')}</span>
@@ -758,15 +758,15 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
               <div className="flex-1 overflow-y-auto p-6 space-y-6 text-xs">
                 
                 {isReview(activeAlert) && (
-                  <div className="p-4 rounded-2xl border border-amber-300 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/40 space-y-3">
-                    <p className="font-bold text-amber-900 dark:text-amber-200 flex items-start gap-1.5">
+                  <div className="p-4 rounded-2xl border border-[var(--status-warn-border)] bg-[var(--status-warn-bg)] space-y-3">
+                    <p className="font-bold text-[var(--status-warn-text)] flex items-start gap-1.5">
                       <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
                       {reviewReasonText(activeAlert.reviewReason, t)}
                     </p>
                     <div className="flex flex-wrap gap-2">
                       <button
                         onClick={() => onExtractAssignment(activeAlert)}
-                        className="px-3 py-2 min-h-[40px] bg-[#D97757] hover:bg-[#C86646] text-white rounded-xl text-xs font-bold"
+                        className="px-3 py-2 min-h-[40px] bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-xl text-xs font-bold"
                       >
                         {t('gmail_is_assignment')}
                       </button>
@@ -782,7 +782,7 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
                               setForcing(null);
                             }
                           }}
-                          className="px-3 py-2 min-h-[40px] bg-white dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] hover:border-[#D97757] rounded-xl text-xs font-bold text-[#141413] dark:text-[#FAF9F5] disabled:opacity-60 flex items-center gap-1.5"
+                          className="px-3 py-2 min-h-[40px] bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--accent-fill)] rounded-xl text-xs font-bold text-[var(--text-primary)] disabled:opacity-60 flex items-center gap-1.5"
                         >
                           {forcing === activeAlert.id ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Bot className="w-3.5 h-3.5" />}
                           {t('gmail_force_ai')}
@@ -794,7 +794,7 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
                             if (toggleTeacherSender(activeAlert.rawEmail?.senderEmail)) logPilot('teacher_marked');
                             setTeacherTick((n) => n + 1);
                           }}
-                          className="px-3 py-2 min-h-[40px] bg-white dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] hover:border-[#D97757] rounded-xl text-xs font-bold text-[#141413] dark:text-[#FAF9F5]"
+                          className="px-3 py-2 min-h-[40px] bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--accent-fill)] rounded-xl text-xs font-bold text-[var(--text-primary)]"
                           data-tick={teacherTick}
                         >
                           {isTeacherSender(activeAlert.rawEmail?.senderEmail)
@@ -808,40 +808,40 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
                           logPilot('review_dismissed');
                           setDismissed(new Set(getDismissedReviewIds()));
                         }}
-                        className="px-3 py-2 min-h-[40px] rounded-xl text-xs font-bold text-[#5C5A54] dark:text-[#B5B2A8] hover:text-rose-600"
+                        className="px-3 py-2 min-h-[40px] rounded-xl text-xs font-bold text-[var(--text-secondary)] hover:text-rose-600"
                       >
                         {t('gmail_not_assignment_done')}
                       </button>
                     </div>
-                    <p className="text-[11px] text-amber-800/80 dark:text-amber-200/80">
+                    <p className="text-[11px] text-[var(--status-warn-text)]">
                       {t('gmail_teacher_hint')}
                     </p>
                   </div>
                 )}
 
                 {activeAlert.detectedAssignment?.isAssignment && (
-                  <div className="p-4 bg-[#FAF9F5] dark:bg-[#1F1E1B] rounded-2xl border border-[#DFDACB] dark:border-[#2C2B27] space-y-1.5">
-                    <p className="text-[#141413] dark:text-[#FAF9F5] font-semibold">
+                  <div className="p-4 bg-[var(--bg-subtle)] rounded-2xl border border-[var(--border-default)] space-y-1.5">
+                    <p className="text-[var(--text-primary)] font-semibold">
                       {t('gmail_ai_understood')}{' '}
                       {t('gmail_subj_label')} <strong>{activeAlert.detectedAssignment.subject || '?'}</strong> –{' '}
                       {activeAlert.detectedAssignment.dueDate ? (
                         <>
                           {t('gmail_due_label')} <strong>{formatShortDueDate(activeAlert.detectedAssignment.dueDate, formatDate)}</strong>{' '}
-                          <span className="text-amber-700 dark:text-amber-300">({t('gmail_unconfirmed')})</span>
+                          <span className="text-[var(--status-warn-text)]">({t('gmail_unconfirmed')})</span>
                         </>
                       ) : (
-                        <strong className="text-amber-700 dark:text-amber-300">{t('gmail_no_due_lower')}</strong>
+                        <strong className="text-[var(--status-warn-text)]">{t('gmail_no_due_lower')}</strong>
                       )}{' '}
                       – {t('gmail_priority_label')} <strong>{activeAlert.detectedAssignment.priority === 'High' ? t('confirm_prio_high') : activeAlert.detectedAssignment.priority === 'Low' ? t('confirm_prio_low') : activeAlert.detectedAssignment.priority === 'Med' ? t('confirm_prio_med') : activeAlert.detectedAssignment.priority}</strong>
                     </p>
                     {activeAlert.detectedAssignment.dueEvidence && (
-                      <p className="text-[#5C5A54] dark:text-[#B5B2A8]">
+                      <p className="text-[var(--text-secondary)]">
                         {t('gmail_ai_read_label')} “{activeAlert.detectedAssignment.dueEvidence}”
                       </p>
                     )}
                     <button
                       onClick={() => onExtractAssignment(activeAlert)}
-                      className="mt-1 px-3 py-1.5 bg-[#D97757] hover:bg-[#C86646] text-white rounded-xl text-xs font-bold"
+                      className="mt-1 px-3 py-1.5 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-xl text-xs font-bold"
                     >
                       {t('gmail_check_save')}
                     </button>
@@ -850,12 +850,12 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
 
                 {/* AI Summary Banner */}
                 {activeAlert.oneLineSummary && (
-                  <div className="p-4 bg-[#FAF9F5] dark:bg-[#1F1E1B] rounded-2xl border border-[#DFDACB] dark:border-[#2C2B27] space-y-1.5">
-                    <div className="flex items-center gap-1.5 font-bold text-[#D97757]">
+                  <div className="p-4 bg-[var(--bg-subtle)] rounded-2xl border border-[var(--border-default)] space-y-1.5">
+                    <div className="flex items-center gap-1.5 font-bold text-[var(--accent-text)]">
                       <Sparkles className="w-3.5 h-3.5" />
                       <span>{t('gmail_ai_rec')}</span>
                     </div>
-                    <p className="text-[#5C5A54] dark:text-[#B5B2A8] leading-relaxed">
+                    <p className="text-[var(--text-secondary)] leading-relaxed">
                       {activeAlert.oneLineSummary}
                     </p>
                   </div>
@@ -863,19 +863,19 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
 
                 {/* Email Body */}
                 <div className="space-y-2">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#8C897F]">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
                     {t('gmail_original')}
                   </span>
-                  <div className="p-4 bg-white dark:bg-[#1A1917] rounded-2xl border border-[#DFDACB] dark:border-[#2C2B27] text-xs text-[#141413] dark:text-[#FAF9F5] leading-relaxed whitespace-pre-line font-sans">
+                  <div className="p-4 bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] text-xs text-[var(--text-primary)] leading-relaxed whitespace-pre-line font-sans">
                     {activeRawEmail?.body || activeRawEmail?.snippet || activeAlert.oneLineSummary || t('gmail_no_preview')}
                   </div>
                 </div>
               </div>
             </div>
           ) : (
-            <div className="flex-1 flex flex-col items-center justify-center p-8 text-[#8C897F] text-center space-y-2">
+            <div className="flex-1 flex flex-col items-center justify-center p-8 text-[var(--text-muted)] text-center space-y-2">
               <Mail className="w-10 h-10 opacity-30" />
-              <p className="text-xs font-bold text-[#141413] dark:text-[#FAF9F5]">{t('gmail_select_title')}</p>
+              <p className="text-xs font-bold text-[var(--text-primary)]">{t('gmail_select_title')}</p>
               <p className="text-[11px] max-w-xs">{t('gmail_select_hint')}</p>
             </div>
           )}

@@ -87,19 +87,19 @@ export const OpenLibraryWorkspace: React.FC = () => {
   };
 
   return (
-    <div className="h-full flex flex-col overflow-hidden bg-[#FAF9F5] dark:bg-[#141413] p-4 sm:p-6 space-y-5 animate-in fade-in select-none">
+    <div className="h-full flex flex-col overflow-hidden bg-[var(--bg-canvas)] p-4 sm:p-6 space-y-5 animate-in fade-in select-none">
       
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#DFDACB] dark:border-[#2C2B27] shrink-0">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[var(--border-default)] shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-white shadow-xs">
             <Library className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-base font-bold text-[#141413] dark:text-[#FAF9F5]">
+            <h2 className="text-base font-bold text-[var(--text-primary)]">
               {t('lib_title')}
             </h2>
-            <p className="text-xs text-[#8C897F]">
+            <p className="text-xs text-[var(--text-muted)]">
               {t('lib_sub')}
             </p>
           </div>
@@ -108,20 +108,20 @@ export const OpenLibraryWorkspace: React.FC = () => {
         {/* Search Bar */}
         <form onSubmit={handleSearch} className="flex items-center gap-2">
           <div className="relative">
-            <Search className="w-4 h-4 text-[#8C897F] absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-[var(--text-muted)] absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={t('lib_search_ph')}
-              className="pl-9 pr-4 py-2 bg-white dark:bg-[#1A1917] border border-[#DFDACB] dark:border-[#2C2B27] rounded-xl text-xs text-[#141413] dark:text-[#FAF9F5] focus:outline-none focus:border-[#D97757] w-72"
+              className="pl-9 pr-4 py-2 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-fill)] w-72"
             />
           </div>
 
           <button
             type="submit"
             disabled={isLoading || !query.trim()}
-            className="px-4 py-2 bg-[#D97757] hover:bg-[#C86646] disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-1.5"
+            className="px-4 py-2 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-1.5"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
             <span>{t('lib_find')}</span>
@@ -132,38 +132,38 @@ export const OpenLibraryWorkspace: React.FC = () => {
       {/* Main Results Grid */}
       <div className="flex-1 overflow-y-auto pr-1">
         {isLoading ? (
-          <div className="py-24 text-center text-[#8C897F] text-xs space-y-2">
-            <RefreshCw className="w-7 h-7 text-[#D97757] animate-spin mx-auto opacity-70" />
+          <div className="py-24 text-center text-[var(--text-muted)] text-xs space-y-2">
+            <RefreshCw className="w-7 h-7 text-[var(--accent-fill)] animate-spin mx-auto opacity-70" />
             <p>{t('lib_loading')}</p>
           </div>
         ) : error ? (
           <div className="py-24 text-center text-xs space-y-3">
-            <p className="font-bold text-[#141413] dark:text-[#FAF9F5]">{error}</p>
-            <p className="text-[#8C897F]">{t('arxiv_kept_query', { query })}</p>
-            <button onClick={() => handleSearch()} className="px-4 py-2 bg-[#D97757] hover:bg-[#C86646] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer">
+            <p className="font-bold text-[var(--text-primary)]">{error}</p>
+            <p className="text-[var(--text-muted)]">{t('arxiv_kept_query', { query })}</p>
+            <button onClick={() => handleSearch()} className="px-4 py-2 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer">
               {t('retry')}
             </button>
           </div>
         ) : books.length === 0 ? (
-          <div className="py-24 text-center text-[#8C897F] text-xs space-y-3">
+          <div className="py-24 text-center text-[var(--text-muted)] text-xs space-y-3">
             <Book className="w-10 h-10 mx-auto opacity-30" />
             <div className="space-y-1">
-              <p className="font-bold text-[#141413] dark:text-[#FAF9F5]">{t('lib_empty_t')}</p>
+              <p className="font-bold text-[var(--text-primary)]">{t('lib_empty_t')}</p>
               <p>{t('openlib_try_examples')}</p>
             </div>
           </div>
         ) : (
           <div className="space-y-3">
-            <p className="text-[11px] text-[#8C897F] px-1">{t('arxiv_results_count', { count: books.length })}</p>
+            <p className="text-[11px] text-[var(--text-muted)] px-1">{t('arxiv_results_count', { count: books.length })}</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {books.map((book) => (
               <div
                 key={book.key}
-                className="bg-white dark:bg-[#1A1917] rounded-2xl border border-[#DFDACB] dark:border-[#2C2B27] p-4 flex flex-col justify-between space-y-3 shadow-xs hover:border-[#D97757] transition-all"
+                className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-4 flex flex-col justify-between space-y-3 shadow-xs hover:border-[var(--accent-border)] transition-all"
               >
                 <div className="space-y-2.5">
                   {/* Cover image or placeholder */}
-                  <div className="h-40 bg-[#FAF9F5] dark:bg-[#1F1E1B] rounded-xl flex items-center justify-center overflow-hidden border border-[#DFDACB]/40 dark:border-[#2C2B27]/40">
+                  <div className="h-40 bg-[var(--bg-subtle)] rounded-xl flex items-center justify-center overflow-hidden border border-[var(--border-default)]">
                     {book.coverUrl ? (
                       <img
                         src={book.coverUrl}
@@ -172,27 +172,27 @@ export const OpenLibraryWorkspace: React.FC = () => {
                         loading="lazy"
                       />
                     ) : (
-                      <Book className="w-8 h-8 text-[#8C897F] opacity-40" />
+                      <Book className="w-8 h-8 text-[var(--text-muted)] opacity-40" />
                     )}
                   </div>
 
                   <div className="space-y-1">
-                    <h3 className="text-xs font-bold text-[#141413] dark:text-[#FAF9F5] leading-snug line-clamp-2">
+                    <h3 className="text-xs font-bold text-[var(--text-primary)] leading-snug line-clamp-2">
                       {book.title}
                     </h3>
-                    <p className="text-[11px] text-[#8C897F] truncate">
+                    <p className="text-[11px] text-[var(--text-muted)] truncate">
                       {book.authorNames.join(', ')}
                     </p>
                   </div>
 
-                  <div className="flex flex-wrap gap-1 pt-1 text-[10px] text-[#8C897F]">
+                  <div className="flex flex-wrap gap-1 pt-1 text-[10px] text-[var(--text-muted)]">
                     {book.firstPublishYear && (
-                      <span className="px-2 py-0.5 rounded-md bg-[#FAF9F5] dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27]">
+                      <span className="px-2 py-0.5 rounded-md bg-[var(--bg-subtle)] border border-[var(--border-default)]">
                         {book.firstPublishYear}
                       </span>
                     )}
                     {book.editionCount && (
-                      <span className="px-2 py-0.5 rounded-md bg-[#FAF9F5] dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27]">
+                      <span className="px-2 py-0.5 rounded-md bg-[var(--bg-subtle)] border border-[var(--border-default)]">
                         {book.editionCount} {t('lib_editions')}
                       </span>
                     )}
@@ -200,26 +200,26 @@ export const OpenLibraryWorkspace: React.FC = () => {
                 </div>
 
                 {/* Card Action Buttons */}
-                <div className="pt-3 border-t border-[#DFDACB]/60 dark:border-[#2C2B27]/60 flex flex-col gap-2">
+                <div className="pt-3 border-t border-[var(--border-default)] flex flex-col gap-2">
                   <div className="flex items-center justify-between gap-2">
                   {book.isbn && book.isbn.length > 0 ? (
                     <button
                       onClick={() => handleCopyIsbn(book)}
-                      className="px-2 py-1 bg-[#FAF9F5] dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] text-[#141413] dark:text-[#FAF9F5] rounded-lg text-[10px] font-mono font-bold flex items-center gap-1 cursor-pointer"
+                      className="px-2 py-1 bg-[var(--bg-subtle)] border border-[var(--border-default)] text-[var(--text-primary)] rounded-lg text-[10px] font-mono font-bold flex items-center gap-1 cursor-pointer"
                       title={t('lib_copy_isbn')}
                     >
                       {copiedKey === book.key ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
                       <span>{book.isbn[0]}</span>
                     </button>
                   ) : (
-                    <span className="text-[10px] text-[#8C897F]">{t('lib_open_catalog')}</span>
+                    <span className="text-[10px] text-[var(--text-muted)]">{t('lib_open_catalog')}</span>
                   )}
 
                   <a
                     href={book.openLibraryUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="px-2.5 py-1 bg-[#D97757] hover:bg-[#C86646] text-white rounded-lg text-[10px] font-bold flex items-center gap-1 transition-colors"
+                    className="px-2.5 py-1 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-lg text-[10px] font-bold flex items-center gap-1 transition-colors"
                   >
                     <span>{t('lib_read_borrow')}</span>
                     <ExternalLink className="w-3 h-3" />
@@ -227,7 +227,7 @@ export const OpenLibraryWorkspace: React.FC = () => {
                   </div>
                   <button
                     onClick={() => handleSaveToNotes(book)}
-                    className="w-full py-1 text-[11px] font-bold bg-white dark:bg-[#1A1917] border border-[#DFDACB] dark:border-[#2C2B27] rounded-lg flex items-center justify-center gap-1 hover:border-violet-400 cursor-pointer"
+                    className="w-full py-1 text-[11px] font-bold bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-lg flex items-center justify-center gap-1 hover:border-[var(--accent-border)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] cursor-pointer"
                   >
                     {savedNoteKey === book.key ? (
                       <>

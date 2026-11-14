@@ -76,10 +76,10 @@ const NAV_ITEMS = [
 ] as const;
 
 const AVATAR_OPTIONS = [
-  { id: 'grad', labelKey: 'avatar_scholar', bg: 'bg-[#C96442]' },
-  { id: 'book', labelKey: 'avatar_researcher', bg: 'bg-[#5E5D59]' },
-  { id: 'bot', labelKey: 'avatar_cybernetic', bg: 'bg-[#141413] dark:bg-[#F5F4ED]' },
-  { id: 'zap', labelKey: 'avatar_polymath', bg: 'bg-[#A94E33]' },
+  { id: 'grad', labelKey: 'avatar_scholar', bg: 'bg-[var(--accent-fill)]' },
+  { id: 'book', labelKey: 'avatar_researcher', bg: 'bg-[var(--text-secondary)]' },
+  { id: 'bot', labelKey: 'avatar_cybernetic', bg: 'bg-[var(--text-primary)]' },
+  { id: 'zap', labelKey: 'avatar_polymath', bg: 'bg-[var(--accent-hover)]' },
 ] as const;
 
 const DENSITY_OPTIONS = [
@@ -89,8 +89,8 @@ const DENSITY_OPTIONS = [
 ] as const;
 
 const PALETTE_OPTIONS = [
-  { id: 'linen', nameKey: 'settings_palette_light', color: 'bg-[#E8E6DC] text-[#141413] border-[#E8E6DC]', accent: 'bg-[#C96442]' },
-  { id: 'midnight', nameKey: 'settings_palette_dark', color: 'bg-[#141413] text-[#F5F4ED] border-[#2C2B27]', accent: 'bg-[#C96442]' },
+  { id: 'linen', nameKey: 'settings_palette_light', color: 'bg-[#FAF9F5] text-[#141413] border-[#E8E6DC]', accent: 'bg-[var(--accent-fill)]' },
+  { id: 'midnight', nameKey: 'settings_palette_dark', color: 'bg-[#141413] text-[#F5F4ED] border-[#2C2B27]', accent: 'bg-[var(--accent-fill)]' },
 ] as const;
 
 const SHORTCUT_ITEMS = [
@@ -433,14 +433,14 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
   const currentNavItem = NAV_ITEMS.find((n) => n.id === activeSection) || NAV_ITEMS[0];
 
   return (
-    <div className="fixed inset-0 bg-[#141413]/70 backdrop-blur-xs flex items-center justify-center z-50 p-4 sm:p-6 animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-[#1A1917] rounded-3xl max-w-4xl w-full h-[620px] max-h-[90vh] flex border border-[#E8E6DC] dark:border-[#2C2B27] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 sm:p-6 animate-in fade-in duration-200">
+      <div className="bg-[var(--bg-raised)] rounded-3xl max-w-4xl w-full h-[620px] max-h-[90vh] flex border border-[var(--border-default)] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150">
         
         {/* LEFT PANE: Categorized Sidebar matching uploaded reference */}
-        <div className="w-60 shrink-0 bg-[#E8E6DC] dark:bg-[#1F1E1B] border-r border-[#E8E6DC] dark:border-[#2C2B27] flex flex-col justify-between p-4 select-none">
+        <div className="w-60 shrink-0 bg-[var(--bg-subtle)] border-r border-[var(--border-default)] flex flex-col justify-between p-4 select-none">
           <div className="space-y-4">
             <div className="px-2 pt-1">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-[#8C897F]">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
                 {t('settings')}
               </span>
             </div>
@@ -455,11 +455,11 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                     onClick={() => setActiveSection(item.id)}
                     className={`w-full px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2.5 transition-colors cursor-pointer text-left ${
                       isActive
-                        ? 'bg-[#E8E6DC] dark:bg-[#252422] text-[#141413] dark:text-[#F5F4ED] shadow-xs'
-                        : 'text-[#5C5A54] dark:text-[#B5B2A8] hover:bg-[#E8E6DC]/60 dark:hover:bg-[#252422]/60 hover:text-[#141413] dark:hover:text-[#F5F4ED]'
+                        ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-xs border border-[var(--border-default)]'
+                        : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]'
                     }`}
                   >
-                    <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-[#C96442]' : 'text-[#8C897F]'}`} />
+                    <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-[var(--accent-fill)]' : 'text-[var(--text-muted)]'}`} />
                     <span>{t(item.labelKey)}</span>
                   </button>
                 );
@@ -468,10 +468,10 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
           </div>
 
           {/* User Account Card at Bottom of Dialog Sidebar */}
-          <div className="pt-3 border-t border-[#E8E6DC] dark:border-[#2C2B27]">
-            <div className="flex items-center gap-2.5 p-2 rounded-xl bg-white dark:bg-[#141413] border border-[#E8E6DC] dark:border-[#2C2B27]">
+          <div className="pt-3 border-t border-[var(--border-default)]">
+            <div className="flex items-center gap-2.5 p-2 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-default)]">
               {user ? (
-                <div className="w-8 h-8 rounded-lg bg-[#C96442] text-white flex items-center justify-center font-bold text-xs shrink-0 overflow-hidden">
+                <div className="w-8 h-8 rounded-lg bg-[var(--accent-fill)] text-white flex items-center justify-center font-bold text-xs shrink-0 overflow-hidden">
                   {user.photoURL ? (
                     <img src={user.photoURL} alt={t('avatar_title')} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                   ) : (
@@ -479,15 +479,15 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                   )}
                 </div>
               ) : (
-                <div className="w-8 h-8 rounded-lg bg-[#8C897F]/20 text-[#8C897F] flex items-center justify-center font-bold text-xs shrink-0">
+                <div className="w-8 h-8 rounded-lg bg-[var(--bg-subtle)] text-[var(--text-muted)] flex items-center justify-center font-bold text-xs shrink-0">
                   <UserIcon className="w-4 h-4" />
                 </div>
               )}
               <div className="min-w-0 flex-1">
-                <div className="text-xs font-bold text-[#141413] dark:text-[#F5F4ED] truncate leading-tight">
+                <div className="text-xs font-bold text-[var(--text-primary)] truncate leading-tight">
                   {user ? user.displayName || user.email?.split('@')[0] : t('settings_guest_user')}
                 </div>
-                <div className="text-[10px] text-[#8C897F] truncate">
+                <div className="text-[10px] text-[var(--text-muted)] truncate">
                   {user ? user.email : t('settings_local_only')}
                 </div>
               </div>
@@ -496,15 +496,15 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
         </div>
 
         {/* RIGHT PANE: Detail Settings Content */}
-        <div className="flex-1 flex flex-col min-w-0 bg-white dark:bg-[#141413]">
+        <div className="flex-1 flex flex-col min-w-0 bg-[var(--bg-surface)]">
           
           {/* Header with Title and Close X */}
-          <div className="px-8 py-6 border-b border-[#E8E6DC]/60 dark:border-[#2C2B27]/60 flex items-center justify-between">
+          <div className="px-8 py-6 border-b border-[var(--border-default)] flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-bold text-[#141413] dark:text-[#F5F4ED]">
+              <h2 className="text-lg font-bold text-[var(--text-primary)]">
                 {t(currentNavItem.labelKey)}
               </h2>
-              <p className="text-xs text-[#8C897F] mt-0.5">
+              <p className="text-xs text-[var(--text-muted)] mt-0.5">
                 {t(currentNavItem.subKey)}
               </p>
             </div>
@@ -512,7 +512,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
             <button
               onClick={onClose}
               aria-label={t('close')}
-              className="p-2 rounded-xl text-[#8C897F] hover:bg-[#E8E6DC] dark:hover:bg-[#1F1E1B] hover:text-[#141413] dark:hover:text-[#F5F4ED] transition-colors cursor-pointer"
+              className="p-2 rounded-xl text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
@@ -525,37 +525,37 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
             {activeSection === 'general' && (
               <div className="space-y-4">
                 <div className="space-y-3">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#8C897F]">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
                     {t('execution_session')}
                   </span>
 
                   {/* Setting Card: Auto Sync */}
-                  <div className="p-4 bg-[#E8E6DC] dark:bg-[#1F1E1B] rounded-2xl border border-[#E8E6DC] dark:border-[#2C2B27] flex items-center justify-between gap-3">
+                  <div className="p-4 bg-[var(--bg-subtle)] rounded-2xl border border-[var(--border-default)] flex items-center justify-between gap-3">
                     <div>
-                      <div className="text-xs font-bold text-[#141413] dark:text-[#F5F4ED]">
+                      <div className="text-xs font-bold text-[var(--text-primary)]">
                         {t('bg_refresh_title')}
                       </div>
-                      <div className="text-[11px] text-[#8C897F]">
+                      <div className="text-[11px] text-[var(--text-muted)]">
                         {t('bg_refresh_sub')}
                       </div>
                     </div>
                     <button
                       onClick={onRefreshAll}
                       disabled={isRefreshing}
-                      className="px-3.5 py-1.5 bg-white dark:bg-[#252422] border border-[#E8E6DC] dark:border-[#2C2B27] hover:border-[#C96442] text-[#141413] dark:text-[#F5F4ED] rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                      className="px-3.5 py-1.5 bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--accent-fill)] text-[var(--text-primary)] rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
                     >
-                      <RefreshCw className={`w-3.5 h-3.5 text-[#C96442] ${isRefreshing ? 'animate-spin' : ''}`} />
+                      <RefreshCw className={`w-3.5 h-3.5 text-[var(--accent-fill)] ${isRefreshing ? 'animate-spin' : ''}`} />
                       <span>{isRefreshing ? t('syncing') : t('sync_now')}</span>
                     </button>
                   </div>
 
                   {/* Setting Card: Language — whole-app VI/EN toggle */}
-                  <div className="p-4 bg-[#E8E6DC] dark:bg-[#1F1E1B] rounded-2xl border border-[#E8E6DC] dark:border-[#2C2B27] flex items-center justify-between gap-3">
+                  <div className="p-4 bg-[var(--bg-subtle)] rounded-2xl border border-[var(--border-default)] flex items-center justify-between gap-3">
                     <div>
-                      <div className="text-xs font-bold text-[#141413] dark:text-[#F5F4ED]">
+                      <div className="text-xs font-bold text-[var(--text-primary)]">
                         {t('language_title')}
                       </div>
-                      <div className="text-[11px] text-[#8C897F]">
+                      <div className="text-[11px] text-[var(--text-muted)]">
                         {t('language_sub')}
                       </div>
                     </div>
@@ -564,12 +564,12 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
 
                   {/* Setting Card: Help & updates (tour + changelog merged — one row, not two) */}
                   {(onOpenTour || onOpenChangelog) && (
-                    <div className="p-4 bg-[#E8E6DC] dark:bg-[#1F1E1B] rounded-2xl border border-[#E8E6DC] dark:border-[#2C2B27] flex items-center justify-between gap-3">
+                    <div className="p-4 bg-[var(--bg-subtle)] rounded-2xl border border-[var(--border-default)] flex items-center justify-between gap-3">
                       <div>
-                        <div className="text-xs font-bold text-[#141413] dark:text-[#F5F4ED]">
+                        <div className="text-xs font-bold text-[var(--text-primary)]">
                           {t('help_updates_title')}
                         </div>
-                        <div className="text-[11px] text-[#8C897F]">
+                        <div className="text-[11px] text-[var(--text-muted)]">
                           {t('help_updates_sub')}
                         </div>
                       </div>
@@ -580,7 +580,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                               onClose();
                               onOpenTour();
                             }}
-                            className="px-3.5 py-1.5 bg-white dark:bg-[#252422] border border-[#E8E6DC] dark:border-[#2C2B27] hover:border-[#C96442] text-[#141413] dark:text-[#F5F4ED] rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                            className="px-3.5 py-1.5 bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--accent-fill)] text-[var(--text-primary)] rounded-xl text-xs font-bold transition-colors cursor-pointer"
                           >
                             {t('launch_tour')}
                           </button>
@@ -591,7 +591,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                               onClose();
                               onOpenChangelog();
                             }}
-                            className="px-3.5 py-1.5 bg-white dark:bg-[#252422] border border-[#E8E6DC] dark:border-[#2C2B27] hover:border-[#C96442] text-[#141413] dark:text-[#F5F4ED] rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                            className="px-3.5 py-1.5 bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--accent-fill)] text-[var(--text-primary)] rounded-xl text-xs font-bold transition-colors cursor-pointer"
                           >
                             {t('view_changelog')}
                           </button>
@@ -601,12 +601,12 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                   )}
 
                   {/* Setting Card: User Avatar Selection — Ember neutrals, single terracotta active */}
-                  <div className="p-4 bg-[#E8E6DC] dark:bg-[#1F1E1B] rounded-2xl border border-[#E8E6DC] dark:border-[#2C2B27] space-y-3">
+                  <div className="p-4 bg-[var(--bg-subtle)] rounded-2xl border border-[var(--border-default)] space-y-3">
                     <div>
-                      <div className="text-xs font-bold text-[#141413] dark:text-[#F5F4ED]">
+                      <div className="text-xs font-bold text-[var(--text-primary)]">
                         {t('avatar_title')}
                       </div>
-                      <div className="text-[11px] text-[#8C897F]">
+                      <div className="text-[11px] text-[var(--text-muted)]">
                         {t('avatar_sub')}
                       </div>
                     </div>
@@ -619,8 +619,8 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                           onClick={() => handleSelectAvatar(av.id)}
                           className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                             avatarUrl === av.id
-                              ? 'bg-[#C96442] text-white border-[#C96442] shadow-xs'
-                              : 'bg-white dark:bg-[#252422] border-[#E8E6DC] dark:border-[#2C2B27] text-[#141413] dark:text-[#F5F4ED]'
+                              ? 'bg-[var(--accent-fill)] text-white border-[var(--accent-fill)] shadow-xs'
+                              : 'bg-[var(--bg-surface)] border-[var(--border-default)] text-[var(--text-primary)] hover:border-[var(--accent-fill)]'
                           }`}
                         >
                           <div className={`w-2.5 h-2.5 rounded-full ${av.bg}`} />
@@ -631,30 +631,30 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                   </div>
 
                   {/* Setting Card: Start Fresh / Semester Reset */}
-                  <div className="p-4 bg-[#E8E6DC] dark:bg-[#1F1E1B] rounded-2xl border border-[#E8E6DC] dark:border-[#2C2B27] flex items-center justify-between">
+                  <div className="p-4 bg-[var(--bg-subtle)] rounded-2xl border border-[var(--border-default)] flex items-center justify-between">
                     <div>
-                      <div className="text-xs font-bold text-[#141413] dark:text-[#F5F4ED]">
+                      <div className="text-xs font-bold text-[var(--text-primary)]">
                         {t('semester_reset_title')}
                       </div>
-                      <div className="text-[11px] text-[#8C897F]">
+                      <div className="text-[11px] text-[var(--text-muted)]">
                         {t('semester_reset_sub')}
                       </div>
                     </div>
                     <button
                       onClick={() => setShowSemesterResetModal(true)}
-                      className="px-3.5 py-1.5 bg-white dark:bg-[#252422] border border-rose-300 dark:border-rose-800 text-rose-600 dark:text-rose-400 rounded-xl text-xs font-bold hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
+                      className="px-3.5 py-1.5 bg-[var(--bg-surface)] border border-[var(--status-err-border)] text-[var(--status-err-text)] rounded-xl text-xs font-bold hover:bg-[var(--status-err-bg)] transition-colors cursor-pointer"
                     >
                       {t('semester_reset_btn')}
                     </button>
                   </div>
 
                   {/* Setting Card: Local Storage Reset */}
-                  <div className="p-4 bg-[#E8E6DC] dark:bg-[#1F1E1B] rounded-2xl border border-[#E8E6DC] dark:border-[#2C2B27] flex items-center justify-between">
+                  <div className="p-4 bg-[var(--bg-subtle)] rounded-2xl border border-[var(--border-default)] flex items-center justify-between">
                     <div>
-                      <div className="text-xs font-bold text-[#141413] dark:text-[#F5F4ED]">
+                      <div className="text-xs font-bold text-[var(--text-primary)]">
                         {t('clear_cache_title')}
                       </div>
-                      <div className="text-[11px] text-[#8C897F]">
+                      <div className="text-[11px] text-[var(--text-muted)]">
                         {t('clear_cache_sub')}
                       </div>
                     </div>
@@ -664,7 +664,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                         localStorage.removeItem('scc_email_alerts_v3');
                         alert(t('settings_cache_cleared_alert'));
                       }}
-                      className="px-3.5 py-1.5 bg-white dark:bg-[#252422] border border-[#E8E6DC] dark:border-[#2C2B27] hover:border-rose-500 text-rose-600 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                      className="px-3.5 py-1.5 bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--status-err-border)] hover:text-[var(--status-err-text)] text-[var(--text-secondary)] rounded-xl text-xs font-bold transition-colors cursor-pointer"
                     >
                       {t('clear_cache_btn')}
                     </button>
@@ -676,8 +676,8 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
             {/* SECTION 2: MODELS & AI KEYS */}
             {activeSection === 'models' && (
               <div className="space-y-4">
-                <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/40 rounded-2xl border border-emerald-300 dark:border-emerald-800 flex items-start gap-2.5 text-xs text-emerald-900 dark:text-emerald-300">
-                  <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                <div className="p-3.5 bg-[var(--status-ok-bg)] rounded-2xl border border-[var(--status-ok-border)] flex items-start gap-2.5 text-xs text-[var(--status-ok-text)]">
+                  <ShieldCheck className="w-4 h-4 text-[var(--status-ok-text)] shrink-0 mt-0.5" />
                   <div>
                     <span className="font-bold block mb-0.5">{t('settings_backup_banner_title')}</span>
                     {t('settings_backup_banner_sub')}
@@ -685,13 +685,13 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                 </div>
 
                 {/* Gemini Key */}
-                <div className="p-4 bg-[#E8E6DC] dark:bg-[#1F1E1B] rounded-2xl border border-[#E8E6DC] dark:border-[#2C2B27] space-y-3">
+                <div className="p-4 bg-[var(--bg-subtle)] rounded-2xl border border-[var(--border-default)] space-y-3">
                   <div className="flex items-center justify-between">
                     <div>
-                      <label className="text-xs font-bold text-[#141413] dark:text-[#F5F4ED] block">
+                      <label className="text-xs font-bold text-[var(--text-primary)] block">
                         {t('settings_gemini_label')}
                       </label>
-                      <span className="text-[11px] text-[#8C897F]">
+                      <span className="text-[11px] text-[var(--text-muted)]">
                         {t('settings_gemini_desc')}
                       </span>
                     </div>
@@ -699,7 +699,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                       href="https://aistudio.google.com/app/apikey"
                       target="_blank"
                       rel="noreferrer"
-                      className="text-[11px] text-[#C96442] hover:underline font-semibold flex items-center gap-1"
+                      className="text-[11px] text-[var(--accent-fill)] hover:underline font-semibold flex items-center gap-1"
                     >
                       <span>{t('settings_gemini_get_free')}</span>
                       <ExternalLink className="w-3 h-3" />
@@ -707,67 +707,67 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                   </div>
 
                   <div className="relative">
-                    <Key className="w-4 h-4 text-[#8C897F] absolute left-3 top-1/2 -translate-y-1/2" />
+                    <Key className="w-4 h-4 text-[var(--text-muted)] absolute left-3 top-1/2 -translate-y-1/2" />
                     <input
                       type={showGeminiKey ? 'text' : 'password'}
                       value={geminiKey}
                       onChange={(e) => setGeminiKey(e.target.value)}
                       placeholder="AIzaSy..."
                       aria-label={t('settings_aria_gemini_key')}
-                      className="w-full pl-9 pr-10 py-2 text-xs font-mono bg-white dark:bg-[#141413] border border-[#E8E6DC] dark:border-[#2C2B27] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C96442] text-[#141413] dark:text-[#F5F4ED]"
+                      className="w-full pl-9 pr-10 py-2 text-xs font-mono bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--accent-fill)] text-[var(--text-primary)]"
                     />
                     <button
                       type="button"
                       aria-label={showGeminiKey ? t('ai_key_hide') : t('ai_key_show')}
                       onClick={() => setShowGeminiKey(!showGeminiKey)}
-                      className="p-1.5 text-[#8C897F] hover:text-[#141413] dark:hover:text-[#F5F4ED] absolute right-2.5 top-1/2 -translate-y-1/2"
+                      className="p-1.5 text-[var(--text-muted)] hover:text-[var(--text-primary)] absolute right-2.5 top-1/2 -translate-y-1/2"
                     >
                       {showGeminiKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                     </button>
                   </div>
 
                   <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <span className="text-[11px] font-mono text-[#8C897F]">
+                    <span className="text-[11px] font-mono text-[var(--text-muted)]">
                       {geminiKey ? t('settings_key_saved_masked', { masked: maskApiKey(geminiKey) }) : t('settings_key_none')}
                       {(() => { const label = formatExpiryLabel(getExpiryStatus(geminiExpiry)); return label ? ` • ${label}` : ''; })()}
                     </span>
-                    <label className="flex items-center gap-1.5 text-[11px] text-[#8C897F]">
+                    <label className="flex items-center gap-1.5 text-[11px] text-[var(--text-muted)]">
                       <span>{t('settings_expires_label')}</span>
                       <input
                         type="date"
                         value={geminiExpiry}
                         onChange={(e) => setGeminiExpiry(e.target.value)}
-                        className="px-2 py-1 text-[11px] bg-white dark:bg-[#141413] border border-[#E8E6DC] dark:border-[#2C2B27] rounded-lg text-[#141413] dark:text-[#F5F4ED]"
+                        className="px-2 py-1 text-[11px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-lg text-[var(--text-primary)]"
                       />
                       {geminiExpiry && (
-                        <button type="button" onClick={() => setGeminiExpiry('')} className="text-[11px] text-[#C96442] hover:underline font-semibold">{t('settings_clear_btn')}</button>
+                        <button type="button" onClick={() => setGeminiExpiry('')} className="text-[11px] text-[var(--accent-fill)] hover:underline font-semibold">{t('settings_clear_btn')}</button>
                       )}
                     </label>
                   </div>
 
                   <div className="flex items-center justify-between pt-1">
-                    <span className="text-[11px] text-[#8C897F]">
+                    <span className="text-[11px] text-[var(--text-muted)]">
                       {geminiStatusMsg || t('settings_keys_stored_hint')}
                     </span>
                     <button
                       onClick={handleTestGemini}
                       disabled={isTestingGemini || !geminiKey.trim()}
-                      className="px-3 py-1 bg-white dark:bg-[#252422] border border-[#E8E6DC] dark:border-[#2C2B27] hover:border-[#C96442] text-[#141413] dark:text-[#F5F4ED] rounded-lg text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                      className="px-3 py-1 bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--accent-fill)] text-[var(--text-primary)] rounded-lg text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
                     >
-                      <RefreshCw className={`w-3 h-3 ${isTestingGemini ? 'animate-spin text-[#C96442]' : ''}`} />
+                      <RefreshCw className={`w-3 h-3 ${isTestingGemini ? 'animate-spin text-[var(--accent-fill)]' : ''}`} />
                       <span>{isTestingGemini ? t('settings_gemini_testing') : t('settings_gemini_test_btn')}</span>
                     </button>
                   </div>
                 </div>
 
                 {/* Groq Key */}
-                <div className="p-4 bg-[#E8E6DC] dark:bg-[#1F1E1B] rounded-2xl border border-[#E8E6DC] dark:border-[#2C2B27] space-y-3">
+                <div className="p-4 bg-[var(--bg-subtle)] rounded-2xl border border-[var(--border-default)] space-y-3">
                   <div className="flex items-center justify-between">
                     <div>
-                      <label className="text-xs font-bold text-[#141413] dark:text-[#F5F4ED] block">
+                      <label className="text-xs font-bold text-[var(--text-primary)] block">
                         {t('settings_groq_label')}
                       </label>
-                      <span className="text-[11px] text-[#8C897F]">
+                      <span className="text-[11px] text-[var(--text-muted)]">
                         {t('settings_groq_desc')}
                       </span>
                     </div>
@@ -775,7 +775,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                       href="https://console.groq.com/keys"
                       target="_blank"
                       rel="noreferrer"
-                      className="text-[11px] text-[#C96442] hover:underline font-semibold flex items-center gap-1"
+                      className="text-[11px] text-[var(--accent-fill)] hover:underline font-semibold flex items-center gap-1"
                     >
                       <span>{t('settings_groq_get_key')}</span>
                       <ExternalLink className="w-3 h-3" />
@@ -783,40 +783,40 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                   </div>
 
                   <div className="relative">
-                    <Key className="w-4 h-4 text-[#8C897F] absolute left-3 top-1/2 -translate-y-1/2" />
+                    <Key className="w-4 h-4 text-[var(--text-muted)] absolute left-3 top-1/2 -translate-y-1/2" />
                     <input
                       type={showGroqKey ? 'text' : 'password'}
                       value={groqKey}
                       onChange={(e) => setGroqKey(e.target.value)}
                       placeholder="gsk_..."
                       aria-label={t('settings_aria_groq_key')}
-                      className="w-full pl-9 pr-10 py-2 text-xs font-mono bg-white dark:bg-[#141413] border border-[#E8E6DC] dark:border-[#2C2B27] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C96442] text-[#141413] dark:text-[#F5F4ED]"
+                      className="w-full pl-9 pr-10 py-2 text-xs font-mono bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--accent-fill)] text-[var(--text-primary)]"
                     />
                     <button
                       type="button"
                       aria-label={showGroqKey ? t('ai_key_hide') : t('ai_key_show')}
                       onClick={() => setShowGroqKey(!showGroqKey)}
-                      className="p-1.5 text-[#8C897F] hover:text-[#141413] dark:hover:text-[#F5F4ED] absolute right-2.5 top-1/2 -translate-y-1/2"
+                      className="p-1.5 text-[var(--text-muted)] hover:text-[var(--text-primary)] absolute right-2.5 top-1/2 -translate-y-1/2"
                     >
                       {showGroqKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                     </button>
                   </div>
 
                   <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <span className="text-[11px] font-mono text-[#8C897F]">
+                    <span className="text-[11px] font-mono text-[var(--text-muted)]">
                       {groqKey ? t('settings_key_saved_masked', { masked: maskApiKey(groqKey) }) : t('settings_key_none')}
                       {(() => { const label = formatExpiryLabel(getExpiryStatus(groqExpiry)); return label ? ` • ${label}` : ''; })()}
                     </span>
-                    <label className="flex items-center gap-1.5 text-[11px] text-[#8C897F]">
+                    <label className="flex items-center gap-1.5 text-[11px] text-[var(--text-muted)]">
                       <span>{t('settings_expires_label')}</span>
                       <input
                         type="date"
                         value={groqExpiry}
                         onChange={(e) => setGroqExpiry(e.target.value)}
-                        className="px-2 py-1 text-[11px] bg-white dark:bg-[#141413] border border-[#E8E6DC] dark:border-[#2C2B27] rounded-lg text-[#141413] dark:text-[#F5F4ED]"
+                        className="px-2 py-1 text-[11px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-lg text-[var(--text-primary)]"
                       />
                       {groqExpiry && (
-                        <button type="button" onClick={() => setGroqExpiry('')} className="text-[11px] text-[#C96442] hover:underline font-semibold">{t('settings_clear_btn')}</button>
+                        <button type="button" onClick={() => setGroqExpiry('')} className="text-[11px] text-[var(--accent-fill)] hover:underline font-semibold">{t('settings_clear_btn')}</button>
                       )}
                     </label>
                   </div>
@@ -825,7 +825,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                 <div className="flex justify-end pt-2">
                   <button
                     onClick={handleSaveKeys}
-                    className="px-5 py-2 bg-[#C96442] hover:bg-[#C86646] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer"
+                    className="px-5 py-2 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer"
                   >
                     {t('settings_save_api_keys')}
                   </button>
@@ -837,82 +837,82 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
             {activeSection === 'sync' && (
               <div className="space-y-4">
                 {/* AI Keys — masked display + edit + expiry (same localStorage keys as Models tab) */}
-                <div className="p-4 bg-[#E8E6DC] dark:bg-[#1F1E1B] rounded-2xl border border-[#E8E6DC] dark:border-[#2C2B27] space-y-3">
+                <div className="p-4 bg-[var(--bg-subtle)] rounded-2xl border border-[var(--border-default)] space-y-3">
                   <div className="flex items-center justify-between">
-                    <div className="text-xs font-bold text-[#141413] dark:text-[#F5F4ED]">
+                    <div className="text-xs font-bold text-[var(--text-primary)]">
                       {t('settings_keys_title')}
                     </div>
-                    <span className="text-[10px] font-mono text-[#8C897F]">
+                    <span className="text-[10px] font-mono text-[var(--text-muted)]">
                       {t('ai_key_gemini_name')} {geminiKey ? maskApiKey(geminiKey) : '—'} • {t('ai_key_groq_name')} {groqKey ? maskApiKey(groqKey) : '—'}
                     </span>
                   </div>
                   <div className="grid sm:grid-cols-2 gap-2">
                     <div className="relative">
-                      <Key className="w-4 h-4 text-[#8C897F] absolute left-3 top-1/2 -translate-y-1/2" />
+                      <Key className="w-4 h-4 text-[var(--text-muted)] absolute left-3 top-1/2 -translate-y-1/2" />
                       <input
                         type={showGeminiKey ? 'text' : 'password'}
                         value={geminiKey}
                         onChange={(e) => setGeminiKey(e.target.value)}
                         placeholder={t('settings_aria_gemini_key')}
                         aria-label={t('settings_aria_gemini_key')}
-                        className="w-full pl-9 pr-10 py-2 text-xs font-mono bg-white dark:bg-[#141413] border border-[#E8E6DC] dark:border-[#2C2B27] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C96442] text-[#141413] dark:text-[#F5F4ED]"
+                        className="w-full pl-9 pr-10 py-2 text-xs font-mono bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--accent-fill)] text-[var(--text-primary)]"
                       />
                       <button
                         type="button"
                         aria-label={showGeminiKey ? t('ai_key_hide') : t('ai_key_show')}
                         onClick={() => setShowGeminiKey(!showGeminiKey)}
-                        className="p-1.5 text-[#8C897F] hover:text-[#141413] dark:hover:text-[#F5F4ED] absolute right-2.5 top-1/2 -translate-y-1/2"
+                        className="p-1.5 text-[var(--text-muted)] hover:text-[var(--text-primary)] absolute right-2.5 top-1/2 -translate-y-1/2"
                       >
                         {showGeminiKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                       </button>
                     </div>
                     <div className="relative">
-                      <Key className="w-4 h-4 text-[#8C897F] absolute left-3 top-1/2 -translate-y-1/2" />
+                      <Key className="w-4 h-4 text-[var(--text-muted)] absolute left-3 top-1/2 -translate-y-1/2" />
                       <input
                         type={showGroqKey ? 'text' : 'password'}
                         value={groqKey}
                         onChange={(e) => setGroqKey(e.target.value)}
                         placeholder={t('settings_aria_groq_key')}
                         aria-label={t('settings_aria_groq_key')}
-                        className="w-full pl-9 pr-10 py-2 text-xs font-mono bg-white dark:bg-[#141413] border border-[#E8E6DC] dark:border-[#2C2B27] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C96442] text-[#141413] dark:text-[#F5F4ED]"
+                        className="w-full pl-9 pr-10 py-2 text-xs font-mono bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--accent-fill)] text-[var(--text-primary)]"
                       />
                       <button
                         type="button"
                         aria-label={showGroqKey ? t('ai_key_hide') : t('ai_key_show')}
                         onClick={() => setShowGroqKey(!showGroqKey)}
-                        className="p-1.5 text-[#8C897F] hover:text-[#141413] dark:hover:text-[#F5F4ED] absolute right-2.5 top-1/2 -translate-y-1/2"
+                        className="p-1.5 text-[var(--text-muted)] hover:text-[var(--text-primary)] absolute right-2.5 top-1/2 -translate-y-1/2"
                       >
                         {showGroqKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                       </button>
                     </div>
                   </div>
                   <div className="grid sm:grid-cols-2 gap-2">
-                    <label className="flex items-center gap-1.5 text-[11px] text-[#8C897F]">
+                    <label className="flex items-center gap-1.5 text-[11px] text-[var(--text-muted)]">
                       <span>{t('settings_gemini_expires_label')}</span>
                       <input
                         type="date"
                         value={geminiExpiry}
                         onChange={(e) => setGeminiExpiry(e.target.value)}
-                        className="px-2 py-1 text-[11px] bg-white dark:bg-[#141413] border border-[#E8E6DC] dark:border-[#2C2B27] rounded-lg text-[#141413] dark:text-[#F5F4ED]"
+                        className="px-2 py-1 text-[11px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-lg text-[var(--text-primary)]"
                       />
                       <span className="font-semibold">{formatExpiryLabel(getExpiryStatus(geminiExpiry))}</span>
                     </label>
-                    <label className="flex items-center gap-1.5 text-[11px] text-[#8C897F]">
+                    <label className="flex items-center gap-1.5 text-[11px] text-[var(--text-muted)]">
                       <span>{t('settings_groq_expires_label')}</span>
                       <input
                         type="date"
                         value={groqExpiry}
                         onChange={(e) => setGroqExpiry(e.target.value)}
-                        className="px-2 py-1 text-[11px] bg-white dark:bg-[#141413] border border-[#E8E6DC] dark:border-[#2C2B27] rounded-lg text-[#141413] dark:text-[#F5F4ED]"
+                        className="px-2 py-1 text-[11px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-lg text-[var(--text-primary)]"
                       />
                       <span className="font-semibold">{formatExpiryLabel(getExpiryStatus(groqExpiry))}</span>
                     </label>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] text-[#8C897F]">{geminiStatusMsg || t('settings_keys_stored_hint')}</span>
+                    <span className="text-[11px] text-[var(--text-muted)]">{geminiStatusMsg || t('settings_keys_stored_hint')}</span>
                     <button
                       onClick={handleSaveKeys}
-                      className="px-4 py-1.5 bg-[#C96442] hover:bg-[#C86646] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer"
+                      className="px-4 py-1.5 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer"
                     >
                       {t('settings_save_ai_keys')}
                     </button>
@@ -920,12 +920,12 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                 </div>
 
                 {/* Canvas domain + token — canonical saveCanvasSettings keys */}
-                <div className="p-4 bg-[#E8E6DC] dark:bg-[#1F1E1B] rounded-2xl border border-[#E8E6DC] dark:border-[#2C2B27] space-y-3">
+                <div className="p-4 bg-[var(--bg-subtle)] rounded-2xl border border-[var(--border-default)] space-y-3">
                   <div className="flex items-center justify-between">
-                    <div className="text-xs font-bold text-[#141413] dark:text-[#F5F4ED]">
+                    <div className="text-xs font-bold text-[var(--text-primary)]">
                       {t('settings_canvas_title')}
                     </div>
-                    <span className="text-[10px] font-mono text-[#8C897F]">
+                    <span className="text-[10px] font-mono text-[var(--text-muted)]">
                       {canvasDomain || t('settings_canvas_summary_none_domain')} • {canvasToken ? t('settings_canvas_summary_token', { masked: maskApiKey(canvasToken) }) : t('settings_canvas_summary_none_token')}
                     </span>
                   </div>
@@ -936,52 +936,52 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                       onChange={(e) => setCanvasDomain(e.target.value)}
                       placeholder={t('settings_canvas_domain_ph')}
                       aria-label={t('settings_aria_canvas_domain')}
-                      className="w-full px-3 py-2 text-xs font-mono bg-white dark:bg-[#141413] border border-[#E8E6DC] dark:border-[#2C2B27] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C96442] text-[#141413] dark:text-[#F5F4ED]"
+                      className="w-full px-3 py-2 text-xs font-mono bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--accent-fill)] text-[var(--text-primary)]"
                     />
                     <div className="relative">
-                      <Key className="w-4 h-4 text-[#8C897F] absolute left-3 top-1/2 -translate-y-1/2" />
+                      <Key className="w-4 h-4 text-[var(--text-muted)] absolute left-3 top-1/2 -translate-y-1/2" />
                       <input
                         type={showCanvasToken ? 'text' : 'password'}
                         value={canvasToken}
                         onChange={(e) => setCanvasToken(e.target.value)}
                         placeholder={t('settings_canvas_token_ph')}
                         aria-label={t('settings_aria_canvas_token')}
-                        className="w-full pl-9 pr-10 py-2 text-xs font-mono bg-white dark:bg-[#141413] border border-[#E8E6DC] dark:border-[#2C2B27] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C96442] text-[#141413] dark:text-[#F5F4ED]"
+                        className="w-full pl-9 pr-10 py-2 text-xs font-mono bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--accent-fill)] text-[var(--text-primary)]"
                       />
                       <button
                         type="button"
                         aria-label={showCanvasToken ? t('ai_key_hide') : t('ai_key_show')}
                         onClick={() => setShowCanvasToken(!showCanvasToken)}
-                        className="p-1.5 text-[#8C897F] hover:text-[#141413] dark:hover:text-[#F5F4ED] absolute right-2.5 top-1/2 -translate-y-1/2"
+                        className="p-1.5 text-[var(--text-muted)] hover:text-[var(--text-primary)] absolute right-2.5 top-1/2 -translate-y-1/2"
                       >
                         {showCanvasToken ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                       </button>
                     </div>
                   </div>
                   <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <span className="text-[11px] text-[#8C897F]">
+                    <span className="text-[11px] text-[var(--text-muted)]">
                       {canvasSaveMsg || t('settings_canvas_note')}
                     </span>
                     <button
                       onClick={handleSaveCanvasConnection}
-                      className="px-4 py-1.5 bg-white dark:bg-[#252422] border border-[#E8E6DC] dark:border-[#2C2B27] hover:border-[#C96442] text-[#141413] dark:text-[#F5F4ED] rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                      className="px-4 py-1.5 bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--accent-fill)] text-[var(--text-primary)] rounded-xl text-xs font-bold transition-colors cursor-pointer"
                     >
                       {t('settings_canvas_save_btn')}
                     </button>
                   </div>
-                  <div className="text-[11px] text-[#8C897F]">
+                  <div className="text-[11px] text-[var(--text-muted)]">
                     {t('settings_canvas_note')}
                   </div>
                 </div>
 
                 {/* Google Sign-In & Per-Feature Tool Connections */}
-                <div className="p-4 bg-[#E8E6DC] dark:bg-[#1F1E1B] rounded-2xl border border-[#E8E6DC] dark:border-[#2C2B27] space-y-3">
+                <div className="p-4 bg-[var(--bg-subtle)] rounded-2xl border border-[var(--border-default)] space-y-3">
                   <div className="flex items-center justify-between gap-3 flex-wrap">
                     <div>
-                      <div className="text-xs font-bold text-[#141413] dark:text-[#F5F4ED]">
+                      <div className="text-xs font-bold text-[var(--text-primary)]">
                         {t('settings_google_title')}
                       </div>
-                      <div className="text-[11px] text-[#8C897F]">
+                      <div className="text-[11px] text-[var(--text-muted)]">
                         {user
                           ? t('settings_google_desc_signed_in', { email: user.email || '' })
                           : t('settings_google_desc_guest')}
@@ -995,7 +995,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                             onClose();
                             onOpenGoogleSyncHub();
                           }}
-                          className="px-3 py-1.5 bg-white dark:bg-[#252422] border border-[#E8E6DC] dark:border-[#2C2B27] hover:border-[#C96442] text-[#141413] dark:text-[#F5F4ED] rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                          className="px-3 py-1.5 bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--accent-fill)] text-[var(--text-primary)] rounded-xl text-xs font-bold transition-colors cursor-pointer"
                         >
                           {t('settings_manage_connections')}
                         </button>
@@ -1003,7 +1003,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                       {user ? (
                         <button
                           onClick={onLogout}
-                          className="px-3.5 py-1.5 bg-white dark:bg-[#252422] border border-rose-300 dark:border-rose-800 text-rose-600 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                          className="px-3.5 py-1.5 bg-[var(--bg-surface)] border border-[var(--status-err-border)] text-[var(--status-err-text)] rounded-xl text-xs font-bold transition-colors cursor-pointer"
                         >
                           {t('settings_google_signout_btn')}
                         </button>
@@ -1011,7 +1011,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                         <button
                           onClick={onGoogleSignIn}
                           disabled={isLoggingIn}
-                          className="px-3.5 py-1.5 bg-[#C96442] text-white rounded-xl text-xs font-bold transition-colors cursor-pointer shadow-xs"
+                          className="px-3.5 py-1.5 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-xl text-xs font-bold transition-colors cursor-pointer shadow-xs"
                         >
                           {t('settings_google_signin_btn')}
                         </button>
@@ -1019,8 +1019,8 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                     </div>
                   </div>
 
-                  <div className="pt-2 border-t border-[#DFDACB]/70 dark:border-[#2C2B27] space-y-1.5">
-                    <div className="text-[11px] font-semibold text-[#5E5D59] dark:text-[#B5B2A8]">
+                  <div className="pt-2 border-t border-[var(--border-default)] space-y-1.5">
+                    <div className="text-[11px] font-semibold text-[var(--text-secondary)]">
                       {t('settings_google_tools_heading')}
                     </div>
                     <div className="grid sm:grid-cols-2 gap-2">
@@ -1029,16 +1029,16 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                         return (
                           <div
                             key={tool.id}
-                            className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-white dark:bg-[#141413] border border-[#E8E6DC] dark:border-[#2C2B27]"
+                            className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-default)]"
                           >
                             <div className="min-w-0">
-                              <div className="text-xs font-bold text-[#141413] dark:text-[#F5F4ED] truncate">
+                              <div className="text-xs font-bold text-[var(--text-primary)] truncate">
                                 {t(tool.labelKey)}
                               </div>
-                              <div className="text-[10px] text-[#8C897F] truncate">{t(tool.descKey)}</div>
+                              <div className="text-[10px] text-[var(--text-muted)] truncate">{t(tool.descKey)}</div>
                             </div>
                             {connected ? (
-                              <span className="shrink-0 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+                              <span className="shrink-0 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-[var(--status-ok-bg)] text-[var(--status-ok-text)] border border-[var(--status-ok-border)]">
                                 {t('settings_connected_badge')}
                               </span>
                             ) : (
@@ -1054,7 +1054,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                                     onGoogleSignIn();
                                   }
                                 }}
-                                className="shrink-0 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-[#C96442] hover:bg-[#B85432] text-white cursor-pointer transition-colors"
+                                className="shrink-0 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white cursor-pointer transition-colors"
                               >
                                 {t('settings_connect_btn')}
                               </button>
@@ -1068,12 +1068,12 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
 
                 {/* Google Sheets URL */}
                 {sheetUrl && (
-                  <div className="p-4 bg-[#E8E6DC] dark:bg-[#1F1E1B] rounded-2xl border border-[#E8E6DC] dark:border-[#2C2B27] flex items-center justify-between">
+                  <div className="p-4 bg-[var(--bg-subtle)] rounded-2xl border border-[var(--border-default)] flex items-center justify-between">
                     <div>
-                      <div className="text-xs font-bold text-[#141413] dark:text-[#F5F4ED]">
+                      <div className="text-xs font-bold text-[var(--text-primary)]">
                         {t('settings_master_sheet_title')}
                       </div>
-                      <div className="text-[11px] text-[#8C897F] truncate max-w-xs">
+                      <div className="text-[11px] text-[var(--text-muted)] truncate max-w-xs">
                         {sheetUrl}
                       </div>
                     </div>
@@ -1081,7 +1081,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                       href={sheetUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="px-3.5 py-1.5 bg-white dark:bg-[#252422] border border-[#E8E6DC] dark:border-[#2C2B27] hover:border-[#C96442] text-[#141413] dark:text-[#F5F4ED] rounded-xl text-xs font-bold flex items-center gap-1 transition-colors"
+                      className="px-3.5 py-1.5 bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--accent-fill)] text-[var(--text-primary)] rounded-xl text-xs font-bold flex items-center gap-1 transition-colors"
                     >
                       <span>{t('settings_open_sheet')}</span>
                       <ExternalLink className="w-3 h-3" />
@@ -1090,7 +1090,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                 )}
 
                 {/* Friendly privacy reassurance */}
-                <div className="p-3.5 rounded-2xl bg-white dark:bg-[#141413] border border-[#E8E6DC] dark:border-[#2C2B27] text-[11px] text-[#5E5D59] dark:text-[#B5B2A8] leading-relaxed">
+                <div className="p-3.5 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-default)] text-[11px] text-[var(--text-secondary)] leading-relaxed">
                   {t('settings_google_privacy_note')}
                 </div>
               </div>
@@ -1100,24 +1100,24 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
             {activeSection === 'appearance' && (
               <div className="space-y-4">
                 {/* Interface Density Toggle */}
-                <div className="p-4 bg-[#E8E6DC] dark:bg-[#1F1E1B] rounded-2xl border border-[#E8E6DC] dark:border-[#2C2B27] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="p-4 bg-[var(--bg-subtle)] rounded-2xl border border-[var(--border-default)] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
-                    <div className="text-xs font-bold text-[#141413] dark:text-[#F5F4ED]">
+                    <div className="text-xs font-bold text-[var(--text-primary)]">
                       {t('settings_density_title')}
                     </div>
-                    <div className="text-[11px] text-[#8C897F]">
+                    <div className="text-[11px] text-[var(--text-muted)]">
                       {t('settings_density_sub')}
                     </div>
                   </div>
-                  <div className="flex items-center gap-1 p-1 bg-white dark:bg-[#141413] rounded-xl border border-[#E8E6DC] dark:border-[#2C2B27] shrink-0">
+                  <div className="flex items-center gap-1 p-1 bg-[var(--bg-surface)] rounded-xl border border-[var(--border-default)] shrink-0">
                     {DENSITY_OPTIONS.map((d) => (
                       <button
                         key={d.id}
                         onClick={() => handleDensityChange(d.id)}
                         className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                           density === d.id
-                            ? 'bg-[#C96442] text-white shadow-xs'
-                            : 'text-[#8C897F] hover:text-[#141413] dark:hover:text-[#F5F4ED]'
+                            ? 'bg-[var(--accent-fill)] text-white shadow-xs'
+                            : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
                         }`}
                       >
                         {t(d.labelKey)}
@@ -1127,17 +1127,17 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                 </div>
 
                 {/* Color Theme Palette Selector — strict two-mode palette */}
-                <div className="p-4 bg-[#E8E6DC] dark:bg-[#1F1E1B] rounded-2xl border border-[#E8E6DC] dark:border-[#2C2B27] space-y-3">
+                <div className="p-4 bg-[var(--bg-subtle)] rounded-2xl border border-[var(--border-default)] space-y-3">
                   <div className="flex items-center justify-between">
                     <div>
-                      <div className="text-xs font-bold text-[#141413] dark:text-[#F5F4ED]">
+                      <div className="text-xs font-bold text-[var(--text-primary)]">
                         {t('settings_palette_title')}
                       </div>
-                      <div className="text-[11px] text-[#8C897F]">
+                      <div className="text-[11px] text-[var(--text-muted)]">
                         {t('settings_palette_sub')}
                       </div>
                     </div>
-                    <span className="text-[10px] font-mono font-bold text-[#C96442] uppercase">
+                    <span className="text-[10px] font-mono font-bold text-[var(--accent-fill)] uppercase">
                       {colorTheme === 'midnight' ? t('settings_dark_btn') : t('settings_light_btn')}
                     </span>
                   </div>
@@ -1151,7 +1151,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                           palette.color
                         } ${
                           colorTheme === palette.id
-                            ? 'ring-2 ring-[#C96442] scale-[1.02] shadow-xs'
+                            ? 'ring-2 ring-[var(--accent-fill)] scale-[1.02] shadow-xs'
                             : 'opacity-80 hover:opacity-100'
                         }`}
                       >
@@ -1163,20 +1163,20 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                 </div>
 
                 {/* Dark / Light Toggle */}
-                <div className="p-4 bg-[#E8E6DC] dark:bg-[#1F1E1B] rounded-2xl border border-[#E8E6DC] dark:border-[#2C2B27] flex items-center justify-between">
+                <div className="p-4 bg-[var(--bg-subtle)] rounded-2xl border border-[var(--border-default)] flex items-center justify-between">
                   <div>
-                    <div className="text-xs font-bold text-[#141413] dark:text-[#F5F4ED]">
+                    <div className="text-xs font-bold text-[var(--text-primary)]">
                       {t('settings_mode_title')}
                     </div>
-                    <div className="text-[11px] text-[#8C897F]">
+                    <div className="text-[11px] text-[var(--text-muted)]">
                       {t('settings_mode_sub')}
                     </div>
                   </div>
-                  <div className="flex items-center gap-1.5 p-1 bg-white dark:bg-[#141413] rounded-xl border border-[#E8E6DC] dark:border-[#2C2B27]">
+                  <div className="flex items-center gap-1.5 p-1 bg-[var(--bg-surface)] rounded-xl border border-[var(--border-default)]">
                     <button
                       onClick={() => setDarkMode(false)}
                       className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                        !darkMode ? 'bg-[#C96442] text-white shadow-xs' : 'text-[#8C897F]'
+                        !darkMode ? 'bg-[var(--accent-fill)] text-white shadow-xs' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
                       }`}
                     >
                       <Sun className="w-3.5 h-3.5" />
@@ -1185,7 +1185,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                     <button
                       onClick={() => setDarkMode(true)}
                       className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                        darkMode ? 'bg-[#C96442] text-white shadow-xs' : 'text-[#8C897F]'
+                        darkMode ? 'bg-[var(--accent-fill)] text-white shadow-xs' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
                       }`}
                     >
                       <Moon className="w-3.5 h-3.5" />
@@ -1195,12 +1195,12 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                 </div>
 
                 {/* Auto-Follow System Theme */}
-                <div className="p-4 bg-[#E8E6DC] dark:bg-[#1F1E1B] rounded-2xl border border-[#E8E6DC] dark:border-[#2C2B27] flex items-center justify-between">
+                <div className="p-4 bg-[var(--bg-subtle)] rounded-2xl border border-[var(--border-default)] flex items-center justify-between">
                   <div>
-                    <div className="text-xs font-bold text-[#141413] dark:text-[#F5F4ED]">
+                    <div className="text-xs font-bold text-[var(--text-primary)]">
                       {t('settings_auto_theme_title')}
                     </div>
-                    <div className="text-[11px] text-[#8C897F]">
+                    <div className="text-[11px] text-[var(--text-muted)]">
                       {t('settings_auto_theme_sub')}
                     </div>
                   </div>
@@ -1209,17 +1209,17 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                     checked={autoSystemTheme}
                     aria-label={t('settings_auto_theme_title')}
                     onChange={(e) => handleAutoSystemThemeChange(e.target.checked)}
-                    className="w-4 h-4 rounded text-[#C96442] focus:ring-[#C96442] cursor-pointer"
+                    className="w-4 h-4 rounded text-[var(--accent-fill)] focus:ring-[var(--accent-fill)] cursor-pointer"
                   />
                 </div>
 
                 {/* Reduced Motion */}
-                <div className="p-4 bg-[#E8E6DC] dark:bg-[#1F1E1B] rounded-2xl border border-[#E8E6DC] dark:border-[#2C2B27] flex items-center justify-between">
+                <div className="p-4 bg-[var(--bg-subtle)] rounded-2xl border border-[var(--border-default)] flex items-center justify-between">
                   <div>
-                    <div className="text-xs font-bold text-[#141413] dark:text-[#F5F4ED]">
+                    <div className="text-xs font-bold text-[var(--text-primary)]">
                       {t('settings_reduced_motion_title')}
                     </div>
-                    <div className="text-[11px] text-[#8C897F]">
+                    <div className="text-[11px] text-[var(--text-muted)]">
                       {t('settings_reduced_motion_sub')}
                     </div>
                   </div>
@@ -1228,17 +1228,17 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                     checked={reducedMotion}
                     aria-label={t('settings_reduced_motion_title')}
                     onChange={(e) => setReducedMotion(e.target.checked)}
-                    className="w-4 h-4 rounded text-[#C96442] focus:ring-[#C96442] cursor-pointer"
+                    className="w-4 h-4 rounded text-[var(--accent-fill)] focus:ring-[var(--accent-fill)] cursor-pointer"
                   />
                 </div>
 
                 {/* High Contrast */}
-                <div className="p-4 bg-[#E8E6DC] dark:bg-[#1F1E1B] rounded-2xl border border-[#E8E6DC] dark:border-[#2C2B27] flex items-center justify-between">
+                <div className="p-4 bg-[var(--bg-subtle)] rounded-2xl border border-[var(--border-default)] flex items-center justify-between">
                   <div>
-                    <div className="text-xs font-bold text-[#141413] dark:text-[#F5F4ED]">
+                    <div className="text-xs font-bold text-[var(--text-primary)]">
                       {t('settings_high_contrast_title')}
                     </div>
-                    <div className="text-[11px] text-[#8C897F]">
+                    <div className="text-[11px] text-[var(--text-muted)]">
                       {t('settings_high_contrast_sub')}
                     </div>
                   </div>
@@ -1247,28 +1247,28 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                     checked={highContrast}
                     aria-label={t('settings_high_contrast_title')}
                     onChange={(e) => setHighContrast(e.target.checked)}
-                    className="w-4 h-4 rounded text-[#C96442] focus:ring-[#C96442] cursor-pointer"
+                    className="w-4 h-4 rounded text-[var(--accent-fill)] focus:ring-[var(--accent-fill)] cursor-pointer"
                   />
                 </div>
 
                 {/* NASA APOD Atmospheric Wallpaper */}
-                <div className="p-4 bg-[#E8E6DC] dark:bg-[#1F1E1B] rounded-2xl border border-[#E8E6DC] dark:border-[#2C2B27] space-y-3">
+                <div className="p-4 bg-[var(--bg-subtle)] rounded-2xl border border-[var(--border-default)] space-y-3">
                   <div className="flex items-center justify-between gap-2">
                   <div>
-                    <div className="text-xs font-bold text-[#141413] dark:text-[#F5F4ED]">
+                    <div className="text-xs font-bold text-[var(--text-primary)]">
                       {t('nasa_title')}
                     </div>
-                    <div className="text-[11px] text-[#8C897F]">
+                    <div className="text-[11px] text-[var(--text-muted)]">
                       {t('settings_nasa_sub')}
                     </div>
-                    <div className="text-[10px] text-[#8C897F]">{t('dash_image_credit')}</div>
+                    <div className="text-[10px] text-[var(--text-muted)]">{t('dash_image_credit')}</div>
                   </div>
                   <input
                     type="checkbox"
                     checked={enableNasaApod}
                     onChange={(e) => handleToggleNasaApod(e.target.checked)}
                     aria-label={t('settings_aria_nasa_toggle')}
-                    className="w-6 h-6 min-w-[44px] min-h-[44px] rounded text-[#C96442] focus:ring-[#C96442] cursor-pointer"
+                    className="w-6 h-6 min-w-[44px] min-h-[44px] rounded text-[var(--accent-fill)] focus:ring-[var(--accent-fill)] cursor-pointer"
                   />
                   </div>
                   <div className="flex items-center gap-2 flex-wrap">
@@ -1276,14 +1276,14 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                       type="button"
                       onClick={handleTestNasa}
                       disabled={nasaTestState === 'testing'}
-                      className="px-3 py-2 bg-white dark:bg-[#1A1917] border border-[#E8E6DC] dark:border-[#2C2B27] rounded-xl text-[11px] font-bold text-[#141413] dark:text-[#F5F4ED] hover:border-[#C96442] min-h-[44px] cursor-pointer disabled:opacity-60"
+                      className="px-3 py-2 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl text-[11px] font-bold text-[var(--text-primary)] hover:border-[var(--accent-fill)] min-h-[44px] cursor-pointer disabled:opacity-60"
                     >
                       {nasaTestState === 'testing' ? t('settings_nasa_testing') : t('settings_nasa_test')}
                     </button>
                     <button
                       type="button"
                       onClick={handleClearNasaCache}
-                      className="px-3 py-2 bg-white dark:bg-[#1A1917] border border-[#E8E6DC] dark:border-[#2C2B27] rounded-xl text-[11px] font-bold text-[#141413] dark:text-[#F5F4ED] hover:border-[#C96442] min-h-[44px] cursor-pointer"
+                      className="px-3 py-2 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl text-[11px] font-bold text-[var(--text-primary)] hover:border-[var(--accent-fill)] min-h-[44px] cursor-pointer"
                     >
                       {t('settings_nasa_clear_cache')}
                     </button>
@@ -1291,7 +1291,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                     {nasaTestState === 'fail' && <span className="text-[11px] font-bold text-rose-600" role="status">{t('dash_apod_error')}</span>}
                   </div>
                   {enableNasaApod && nasaPreview && nasaPreview.mediaType === 'image' && (
-                    <img src={nasaPreview.url} alt={nasaPreview.title || t('nasa_title')} loading="lazy" decoding="async" referrerPolicy="no-referrer" className="w-full h-24 object-cover rounded-xl border border-[#E8E6DC] dark:border-[#2C2B27]" />
+                    <img src={nasaPreview.url} alt={nasaPreview.title || t('nasa_title')} loading="lazy" decoding="async" referrerPolicy="no-referrer" className="w-full h-24 object-cover rounded-xl border border-[var(--border-default)]" />
                   )}
                 </div>
               </div>
@@ -1300,12 +1300,12 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
             {/* SECTION 5: SHORTCUTS */}
             {activeSection === 'shortcuts' && (
               <div className="space-y-4">
-                <div className="p-4 bg-[#E8E6DC] dark:bg-[#1F1E1B] rounded-2xl border border-[#E8E6DC] dark:border-[#2C2B27] flex items-center justify-between">
+                <div className="p-4 bg-[var(--bg-subtle)] rounded-2xl border border-[var(--border-default)] flex items-center justify-between">
                   <div>
-                    <div className="text-xs font-bold text-[#141413] dark:text-[#F5F4ED]">
+                    <div className="text-xs font-bold text-[var(--text-primary)]">
                       {t('settings_sc_master_title')}
                     </div>
-                    <div className="text-[11px] text-[#8C897F]">
+                    <div className="text-[11px] text-[var(--text-muted)]">
                       {t('settings_sc_master_sub')}
                     </div>
                   </div>
@@ -1314,7 +1314,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                     checked={shortcutSettings.masterEnabled}
                     aria-label={t('settings_sc_master_title')}
                     onChange={(e) => toggleAllShortcuts(e.target.checked)}
-                    className="w-4 h-4 rounded text-[#C96442] focus:ring-[#C96442] cursor-pointer"
+                    className="w-4 h-4 rounded text-[var(--accent-fill)] focus:ring-[var(--accent-fill)] cursor-pointer"
                   />
                 </div>
 
@@ -1322,13 +1322,13 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                   {SHORTCUT_ITEMS.map((s) => (
                     <div
                       key={s.labelKey}
-                      className="p-3 bg-[#E8E6DC] dark:bg-[#1F1E1B] rounded-xl border border-[#E8E6DC] dark:border-[#2C2B27] flex items-center justify-between"
+                      className="p-3 bg-[var(--bg-subtle)] rounded-xl border border-[var(--border-default)] flex items-center justify-between"
                     >
                       <div>
-                        <span className="font-semibold block text-[#141413] dark:text-[#F5F4ED]">
+                        <span className="font-semibold block text-[var(--text-primary)]">
                           {t(s.labelKey)}
                         </span>
-                        <span className="font-mono text-[10px] text-[#C96442] font-bold">
+                        <span className="font-mono text-[10px] text-[var(--accent-fill)] font-bold">
                           [{s.key}]
                         </span>
                       </div>
@@ -1337,7 +1337,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                         checked={shortcutSettings.keys[s.settingKey]}
                         aria-label={t(s.labelKey)}
                         onChange={() => toggleIndividualKey(s.settingKey)}
-                        className="w-3.5 h-3.5 rounded text-[#C96442] focus:ring-[#C96442] cursor-pointer"
+                        className="w-3.5 h-3.5 rounded text-[var(--accent-fill)] focus:ring-[var(--accent-fill)] cursor-pointer"
                       />
                     </div>
                   ))}
@@ -1356,20 +1356,20 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                   return (
                     <div
                       key={integ.name}
-                      className="p-4 bg-[#E8E6DC] dark:bg-[#1F1E1B] rounded-2xl border border-[#E8E6DC] dark:border-[#2C2B27] flex items-center justify-between"
+                      className="p-4 bg-[var(--bg-subtle)] rounded-2xl border border-[var(--border-default)] flex items-center justify-between"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-xl bg-white dark:bg-[#141413] border border-[#E8E6DC] dark:border-[#2C2B27] flex items-center justify-center text-[#C96442]">
+                        <div className="w-8 h-8 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-default)] flex items-center justify-center text-[var(--accent-fill)]">
                           <Icon className="w-4 h-4" />
                         </div>
                         <div>
-                          <div className="text-xs font-bold text-[#141413] dark:text-[#F5F4ED]">
+                          <div className="text-xs font-bold text-[var(--text-primary)]">
                             {integ.name}
                           </div>
-                          <div className="text-[11px] text-[#8C897F]">{integ.desc}</div>
+                          <div className="text-[11px] text-[var(--text-muted)]">{integ.desc}</div>
                         </div>
                       </div>
-                      <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-[#C96442]/15 text-[#C96442]">
+                      <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-[var(--accent-soft)] text-[var(--accent-text)] border border-[var(--accent-border)]">
                         {integ.badge}
                       </span>
                     </div>
@@ -1382,12 +1382,12 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
             {activeSection === 'support' && (
               <div className="space-y-4">
                 {/* PWA Install */}
-                <div className="p-4 bg-[#E8E6DC] dark:bg-[#1F1E1B] rounded-2xl border border-[#E8E6DC] dark:border-[#2C2B27] space-y-3">
+                <div className="p-4 bg-[var(--bg-subtle)] rounded-2xl border border-[var(--border-default)] space-y-3">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-xl bg-[#C96442] text-white flex items-center justify-center font-bold text-xs">S</div>
+                    <div className="w-8 h-8 rounded-xl bg-[var(--accent-fill)] text-white flex items-center justify-center font-bold text-xs">S</div>
                     <div>
-                      <div className="text-xs font-bold text-[#141413] dark:text-[#F5F4ED]">{t('settings_pwa_title')}</div>
-                      <div className="text-[11px] text-[#8C897F]">{t('settings_pwa_sub')}</div>
+                      <div className="text-xs font-bold text-[var(--text-primary)]">{t('settings_pwa_title')}</div>
+                      <div className="text-[11px] text-[var(--text-muted)]">{t('settings_pwa_sub')}</div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -1395,43 +1395,43 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                       <>
                         <button
                           onClick={async () => { if (onInstallPwa) await onInstallPwa(); }}
-                          className="flex-1 px-4 py-2 bg-[#C96442] hover:bg-[#C86646] text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer"
+                          className="flex-1 px-4 py-2 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer"
                         >
                           <Download className="w-3.5 h-3.5" />
                           <span>{t('settings_pwa_install_now')}</span>
                         </button>
                         {onDismissPwa && (
-                          <button onClick={onDismissPwa} className="px-3 py-2 bg-white dark:bg-[#252422] border border-[#E8E6DC] dark:border-[#2C2B27] rounded-xl text-xs font-bold text-[#6B6860] cursor-pointer">
+                          <button onClick={onDismissPwa} className="px-3 py-2 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl text-xs font-bold text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer">
                             {t('settings_pwa_later')}
                           </button>
                         )}
                       </>
                     ) : (
-                      <div className="w-full p-2.5 rounded-xl bg-white dark:bg-[#141413] border border-[#E8E6DC] dark:border-[#2C2B27] text-[11px] text-[#6B6860] leading-relaxed">
+                      <div className="w-full p-2.5 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-default)] text-[11px] text-[var(--text-secondary)] leading-relaxed">
                         {typeof window !== 'undefined' && (window.matchMedia?.('(display-mode: standalone)')?.matches || (navigator as any).standalone) ? t('settings_pwa_already') : t('settings_pwa_manual')}
                       </div>
                     )}
                   </div>
-                  <div className="text-[10px] text-[#8C897F]">{t('settings_pwa_hint')}</div>
+                  <div className="text-[10px] text-[var(--text-muted)]">{t('settings_pwa_hint')}</div>
                 </div>
 
                 {/* Help & Feedback */}
-                <div className="p-4 bg-[#E8E6DC] dark:bg-[#1F1E1B] rounded-2xl border border-[#E8E6DC] dark:border-[#2C2B27] space-y-3">
+                <div className="p-4 bg-[var(--bg-subtle)] rounded-2xl border border-[var(--border-default)] space-y-3">
                   <div className="flex items-center gap-2">
-                    <MessageCircle className="w-4 h-4 text-[#C96442]" />
-                    <span className="text-xs font-bold text-[#141413] dark:text-[#F5F4ED]">{t('settings_help_title')}</span>
+                    <MessageCircle className="w-4 h-4 text-[var(--accent-fill)]" />
+                    <span className="text-xs font-bold text-[var(--text-primary)]">{t('settings_help_title')}</span>
                   </div>
-                  <p className="text-[11px] text-[#6B6860] leading-relaxed">{t('settings_help_sub')}</p>
+                  <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">{t('settings_help_sub')}</p>
                   <div className="space-y-2">
-                    <a href="https://github.com/buianhuy2009/Sutdent-Command-Center/issues/new" target="_blank" rel="noreferrer" className="w-full flex items-center justify-between p-3 rounded-xl bg-white dark:bg-[#141413] border border-[#E8E6DC] dark:border-[#2C2B27] hover:border-[#C96442] text-xs font-bold text-[#141413] dark:text-[#F5F4ED] transition-colors">
+                    <a href="https://github.com/buianhuy2009/Sutdent-Command-Center/issues/new" target="_blank" rel="noreferrer" className="w-full flex items-center justify-between p-3 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--accent-fill)] text-xs font-bold text-[var(--text-primary)] transition-colors">
                       <span className="flex items-center gap-2"><Github className="w-3.5 h-3.5" /> {t('settings_help_bug')}</span>
-                      <ExternalLink className="w-3 h-3 text-[#8C897F]" />
+                      <ExternalLink className="w-3 h-3 text-[var(--text-muted)]" />
                     </a>
-                    <a href="https://tally.so" target="_blank" rel="noreferrer" className="w-full flex items-center justify-between p-3 rounded-xl bg-white dark:bg-[#141413] border border-[#E8E6DC] dark:border-[#2C2B27] hover:border-[#C96442] text-xs font-bold text-[#141413] dark:text-[#F5F4ED] transition-colors">
+                    <a href="https://tally.so" target="_blank" rel="noreferrer" className="w-full flex items-center justify-between p-3 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--accent-fill)] text-xs font-bold text-[var(--text-primary)] transition-colors">
                       <span className="flex items-center gap-2"><Bug className="w-3.5 h-3.5" /> {t('settings_help_feature')}</span>
-                      <ExternalLink className="w-3 h-3 text-[#8C897F]" />
+                      <ExternalLink className="w-3 h-3 text-[var(--text-muted)]" />
                     </a>
-                    <a href="https://twitter.com/intent/tweet?text=Check%20out%20Student%20Command%20Center%20%E2%80%94%20my%20unified%20academic%20OS%20https://sutdent-command-center.vercel.app" target="_blank" rel="noreferrer" className="w-full flex items-center justify-center gap-1.5 p-3 rounded-xl bg-[#C96442] hover:bg-[#C86646] text-white text-xs font-bold shadow-xs transition-colors">
+                    <a href="https://twitter.com/intent/tweet?text=Check%20out%20Student%20Command%20Center%20%E2%80%94%20my%20unified%20academic%20OS%20https://sutdent-command-center.vercel.app" target="_blank" rel="noreferrer" className="w-full flex items-center justify-center gap-1.5 p-3 rounded-xl bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white text-xs font-bold shadow-xs transition-colors">
                       <Share2 className="w-3.5 h-3.5" />
                       <span>{t('settings_help_share')}</span>
                     </a>
@@ -1439,14 +1439,14 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                 </div>
 
                 {/* About + Version */}
-                <div className="p-4 bg-white dark:bg-[#141413] rounded-2xl border border-[#E8E6DC] dark:border-[#2C2B27] flex items-center justify-between">
+                <div className="p-4 bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] flex items-center justify-between">
                   <div>
-                    <div className="text-xs font-bold text-[#141413] dark:text-[#F5F4ED] flex items-center gap-1.5"><Heart className="w-3.5 h-3.5 text-rose-500" /> StudentOS</div>
-                    <div className="text-[11px] text-[#8C897F]">
-                      {t('settings_about_links', { version: CURRENT_VERSION })} <a href="https://github.com/buianhuy2009/Sutdent-Command-Center" target="_blank" rel="noreferrer" className="underline hover:text-[#C96442]">{t('settings_about_github')}</a> • <span className="cursor-pointer underline hover:text-[#C96442]" onClick={() => { onClose(); onOpenChangelog?.(); }}>{t('settings_about_whats_new')}</span>
+                    <div className="text-xs font-bold text-[var(--text-primary)] flex items-center gap-1.5"><Heart className="w-3.5 h-3.5 text-rose-500" /> StudentOS</div>
+                    <div className="text-[11px] text-[var(--text-muted)]">
+                      {t('settings_about_links', { version: CURRENT_VERSION })} <a href="https://github.com/buianhuy2009/Sutdent-Command-Center" target="_blank" rel="noreferrer" className="underline hover:text-[var(--accent-fill)]">{t('settings_about_github')}</a> • <span className="cursor-pointer underline hover:text-[var(--accent-fill)]" onClick={() => { onClose(); onOpenChangelog?.(); }}>{t('settings_about_whats_new')}</span>
                     </div>
                   </div>
-                  <div className="text-[10px] font-mono text-[#8C897F] bg-[#E8E6DC] dark:bg-[#1F1E1B] px-2 py-1 rounded-lg border">v{CURRENT_VERSION}</div>
+                  <div className="text-[10px] font-mono text-[var(--text-muted)] bg-[var(--bg-subtle)] px-2 py-1 rounded-lg border border-[var(--border-default)]">v{CURRENT_VERSION}</div>
                 </div>
               </div>
             )}
@@ -1458,26 +1458,26 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
       {/* Semester Reset Confirmation Modal */}
       {showSemesterResetModal && (
         <div className="fixed inset-0 z-60 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-white dark:bg-[#1A1917] max-w-sm w-full rounded-3xl border border-rose-300 dark:border-rose-800 p-6 space-y-4 shadow-2xl">
-            <div className="flex items-center gap-2.5 text-rose-600 dark:text-rose-400 font-bold text-sm">
+          <div className="bg-[var(--bg-raised)] max-w-sm w-full rounded-3xl border border-[var(--status-err-border)] p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center gap-2.5 text-[var(--status-err-text)] font-bold text-sm">
               <AlertTriangle className="w-5 h-5" />
               <span>{t('settings_reset_modal_title')}</span>
             </div>
-            <p className="text-xs text-[#5C5A54] dark:text-[#B5B2A8] leading-relaxed">
+            <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
               {t('settings_reset_modal_desc')}
             </p>
             <div className="grid grid-cols-2 gap-2 pt-2">
               <button
                 type="button"
                 onClick={() => setShowSemesterResetModal(false)}
-                className="px-4 py-2 bg-[#E8E6DC] dark:bg-[#1F1E1B] border border-[#E8E6DC] dark:border-[#2C2B27] text-[#141413] dark:text-[#F5F4ED] rounded-xl text-xs font-bold cursor-pointer"
+                className="px-4 py-2 bg-[var(--bg-surface)] border border-[var(--border-default)] text-[var(--text-primary)] hover:bg-[var(--bg-hover)] rounded-xl text-xs font-bold cursor-pointer"
               >
                 {t('common_cancel')}
               </button>
               <button
                 type="button"
                 onClick={handleExecuteSemesterReset}
-                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer shadow-xs"
+                className="px-4 py-2 bg-[var(--status-err-text)] hover:opacity-90 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer shadow-xs"
               >
                 {t('settings_reset_confirm_btn')}
               </button>

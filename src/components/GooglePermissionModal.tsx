@@ -96,20 +96,20 @@ export const GooglePermissionModal: React.FC<GooglePermissionModalProps> = ({
         }
       }}
     >
-      <div className="relative w-full max-w-md bg-[#FAF9F5] dark:bg-[#141413] border border-[#DFDACB] dark:border-[#2C2B27] rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-150">
+      <div className="relative w-full max-w-md bg-[var(--bg-raised)] text-[var(--text-primary)] border border-[var(--border-default)] rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-150">
         {/* Header */}
-        <div className="p-5 pb-4 border-b border-[#DFDACB] dark:border-[#2C2B27] flex items-start justify-between gap-3 bg-white/70 dark:bg-[#1A1917]/70">
+        <div className="p-5 pb-4 border-b border-[var(--border-default)] flex items-start justify-between gap-3 bg-[var(--bg-surface)]">
           <div className="flex items-center gap-3 min-w-0">
             <AppLogo id={info.logoId} size="md" />
             <div className="min-w-0">
               <h2
                 id="google-permission-modal-title"
-                className="text-base sm:text-lg font-extrabold text-[#141413] dark:text-[#FAF9F5] leading-snug"
+                className="text-base sm:text-lg font-extrabold text-[var(--text-primary)] leading-snug"
               >
                 {t(info.titleKey)}
               </h2>
               {userEmail && (
-                <p className="text-[11px] font-medium text-[#6B6860] dark:text-[#B5B2A8] truncate mt-0.5">
+                <p className="text-[11px] font-medium text-[var(--text-secondary)] truncate mt-0.5">
                   {t('gperm_using_email', { email: userEmail })}
                 </p>
               )}
@@ -121,7 +121,7 @@ export const GooglePermissionModal: React.FC<GooglePermissionModalProps> = ({
             onClick={onCancel}
             disabled={isConnecting}
             aria-label={t('common_close')}
-            className="p-1.5 rounded-xl text-[#6B6860] hover:text-[#141413] dark:text-[#B5B2A8] dark:hover:text-[#FAF9F5] hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer disabled:opacity-40"
+            className="p-1.5 rounded-xl text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors cursor-pointer disabled:opacity-40"
           >
             <X className="w-5 h-5" />
           </button>
@@ -130,11 +130,11 @@ export const GooglePermissionModal: React.FC<GooglePermissionModalProps> = ({
         {/* Body */}
         <div className="p-5 overflow-y-auto space-y-4 text-xs">
           {/* Why we ask */}
-          <div className="p-3.5 rounded-2xl bg-white dark:bg-[#1A1917] border border-[#DFDACB] dark:border-[#2C2B27] space-y-1">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-[#D97757]">
+          <div className="p-3.5 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-default)] space-y-1">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--accent-text)]">
               {t('gperm_why_heading')}
             </p>
-            <p className="text-xs sm:text-[13px] text-[#141413] dark:text-[#FAF9F5] leading-relaxed">
+            <p className="text-xs sm:text-[13px] text-[var(--text-primary)] leading-relaxed">
               {t(info.whyKey)}
             </p>
           </div>
@@ -145,7 +145,7 @@ export const GooglePermissionModal: React.FC<GooglePermissionModalProps> = ({
               <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
               <span>{t('gperm_can_heading')}</span>
             </p>
-            <ul className="space-y-1.5 text-[#141413] dark:text-[#E6E4DC]">
+            <ul className="space-y-1.5 text-[var(--text-primary)]">
               {info.canDoKeys.map((key) => (
                 <li key={key} className="flex items-start gap-2 leading-relaxed">
                   <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-emerald-600 dark:bg-emerald-400 shrink-0" />
@@ -156,22 +156,22 @@ export const GooglePermissionModal: React.FC<GooglePermissionModalProps> = ({
           </div>
 
           {/* What we never do */}
-          <div className="p-3.5 rounded-2xl bg-[#FAF9F5] dark:bg-[#1A1917] border border-[#DFDACB] dark:border-[#2C2B27] space-y-2">
-            <p className="font-bold text-[#141413] dark:text-[#FAF9F5] flex items-center gap-1.5">
-              <Ban className="w-4 h-4 text-[#D97757] shrink-0" />
+          <div className="p-3.5 rounded-2xl bg-[var(--bg-subtle)] border border-[var(--border-default)] space-y-2">
+            <p className="font-bold text-[var(--text-primary)] flex items-center gap-1.5">
+              <Ban className="w-4 h-4 text-[var(--accent-text)] shrink-0" />
               <span>{t('gperm_never_heading')}</span>
             </p>
-            <ul className="space-y-1.5 text-[#5C5A54] dark:text-[#B5B2A8]">
+            <ul className="space-y-1.5 text-[var(--text-secondary)]">
               {info.neverDoKeys.map((key) => (
                 <li key={key} className="flex items-start gap-2 leading-relaxed">
-                  <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-[#D97757] shrink-0" />
+                  <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-[var(--accent-fill)] shrink-0" />
                   <span>{t(key)}</span>
                 </li>
               ))}
             </ul>
           </div>
 
-          <p className="text-[11px] text-[#6B6860] dark:text-[#B5B2A8] flex items-start gap-1.5 leading-relaxed px-1">
+          <p className="text-[11px] text-[var(--text-secondary)] flex items-start gap-1.5 leading-relaxed px-1">
             <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
             <span>
               {t('gperm_control_note')}
@@ -180,12 +180,12 @@ export const GooglePermissionModal: React.FC<GooglePermissionModalProps> = ({
         </div>
 
         {/* Footer actions */}
-        <div className="p-4 border-t border-[#DFDACB] dark:border-[#2C2B27] bg-white/70 dark:bg-[#1A1917]/70 flex items-center justify-end gap-2.5">
+        <div className="p-4 border-t border-[var(--border-default)] bg-[var(--bg-surface)] flex items-center justify-end gap-2.5">
           <button
             type="button"
             onClick={onCancel}
             disabled={isConnecting}
-            className="px-4 py-2.5 rounded-xl text-xs font-semibold text-[#5C5A54] dark:text-[#B5B2A8] hover:bg-[#EFECE2] dark:hover:bg-[#252422] transition-colors cursor-pointer min-h-[44px] disabled:opacity-50"
+            className="px-4 py-2.5 rounded-xl text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] transition-colors cursor-pointer min-h-[44px] disabled:opacity-50"
           >
             {t('gperm_not_now')}
           </button>
@@ -193,7 +193,7 @@ export const GooglePermissionModal: React.FC<GooglePermissionModalProps> = ({
             type="button"
             onClick={onConfirm}
             disabled={isConnecting}
-            className="px-4 py-2.5 rounded-xl text-xs font-bold bg-[#D97757] hover:bg-[#C86646] text-white shadow-xs transition-colors inline-flex items-center justify-center gap-1.5 cursor-pointer min-h-[44px] disabled:opacity-60"
+            className="px-4 py-2.5 rounded-xl text-xs font-bold bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white shadow-xs transition-colors inline-flex items-center justify-center gap-1.5 cursor-pointer min-h-[44px] disabled:opacity-60"
           >
             {isConnecting ? (
               <>

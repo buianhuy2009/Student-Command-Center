@@ -50,24 +50,24 @@ export const MorningCheckInModal: React.FC<MorningCheckInModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in select-none">
-      <div className="bg-white dark:bg-[#1A1917] w-full max-w-md rounded-3xl border border-[#DFDACB] dark:border-[#2C2B27] shadow-2xl p-6 space-y-5 flex flex-col">
+      <div className="bg-[var(--bg-raised)] text-[var(--text-primary)] w-full max-w-md rounded-3xl border border-[var(--border-default)] shadow-2xl p-6 space-y-5 flex flex-col">
         
         {/* Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-[#DFDACB]/60 dark:border-[#2C2B27]/60">
+        <div className="flex items-center justify-between pb-3 border-b border-[var(--border-default)]">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-600 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-xl bg-[var(--status-warn-bg)] border border-[var(--status-warn-border)] text-[var(--status-warn-text)] flex items-center justify-center">
               <Sun className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-xs font-bold text-[#141413] dark:text-[#FAF9F5]">{t('checkin_title')}</h3>
-              <p className="text-[10px] text-[#8C897F]">{t('checkin_sub')}</p>
+              <h3 className="text-xs font-bold text-[var(--text-primary)]">{t('checkin_title')}</h3>
+              <p className="text-[10px] text-[var(--text-muted)]">{t('checkin_sub')}</p>
             </div>
           </div>
 
           <button
             onClick={onClose}
             aria-label={t('close')}
-            className="p-1.5 text-[#8C897F] hover:text-[#141413] dark:hover:text-[#FAF9F5] rounded-lg cursor-pointer"
+            className="p-1.5 text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] rounded-lg cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
@@ -76,8 +76,8 @@ export const MorningCheckInModal: React.FC<MorningCheckInModalProps> = ({
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-bold text-[#141413] dark:text-[#FAF9F5] mb-1.5 flex items-center gap-1.5">
-              <Target className="w-3.5 h-3.5 text-[#D97757]" />
+            <label className="block text-xs font-bold text-[var(--text-primary)] mb-1.5 flex items-center gap-1.5">
+              <Target className="w-3.5 h-3.5 text-[var(--accent-text)]" />
               <span>{t('checkin_goal_label')}</span>
             </label>
             <input
@@ -86,14 +86,14 @@ export const MorningCheckInModal: React.FC<MorningCheckInModalProps> = ({
               value={intention}
               onChange={(e) => setIntention(e.target.value)}
               placeholder={t('checkin_goal_ph')}
-              className="w-full px-3.5 py-2.5 bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] rounded-xl text-xs text-[#141413] dark:text-[#FAF9F5] focus:outline-none focus:border-[#D97757]"
+              className="w-full px-3.5 py-2.5 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-fill)]"
               autoFocus
             />
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-[#141413] dark:text-[#FAF9F5] mb-1.5 flex items-center gap-1.5">
-              <Clock className="w-3.5 h-3.5 text-[#D97757]" />
+            <label className="block text-xs font-bold text-[var(--text-primary)] mb-1.5 flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5 text-[var(--accent-text)]" />
               <span>{t('checkin_hours_label')}</span>
             </label>
             <div className="grid grid-cols-4 gap-2">
@@ -104,8 +104,8 @@ export const MorningCheckInModal: React.FC<MorningCheckInModalProps> = ({
                   onClick={() => setTargetHours(hours)}
                   className={`py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
                     targetHours === hours
-                      ? 'bg-[#D97757] text-white border-[#D97757] shadow-xs'
-                      : 'bg-[#FAF9F5] dark:bg-[#1F1E1B] border-[#DFDACB] dark:border-[#2C2B27] text-[#5C5A54] dark:text-[#B5B2A8] hover:border-[#D97757]'
+                      ? 'bg-[var(--accent-fill)] text-white border-[var(--accent-fill)] shadow-xs'
+                      : 'bg-[var(--bg-surface)] border border-[var(--border-default)] text-[var(--text-secondary)] hover:border-[var(--accent-border)] hover:bg-[var(--bg-hover)]'
                   }`}
                 >
                   {hours === 1 ? t('checkin_hour_one', { hours }) : t('checkin_hour_other', { hours })}
@@ -115,8 +115,8 @@ export const MorningCheckInModal: React.FC<MorningCheckInModalProps> = ({
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-[#141413] dark:text-[#FAF9F5] mb-1.5 flex items-center gap-1.5">
-              <Smile className="w-3.5 h-3.5 text-[#D97757]" />
+            <label className="block text-xs font-bold text-[var(--text-primary)] mb-1.5 flex items-center gap-1.5">
+              <Smile className="w-3.5 h-3.5 text-[var(--accent-text)]" />
               <span>{t('checkin_mood_label')}</span>
             </label>
             <div className="grid grid-cols-5 gap-2">
@@ -127,8 +127,8 @@ export const MorningCheckInModal: React.FC<MorningCheckInModalProps> = ({
                   onClick={() => setMood(value)}
                   className={`py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer flex flex-col items-center gap-1 ${
                     mood === value
-                      ? 'bg-[#D97757] text-white border-[#D97757] shadow-xs'
-                      : 'bg-[#FAF9F5] dark:bg-[#1F1E1B] border-[#DFDACB] dark:border-[#2C2B27] text-[#5C5A54] dark:text-[#B5B2A8] hover:border-[#D97757]'
+                      ? 'bg-[var(--accent-fill)] text-white border-[var(--accent-fill)] shadow-xs'
+                      : 'bg-[var(--bg-surface)] border border-[var(--border-default)] text-[var(--text-secondary)] hover:border-[var(--accent-border)] hover:bg-[var(--bg-hover)]'
                   }`}
                 >
                   <Icon className="w-4 h-4" />
@@ -142,7 +142,7 @@ export const MorningCheckInModal: React.FC<MorningCheckInModalProps> = ({
             <button
               type="submit"
               disabled={!intention.trim()}
-              className="w-full py-2.5 bg-[#D97757] hover:bg-[#C86646] disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full py-2.5 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer"
             >
               <span>{t('checkin_submit')}</span>
               <ArrowRight className="w-3.5 h-3.5" />

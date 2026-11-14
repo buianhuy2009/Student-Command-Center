@@ -31,6 +31,7 @@ interface CommandPaletteProps {
   onSelectWorkspace: (workspace: AppTab) => void;
   onOpenQuickDraft: () => void;
   onOpenNewAssignment: () => void;
+  onCreateAssignment?: (assignment: Omit<Assignment, 'id'>) => void;
   onToggleAiChat: () => void;
   onToggleDarkMode: () => void;
   assignments: Assignment[];
@@ -43,6 +44,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   onSelectWorkspace,
   onOpenQuickDraft,
   onOpenNewAssignment,
+  onCreateAssignment,
   onToggleAiChat,
   onToggleDarkMode,
   assignments,
@@ -342,22 +344,26 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         category: t('create'),
         icon: Plus,
         run: () => {
-          try {
-            const raw = localStorage.getItem('scc_user_assignments_v2');
-            const arr = raw ? JSON.parse(raw) : [];
-            const newTask = {
-              id: `assign-${Date.now()}`,
-              assignmentName: title,
-              subject: 'General',
-              dueDate: new Date(Date.now() + 86400000 * 3).toISOString().split('T')[0],
-              priority: 'Med',
-              status: 'Not Started',
-              source: 'Manual' as const,
-            };
-            localStorage.setItem('scc_user_assignments_v2', JSON.stringify([...arr, newTask]));
-          } catch {}
+          const newTaskData: Omit<Assignment, 'id'> = {
+            assignmentName: title,
+            subject: 'General',
+            dueDate: new Date(Date.now() + 86400000 * 3).toISOString().split('T')[0],
+            priority: 'Med',
+            status: 'Not Started',
+            source: 'Manual',
+          };
+          if (onCreateAssignment) {
+            onCreateAssignment(newTaskData);
+          } else {
+            try {
+              const raw = localStorage.getItem('scc_user_assignments_v2');
+              const arr = raw ? JSON.parse(raw) : [];
+              const newTask = { id: `assign-${Date.now()}`, ...newTaskData };
+              localStorage.setItem('scc_user_assignments_v2', JSON.stringify([...arr, newTask]));
+            } catch {}
+          }
           onSelectWorkspace('dashboard');
-          window.dispatchEvent(new CustomEvent('scc-toast', { detail: { title: t('pal_task_created'), message: title } }));
+          window.dispatchEvent(new CustomEvent('scc-toast', { detail: { type: 'success', title: t('pal_task_created'), message: title } }));
           onClose();
         },
       };
@@ -398,7 +404,10 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         category: t('focus'),
         icon: Timer,
         run: () => {
-          try { localStorage.setItem('scc_pomo_requested_duration', String(mins)); } catch {}
+          try {
+            localStorage.setItem('scc_pomo_requested_duration', String(mins));
+            window.dispatchEvent(new CustomEvent('scc-pomo-start', { detail: { minutes: mins, autoStart: false } }));
+          } catch {}
           onSelectWorkspace('pomodoro');
           onClose();
         },

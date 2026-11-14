@@ -29,7 +29,7 @@ const AI_FLOWS = [
 ] as const;
 
 const Section: React.FC<{ title: string; defaultOpen?: boolean; children: React.ReactNode }> = ({ title, defaultOpen, children }) => (
-  <details open={defaultOpen} className="group rounded-2xl border text-xs" style={{ borderColor: 'var(--line)' }}>
+  <details open={defaultOpen} className="group rounded-2xl border border-[var(--border-default)] text-xs">
     <summary className="font-bold cursor-pointer min-h-[44px] px-3 flex items-center justify-between gap-2 list-none [&::-webkit-details-marker]:hidden">
       <span className="text-[13px]">{title}</span>
       <ChevronDown className="w-4 h-4 shrink-0 transition-transform group-open:rotate-180" />
@@ -61,9 +61,9 @@ export const PrivacyModal: React.FC<{ onClose: () => void; onRevoke: () => void;
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="w-full max-w-lg rounded-3xl p-5 sm:p-6 space-y-4 max-h-[88vh] overflow-y-auto" style={{ backgroundColor: 'var(--surface)' }}>
-        <h2 className="text-base font-extrabold flex items-center gap-2"><ShieldCheck className="w-5 h-5" /> {t('privacy_title')}</h2>
-        <p className="text-xs opacity-75 leading-relaxed">
+      <div className="w-full max-w-lg rounded-3xl p-5 sm:p-6 space-y-4 max-h-[88vh] overflow-y-auto bg-[var(--bg-raised)] text-[var(--text-primary)] border border-[var(--border-default)] shadow-2xl">
+        <h2 className="text-base font-extrabold flex items-center gap-2"><ShieldCheck className="w-5 h-5 text-[var(--accent-text)]" /> {t('privacy_title')}</h2>
+        <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
           {t('privacy_intro')}
         </p>
 
@@ -71,23 +71,23 @@ export const PrivacyModal: React.FC<{ onClose: () => void; onRevoke: () => void;
           <Section title={t('privacy_sec_perms')} defaultOpen>
             <ul className="space-y-2">
               {FEATURE_PERMISSIONS.map((p) => (
-                <li key={p.titleKey} className="p-2.5 rounded-xl border" style={{ borderColor: 'var(--line)' }}>
+                <li key={p.titleKey} className="p-2.5 rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)]">
                   <p className="font-bold text-xs">{t(p.titleKey)}</p>
-                  <p className="mt-0.5 opacity-80">{t(p.descKey)}</p>
+                  <p className="mt-0.5 text-[var(--text-secondary)]">{t(p.descKey)}</p>
                 </li>
               ))}
             </ul>
             <p className="font-semibold">
               {t('privacy_perm_note')}
             </p>
-            <details className="rounded-xl border p-2.5 text-[11px]" style={{ borderColor: 'var(--line)' }}>
-              <summary className="cursor-pointer font-semibold opacity-75">
+            <details className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-2.5 text-[11px]">
+              <summary className="cursor-pointer font-semibold text-[var(--text-secondary)]">
                 {t('privacy_tech_summary')}
               </summary>
-              <ul className="mt-2 space-y-1 opacity-80">
+              <ul className="mt-2 space-y-1 text-[var(--text-secondary)]">
                 {TECHNICAL_SCOPE_DETAILS.map((item) => (
                   <li key={item.scope} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-0.5">
-                    <code className="font-mono font-bold break-all">{item.scope}</code>
+                    <code className="font-mono font-bold break-all text-[var(--text-primary)]">{item.scope}</code>
                     <span>{t(item.featureKey)}</span>
                   </li>
                 ))}
@@ -98,19 +98,19 @@ export const PrivacyModal: React.FC<{ onClose: () => void; onRevoke: () => void;
           <Section title={t('privacy_sec_ai')}>
             <ul className="space-y-2">
               {AI_FLOWS.map((f) => (
-                <li key={f.sourceKey} className="p-2.5 rounded-xl border space-y-1" style={{ borderColor: 'var(--line)' }}>
+                <li key={f.sourceKey} className="p-2.5 rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] space-y-1">
                   <p className="font-bold">{t(f.sourceKey)}</p>
-                  <p><span className="opacity-60">{t('privacy_ai_sent_label')}</span>{t(f.sentKey)}</p>
-                  <p><span className="opacity-60">{t('privacy_ai_to_label')}</span>{t(f.toKey)}</p>
+                  <p><span className="text-[var(--text-muted)]">{t('privacy_ai_sent_label')}</span>{t(f.sentKey)}</p>
+                  <p><span className="text-[var(--text-muted)]">{t('privacy_ai_to_label')}</span>{t(f.toKey)}</p>
                 </li>
               ))}
             </ul>
             <p className="font-semibold">⛔ {t('privacy_ai_never')}</p>
-            <p className="opacity-80">⚠️ {t('privacy_ai_caution')}</p>
+            <p className="text-[var(--text-secondary)]">⚠️ {t('privacy_ai_caution')}</p>
           </Section>
 
           <Section title={t('privacy_sec_storage')}>
-            <ul className="list-disc pl-4 space-y-1.5">
+            <ul className="list-disc pl-4 space-y-1.5 text-[var(--text-secondary)]">
               <li>{t('privacy_store_1')}</li>
               <li>{t('privacy_store_2')}</li>
               <li>{t('privacy_store_3')}</li>
@@ -119,17 +119,17 @@ export const PrivacyModal: React.FC<{ onClose: () => void; onRevoke: () => void;
           </Section>
 
           <Section title={t('privacy_sec_tutor')}>
-            <p>
+            <p className="text-[var(--text-secondary)]">
               {t('privacy_tutor_desc')}
             </p>
           </Section>
 
           <Section title={t('privacy_sec_parents')}>
-            <ul className="list-disc pl-4 space-y-1.5">
+            <ul className="list-disc pl-4 space-y-1.5 text-[var(--text-secondary)]">
               <li>{t('privacy_parent_1')}</li>
               <li>
                 {t('privacy_parent_2_prefix')}
-                <a href="https://myaccount.google.com/permissions" target="_blank" rel="noreferrer" className="underline font-semibold break-all" style={{ color: 'var(--terracotta)' }}>myaccount.google.com/permissions</a>.
+                <a href="https://myaccount.google.com/permissions" target="_blank" rel="noreferrer" className="underline font-semibold break-all text-[var(--accent-text)]">myaccount.google.com/permissions</a>.
               </li>
               <li>{t('privacy_parent_3')}</li>
               <li>{t('privacy_parent_4')}</li>
@@ -138,18 +138,18 @@ export const PrivacyModal: React.FC<{ onClose: () => void; onRevoke: () => void;
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <button type="button" onClick={onRevoke} className="px-4 py-2.5 text-xs font-bold rounded-xl border min-h-[44px] inline-flex items-center gap-1 cursor-pointer" style={{ borderColor: 'var(--line)' }}>
+          <button type="button" onClick={onRevoke} className="px-4 py-2.5 text-xs font-bold rounded-xl border border-[var(--border-default)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] min-h-[44px] inline-flex items-center gap-1 cursor-pointer">
             <LogOut className="w-3.5 h-3.5" /> {t('privacy_disconnect_btn')}
           </button>
           {!confirming
-            ? <button type="button" onClick={() => setConfirming(true)} className="px-4 py-2.5 text-xs font-bold rounded-xl border border-rose-300 text-rose-600 min-h-[44px] inline-flex items-center gap-1 cursor-pointer"><Trash2 className="w-3.5 h-3.5" /> {t('privacy_delete_btn')}</button>
+            ? <button type="button" onClick={() => setConfirming(true)} className="px-4 py-2.5 text-xs font-bold rounded-xl border border-[var(--status-err-border)] text-[var(--status-err-text)] hover:bg-[var(--status-err-bg)] min-h-[44px] inline-flex items-center gap-1 cursor-pointer"><Trash2 className="w-3.5 h-3.5" /> {t('privacy_delete_btn')}</button>
             : (
               <>
-                <button type="button" onClick={async () => { await onDeleteAll(); onClose(); }} className="px-4 py-2.5 text-xs font-bold rounded-xl bg-rose-600 text-white min-h-[44px] cursor-pointer">{t('privacy_delete_confirm')}</button>
-                <button type="button" onClick={() => setConfirming(false)} className="px-4 py-2.5 text-xs font-bold rounded-xl border min-h-[44px] cursor-pointer" style={{ borderColor: 'var(--line)' }}>{t('common_cancel')}</button>
+                <button type="button" onClick={async () => { await onDeleteAll(); onClose(); }} className="px-4 py-2.5 text-xs font-bold rounded-xl bg-[var(--status-err-border)] hover:bg-[var(--status-err-text)] text-white min-h-[44px] cursor-pointer">{t('privacy_delete_confirm')}</button>
+                <button type="button" onClick={() => setConfirming(false)} className="px-4 py-2.5 text-xs font-bold rounded-xl border border-[var(--border-default)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] min-h-[44px] cursor-pointer">{t('common_cancel')}</button>
               </>
             )}
-          <button type="button" onClick={onClose} className="px-4 py-2.5 text-xs font-bold text-white rounded-xl min-h-[44px] ml-auto cursor-pointer" style={{ backgroundColor: 'var(--terracotta)' }}>{t('common_done')}</button>
+          <button type="button" onClick={onClose} className="px-4 py-2.5 text-xs font-bold text-white rounded-xl min-h-[44px] ml-auto cursor-pointer bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)]">{t('common_done')}</button>
         </div>
       </div>
     </div>

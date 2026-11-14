@@ -4,7 +4,7 @@ import { useT, type TranslationKey } from '../services/i18n';
 
 type Batch3Key = TranslationKey;
 
-export const CURRENT_VERSION = '2.18.5';
+export const CURRENT_VERSION = '2.19.0';
 
 interface VersionRelease {
   version: string;
@@ -17,10 +17,28 @@ interface VersionRelease {
 
 const RELEASES: VersionRelease[] = [
   {
+    version: '2.19.0',
+    isoDate: '2026-11-14',
+    titleKey: 'changelog_r_2_19_0_t',
+    badgeKey: 'changelog_latest_badge',
+    highlightKeys: [
+      'changelog_r_2_19_0_h1',
+      'changelog_r_2_19_0_h2',
+      'changelog_r_2_19_0_h3',
+      'changelog_r_2_19_0_h4',
+    ],
+    detailKeys: [
+      'changelog_r_2_19_0_d1',
+      'changelog_r_2_19_0_d2',
+      'changelog_r_2_19_0_d3',
+      'changelog_r_2_19_0_d4',
+      'changelog_r_2_19_0_d5',
+    ],
+  },
+  {
     version: '2.18.5',
     isoDate: '2026-10-17',
     titleKey: 'changelog_r_2_18_5_t',
-    badgeKey: 'changelog_latest_badge',
     highlightKeys: ['changelog_r_2_18_5_h1', 'changelog_r_2_18_5_h2'],
     detailKeys: ['changelog_r_2_18_5_d1', 'changelog_r_2_18_5_d2'],
   },
@@ -394,12 +412,12 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({ isOpen, onClose 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs select-none p-4 animate-in fade-in duration-200">
-      <div className="bg-[#FAF9F5] dark:bg-[#1A1917] w-full max-w-4xl h-[85vh] rounded-3xl border border-[#DFDACB] dark:border-[#2C2B27] flex flex-col md:flex-row overflow-hidden shadow-2xl animate-in zoom-in-95 duration-150">
+      <div className="bg-[var(--bg-raised)] text-[var(--text-primary)] w-full max-w-4xl h-[85vh] rounded-3xl border border-[var(--border-default)] flex flex-col md:flex-row overflow-hidden shadow-2xl animate-in zoom-in-95 duration-150">
         
         {/* Left Column: Version History Sidebar */}
-        <div className="w-full md:w-64 border-r border-[#DFDACB] dark:border-[#2C2B27] bg-[#EFECE2]/30 dark:bg-[#141413]/40 flex flex-col h-1/3 md:h-full shrink-0">
-          <div className="p-5 border-b border-[#DFDACB] dark:border-[#2C2B27]">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-[#8C897F]">
+        <div className="w-full md:w-64 border-r border-[var(--border-default)] bg-[var(--bg-subtle)] flex flex-col h-1/3 md:h-full shrink-0">
+          <div className="p-5 border-b border-[var(--border-default)]">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">
               {t('changelog_sidebar_title')}
             </h3>
           </div>
@@ -410,13 +428,13 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({ isOpen, onClose 
                 onClick={() => setSelectedVersion(rel.version)}
                 className={`w-full text-left px-4 py-3 rounded-2xl transition-all cursor-pointer flex flex-col gap-0.5 ${
                   selectedVersion === rel.version
-                    ? 'bg-white dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] shadow-xs'
-                    : 'hover:bg-[#EFECE2]/50 dark:hover:bg-[#252422]/50'
+                    ? 'bg-[var(--bg-surface)] border border-[var(--accent-border)] shadow-xs'
+                    : 'hover:bg-[var(--bg-hover)]'
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <span className={`text-xs font-bold ${
-                    selectedVersion === rel.version ? 'text-[#D97757]' : 'text-[#141413] dark:text-[#FAF9F5]'
+                    selectedVersion === rel.version ? 'text-[var(--accent-text)]' : 'text-[var(--text-primary)]'
                   }`}>
                     v{rel.version}
                   </span>
@@ -426,7 +444,7 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({ isOpen, onClose 
                     </span>
                   )}
                 </div>
-                <span className="text-[10px] text-[#8C897F] truncate font-medium">
+                <span className="text-[10px] text-[var(--text-muted)] truncate font-medium">
                   {t(rel.titleKey)}
                 </span>
               </button>
@@ -435,20 +453,20 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({ isOpen, onClose 
         </div>
 
         {/* Right Column: Version Details Section */}
-        <div className="flex-1 flex flex-col h-2/3 md:h-full min-w-0 bg-white dark:bg-[#1A1917]">
+        <div className="flex-1 flex flex-col h-2/3 md:h-full min-w-0 bg-[var(--bg-surface)]">
           
           {/* Header */}
-          <div className="p-6 border-b border-[#DFDACB] dark:border-[#2C2B27] flex items-center justify-between shrink-0">
+          <div className="p-6 border-b border-[var(--border-default)] flex items-center justify-between shrink-0">
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-mono bg-[#FAF9F5] dark:bg-[#252422] px-2 py-0.5 rounded border border-[#DFDACB] dark:border-[#2C2B27] text-[#8C897F]">
+                <span className="text-[10px] font-mono bg-[var(--bg-subtle)] px-2 py-0.5 rounded border border-[var(--border-default)] text-[var(--text-muted)]">
                   v{currentRelease.version}
                 </span>
-                <span className="text-[10px] text-[#8C897F] font-semibold">
+                <span className="text-[10px] text-[var(--text-muted)] font-semibold">
                   {t('changelog_released_on', { date: formatDate(currentRelease.isoDate) })}
                 </span>
               </div>
-              <h2 className="text-lg font-extrabold text-[#141413] dark:text-[#FAF9F5] mt-1">
+              <h2 className="text-lg font-extrabold text-[var(--text-primary)] mt-1">
                 {t(currentRelease.titleKey)}
               </h2>
             </div>
@@ -456,7 +474,7 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({ isOpen, onClose 
             <button
               onClick={onClose}
               aria-label={t('close')}
-              className="p-2 rounded-xl bg-[#FAF9F5] dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] text-[#8C897F] hover:text-[#141413] dark:hover:text-[#FAF9F5] hover:border-[#D97757] transition-all cursor-pointer"
+              className="p-2 rounded-xl bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] border border-[var(--border-default)] hover:border-[var(--accent-border)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-all cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
@@ -466,14 +484,14 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({ isOpen, onClose 
           <div className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-6">
             
             {/* Highlights Box */}
-            <div className="p-5 rounded-2xl bg-gradient-to-br from-[#FAF9F5] to-amber-500/5 dark:from-[#252422] dark:to-amber-500/10 border border-amber-500/20 space-y-3">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-[#D97757] flex items-center gap-1.5">
+            <div className="p-5 rounded-2xl bg-[var(--bg-subtle)] border border-[var(--border-default)] space-y-3">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--accent-text)] flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5" />
                 <span>{t('changelog_whats_new')}</span>
               </h4>
               <ul className="space-y-2">
                 {currentRelease.highlightKeys.map((hKey, i) => (
-                  <li key={i} className="flex items-start gap-2.5 text-xs text-[#141413] dark:text-[#FAF9F5]">
+                  <li key={i} className="flex items-start gap-2.5 text-xs text-[var(--text-primary)]">
                     <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                     <span className="font-semibold">{t(hKey)}</span>
                   </li>
@@ -483,17 +501,17 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({ isOpen, onClose 
 
             {/* Detailed Changes list */}
             <div className="space-y-3">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-[#8C897F]">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">
                 {t('changelog_changes_heading')}
               </h4>
               <div className="space-y-2.5">
                 {currentRelease.detailKeys.map((dKey, i) => (
                   <div
                     key={i}
-                    className="p-4 bg-[#FAF9F5] dark:bg-[#252422]/50 border border-[#DFDACB]/60 dark:border-[#2C2B27]/60 rounded-2xl flex items-start gap-3"
+                    className="p-4 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-2xl flex items-start gap-3"
                   >
-                    <Zap className="w-3.5 h-3.5 text-[#D97757] shrink-0 mt-0.5" />
-                    <p className="text-xs text-[#5C5A54] dark:text-[#B5B2A8] leading-relaxed">
+                    <Zap className="w-3.5 h-3.5 text-[var(--accent-text)] shrink-0 mt-0.5" />
+                    <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
                       {t(dKey)}
                     </p>
                   </div>
@@ -504,13 +522,13 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({ isOpen, onClose 
           </div>
 
           {/* Footer actions */}
-          <div className="p-6 border-t border-[#DFDACB] dark:border-[#2C2B27] bg-[#FAF9F5] dark:bg-[#141413]/60 flex items-center justify-between shrink-0">
-            <span className="text-[10px] text-[#8C897F]">
+          <div className="p-6 border-t border-[var(--border-default)] bg-[var(--bg-surface)] flex items-center justify-between shrink-0">
+            <span className="text-[10px] text-[var(--text-muted)]">
               {t('changelog_footer_brand', { version: CURRENT_VERSION })}
             </span>
             <button
               onClick={onClose}
-              className="px-5 py-2 bg-[#D97757] hover:bg-[#C86646] text-white text-xs font-bold rounded-xl transition-all shadow-xs cursor-pointer flex items-center gap-1"
+              className="px-5 py-2 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white text-xs font-bold rounded-xl transition-all shadow-xs cursor-pointer flex items-center gap-1"
             >
               <span>{t('changelog_continue')}</span>
               <ArrowRight className="w-3.5 h-3.5" />

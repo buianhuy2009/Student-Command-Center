@@ -940,6 +940,21 @@ export default function App() {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
+  // Bridge window `scc-toast` custom events (e.g. CommandPalette, GmailRadarTab) into ToastContainer
+  useEffect(() => {
+    const handleToastEvent = (e: Event) => {
+      const detail = (e as CustomEvent<{ type?: ToastNotification['type']; title?: string; message?: string }>).detail;
+      if (!detail?.title) return;
+      addToast({
+        type: detail.type || 'info',
+        title: detail.title,
+        message: detail.message,
+      });
+    };
+    window.addEventListener('scc-toast', handleToastEvent);
+    return () => window.removeEventListener('scc-toast', handleToastEvent);
+  }, [addToast]);
+
   // Deep-link ?demo=1 → Enable demo mode; Share target handling
   useEffect(() => {
     try {
@@ -3544,6 +3559,7 @@ export default function App() {
         onOpenNewAssignment={() => {
           handleTabTransition('tracker');
         }}
+        onCreateAssignment={handleAddAssignment}
         onToggleAiChat={() => setAiChatOpen(!aiChatOpen)}
         onToggleDarkMode={toggleDarkMode}
         assignments={assignments}

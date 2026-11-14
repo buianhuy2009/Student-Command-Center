@@ -2087,6 +2087,17 @@ export const en = {
   changelog_sidebar_title: "Version History",
   changelog_whats_new: "What's New",
 
+  changelog_r_2_19_0_t: "Calmer Paper & Slate Design, On-Demand Google Permissions, and 15-App Study Suite",
+  changelog_r_2_19_0_h1: "Gentle paper and slate design with warmer tones that protect your eyes during late-night study sessions",
+  changelog_r_2_19_0_h2: "Curated 15-app study catalog keeping only your most useful study tools ready without clutter",
+  changelog_r_2_19_0_h3: "Connect Google apps on demand only when you actually use them instead of all at once",
+  changelog_r_2_19_0_h4: "Instant English and Vietnamese language switching across every single workspace and card",
+  changelog_r_2_19_0_d1: "Eye-Friendly Paper Palette: redesigned backgrounds and buttons with soft paper and slate contrasts to keep your eyes comfortable through long reading sessions.",
+  changelog_r_2_19_0_d2: "Clean 15-App Study Suite: organized the App Store into 15 reliable study companions like Canvas sync, flashcards, calculator, and formula sheets.",
+  changelog_r_2_19_0_d3: "Ask When Needed Google Access: Google Drive, Classroom, and Gmail now ask for permission only when you open that specific feature, keeping your account safe.",
+  changelog_r_2_19_0_d4: "Bilingual Study Experience: every button, prompt, and tip now switches cleanly between English and Vietnamese in real time.",
+  changelog_r_2_19_0_d5: "Smoother Study Flow: quick task creation from keyboard shortcuts and focus timer shortcuts now update your dashboard immediately.",
+
   changelog_r_2_18_5_t: "Homepage Links to the Privacy Policy for Google Verification",
   changelog_r_2_18_5_h1: "The Privacy Policy link at the bottom of the homepage now opens the full policy page",
   changelog_r_2_18_5_h2: "Google can now confirm that this website belongs to us, so Google sign-in can be verified",

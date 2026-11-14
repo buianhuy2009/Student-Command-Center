@@ -109,14 +109,14 @@ export const GoogleClassroomPanel: React.FC<GoogleClassroomPanelProps> = ({
   return (
     <div className="space-y-5 animate-in fade-in duration-200">
       {/* Header Bar */}
-      <div className="bg-white dark:bg-[#1A1917] rounded-2xl p-5 border border-[#DFDACB] dark:border-[#2C2B27] flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs">
+      <div className="bg-[var(--bg-surface)] rounded-2xl p-5 border border-[var(--border-default)] flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
             <GraduationCap className="w-5 h-5" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-base sm:text-lg font-bold text-[#141413] dark:text-[#FAF9F5] tracking-tight">
+              <h2 className="text-base sm:text-lg font-bold text-[var(--text-primary)] tracking-tight">
                 {t('classroom_title')}
               </h2>
               {isGoogleConnected && (
@@ -125,7 +125,7 @@ export const GoogleClassroomPanel: React.FC<GoogleClassroomPanelProps> = ({
                 </span>
               )}
             </div>
-            <p className="text-xs text-[#8C897F] mt-0.5">
+            <p className="text-xs text-[var(--text-muted)] mt-0.5">
               {t('classroom_sub')}
             </p>
           </div>
@@ -135,7 +135,7 @@ export const GoogleClassroomPanel: React.FC<GoogleClassroomPanelProps> = ({
           {!isGoogleConnected && onConnectGoogle && (
             <button
               onClick={onConnectGoogle}
-              className="px-3.5 py-1.5 bg-[#D97757] hover:bg-[#C86646] text-white text-xs font-semibold rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+              className="px-3.5 py-1.5 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white text-xs font-semibold rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
             >
               <span>{t('classroom_connect_btn')}</span>
             </button>
@@ -144,10 +144,10 @@ export const GoogleClassroomPanel: React.FC<GoogleClassroomPanelProps> = ({
           <button
             onClick={loadAssignments}
             disabled={isLoading || (!googleToken && !isGoogleConnected && !onConnectGoogle)}
-            className="px-3 py-1.5 text-xs font-semibold bg-[#FAF9F5] dark:bg-[#252422] hover:bg-[#EFECE2] dark:hover:bg-[#2C2A26] text-[#5C5A54] dark:text-[#B5B2A8] rounded-xl border border-[#DFDACB] dark:border-[#2C2B27] transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+            className="px-3 py-1.5 text-xs font-semibold bg-[var(--bg-subtle)] hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] rounded-xl border border-[var(--border-default)] transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
             title={t('classroom_refresh_title')}
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-[#D97757]' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-[var(--accent-text)]' : ''}`} />
             <span>{isLoading ? t('syncing') : t('classroom_sync_btn')}</span>
           </button>
 
@@ -155,7 +155,7 @@ export const GoogleClassroomPanel: React.FC<GoogleClassroomPanelProps> = ({
             href="https://classroom.google.com"
             target="_blank"
             rel="noreferrer"
-            className="px-3 py-1.5 bg-[#FAF9F5] dark:bg-[#252422] hover:bg-[#EFECE2] dark:hover:bg-[#2C2A26] text-[#5C5A54] dark:text-[#B5B2A8] rounded-xl text-xs font-semibold border border-[#DFDACB] dark:border-[#2C2B27] flex items-center gap-1 transition-colors"
+            className="px-3 py-1.5 bg-[var(--bg-subtle)] hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] rounded-xl text-xs font-semibold border border-[var(--border-default)] flex items-center gap-1 transition-colors"
           >
             <span>{t('classroom_open_btn')}</span>
             <ExternalLink className="w-3 h-3" />
@@ -165,12 +165,12 @@ export const GoogleClassroomPanel: React.FC<GoogleClassroomPanelProps> = ({
 
       {/* Info / Enablement Banner if needed */}
       {error && (
-        <div className="p-4 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-amber-900 dark:text-amber-200">
+        <div className="p-4 bg-[var(--status-warn-bg)] border border-[var(--status-warn-border)] rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-[var(--status-warn-text)]">
           <div className="flex items-start gap-2.5">
-            <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+            <AlertTriangle className="w-4 h-4 text-[var(--status-warn-text)] shrink-0 mt-0.5" />
             <div>
               <p className="font-bold">{t('classroom_perm_title')}</p>
-              <p className="text-[11px] mt-0.5 text-amber-800 dark:text-amber-300">
+              <p className="text-[11px] mt-0.5 text-[var(--status-warn-text)]">
                 {error.includes('PERMISSION') || error.includes('403') || error.includes('401')
                   ? t('classroom_perm_desc')
                   : error}
@@ -181,7 +181,7 @@ export const GoogleClassroomPanel: React.FC<GoogleClassroomPanelProps> = ({
             {onConnectGoogle && (
               <button
                 onClick={onConnectGoogle}
-                className="px-3 py-1.5 bg-[#D97757] hover:bg-[#C86646] text-white rounded-xl font-bold text-xs shadow-xs transition-colors cursor-pointer"
+                className="px-3 py-1.5 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-xl font-bold text-xs shadow-xs transition-colors cursor-pointer"
               >
                 {t('classroom_connect_btn')}
               </button>
@@ -191,9 +191,9 @@ export const GoogleClassroomPanel: React.FC<GoogleClassroomPanelProps> = ({
       )}
 
       {/* Coursework Cards Grid */}
-      <section className="bg-white dark:bg-[#1A1917] rounded-2xl border border-[#DFDACB] dark:border-[#2C2B27] p-5 shadow-xs">
-        <div className="flex items-center justify-between pb-3 border-b border-[#DFDACB] dark:border-[#2C2B27]">
-          <h3 className="font-bold text-[#141413] dark:text-[#FAF9F5] text-xs uppercase tracking-wider flex items-center gap-2">
+      <section className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-5 shadow-xs">
+        <div className="flex items-center justify-between pb-3 border-b border-[var(--border-default)]">
+          <h3 className="font-bold text-[var(--text-primary)] text-xs uppercase tracking-wider flex items-center gap-2">
             <BookOpen className="w-3.5 h-3.5 text-emerald-600" />
             <span>{t('classroom_coursework_heading', { count: assignments.length })}</span>
           </h3>
@@ -201,41 +201,41 @@ export const GoogleClassroomPanel: React.FC<GoogleClassroomPanelProps> = ({
 
         <div className="mt-4 space-y-3">
           {!isGoogleConnected ? (
-            <div className="py-12 px-4 text-center bg-[#FAF9F5] dark:bg-[#1F1E1B] rounded-xl border border-dashed border-[#DFDACB] dark:border-[#2C2B27]">
+            <div className="py-12 px-4 text-center bg-[var(--bg-subtle)] rounded-xl border border-dashed border-[var(--border-default)]">
               <GraduationCap className="w-10 h-10 mx-auto text-emerald-600 mb-2 opacity-80" />
-              <h4 className="text-sm font-bold text-[#141413] dark:text-[#FAF9F5]">{t('classroom_connect_btn')}</h4>
-              <p className="text-xs text-[#8C897F] mt-1 max-w-sm mx-auto">
+              <h4 className="text-sm font-bold text-[var(--text-primary)]">{t('classroom_connect_btn')}</h4>
+              <p className="text-xs text-[var(--text-muted)] mt-1 max-w-sm mx-auto">
                 {t('classroom_connect_prompt')}
               </p>
               {onConnectGoogle && (
                 <button
                   onClick={onConnectGoogle}
-                  className="mt-3.5 px-4 py-2 bg-[#D97757] hover:bg-[#C86646] text-white rounded-xl text-xs font-bold transition-colors cursor-pointer shadow-xs"
+                  className="mt-3.5 px-4 py-2 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-xl text-xs font-bold transition-colors cursor-pointer shadow-xs"
                 >
                   {t('classroom_connect_btn')}
                 </button>
               )}
             </div>
           ) : !googleToken && assignments.length === 0 ? (
-            <div className="py-12 px-4 text-center bg-amber-50/70 dark:bg-amber-950/20 rounded-xl border border-dashed border-amber-300 dark:border-amber-800">
-              <AlertTriangle className="w-9 h-9 mx-auto text-amber-600 mb-2 opacity-90" />
-              <h4 className="text-sm font-bold text-[#141413] dark:text-[#FAF9F5]">{t('classroom_reconnect_title')}</h4>
-              <p className="text-xs text-[#5C5A54] dark:text-[#B5B2A8] mt-1 max-w-md mx-auto">
+            <div className="py-12 px-4 text-center bg-[var(--status-warn-bg)] rounded-xl border border-dashed border-[var(--status-warn-border)]">
+              <AlertTriangle className="w-9 h-9 mx-auto text-[var(--status-warn-text)] mb-2 opacity-90" />
+              <h4 className="text-sm font-bold text-[var(--text-primary)]">{t('classroom_reconnect_title')}</h4>
+              <p className="text-xs text-[var(--text-secondary)] mt-1 max-w-md mx-auto">
                 {t('classroom_reconnect_desc')}
               </p>
               {onConnectGoogle && (
                 <button
                   onClick={onConnectGoogle}
-                  className="mt-3.5 px-4 py-2 bg-[#D97757] hover:bg-[#C86646] text-white rounded-xl text-xs font-bold transition-colors cursor-pointer shadow-xs"
+                  className="mt-3.5 px-4 py-2 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-xl text-xs font-bold transition-colors cursor-pointer shadow-xs"
                 >
                   {t('classroom_reconnect_btn')}
                 </button>
               )}
             </div>
           ) : assignments.length === 0 ? (
-            <div className="py-12 text-center text-[#8C897F] text-xs">
+            <div className="py-12 text-center text-[var(--text-muted)] text-xs">
               <p>{t('classroom_empty')}</p>
-              <p className="text-[11px] text-[#8C897F]/80 mt-1">
+              <p className="text-[11px] text-[var(--text-muted)]/80 mt-1">
                 {t('classroom_empty_hint')}
               </p>
             </div>
@@ -245,7 +245,7 @@ export const GoogleClassroomPanel: React.FC<GoogleClassroomPanelProps> = ({
               return (
                 <div
                   key={work.id}
-                  className="p-4 rounded-xl bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-emerald-500/40 transition-colors group"
+                  className="p-4 rounded-xl bg-[var(--bg-subtle)] border border-[var(--border-default)] flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-emerald-500/40 transition-colors group"
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
@@ -253,37 +253,37 @@ export const GoogleClassroomPanel: React.FC<GoogleClassroomPanelProps> = ({
                         {work.courseName}
                       </span>
                       {work.dueAt && (
-                        <span className="text-[10px] text-[#8C897F] flex items-center gap-1 font-mono">
-                          <Calendar className="w-3 h-3 text-[#D97757]" />
+                        <span className="text-[10px] text-[var(--text-muted)] flex items-center gap-1 font-mono">
+                          <Calendar className="w-3 h-3 text-[var(--accent-text)]" />
                           <span>{t('classroom_due', { date: formatDate(work.dueAt) || work.dueAt })}</span>
                         </span>
                       )}
                       {work.pointsPossible !== undefined && (
-                        <span className="text-[10px] text-[#8C897F] font-mono">
+                        <span className="text-[10px] text-[var(--text-muted)] font-mono">
                           {t('classroom_pts', { pts: work.pointsPossible })}
                         </span>
                       )}
                     </div>
 
-                    <h4 className="text-xs font-bold text-[#141413] dark:text-[#FAF9F5] mt-1.5">
+                    <h4 className="text-xs font-bold text-[var(--text-primary)] mt-1.5">
                       {work.name}
                     </h4>
 
                     {work.description && (
-                      <p className="text-[11px] text-[#5C5A54] dark:text-[#B5B2A8] mt-1 line-clamp-2">
+                      <p className="text-[11px] text-[var(--text-secondary)] mt-1 line-clamp-2">
                         {work.description}
                       </p>
                     )}
                   </div>
 
-                  <div className="flex items-center gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-[#DFDACB]/60 dark:border-[#2C2B27]/60">
+                  <div className="flex items-center gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-[var(--border-default)]">
                     <button
                       onClick={() => handleSyncItem(work)}
                       disabled={isSynced}
                       className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer border ${
                         isSynced
                           ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
-                          : 'bg-[#FAF9F5] dark:bg-[#252422] text-[#141413] dark:text-[#FAF9F5] hover:border-[#D97757] border-[#DFDACB] dark:border-[#2C2B27]'
+                          : 'bg-[var(--bg-subtle)] text-[var(--text-primary)] hover:border-[var(--accent-border)] border-[var(--border-default)]'
                       }`}
                     >
                       {isSynced ? (
@@ -293,7 +293,7 @@ export const GoogleClassroomPanel: React.FC<GoogleClassroomPanelProps> = ({
                         </>
                       ) : (
                         <>
-                          <Plus className="w-3.5 h-3.5 text-[#D97757]" />
+                          <Plus className="w-3.5 h-3.5 text-[var(--accent-text)]" />
                           <span>{t('tracker_add_btn')}</span>
                         </>
                       )}
@@ -304,7 +304,7 @@ export const GoogleClassroomPanel: React.FC<GoogleClassroomPanelProps> = ({
                         href={work.htmlUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="p-1.5 text-[#5C5A54] dark:text-[#B5B2A8] hover:text-emerald-600 hover:bg-[#EFECE2] dark:hover:bg-[#2C2A26] rounded-lg transition-colors"
+                        className="p-1.5 text-[var(--text-secondary)] hover:text-emerald-600 hover:bg-[var(--bg-hover)] rounded-lg transition-colors"
                         title={t('classroom_open_item_title')}
                       >
                         <ExternalLink className="w-3.5 h-3.5" />

@@ -61,7 +61,7 @@ export const GoogleDriveTab: React.FC<GoogleDriveTabProps> = ({
       return { label: t('drive_type_sheet'), icon: FileSpreadsheet, color: 'text-emerald-500', bg: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800' };
     }
     if (mimeType.includes('presentation') || mimeType.includes('slide')) {
-      return { label: t('drive_type_slide'), icon: Presentation, color: 'text-amber-500', bg: 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200 dark:border-amber-800' };
+      return { label: t('drive_type_slide'), icon: Presentation, color: 'text-[var(--status-warn-text)]', bg: 'bg-[var(--status-warn-bg)] text-[var(--status-warn-text)] border-[var(--status-warn-border)]' };
     }
     if (mimeType.includes('pdf')) {
       return { label: t('drive_type_pdf'), icon: File, color: 'text-rose-500', bg: 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border-rose-200 dark:border-rose-800' };
@@ -126,7 +126,7 @@ export const GoogleDriveTab: React.FC<GoogleDriveTabProps> = ({
   return (
     <div className="space-y-4">
       {/* Top Filter Bar */}
-      <div className="bg-white dark:bg-[#1A1917] rounded-2xl border border-[#DFDACB] dark:border-[#2C2B27] p-3 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
+      <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-3 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
         
         {/* Category Pills */}
         <div className="flex items-center gap-1.5 flex-wrap">
@@ -142,8 +142,8 @@ export const GoogleDriveTab: React.FC<GoogleDriveTabProps> = ({
               onClick={() => setFileCategory(cat.id)}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                 fileCategory === cat.id
-                  ? 'bg-[#D97757] text-white shadow-xs'
-                  : 'bg-[#FAF9F5] dark:bg-[#252422] text-[#5C5A54] dark:text-[#B5B2A8] hover:bg-[#EFECE2] dark:hover:bg-[#2C2A26] border border-[#DFDACB] dark:border-[#2C2B27]'
+                  ? 'bg-[var(--accent-fill)] text-white shadow-xs'
+                  : 'bg-[var(--bg-subtle)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] border border-[var(--border-default)]'
               }`}
             >
               {cat.label}
@@ -157,7 +157,7 @@ export const GoogleDriveTab: React.FC<GoogleDriveTabProps> = ({
             value={sortOrder}
             onChange={(e) => setSortOrder(e.target.value)}
             aria-label={t('drive_sort_label')}
-            className="px-2 py-1.5 text-xs bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] rounded-xl focus:outline-none focus:ring-1 focus:ring-[#D97757] text-[#5C5A54] dark:text-[#B5B2A8] font-semibold cursor-pointer"
+            className="px-2 py-1.5 text-xs bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-xl focus:outline-none focus:ring-1 focus:ring-[var(--accent-fill)] text-[var(--text-secondary)] font-semibold cursor-pointer"
           >
             <option value="DEFAULT">{t('drive_sort_default')}</option>
             <option value="NAME">{t('drive_sort_name')}</option>
@@ -165,23 +165,23 @@ export const GoogleDriveTab: React.FC<GoogleDriveTabProps> = ({
             <option value="OLDEST">{t('drive_sort_oldest')}</option>
           </select>
           <div className="relative w-full sm:w-48">
-            <Search className="w-3.5 h-3.5 text-[#8C897F] dark:text-[#B5B2A8] absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-3.5 h-3.5 text-[var(--text-muted)] absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={t('drive_search_ph')}
-              className="w-full pl-8 pr-3 py-1.5 text-xs bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] rounded-xl focus:outline-none focus:ring-1 focus:ring-[#D97757] text-[#141413] dark:text-[#FAF9F5]"
+              className="w-full pl-8 pr-3 py-1.5 text-xs bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-xl focus:outline-none focus:ring-1 focus:ring-[var(--accent-fill)] text-[var(--text-primary)]"
             />
           </div>
 
           <button
             onClick={() => (!isGoogleConnected && onConnectGoogle ? onConnectGoogle() : onRefreshFiles())}
             disabled={isLoadingFiles}
-            className="p-1.5 bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] hover:border-[#D97757] text-[#5C5A54] dark:text-[#B5B2A8] rounded-xl transition-colors cursor-pointer"
+            className="p-1.5 bg-[var(--bg-subtle)] border border-[var(--border-default)] hover:border-[var(--accent-fill)] text-[var(--text-secondary)] rounded-xl transition-colors cursor-pointer"
             title={isGoogleConnected ? t('drive_refresh') : t('drive_connect')}
           >
-            <RefreshCw className={`w-4 h-4 ${isLoadingFiles ? 'animate-spin text-[#D97757] dark:text-[#E59A7C]' : ''}`} />
+            <RefreshCw className={`w-4 h-4 ${isLoadingFiles ? 'animate-spin text-[var(--accent-text)]' : ''}`} />
           </button>
         </div>
       </div>
@@ -190,10 +190,10 @@ export const GoogleDriveTab: React.FC<GoogleDriveTabProps> = ({
       {driveApiInfo ? (
         <ApiActivationBanner info={driveApiInfo} onRetry={onRefreshFiles} isRetrying={isLoadingFiles} />
       ) : driveError ? (
-        <div className="p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl flex items-center justify-between gap-3 text-xs text-amber-900 dark:text-amber-200">
+        <div className="p-3 bg-[var(--status-warn-bg)] border border-[var(--status-warn-border)] rounded-xl flex items-center justify-between gap-3 text-xs text-[var(--status-warn-text)]">
           <span>{driveError}</span>
           {onConnectGoogle && (
-            <button onClick={onConnectGoogle} className="px-2.5 py-1 bg-amber-600 text-white rounded-lg font-semibold cursor-pointer">
+            <button onClick={onConnectGoogle} className="px-2.5 py-1 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-lg font-semibold cursor-pointer">
               {t('drive_connect')}
             </button>
           )}
@@ -201,33 +201,33 @@ export const GoogleDriveTab: React.FC<GoogleDriveTabProps> = ({
       ) : null}
 
       {/* TWO-PANE MASTER-DETAIL LAYOUT */}
-      <div className="bg-white dark:bg-[#1A1917] rounded-2xl border border-[#DFDACB] dark:border-[#2C2B27] overflow-hidden shadow-xs flex flex-col md:flex-row h-[600px]">
+      <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] overflow-hidden shadow-xs flex flex-col md:flex-row h-[600px]">
         
         {/* LEFT MASTER PANE: Compact File List */}
-        <div className="w-full md:w-80 lg:w-96 border-r border-[#DFDACB] dark:border-[#2C2B27] flex flex-col bg-[#FAF9F5] dark:bg-[#1F1E1B] overflow-hidden">
-          <div className="p-3 border-b border-[#DFDACB]/60 dark:border-[#2C2B27]/60 flex items-center justify-between text-xs font-bold text-[#8C897F] dark:text-[#B5B2A8]">
+        <div className="w-full md:w-80 lg:w-96 border-r border-[var(--border-default)] flex flex-col bg-[var(--bg-subtle)] overflow-hidden">
+          <div className="p-3 border-b border-[var(--border-default)] flex items-center justify-between text-xs font-bold text-[var(--text-muted)]">
             <span>{t('drive_items')}</span>
             <span>{filteredFiles.length} {t('drive_files')}</span>
           </div>
 
-          <div className="flex-1 overflow-y-auto divide-y divide-[#DFDACB]/40 dark:divide-[#2C2B27]/40">
+          <div className="flex-1 overflow-y-auto divide-y divide-[var(--border-default)]">
             {isLoadingFiles ? (
-              <div className="p-12 text-center text-[#8C897F] dark:text-[#B5B2A8] flex flex-col items-center justify-center gap-2">
-                <RefreshCw className="w-5 h-5 animate-spin text-[#D97757] dark:text-[#E59A7C]" />
+              <div className="p-12 text-center text-[var(--text-muted)] flex flex-col items-center justify-center gap-2">
+                <RefreshCw className="w-5 h-5 animate-spin text-[var(--accent-text)]" />
                 <span className="text-xs">{t('drive_indexing')}</span>
               </div>
             ) : !isGoogleConnected ? (
-              <div className="p-8 text-center text-[#8C897F] dark:text-[#B5B2A8] text-xs space-y-3 my-auto">
-                <HardDrive className="w-8 h-8 mx-auto text-[#D97757] opacity-80" />
+              <div className="p-8 text-center text-[var(--text-muted)] text-xs space-y-3 my-auto">
+                <HardDrive className="w-8 h-8 mx-auto text-[var(--accent-text)] opacity-80" />
                 <div className="space-y-1">
-                  <p className="font-bold text-[#141413] dark:text-[#FAF9F5]">{t('drive_connect_card_title')}</p>
+                  <p className="font-bold text-[var(--text-primary)]">{t('drive_connect_card_title')}</p>
                   <p>{t('drive_connect_card_desc')}</p>
                 </div>
                 {onConnectGoogle && (
                   <button
                     type="button"
                     onClick={onConnectGoogle}
-                    className="px-4 py-2 bg-[#D97757] hover:bg-[#C86646] text-white rounded-xl font-bold cursor-pointer inline-flex items-center gap-1.5"
+                    className="px-4 py-2 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-xl font-bold cursor-pointer inline-flex items-center gap-1.5"
                   >
                     <Sparkles className="w-3.5 h-3.5" />
                     <span>{t('canvas_connect_drive_btn')}</span>
@@ -235,7 +235,7 @@ export const GoogleDriveTab: React.FC<GoogleDriveTabProps> = ({
                 )}
               </div>
             ) : filteredFiles.length === 0 ? (
-              <div className="p-12 text-center text-[#8C897F] dark:text-[#B5B2A8] text-xs">
+              <div className="p-12 text-center text-[var(--text-muted)] text-xs">
                 {t('drive_empty')}
               </div>
             ) : (
@@ -248,16 +248,16 @@ export const GoogleDriveTab: React.FC<GoogleDriveTabProps> = ({
                   <div
                     key={file.id}
                     onClick={() => setSelectedFileId(file.id)}
-                    className={`p-3.5 hover:bg-white dark:hover:bg-[#141413] transition-colors cursor-pointer text-left flex items-start gap-3 ${
-                      isSelected ? 'bg-white dark:bg-[#141413] font-semibold border-l-3 border-[#D97757]' : ''
+                    className={`p-3.5 hover:bg-[var(--bg-hover)] transition-colors cursor-pointer text-left flex items-start gap-3 ${
+                      isSelected ? 'bg-[var(--bg-surface)] font-semibold border-l-3 border-[var(--accent-fill)]' : ''
                     }`}
                   >
                     <Icon className={`w-4 h-4 mt-0.5 shrink-0 ${fileType.color}`} />
                     <div className="min-w-0 flex-1">
-                      <div className="text-xs text-[#141413] dark:text-[#FAF9F5] font-semibold truncate mb-0.5">
+                      <div className="text-xs text-[var(--text-primary)] font-semibold truncate mb-0.5">
                         {file.name}
                       </div>
-                      <div className="flex items-center gap-2 text-[10px] text-[#8C897F] dark:text-[#B5B2A8]">
+                      <div className="flex items-center gap-2 text-[10px] text-[var(--text-muted)]">
                         <span className={`px-1.5 py-0.2 rounded font-bold ${fileType.bg}`}>
                           {fileType.label}
                         </span>
@@ -274,18 +274,18 @@ export const GoogleDriveTab: React.FC<GoogleDriveTabProps> = ({
         </div>
 
         {/* RIGHT DETAIL PANE: File Inspector & Sharing Studio */}
-        <div className="flex-1 flex flex-col min-w-0 bg-white dark:bg-[#141413] overflow-hidden">
+        <div className="flex-1 flex flex-col min-w-0 bg-[var(--bg-surface)] overflow-hidden">
           {activeFile ? (
             <div className="flex-1 flex flex-col h-full overflow-hidden">
               
               {/* Header */}
-              <div className="p-6 border-b border-[#DFDACB]/60 dark:border-[#2C2B27]/60 flex items-start justify-between gap-4 bg-[#FAF9F5]/40 dark:bg-[#1F1E1B]/40">
+              <div className="p-6 border-b border-[var(--border-default)] flex items-start justify-between gap-4 bg-[var(--bg-subtle)]/40">
                 <div className="min-w-0 space-y-1">
-                  <h3 className="text-base font-bold text-[#141413] dark:text-[#FAF9F5] leading-snug">
+                  <h3 className="text-base font-bold text-[var(--text-primary)] leading-snug">
                     {activeFile.name}
                   </h3>
-                  <div className="flex items-center gap-2 text-xs text-[#8C897F] dark:text-[#B5B2A8]">
-                    <span>{t('drive_type')} <strong className="text-[#141413] dark:text-[#FAF9F5]">{getFileTypeDetails(activeFile.mimeType).label}</strong></span>
+                  <div className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
+                    <span>{t('drive_type')} <strong className="text-[var(--text-primary)]">{getFileTypeDetails(activeFile.mimeType).label}</strong></span>
                     {activeFile.modifiedTime && (
                       <>
                         <span>•</span>
@@ -300,7 +300,7 @@ export const GoogleDriveTab: React.FC<GoogleDriveTabProps> = ({
                     href={activeFile.webViewLink}
                     target="_blank"
                     rel="noreferrer"
-                    className="px-3.5 py-1.5 bg-[#D97757] hover:bg-[#C86646] text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 shrink-0"
+                    className="px-3.5 py-1.5 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 shrink-0"
                   >
                     <span>{t('drive_open')}</span>
                     <ExternalLink className="w-3.5 h-3.5" />
@@ -312,12 +312,12 @@ export const GoogleDriveTab: React.FC<GoogleDriveTabProps> = ({
               <div className="flex-1 overflow-y-auto p-6 space-y-6 text-xs">
                 
                 {/* 1-Click Peer Sharing Card */}
-                <div className="p-5 bg-[#FAF9F5] dark:bg-[#1F1E1B] rounded-2xl border border-[#DFDACB] dark:border-[#2C2B27] space-y-3">
-                  <div className="flex items-center gap-2 font-bold text-[#141413] dark:text-[#FAF9F5]">
-                    <Share2 className="w-4 h-4 text-[#D97757] dark:text-[#E59A7C]" />
+                <div className="p-5 bg-[var(--bg-subtle)] rounded-2xl border border-[var(--border-default)] space-y-3">
+                  <div className="flex items-center gap-2 font-bold text-[var(--text-primary)]">
+                    <Share2 className="w-4 h-4 text-[var(--accent-text)]" />
                     <span>{t('drive_share_title')}</span>
                   </div>
-                  <p className="text-[11px] text-[#8C897F] dark:text-[#B5B2A8]">
+                  <p className="text-[11px] text-[var(--text-muted)]">
                     {t('drive_share_desc')}
                   </p>
 
@@ -327,12 +327,12 @@ export const GoogleDriveTab: React.FC<GoogleDriveTabProps> = ({
                       value={shareEmail}
                       onChange={(e) => setShareEmail(e.target.value)}
                       placeholder={t('drive_share_ph')}
-                      className="flex-1 px-3 py-2 bg-white dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-[#D97757]"
+                      className="flex-1 px-3 py-2 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-[var(--accent-fill)]"
                     />
                     <button
                       type="submit"
                       disabled={isSharing || !shareEmail.trim()}
-                      className="px-4 py-2 bg-[#141413] dark:bg-[#FAF9F5] text-white dark:text-[#141413] rounded-xl text-xs font-bold transition-colors cursor-pointer disabled:opacity-50"
+                      className="px-4 py-2 bg-[var(--text-primary)] text-[var(--bg-canvas)] rounded-xl text-xs font-bold transition-colors cursor-pointer disabled:opacity-50"
                     >
                       {isSharing ? t('drive_sharing') : t('drive_share')}
                     </button>
@@ -351,7 +351,7 @@ export const GoogleDriveTab: React.FC<GoogleDriveTabProps> = ({
                         <button
                           type="button"
                           onClick={onConnectGoogle}
-                          className="px-2.5 py-1 bg-[#D97757] text-white rounded-lg font-semibold shrink-0 cursor-pointer"
+                          className="px-2.5 py-1 bg-[var(--accent-fill)] text-white rounded-lg font-semibold shrink-0 cursor-pointer"
                         >
                           {t('drive_connect')}
                         </button>
@@ -361,24 +361,24 @@ export const GoogleDriveTab: React.FC<GoogleDriveTabProps> = ({
                 </div>
 
                 {/* File Summary */}
-                <div className="p-4 bg-white dark:bg-[#1A1917] rounded-2xl border border-[#DFDACB] dark:border-[#2C2B27] space-y-1.5">
-                  <span className="text-[11px] font-bold text-[#141413] dark:text-[#FAF9F5] block">
+                <div className="p-4 bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] space-y-1.5">
+                  <span className="text-[11px] font-bold text-[var(--text-primary)] block">
                     {t('drive_privacy_title')}
                   </span>
-                  <p className="text-[11px] text-[#8C897F] dark:text-[#B5B2A8]">
+                  <p className="text-[11px] text-[var(--text-muted)]">
                     {getFileTypeDetails(activeFile.mimeType).label}
                     {activeFile.modifiedTime ? t('drive_updated_at', { date: formatDate(activeFile.modifiedTime) }) : ''}
                   </p>
-                  <p className="text-[11px] text-[#8C897F] dark:text-[#B5B2A8]">
+                  <p className="text-[11px] text-[var(--text-muted)]">
                     {t('drive_privacy_desc')}
                   </p>
                 </div>
               </div>
             </div>
           ) : (
-            <div className="flex-1 flex flex-col items-center justify-center p-8 text-[#8C897F] dark:text-[#B5B2A8] text-center space-y-2">
+            <div className="flex-1 flex flex-col items-center justify-center p-8 text-[var(--text-muted)] text-center space-y-2">
               <HardDrive className="w-10 h-10 opacity-30" />
-              <p className="text-xs font-bold text-[#141413] dark:text-[#FAF9F5]">{t('drive_select_title')}</p>
+              <p className="text-xs font-bold text-[var(--text-primary)]">{t('drive_select_title')}</p>
               <p className="text-[11px] max-w-xs">{t('drive_select_hint')}</p>
             </div>
           )}

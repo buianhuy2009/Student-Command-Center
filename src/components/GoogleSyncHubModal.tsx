@@ -217,20 +217,20 @@ export const GoogleSyncHubModal: React.FC<GoogleSyncHubModalProps> = ({
       }}
     >
       <div
-        className="relative w-full max-w-2xl bg-[#FAF9F5] dark:bg-[#141413] border border-[#DFDACB] dark:border-[#2C2B27] rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+        className="relative w-full max-w-2xl bg-[var(--bg-raised)] text-[var(--text-primary)] border border-[var(--border-default)] rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="p-6 pb-4 border-b border-[#DFDACB] dark:border-[#2C2B27] flex items-center justify-between bg-white/60 dark:bg-[#1A1917]/60 backdrop-blur-md">
+        <div className="p-6 pb-4 border-b border-[var(--border-default)] flex items-center justify-between bg-[var(--bg-surface)]">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-11 h-11 rounded-2xl bg-white dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] flex items-center justify-center shadow-xs shrink-0">
+            <div className="w-11 h-11 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-default)] flex items-center justify-center shadow-xs shrink-0">
               <AppLogo id="drive" size="sm" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <h2
                   id="google-sync-hub-title"
-                  className="text-lg font-bold text-[#141413] dark:text-[#FAF9F5]"
+                  className="text-lg font-bold text-[var(--text-primary)]"
                 >
                   {t("ghub_title")}
                 </h2>
@@ -240,12 +240,12 @@ export const GoogleSyncHubModal: React.FC<GoogleSyncHubModalProps> = ({
                     {t("ghub_connected_count", { count: connectedCount })}
                   </span>
                 ) : (
-                  <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#EFECE2] text-[#5C5A54] dark:bg-[#252422] dark:text-[#B5B2A8] border border-[#DFDACB] dark:border-[#2C2B27]">
+                  <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-[var(--bg-subtle)] text-[var(--text-secondary)] border border-[var(--border-default)]">
                     {t("ghub_choose_connect")}
                   </span>
                 )}
               </div>
-              <p className="text-xs text-[#6B6860] dark:text-[#B5B2A8] mt-0.5 truncate">
+              <p className="text-xs text-[var(--text-secondary)] mt-0.5 truncate">
                 {user?.email
                   ? t("ghub_signed_in_as", { email: user.email })
                   : t("ghub_subtitle_anon")}
@@ -257,16 +257,16 @@ export const GoogleSyncHubModal: React.FC<GoogleSyncHubModalProps> = ({
             type="button"
             onClick={onClose}
             aria-label={t("common_close")}
-            className="w-9 h-9 rounded-xl flex items-center justify-center text-[#6B6860] hover:text-[#141413] dark:text-[#B5B2A8] dark:hover:text-[#FAF9F5] hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer shrink-0"
+            className="w-9 h-9 rounded-xl flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors cursor-pointer shrink-0"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Info Banner */}
-        <div className="px-6 py-3 bg-[#D97757]/10 dark:bg-[#D97757]/15 border-b border-[#D97757]/20 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2 text-xs font-semibold text-[#141413] dark:text-[#FAF9F5]">
-            <Sparkles className="w-4 h-4 text-[#D97757] shrink-0" />
+        <div className="px-6 py-3 bg-[var(--accent-soft)] border-b border-[var(--accent-border)] flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-xs font-semibold text-[var(--text-primary)]">
+            <Sparkles className="w-4 h-4 text-[var(--accent-text)] shrink-0" />
             <span>
               {t("ghub_banner")}
             </span>
@@ -278,7 +278,7 @@ export const GoogleSyncHubModal: React.FC<GoogleSyncHubModalProps> = ({
                 type="button"
                 onClick={onSyncAll}
                 disabled={isSyncing}
-                className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-[#D97757] hover:bg-[#C86646] text-white transition-all shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white transition-all shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? "animate-spin" : ""}`} />
                 {isSyncing
@@ -306,13 +306,13 @@ export const GoogleSyncHubModal: React.FC<GoogleSyncHubModalProps> = ({
             return (
               <div
                 key={svc.id}
-                className="p-4 rounded-2xl bg-white dark:bg-[#1A1917] border border-[#DFDACB] dark:border-[#2C2B27] flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-all hover:border-[#D97757]/40 hover:shadow-xs"
+                className="p-4 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-default)] flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-all hover:border-[var(--accent-border)]/40 hover:shadow-xs"
               >
                 <div className="flex items-start sm:items-center gap-3 min-w-0">
                   <AppLogo id={svc.appId} size="md" />
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="text-sm font-bold text-[#141413] dark:text-[#FAF9F5]">
+                      <h3 className="text-sm font-bold text-[var(--text-primary)]">
                         {svc.name}
                       </h3>
                       <span
@@ -325,7 +325,7 @@ export const GoogleSyncHubModal: React.FC<GoogleSyncHubModalProps> = ({
                         {svc.stat}
                       </span>
                     </div>
-                    <p className="text-xs text-[#6B6860] dark:text-[#B5B2A8] mt-0.5 leading-relaxed">
+                    <p className="text-xs text-[var(--text-secondary)] mt-0.5 leading-relaxed">
                       {svc.description}
                     </p>
                   </div>
@@ -338,10 +338,10 @@ export const GoogleSyncHubModal: React.FC<GoogleSyncHubModalProps> = ({
                         type="button"
                         onClick={svc.action}
                         disabled={svc.isActionLoading}
-                        className="px-3 py-1.5 rounded-xl text-xs font-bold bg-[#FAF9F5] dark:bg-[#262523] hover:bg-[#DFDACB]/50 dark:hover:bg-[#383632] text-[#141413] dark:text-[#FAF9F5] border border-[#DFDACB] dark:border-[#2C2B27] transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-40 min-h-[36px]"
+                        className="px-3 py-1.5 rounded-xl text-xs font-bold bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] border border-[var(--border-default)] transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-40 min-h-[36px]"
                       >
                         <RefreshCw
-                          className={`w-3 h-3 ${svc.isActionLoading ? "animate-spin text-[#D97757]" : ""}`}
+                          className={`w-3 h-3 ${svc.isActionLoading ? "animate-spin text-[var(--accent-text)]" : ""}`}
                         />
                         {svc.isActionLoading
                           ? t("ghub_updating")
@@ -353,7 +353,7 @@ export const GoogleSyncHubModal: React.FC<GoogleSyncHubModalProps> = ({
                       type="button"
                       onClick={() => handleConnect(svc.id)}
                       disabled={isThisConnecting}
-                      className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-[#D97757] hover:bg-[#C86646] text-white transition-all shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-60 min-h-[36px]"
+                      className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white transition-all shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-60 min-h-[36px]"
                     >
                       {isThisConnecting ? (
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -373,7 +373,7 @@ export const GoogleSyncHubModal: React.FC<GoogleSyncHubModalProps> = ({
                       href={svc.externalUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="px-2.5 py-1.5 rounded-xl text-xs font-semibold text-[#6B6860] hover:text-[#141413] dark:text-[#B5B2A8] dark:hover:text-[#FAF9F5] hover:bg-black/5 dark:hover:bg-white/5 transition-colors flex items-center gap-1 cursor-pointer min-h-[36px]"
+                      className="px-2.5 py-1.5 rounded-xl text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors flex items-center gap-1 cursor-pointer min-h-[36px]"
                       title={svc.externalLabel}
                       aria-label={svc.externalLabel}
                     >
@@ -387,9 +387,9 @@ export const GoogleSyncHubModal: React.FC<GoogleSyncHubModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-[#DFDACB] dark:border-[#2C2B27] bg-[#FAF9F5]/80 dark:bg-[#141413]/80 flex items-center justify-between gap-3 text-xs text-[#6B6860] dark:text-[#B5B2A8]">
+        <div className="p-4 border-t border-[var(--border-default)] bg-[var(--bg-surface)] flex items-center justify-between gap-3 text-xs text-[var(--text-secondary)]">
           <div className="flex items-center gap-2">
-            <Clock className="w-3.5 h-3.5 text-[#D97757] shrink-0" />
+            <Clock className="w-3.5 h-3.5 text-[var(--accent-text)] shrink-0" />
             <span>
               {t("ghub_footer_note")}
             </span>
@@ -397,7 +397,7 @@ export const GoogleSyncHubModal: React.FC<GoogleSyncHubModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-1.5 rounded-xl text-xs font-bold bg-white dark:bg-[#1A1917] border border-[#DFDACB] dark:border-[#2C2B27] hover:border-[#D97757] text-[#141413] dark:text-[#FAF9F5] transition-all cursor-pointer shrink-0"
+            className="px-4 py-1.5 rounded-xl text-xs font-bold bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--accent-border)] text-[var(--text-primary)] transition-all cursor-pointer shrink-0"
           >
             {t("common_close")}
           </button>

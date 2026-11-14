@@ -62,17 +62,17 @@ export const ShortcutsModal: React.FC<ShortcutsModalProps> = ({ isOpen, onClose 
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="bg-white dark:bg-[#1A1917] border border-[#DFDACB] dark:border-[#2C2B27] rounded-2xl max-w-md w-full p-6 shadow-2xl animate-in zoom-in-95">
-        <div className="flex items-center justify-between pb-4 border-b border-[#DFDACB] dark:border-[#2C2B27]">
+      <div className="bg-[var(--bg-raised)] border border-[var(--border-default)] rounded-2xl max-w-md w-full p-6 shadow-2xl animate-in zoom-in-95 text-[var(--text-primary)]">
+        <div className="flex items-center justify-between pb-4 border-b border-[var(--border-default)]">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-[#D97757]/15 text-[#D97757] flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-[var(--accent-soft)] text-[var(--accent-text)] border border-[var(--accent-border)] flex items-center justify-center">
               <Keyboard className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-[#141413] dark:text-[#FAF9F5]">
+              <h3 className="text-base font-bold text-[var(--text-primary)]">
                 {t('keys_title')}
               </h3>
-              <p className="text-xs text-[#6B6860]">
+              <p className="text-xs text-[var(--text-secondary)]">
                 {t('keys_sub')}
               </p>
             </div>
@@ -81,7 +81,7 @@ export const ShortcutsModal: React.FC<ShortcutsModalProps> = ({ isOpen, onClose 
           <button
             onClick={onClose}
             aria-label={t('close')}
-            className="text-[#8C897F] hover:text-[#141413] dark:hover:text-[#FAF9F5] p-1.5 rounded-lg hover:bg-[#FAF9F5] dark:hover:bg-[#252422] transition-colors"
+            className="text-[var(--text-muted)] hover:text-[var(--text-primary)] p-1.5 rounded-lg hover:bg-[var(--bg-hover)] transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -106,23 +106,23 @@ export const ShortcutsModal: React.FC<ShortcutsModalProps> = ({ isOpen, onClose 
               }
             }}
             placeholder={t('keys_filter_ph')}
-            className="w-full mb-3 px-3 py-2 text-xs rounded-lg bg-[#FAF9F5] dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] text-[#141413] dark:text-[#FAF9F5] placeholder:text-[#8C897F] outline-hidden focus:border-[#D97757]"
+            className="w-full mb-3 px-3 py-2 text-xs rounded-lg bg-[var(--bg-surface)] border border-[var(--border-default)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] outline-hidden focus:border-[var(--accent-fill)]"
           />
           <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
           {filteredShortcuts.length === 0 ? (
-            <div className="p-2 rounded-lg text-xs text-center text-[#8C897F]">
+            <div className="p-2 rounded-lg text-xs text-center text-[var(--text-muted)]">
               {t('keys_no_matches')}
             </div>
           ) : (
             filteredShortcuts.map((sc, idx) => (
             <div
               key={idx}
-              className="flex items-center justify-between p-2 rounded-lg bg-[#FAF9F5] dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] text-xs"
+              className="flex items-center justify-between p-2 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-default)] text-xs"
             >
-              <span className="text-[#5C5A54] dark:text-[#B5B2A8] font-medium">
+              <span className="text-[var(--text-secondary)] font-medium">
                 {sc.description}
               </span>
-              <kbd className="px-2 py-1 font-mono text-[11px] font-semibold bg-white dark:bg-[#1A1917] border border-[#DFDACB] dark:border-[#2C2B27] rounded-md text-[#141413] dark:text-[#FAF9F5] shadow-2xs">
+              <kbd className="px-2 py-1 font-mono text-[11px] font-semibold bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-md text-[var(--text-primary)] shadow-2xs">
                 {sc.key}
               </kbd>
             </div>
@@ -131,10 +131,10 @@ export const ShortcutsModal: React.FC<ShortcutsModalProps> = ({ isOpen, onClose 
           </div>
         </div>
 
-        <div className="mt-6 pt-3 border-t border-[#DFDACB] dark:border-[#2C2B27] text-center">
+        <div className="mt-6 pt-3 border-t border-[var(--border-default)] text-center">
           <button
             onClick={onClose}
-            className="px-4 py-1.5 text-xs font-semibold bg-[#D97757] hover:bg-[#C86646] text-white rounded-lg cursor-pointer"
+            className="px-4 py-1.5 text-xs font-semibold bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-lg cursor-pointer"
           >
             {t('got_it')}
           </button>

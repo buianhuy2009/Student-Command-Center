@@ -111,69 +111,67 @@ export const Omnibox: React.FC<{
   const selected = results.find((r) => r.id === selectedId) ?? results[0] ?? null;
 
   return (
-    <div className="flex flex-col md:flex-row min-h-[320px] max-h-[60vh]">
+    <div className="flex flex-col md:flex-row min-h-[320px] max-h-[60vh] bg-[var(--bg-raised)] text-[var(--text-primary)]">
       <div className="flex-1 flex flex-col min-w-0">
-        <div className="flex items-center gap-2 p-3 border-b" style={{ borderColor: 'var(--line)' }}>
-          <Search className="w-4 h-4 opacity-60" />
+        <div className="flex items-center gap-2 p-3 border-b border-[var(--border-default)]">
+          <Search className="w-4 h-4 text-[var(--text-muted)]" />
           <input
             autoFocus value={query} onChange={(e) => onQuery(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') recordRecent(query); }}
             placeholder={t('omni_search_ph')}
-            className="flex-1 bg-transparent text-sm outline-none"
+            className="flex-1 bg-transparent text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none"
             aria-label={t('omni_search_aria')}
           />
-          {onClose && <button onClick={onClose} className="p-2 min-w-[44px] min-h-[44px]" aria-label={t('omni_close_aria')}><X className="w-4 h-4" /></button>}
+          {onClose && <button onClick={onClose} className="p-2 min-w-[44px] min-h-[44px] text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded-lg hover:bg-[var(--bg-hover)]" aria-label={t('omni_close_aria')}><X className="w-4 h-4" /></button>}
         </div>
         <div className="flex-1 overflow-y-auto" role="listbox" aria-label={t('omni_results_aria')}>
           {!query.trim() && recents.length > 0 && (
             <div className="p-4 flex flex-wrap gap-2" aria-label={t('omni_recents_aria')}>
               {recents.map((r) => (
                 <button key={r} onClick={() => onQuery(r)}
-                  className="px-3 py-2 text-xs font-semibold rounded-xl border hover:bg-black/5 dark:hover:bg-white/5 min-h-[44px]"
-                  style={{ borderColor: 'var(--line)' }}>
+                  className="px-3 py-2 text-xs font-semibold rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] min-h-[44px]">
                   {r}
                 </button>
               ))}
             </div>
           )}
           {results.length === 0 && (!!query.trim() || recents.length === 0) && (
-            <p className="p-6 text-xs opacity-60 text-center">{t('omni_empty_pre')} <kbd className="px-1 border rounded">C</kbd> {t('omni_empty_post')}</p>
+            <p className="p-6 text-xs text-[var(--text-muted)] text-center">{t('omni_empty_pre')} <kbd className="px-1 border border-[var(--border-default)] rounded bg-[var(--bg-subtle)]">C</kbd> {t('omni_empty_post')}</p>
           )}
           {results.map((r) => (
             <button key={r.id} role="option" aria-selected={selected?.id === r.id}
               onClick={() => setSelectedId(r.id)} onDoubleClick={() => handleOpen(r)}
-              className="w-full text-left px-4 py-2.5 flex items-center gap-2 hover:bg-black/5 dark:hover:bg-white/5 min-h-[44px]"
-              style={selected?.id === r.id ? { backgroundColor: 'var(--accent-soft)' } : undefined}>
-              <span className="text-[10px] font-bold uppercase opacity-50 w-20 shrink-0">{kindLabel(r.kind)}</span>
+              className={`w-full text-left px-4 py-2.5 flex items-center gap-2 hover:bg-[var(--bg-hover)] min-h-[44px] ${selected?.id === r.id ? 'bg-[var(--accent-soft)] text-[var(--accent-text)]' : 'text-[var(--text-primary)]'}`}>
+              <span className="text-[10px] font-bold uppercase text-[var(--text-muted)] w-20 shrink-0">{kindLabel(r.kind)}</span>
               <span className="flex-1 min-w-0"><span className="block text-xs font-semibold truncate">{r.title}</span>
-              <span className="block text-[11px] opacity-60 truncate">{r.subtitle}</span></span>
+              <span className="block text-[11px] text-[var(--text-muted)] truncate">{r.subtitle}</span></span>
             </button>
           ))}
         </div>
       </div>
       {/* Preview pane */}
-      <div className="w-full md:w-72 border-t md:border-t-0 md:border-l p-4 overflow-y-auto" style={{ borderColor: 'var(--line)' }}>
-        {!selected ? <p className="text-xs opacity-60">{t('omni_select_preview')}</p> : (
+      <div className="w-full md:w-72 border-t md:border-t-0 md:border-l border-[var(--border-default)] p-4 overflow-y-auto bg-[var(--bg-surface)]">
+        {!selected ? <p className="text-xs text-[var(--text-muted)]">{t('omni_select_preview')}</p> : (
           <div className="space-y-2">
-            <p className="text-[10px] font-bold uppercase opacity-50">{t('omni_preview_badge', { kind: kindLabel(selected.kind) })}</p>
-            <h4 className="text-sm font-bold leading-snug">{selected.title}</h4>
-            <p className="text-xs opacity-70">{selected.subtitle}</p>
-            {selected.kind === 'email' && <p className="text-xs leading-relaxed opacity-80 line-clamp-6">{(selected.raw as EmailMessage)?.snippet}</p>}
-            {selected.kind === 'note' && <p className="text-xs leading-relaxed opacity-80 line-clamp-6">{(selected.raw as MarkdownNote)?.content?.slice(0, 400)}</p>}
+            <p className="text-[10px] font-bold uppercase text-[var(--text-muted)]">{t('omni_preview_badge', { kind: kindLabel(selected.kind) })}</p>
+            <h4 className="text-sm font-bold text-[var(--text-primary)] leading-snug">{selected.title}</h4>
+            <p className="text-xs text-[var(--text-secondary)]">{selected.subtitle}</p>
+            {selected.kind === 'email' && <p className="text-xs leading-relaxed text-[var(--text-secondary)] line-clamp-6">{(selected.raw as EmailMessage)?.snippet}</p>}
+            {selected.kind === 'note' && <p className="text-xs leading-relaxed text-[var(--text-secondary)] line-clamp-6">{(selected.raw as MarkdownNote)?.content?.slice(0, 400)}</p>}
             <div className="flex flex-wrap gap-2 pt-2">
-              <button onClick={() => handleOpen(selected)} className="px-3 py-2 text-xs font-bold text-white rounded-xl min-h-[44px] inline-flex items-center gap-1" style={{ backgroundColor: 'var(--terracotta)' }}>
+              <button onClick={() => handleOpen(selected)} className="px-3 py-2 text-xs font-bold text-white rounded-xl min-h-[44px] inline-flex items-center gap-1 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] cursor-pointer">
                 <ArrowRight className="w-3.5 h-3.5" /> {t('common_open')}
               </button>
-              <button onClick={() => onPin(selected)} className="px-3 py-2 text-xs font-bold rounded-xl border min-h-[44px] inline-flex items-center gap-1" style={{ borderColor: 'var(--line)' }}>
+              <button onClick={() => onPin(selected)} className="px-3 py-2 text-xs font-bold rounded-xl border border-[var(--border-default)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] min-h-[44px] inline-flex items-center gap-1 cursor-pointer">
                 <Pin className="w-3.5 h-3.5" /> {t('omni_pin')}
               </button>
               {(selected.kind === 'email' || selected.kind === 'assignment') && (
-                <button onClick={() => onCreateTask(selected)} className="px-3 py-2 text-xs font-bold rounded-xl border min-h-[44px] inline-flex items-center gap-1" style={{ borderColor: 'var(--line)' }}>
+                <button onClick={() => onCreateTask(selected)} className="px-3 py-2 text-xs font-bold rounded-xl border border-[var(--border-default)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] min-h-[44px] inline-flex items-center gap-1 cursor-pointer">
                   <Plus className="w-3.5 h-3.5" /> {t('omni_task_from_this')}
                 </button>
               )}
               {selected.url && (
-                <a href={selected.url} target="_blank" rel="noreferrer" className="px-3 py-2 text-xs font-bold rounded-xl border min-h-[44px] inline-flex items-center gap-1" style={{ borderColor: 'var(--line)' }}>
+                <a href={selected.url} target="_blank" rel="noreferrer" className="px-3 py-2 text-xs font-bold rounded-xl border border-[var(--border-default)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] min-h-[44px] inline-flex items-center gap-1">
                   <ExternalLink className="w-3.5 h-3.5" /> {t('trust_source')}
                 </a>
               )}

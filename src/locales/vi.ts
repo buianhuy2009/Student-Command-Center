@@ -2088,6 +2088,17 @@ export const vi = {
   changelog_sidebar_title: "Lịch sử phiên bản",
   changelog_whats_new: "Có gì mới",
 
+  changelog_r_2_19_0_t: "Giao diện Paper & Slate dịu mắt, cấp quyền Google linh hoạt và bộ 15 ứng dụng học tập",
+  changelog_r_2_19_0_h1: "Tông màu giấy tự nhiên và đá phiến êm dịu, bảo vệ mắt khi ôn bài khuya",
+  changelog_r_2_19_0_h2: "Bộ 15 ứng dụng học tập thiết yếu được chọn lọc kỹ, gọn gàng và không rối mắt",
+  changelog_r_2_19_0_h3: "Chỉ hỏi kết nối Google khi bạn dùng tính năng đó, hoàn toàn yên tâm bảo mật",
+  changelog_r_2_19_0_h4: "Chuyển đổi mượt mà giữa tiếng Anh và tiếng Việt trên toàn bộ ứng dụng",
+  changelog_r_2_19_0_d1: "Giao diện Paper & Slate: nền giấy ấm áp và chữ sắc nét nhưng không chói mắt, giúp bạn tập trung đọc tài liệu và ghi chú suốt nhiều giờ.",
+  changelog_r_2_19_0_d2: "Bộ 15 công cụ học tập tinh gọn: kho ứng dụng tập trung vào 15 tiện ích học tập thực tế như đồng bộ Canvas, thẻ ghi nhớ, máy tính đồ thị và bảng công thức.",
+  changelog_r_2_19_0_d3: "Cấp quyền Google theo nhu cầu: chỉ yêu cầu kết nối Google Drive, Classroom hoặc Gmail khi bạn thực sự mở tính năng đó.",
+  changelog_r_2_19_0_d4: "Trải nghiệm song ngữ trọn vẹn: toàn bộ nút bấm, hướng dẫn và thẻ học tập giờ hiển thị chuẩn xác cả tiếng Anh lẫn tiếng Việt tức thì.",
+  changelog_r_2_19_0_d5: "Học tập liền mạch: tạo nhanh bài tập bằng phím tắt và bộ đếm giờ Pomodoro cập nhật ngay lập tức mà không cần tải lại trang.",
+
   changelog_r_2_18_5_t: "Liên kết Chính sách quyền riêng tư trên trang chủ để xác minh Google",
   changelog_r_2_18_5_h1: "Liên kết Chính sách quyền riêng tư ở cuối trang chủ giờ mở trang chính sách đầy đủ",
   changelog_r_2_18_5_h2: "Google có thể xác nhận trang web thuộc về ứng dụng để duyệt đăng nhập Google",

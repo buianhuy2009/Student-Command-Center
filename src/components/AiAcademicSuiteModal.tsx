@@ -211,20 +211,20 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#141413]/70 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6 select-none animate-in fade-in duration-150">
-      <div className="bg-[#FAF9F5] dark:bg-[#141413] w-full max-w-4xl max-h-[90vh] rounded-3xl border border-[#DFDACB] dark:border-[#2C2B27] shadow-2xl flex flex-col overflow-hidden">
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6 select-none animate-in fade-in duration-150">
+      <div className="bg-[var(--bg-raised)] text-[var(--text-primary)] w-full max-w-4xl max-h-[90vh] rounded-3xl border border-[var(--border-default)] shadow-2xl flex flex-col overflow-hidden">
         
         {/* Modal Header */}
-        <header className="p-6 border-b border-[#DFDACB] dark:border-[#2C2B27] flex items-center justify-between bg-white dark:bg-[#1A1917] shrink-0">
+        <header className="p-6 border-b border-[var(--border-default)] flex items-center justify-between bg-[var(--bg-surface)] shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-[#D97757] text-white flex items-center justify-center shadow-md shadow-[#D97757]/20">
+            <div className="w-10 h-10 rounded-2xl bg-[var(--accent-fill)] text-white flex items-center justify-center shadow-md">
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-[#141413] dark:text-[#FAF9F5]">
+              <h2 className="text-base font-bold text-[var(--text-primary)]">
                 {t('suite_title')}
               </h2>
-              <p className="text-xs text-[#8C897F]">
+              <p className="text-xs text-[var(--text-muted)]">
                 {t('suite_sub')}
               </p>
             </div>
@@ -233,14 +233,14 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
           <button
             onClick={onClose}
             aria-label={t('close')}
-            className="p-2 rounded-2xl bg-[#FAF9F5] dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] hover:border-[#D97757] text-[#5C5A54] dark:text-[#B5B2A8] transition-colors cursor-pointer"
+            className="p-2 rounded-2xl bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] border border-[var(--border-default)] hover:border-[var(--accent-border)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
         </header>
 
         {/* Tab Switcher */}
-        <div className="px-6 pt-4 border-b border-[#DFDACB] dark:border-[#2C2B27] bg-white dark:bg-[#1A1917] flex items-center gap-2 overflow-x-auto scrollbar-none shrink-0">
+        <div className="px-6 pt-4 border-b border-[var(--border-default)] bg-[var(--bg-surface)] flex items-center gap-2 overflow-x-auto scrollbar-none shrink-0">
           {SUITE_TABS.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -250,8 +250,8 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
                 onClick={() => { setActiveTab(tab.id); setSuiteError(null); }}
                 className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 border-b-2 ${
                   isActive
-                    ? 'bg-[#FAF9F5] dark:bg-[#252422] text-[#D97757] border-[#D97757]'
-                    : 'text-[#8C897F] hover:text-[#141413] dark:hover:text-[#FAF9F5] border-transparent'
+                    ? 'bg-[var(--accent-soft)] text-[var(--accent-text)] border-[var(--accent-border)]'
+                    : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] border-transparent'
                 }`}
               >
                 <Icon className="w-4 h-4" />
@@ -264,7 +264,7 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
         {/* Tab Body */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
           {suiteError && (
-            <div role="alert" className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/60 text-xs text-rose-700 dark:text-rose-300 flex items-center justify-between gap-3">
+            <div role="alert" className="p-3.5 rounded-2xl bg-[var(--status-err-bg)] border border-[var(--status-err-border)] text-xs text-[var(--status-err-text)] flex items-center justify-between gap-3">
               <span>{suiteError}</span>
               <button
                 type="button"
@@ -279,13 +279,13 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
           {/* TAB 1: AI DAILY STUDY PLANNER */}
           {activeTab === 'planner' && (
             <div className="space-y-6">
-              <div className="bg-white dark:bg-[#1A1917] rounded-2xl border border-[#DFDACB] dark:border-[#2C2B27] p-5 shadow-xs space-y-4">
+              <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-5 shadow-xs space-y-4">
                 <div className="flex items-center justify-between flex-wrap gap-3">
                   <div>
-                    <h3 className="text-sm font-bold text-[#141413] dark:text-[#FAF9F5]">
+                    <h3 className="text-sm font-bold text-[var(--text-primary)]">
                       {t('suite_planner_title')}
                     </h3>
-                    <p className="text-xs text-[#8C897F]">
+                    <p className="text-xs text-[var(--text-muted)]">
                       {t('suite_planner_sub')}
                     </p>
                   </div>
@@ -293,7 +293,7 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
                   <button
                     onClick={handleGeneratePlan}
                     disabled={isPlanning}
-                    className="px-5 py-2 bg-[#D97757] hover:bg-[#C86646] disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-2"
+                    className="px-5 py-2 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-2"
                   >
                     <Zap className="w-3.5 h-3.5" />
                     <span>{isPlanning ? t('suite_planner_btn_loading') : t('suite_planner_btn')}</span>
@@ -301,9 +301,9 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
                 </div>
 
                 {/* Energy & Hours Controls */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-[#DFDACB]/60 dark:border-[#2C2B27]/60">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-[var(--border-default)]">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-[#141413] dark:text-[#FAF9F5]">
+                    <label className="text-xs font-bold text-[var(--text-primary)]">
                       {t('suite_planner_energy_label')}
                     </label>
                     <div className="grid grid-cols-3 gap-2">
@@ -313,8 +313,8 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
                           onClick={() => setEnergyLevel(lvl)}
                           className={`py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer border ${
                             energyLevel === lvl
-                              ? 'bg-[#D97757] text-white border-[#D97757]'
-                              : 'bg-[#FAF9F5] dark:bg-[#252422] text-[#5C5A54] dark:text-[#B5B2A8] border-[#DFDACB] dark:border-[#2C2B27]'
+                              ? 'bg-[var(--accent-fill)] text-white border-[var(--accent-fill)] shadow-xs'
+                              : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-default)] hover:bg-[var(--bg-hover)]'
                           }`}
                         >
                           {t(ENERGY_LEVEL_KEYS[lvl])}
@@ -326,7 +326,7 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between text-xs font-bold">
                       <span>{t('suite_planner_hours_label')}</span>
-                      <span className="text-[#D97757]">{t('suite_planner_hours_val', { hours: availableHours })}</span>
+                      <span className="text-[var(--accent-text)]">{t('suite_planner_hours_val', { hours: availableHours })}</span>
                     </div>
                     <input
                       type="range"
@@ -336,7 +336,7 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
                       value={availableHours}
                       aria-label={t('suite_planner_hours_label')}
                       onChange={(e) => setAvailableHours(parseFloat(e.target.value))}
-                      className="w-full accent-[#D97757] cursor-pointer"
+                      className="w-full accent-[var(--accent-fill)] cursor-pointer"
                     />
                   </div>
                 </div>
@@ -344,40 +344,40 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
 
               {/* Study Plan Output */}
               {studyPlan && (
-                <div className="bg-white dark:bg-[#1A1917] rounded-2xl border border-[#DFDACB] dark:border-[#2C2B27] p-6 shadow-xs space-y-4 animate-in fade-in">
-                  <div className="p-3.5 bg-[#FAF9F5] dark:bg-[#1F1E1B] rounded-xl border border-[#DFDACB] dark:border-[#2C2B27] flex items-start gap-2.5">
-                    <Sparkles className="w-4 h-4 text-[#D97757] shrink-0 mt-0.5" />
-                    <div className="text-xs text-[#141413] dark:text-[#FAF9F5] leading-relaxed">
+                <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-6 shadow-xs space-y-4 animate-in fade-in">
+                  <div className="p-3.5 bg-[var(--bg-subtle)] rounded-xl border border-[var(--border-default)] flex items-start gap-2.5">
+                    <Sparkles className="w-4 h-4 text-[var(--accent-text)] shrink-0 mt-0.5" />
+                    <div className="text-xs text-[var(--text-primary)] leading-relaxed">
                       <strong>{t('suite_planner_strategy')}</strong> {studyPlan.summary}
-                      <p className="text-[11px] text-[#8C897F] mt-1 font-semibold italic">
+                      <p className="text-[11px] text-[var(--text-muted)] mt-1 font-semibold italic">
                         {t('suite_planner_tip')} {studyPlan.motivationTip}
                       </p>
                     </div>
                   </div>
 
                   <div className="space-y-2.5">
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-[#8C897F]">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">
                       {t('suite_planner_schedule')}
                     </h4>
                     {studyPlan.blocks.map((block, idx) => (
                       <div
                         key={idx}
-                        className="p-3 bg-[#FAF9F5] dark:bg-[#1F1E1B] rounded-xl border border-[#DFDACB] dark:border-[#2C2B27] flex items-center justify-between gap-3 text-xs"
+                        className="p-3 bg-[var(--bg-subtle)] rounded-xl border border-[var(--border-default)] flex items-center justify-between gap-3 text-xs"
                       >
                         <div className="flex items-center gap-3">
-                          <span className="px-2.5 py-1 rounded-lg bg-black/5 dark:bg-white/5 font-mono font-bold text-[11px] text-[#D97757]">
+                          <span className="px-2.5 py-1 rounded-lg bg-black/5 dark:bg-white/5 font-mono font-bold text-[11px] text-[var(--accent-text)]">
                             {block.time}
                           </span>
                           <div>
-                            <div className="font-bold text-[#141413] dark:text-[#FAF9F5]">
+                            <div className="font-bold text-[var(--text-primary)]">
                               {block.task}
                             </div>
-                            <div className="text-[10px] text-[#8C897F]">
+                            <div className="text-[10px] text-[var(--text-muted)]">
                               {t('suite_planner_strategy')} {block.strategy}
                             </div>
                           </div>
                         </div>
-                        <span className="text-[11px] text-[#8C897F] shrink-0">
+                        <span className="text-[11px] text-[var(--text-muted)] shrink-0">
                           {t('suite_planner_mins', { mins: block.durationMinutes })}
                         </span>
                       </div>
@@ -391,12 +391,12 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
           {/* TAB 2: SYLLABUS DEADLINE PARSER */}
           {activeTab === 'syllabus' && (
             <div className="space-y-6">
-              <div className="bg-white dark:bg-[#1A1917] rounded-2xl border border-[#DFDACB] dark:border-[#2C2B27] p-5 shadow-xs space-y-4">
+              <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-5 shadow-xs space-y-4">
                 <div>
-                  <h3 className="text-sm font-bold text-[#141413] dark:text-[#FAF9F5]">
+                  <h3 className="text-sm font-bold text-[var(--text-primary)]">
                     {t('suite_syllabus_title')}
                   </h3>
-                  <p className="text-xs text-[#8C897F]">
+                  <p className="text-xs text-[var(--text-muted)]">
                     {t('suite_syllabus_sub')}
                   </p>
                 </div>
@@ -406,14 +406,14 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
                   value={syllabusText}
                   onChange={(e) => setSyllabusText(e.target.value)}
                   placeholder={t('suite_syllabus_ph')}
-                  className="w-full p-4 text-xs font-mono bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#D97757] text-[#141413] dark:text-[#FAF9F5] leading-relaxed resize-none"
+                  className="w-full p-4 text-xs font-mono bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-2xl focus:outline-none focus:ring-2 focus:ring-[var(--accent-fill)]/20 focus:border-[var(--accent-fill)] text-[var(--text-primary)] leading-relaxed resize-none"
                 />
 
                 <div className="flex justify-end">
                   <button
                     onClick={handleParseSyllabus}
                     disabled={isParsingSyllabus || !syllabusText.trim()}
-                    className="px-5 py-2.5 bg-[#D97757] hover:bg-[#C86646] disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-2"
+                    className="px-5 py-2.5 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-2"
                   >
                     <Sparkles className="w-4 h-4" />
                     <span>{isParsingSyllabus ? t('suite_syllabus_btn_loading') : t('suite_syllabus_btn')}</span>
@@ -423,13 +423,13 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
 
               {/* Parsed Output */}
               {parsedSyllabus && (
-                <div className="bg-white dark:bg-[#1A1917] rounded-2xl border border-[#DFDACB] dark:border-[#2C2B27] p-6 shadow-xs space-y-6 animate-in fade-in">
-                  <div className="flex items-center justify-between pb-3 border-b border-[#DFDACB] dark:border-[#2C2B27]">
+                <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-6 shadow-xs space-y-6 animate-in fade-in">
+                  <div className="flex items-center justify-between pb-3 border-b border-[var(--border-default)]">
                     <div>
-                      <h4 className="text-base font-bold text-[#141413] dark:text-[#FAF9F5]">
+                      <h4 className="text-base font-bold text-[var(--text-primary)]">
                         {parsedSyllabus.courseTitle}
                       </h4>
-                      <p className="text-xs text-[#8C897F]">
+                      <p className="text-xs text-[var(--text-muted)]">
                         {t('suite_syllabus_instructor', {
                           name: parsedSyllabus.instructor,
                           email: parsedSyllabus.email,
@@ -451,19 +451,19 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
                   {/* Grading Breakdown */}
                   {parsedSyllabus.gradingBreakdown.length > 0 && (
                     <div className="space-y-2">
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-[#8C897F]">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
                         {t('suite_syllabus_weights')}
                       </span>
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                         {parsedSyllabus.gradingBreakdown.map((gb, i) => (
                           <div
                             key={i}
-                            className="p-3 bg-[#FAF9F5] dark:bg-[#1F1E1B] rounded-xl border border-[#DFDACB] dark:border-[#2C2B27] text-center"
+                            className="p-3 bg-[var(--bg-subtle)] rounded-xl border border-[var(--border-default)] text-center"
                           >
-                            <div className="text-xs font-bold text-[#141413] dark:text-[#FAF9F5] truncate">
+                            <div className="text-xs font-bold text-[var(--text-primary)] truncate">
                               {gb.item}
                             </div>
-                            <div className="text-sm font-bold text-[#D97757]">
+                            <div className="text-sm font-bold text-[var(--accent-text)]">
                               {gb.weightPercent}%
                             </div>
                           </div>
@@ -474,24 +474,24 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
 
                   {/* Extracted Deadlines */}
                   <div className="space-y-2">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-[#8C897F]">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
                       {t('suite_syllabus_deadlines', { count: parsedSyllabus.deadlines.length })}
                     </span>
                     <div className="space-y-1.5">
                       {parsedSyllabus.deadlines.map((dl, i) => (
                         <div
                           key={i}
-                          className="p-3 bg-[#FAF9F5] dark:bg-[#1F1E1B] rounded-xl border border-[#DFDACB] dark:border-[#2C2B27] flex items-center justify-between text-xs"
+                          className="p-3 bg-[var(--bg-subtle)] rounded-xl border border-[var(--border-default)] flex items-center justify-between text-xs"
                         >
                           <div className="flex items-center gap-2">
-                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#D97757]/15 text-[#D97757]">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[var(--accent-soft)] text-[var(--accent-text)] border border-[var(--accent-border)]">
                               {dl.type}
                             </span>
-                            <span className="font-bold text-[#141413] dark:text-[#FAF9F5]">
+                            <span className="font-bold text-[var(--text-primary)]">
                               {dl.title}
                             </span>
                           </div>
-                          <span className="text-[11px] font-mono text-[#8C897F]">
+                          <span className="text-[11px] font-mono text-[var(--text-muted)]">
                             {dl.dueDate}
                           </span>
                         </div>
@@ -506,12 +506,12 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
           {/* TAB 3: INTERACTIVE AI QUIZ */}
           {activeTab === 'quiz' && (
             <div className="space-y-6">
-              <div className="bg-white dark:bg-[#1A1917] rounded-2xl border border-[#DFDACB] dark:border-[#2C2B27] p-5 shadow-xs space-y-4">
+              <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-5 shadow-xs space-y-4">
                 <div>
-                  <h3 className="text-sm font-bold text-[#141413] dark:text-[#FAF9F5]">
+                  <h3 className="text-sm font-bold text-[var(--text-primary)]">
                     {t('suite_quiz_title')}
                   </h3>
-                  <p className="text-xs text-[#8C897F]">
+                  <p className="text-xs text-[var(--text-muted)]">
                     {t('suite_quiz_sub')}
                   </p>
                 </div>
@@ -521,14 +521,14 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
                   value={quizNotes}
                   onChange={(e) => setQuizNotes(e.target.value)}
                   placeholder={t('suite_quiz_ph')}
-                  className="w-full p-4 text-xs font-sans bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#D97757] text-[#141413] dark:text-[#FAF9F5] leading-relaxed resize-none"
+                  className="w-full p-4 text-xs font-sans bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-2xl focus:outline-none focus:ring-2 focus:ring-[var(--accent-fill)]/20 focus:border-[var(--accent-fill)] text-[var(--text-primary)] leading-relaxed resize-none"
                 />
 
                 <div className="flex justify-end">
                   <button
                     onClick={handleGenerateQuiz}
                     disabled={isGeneratingQuiz || !quizNotes.trim()}
-                    className="px-5 py-2.5 bg-[#D97757] hover:bg-[#C86646] disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-2"
+                    className="px-5 py-2.5 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-2"
                   >
                     <HelpCircle className="w-4 h-4" />
                     <span>{isGeneratingQuiz ? t('suite_quiz_btn_loading') : t('suite_quiz_btn')}</span>
@@ -540,7 +540,7 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
               {quizQuestions && quizQuestions.length > 0 && (
                 <div className="space-y-4 animate-in fade-in">
                   <div className="flex items-center justify-between px-2">
-                    <span className="text-xs font-bold uppercase tracking-wider text-[#8C897F]">
+                    <span className="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">
                       {t('suite_quiz_questions_count', { count: quizQuestions.length })}
                     </span>
                     {quizSubmitted && (
@@ -557,13 +557,13 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
                   {quizQuestions.map((q, qIndex) => (
                     <div
                       key={q.id}
-                      className="bg-white dark:bg-[#1A1917] rounded-2xl border border-[#DFDACB] dark:border-[#2C2B27] p-5 shadow-xs space-y-3"
+                      className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-5 shadow-xs space-y-3"
                     >
                       <div className="flex items-start justify-between gap-3">
-                        <div className="text-xs font-bold text-[#141413] dark:text-[#FAF9F5] leading-snug">
+                        <div className="text-xs font-bold text-[var(--text-primary)] leading-snug">
                           <MathMarkdown>{`${qIndex + 1}. ${q.question}`}</MathMarkdown>
                         </div>
-                        <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-[#FAF9F5] dark:bg-[#252422] text-[#8C897F] border border-[#DFDACB] dark:border-[#2C2B27]">
+                        <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-[var(--bg-subtle)] text-[var(--text-muted)] border border-[var(--border-default)]">
                           {q.topic}
                         </span>
                       </div>
@@ -573,9 +573,9 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
                           const isSelected = selectedAnswers[q.id] === optIndex;
                           const isCorrect = q.correctIndex === optIndex;
 
-                          let btnStyle = 'bg-[#FAF9F5] dark:bg-[#1F1E1B] border-[#DFDACB] dark:border-[#2C2B27] text-[#5C5A54] dark:text-[#B5B2A8]';
+                          let btnStyle = 'bg-[var(--bg-surface)] border-[var(--border-default)] text-[var(--text-secondary)] hover:border-[var(--accent-border)] hover:bg-[var(--bg-hover)]';
                           if (isSelected) {
-                            btnStyle = 'bg-[#D97757]/15 border-[#D97757] text-[#D97757] font-bold';
+                            btnStyle = 'bg-[var(--accent-soft)] border-[var(--accent-border)] text-[var(--accent-text)] font-bold';
                           }
                           if (quizSubmitted) {
                             if (isCorrect) {
@@ -605,7 +605,7 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
                       </div>
 
                       {quizSubmitted && (
-                        <div className="p-3 bg-amber-50/70 dark:bg-amber-950/30 rounded-xl border border-amber-200 dark:border-amber-900/60 text-[11px] text-[#5C5A54] dark:text-[#B5B2A8] leading-relaxed">
+                        <div className="p-3 bg-[var(--status-warn-bg)] rounded-xl border border-[var(--status-warn-border)] text-[11px] text-[var(--text-secondary)] leading-relaxed">
                           <strong>{t('suite_quiz_explanation')}</strong>{' '}
                           <MathMarkdown>{q.explanation}</MathMarkdown>
                         </div>
@@ -617,14 +617,14 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
                     {!quizSubmitted ? (
                       <button
                         onClick={() => setQuizSubmitted(true)}
-                        className="px-6 py-2.5 bg-[#D97757] hover:bg-[#C86646] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer"
+                        className="px-6 py-2.5 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer"
                       >
                         {t('suite_quiz_submit')}
                       </button>
                     ) : (
                       <button
                         onClick={handleGenerateQuiz}
-                        className="px-6 py-2.5 bg-[#FAF9F5] dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] hover:border-[#D97757] text-[#141413] dark:text-[#FAF9F5] rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+                        className="px-6 py-2.5 bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] border border-[var(--border-default)] hover:border-[var(--accent-border)] text-[var(--text-primary)] rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
                       >
                         <RotateCcw className="w-3.5 h-3.5" />
                         <span>{t('suite_quiz_new')}</span>
@@ -640,8 +640,8 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
           {activeTab === 'grades' && (
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-white dark:bg-[#1A1917] rounded-2xl border border-[#DFDACB] dark:border-[#2C2B27] p-5 space-y-2">
-                  <span className="text-xs font-bold text-[#8C897F]">{t('suite_grades_current')}</span>
+                <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-5 space-y-2">
+                  <span className="text-xs font-bold text-[var(--text-muted)]">{t('suite_grades_current')}</span>
                   <div className="flex items-center gap-2">
                     <input
                       type="number"
@@ -656,14 +656,14 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
                           finalExamWeight
                         )
                       }
-                      className="w-full text-2xl font-bold font-mono px-3 py-1.5 bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] rounded-xl text-[#141413] dark:text-[#FAF9F5]"
+                      className="w-full text-2xl font-bold font-mono px-3 py-1.5 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl text-[var(--text-primary)]"
                     />
-                    <span className="text-sm font-bold text-[#8C897F]">%</span>
+                    <span className="text-sm font-bold text-[var(--text-muted)]">%</span>
                   </div>
                 </div>
 
-                <div className="bg-white dark:bg-[#1A1917] rounded-2xl border border-[#DFDACB] dark:border-[#2C2B27] p-5 space-y-2">
-                  <span className="text-xs font-bold text-[#8C897F]">{t('suite_grades_target')}</span>
+                <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-5 space-y-2">
+                  <span className="text-xs font-bold text-[var(--text-muted)]">{t('suite_grades_target')}</span>
                   <div className="flex items-center gap-2">
                     <input
                       type="number"
@@ -678,14 +678,14 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
                           finalExamWeight
                         )
                       }
-                      className="w-full text-2xl font-bold font-mono px-3 py-1.5 bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] rounded-xl text-[#D97757]"
+                      className="w-full text-2xl font-bold font-mono px-3 py-1.5 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl text-[var(--accent-text)]"
                     />
-                    <span className="text-sm font-bold text-[#8C897F]">%</span>
+                    <span className="text-sm font-bold text-[var(--text-muted)]">%</span>
                   </div>
                 </div>
 
-                <div className="bg-white dark:bg-[#1A1917] rounded-2xl border border-[#DFDACB] dark:border-[#2C2B27] p-5 space-y-2">
-                  <span className="text-xs font-bold text-[#8C897F]">{t('suite_grades_weight')}</span>
+                <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-5 space-y-2">
+                  <span className="text-xs font-bold text-[var(--text-muted)]">{t('suite_grades_weight')}</span>
                   <div className="flex items-center gap-2">
                     <input
                       type="number"
@@ -700,25 +700,25 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
                           parseFloat(e.target.value) || 0
                         )
                       }
-                      className="w-full text-2xl font-bold font-mono px-3 py-1.5 bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] rounded-xl text-[#141413] dark:text-[#FAF9F5]"
+                      className="w-full text-2xl font-bold font-mono px-3 py-1.5 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl text-[var(--text-primary)]"
                     />
-                    <span className="text-sm font-bold text-[#8C897F]">%</span>
+                    <span className="text-sm font-bold text-[var(--text-muted)]">%</span>
                   </div>
                 </div>
               </div>
 
               {/* Prediction Result Display */}
               {predictionResult && (
-                <div className="bg-white dark:bg-[#1A1917] rounded-3xl border border-[#DFDACB] dark:border-[#2C2B27] p-8 shadow-xs text-center space-y-4">
-                  <span className="text-xs font-bold uppercase tracking-wider text-[#8C897F]">
+                <div className="bg-[var(--bg-surface)] rounded-3xl border border-[var(--border-default)] p-8 shadow-xs text-center space-y-4">
+                  <span className="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">
                     {t('suite_grades_required')}
                   </span>
 
-                  <div className="text-6xl font-mono font-bold text-[#D97757]">
+                  <div className="text-6xl font-mono font-bold text-[var(--accent-text)]">
                     {predictionResult.requiredFinalScore}%
                   </div>
 
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#FAF9F5] dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] text-[#141413] dark:text-[#FAF9F5]">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[var(--bg-subtle)] border border-[var(--border-default)] text-[var(--text-primary)]">
                     <span>{t('suite_grades_status')}</span>
                     <span
                       className={
@@ -731,7 +731,7 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
                     </span>
                   </div>
 
-                  <p className="text-xs text-[#8C897F] max-w-md mx-auto leading-relaxed">
+                  <p className="text-xs text-[var(--text-muted)] max-w-md mx-auto leading-relaxed">
                     {predictionResult.feedback}
                   </p>
                 </div>

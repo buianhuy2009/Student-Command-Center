@@ -96,13 +96,13 @@ export const ExcalidrawWorkspace: React.FC = () => {
   };
 
   return (
-    <div className={`flex flex-col h-full w-full select-none ${isFullscreen ? 'fixed inset-0 z-50 bg-[#FAF9F5] dark:bg-[#141413] p-4' : ''}`}>
+    <div className={`flex flex-col h-full w-full select-none ${isFullscreen ? 'fixed inset-0 z-50 bg-[var(--bg-canvas)] p-4' : ''}`}>
       {/* Toolbar */}
-      <div className="flex items-center justify-between pb-2 mb-2 border-b border-[#DFDACB] dark:border-[#2C2B27] shrink-0 text-xs select-none">
+      <div className="flex items-center justify-between pb-2 mb-2 border-b border-[var(--border-default)] shrink-0 text-xs select-none">
         <div className="flex items-center gap-2">
-          <PenTool className="w-4 h-4 text-purple-600" />
-          <span className="font-bold text-[#141413] dark:text-[#FAF9F5]">{t('exca_title')}</span>
-          <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 font-semibold">
+          <PenTool className="w-4 h-4 text-[var(--accent-text)]" />
+          <span className="font-bold text-[var(--text-primary)]">{t('exca_title')}</span>
+          <span className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--accent-soft)] text-[var(--accent-text)] border border-[var(--accent-border)] font-semibold">
             {t('exca_badge')}
           </span>
         </div>
@@ -110,7 +110,7 @@ export const ExcalidrawWorkspace: React.FC = () => {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setReloadKey((k) => k + 1)}
-            className="p-1.5 rounded-lg bg-white dark:bg-[#1A1917] border border-[#DFDACB] dark:border-[#2C2B27] hover:border-[#D97757] text-[#5C5A54] dark:text-[#B5B2A8] transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--accent-border)] hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] transition-colors cursor-pointer"
             title={t('exca_reload')}
           >
             <RefreshCw className="w-3.5 h-3.5" />
@@ -118,7 +118,7 @@ export const ExcalidrawWorkspace: React.FC = () => {
 
           <button
             onClick={handleResetView}
-            className="p-1.5 rounded-lg bg-white dark:bg-[#1A1917] border border-[#DFDACB] dark:border-[#2C2B27] hover:border-[#D97757] text-[#5C5A54] dark:text-[#B5B2A8] transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--accent-border)] hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] transition-colors cursor-pointer"
             title={t('exca_reset_view')}
           >
             <Focus className="w-3.5 h-3.5" />
@@ -126,7 +126,7 @@ export const ExcalidrawWorkspace: React.FC = () => {
 
           <button
             onClick={handleClear}
-            className="p-1.5 rounded-lg bg-white dark:bg-[#1A1917] border border-[#DFDACB] dark:border-[#2C2B27] hover:border-red-400 text-[#5C5A54] dark:text-[#B5B2A8] transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--status-err-border)] hover:bg-[var(--status-err-bg)] text-[var(--text-secondary)] transition-colors cursor-pointer"
             title={t('exca_clear_canvas')}
           >
             <Trash2 className="w-3.5 h-3.5" />
@@ -134,7 +134,7 @@ export const ExcalidrawWorkspace: React.FC = () => {
 
           <button
             onClick={() => setIsFullscreen(!isFullscreen)}
-            className="p-1.5 rounded-lg bg-white dark:bg-[#1A1917] border border-[#DFDACB] dark:border-[#2C2B27] hover:border-[#D97757] text-[#5C5A54] dark:text-[#B5B2A8] transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--accent-border)] hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] transition-colors cursor-pointer"
             title={isFullscreen ? t('desm_exit') : t('desm_expand')}
           >
             {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
@@ -144,7 +144,7 @@ export const ExcalidrawWorkspace: React.FC = () => {
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            className="px-2.5 py-1 rounded-lg bg-white dark:bg-[#1A1917] border border-[#DFDACB] dark:border-[#2C2B27] hover:border-[#D97757] text-[#141413] dark:text-[#FAF9F5] font-bold flex items-center gap-1 transition-colors"
+            className="px-2.5 py-1 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--accent-border)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] font-bold flex items-center gap-1 transition-colors"
           >
             <span>{t('exca_open')}</span>
             <ExternalLink className="w-3 h-3" />
@@ -153,12 +153,12 @@ export const ExcalidrawWorkspace: React.FC = () => {
       </div>
 
       {/* Local Canvas */}
-      <div key={reloadKey} className="flex-1 w-full min-h-[550px] rounded-2xl overflow-hidden border border-[#DFDACB] dark:border-[#2C2B27] bg-white shadow-xs">
+      <div key={reloadKey} className="flex-1 w-full min-h-[550px] rounded-2xl overflow-hidden border border-[var(--border-default)] bg-[var(--bg-surface)] shadow-xs">
         <div className="w-full h-full min-h-[550px] excalidraw-wrapper">
           <Suspense
             fallback={
-              <div className="w-full h-full min-h-[550px] flex items-center justify-center gap-2 text-xs text-[#8C897F] font-medium bg-white">
-                <RefreshCw className="w-4 h-4 animate-spin text-purple-600" />
+              <div className="w-full h-full min-h-[550px] flex items-center justify-center gap-2 text-xs text-[var(--text-muted)] font-medium bg-[var(--bg-surface)]">
+                <RefreshCw className="w-4 h-4 animate-spin text-[var(--accent-fill)]" />
                 <span>{t('exca_loading')}</span>
               </div>
             }

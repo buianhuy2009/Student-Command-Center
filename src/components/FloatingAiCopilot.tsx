@@ -218,7 +218,7 @@ export const FloatingAiCopilot: React.FC<FloatingAiCopilotProps> = ({
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 z-40 px-4 py-2.5 rounded-full bg-gradient-to-r from-amber-500 via-[#D97757] to-rose-500 text-white font-bold text-xs flex items-center gap-2 shadow-xl shadow-[#D97757]/30 hover:scale-105 active:scale-95 transition-all cursor-pointer border border-white/20"
+          className="fixed bottom-6 right-6 z-40 px-4 py-2.5 rounded-full bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white font-bold text-xs flex items-center gap-2 shadow-xl shadow-[var(--accent-fill)]/20 hover:scale-105 active:scale-95 transition-all cursor-pointer border border-[var(--accent-border)]"
         >
           <Sparkles className="w-4 h-4 animate-spin" />
           <span>{t('agent_pill')}</span>
@@ -227,21 +227,21 @@ export const FloatingAiCopilot: React.FC<FloatingAiCopilotProps> = ({
 
       {/* Floating Chat Window */}
       {isOpen && (
-        <div className="fixed bottom-6 right-6 z-50 w-full max-w-sm sm:max-w-md h-[520px] bg-white dark:bg-[#1A1917] rounded-3xl border border-[#DFDACB] dark:border-[#2C2B27] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="fixed bottom-6 right-6 z-50 w-full max-w-sm sm:max-w-md h-[520px] bg-[var(--bg-raised)] text-[var(--text-primary)] rounded-3xl border border-[var(--border-default)] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
           {/* Header */}
-          <div className="p-4 border-b border-[#DFDACB] dark:border-[#2C2B27] bg-[#FAF9F5] dark:bg-[#1F1E1B] flex items-center justify-between">
+          <div className="p-4 border-b border-[var(--border-default)] bg-[var(--bg-surface)] flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-amber-500 to-[#D97757] text-white flex items-center justify-center shadow-xs">
+              <div className="w-7 h-7 rounded-xl bg-[var(--accent-fill)] text-white flex items-center justify-center shadow-xs">
                 <Bot className="w-4 h-4" />
               </div>
               <div>
-                <h4 className="text-xs font-bold text-[#141413] dark:text-[#FAF9F5] flex items-center gap-1.5">
+                <h4 className="text-xs font-bold text-[var(--text-primary)] flex items-center gap-1.5">
                   <span>{t('agent_header_title')}</span>
                   <span className="px-1.5 py-0.5 text-[9px] bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 rounded font-mono">
                     {t('agent_actions_on')}
                   </span>
                 </h4>
-                <p className="text-[10px] text-[#8C897F]">{t('agent_model_sub')}</p>
+                <p className="text-[10px] text-[var(--text-muted)]">{t('agent_model_sub')}</p>
               </div>
             </div>
 
@@ -249,7 +249,7 @@ export const FloatingAiCopilot: React.FC<FloatingAiCopilotProps> = ({
               <button
                 onClick={() => setIsOpen(false)}
                 aria-label={t('agent_minimize')}
-                className="p-1.5 text-[#8C897F] hover:bg-[#EFECE2] dark:hover:bg-[#2C2A26] rounded-xl transition-colors cursor-pointer"
+                className="p-1.5 text-[var(--text-muted)] hover:bg-[var(--bg-hover)] rounded-xl transition-colors cursor-pointer"
               >
                 <Minimize2 className="w-3.5 h-3.5" />
               </button>
@@ -257,14 +257,14 @@ export const FloatingAiCopilot: React.FC<FloatingAiCopilotProps> = ({
           </div>
 
           {/* Quick Prompt Action Pills */}
-          <div className="p-2.5 bg-[#FAF9F5]/70 dark:bg-[#1F1E1B]/70 border-b border-[#DFDACB]/60 dark:border-[#2C2B27]/60 flex items-center gap-1.5 overflow-x-auto text-[11px]">
+          <div className="p-2.5 bg-[var(--bg-subtle)] border-b border-[var(--border-default)] flex items-center gap-1.5 overflow-x-auto text-[11px]">
             {QUICK_PILL_KEYS.map((pillKey, i) => {
               const pillText = t(pillKey);
               return (
                 <button
                   key={i}
                   onClick={() => handleQuickPill(pillText)}
-                  className="px-2.5 py-1 rounded-lg bg-white dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] text-[#5C5A54] dark:text-[#B5B2A8] hover:border-[#D97757] hover:text-[#D97757] whitespace-nowrap transition-colors cursor-pointer"
+                  className="px-2.5 py-1 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-default)] text-[var(--text-secondary)] hover:border-[var(--accent-border)] hover:text-[var(--accent-text)] whitespace-nowrap transition-colors cursor-pointer"
                 >
                   {pillText}
                 </button>
@@ -282,8 +282,8 @@ export const FloatingAiCopilot: React.FC<FloatingAiCopilotProps> = ({
                 <div
                   className={`p-3 rounded-2xl text-xs leading-relaxed max-w-[88%] ${
                     m.role === 'user'
-                      ? 'bg-[#D97757] text-white rounded-br-none'
-                      : 'bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] text-[#141413] dark:text-[#FAF9F5] rounded-bl-none'
+                      ? 'bg-[var(--accent-fill)] text-white rounded-br-none shadow-xs'
+                      : 'bg-[var(--bg-surface)] border border-[var(--border-default)] text-[var(--text-primary)] rounded-bl-none'
                   }`}
                 >
                   <MathMarkdown>{m.contentKey ? t(m.contentKey) : (m.content || '')}</MathMarkdown>
@@ -295,17 +295,17 @@ export const FloatingAiCopilot: React.FC<FloatingAiCopilotProps> = ({
               </div>
             ))}
             {isThinking && (
-              <div className="flex items-center gap-2 text-xs text-[#8C897F]">
-                <Sparkles className="w-3.5 h-3.5 text-[#D97757] animate-spin" />
+              <div className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
+                <Sparkles className="w-3.5 h-3.5 text-[var(--accent-text)] animate-spin" />
                 <span>{t('agent_thinking')}</span>
               </div>
             )}
             {/* Confirmation cards: nothing applies until the student taps Apply */}
             {pendingActions && pendingActions.length > 0 && (
-              <div className="p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-800 space-y-2" role="group" aria-label={t('agent_confirm_aria')}>
-                <p className="text-[11px] font-bold text-amber-900 dark:text-amber-200">{t('agent_confirm_prompt')}</p>
+              <div className="p-3 rounded-2xl bg-[var(--status-warn-bg)] border border-[var(--status-warn-border)] space-y-2" role="group" aria-label={t('agent_confirm_aria')}>
+                <p className="text-[11px] font-bold text-[var(--status-warn-text)]">{t('agent_confirm_prompt')}</p>
                 {pendingActions.map((a, i) => (
-                  <p key={i} className="text-[11px] text-amber-900 dark:text-amber-200">• {explainAction(a)}</p>
+                  <p key={i} className="text-[11px] text-[var(--status-warn-text)]">• {explainAction(a)}</p>
                 ))}
                 <div className="flex gap-2">
                   <button onClick={handleApplyPending} className="px-3 py-2 bg-emerald-600 text-white rounded-xl text-[11px] font-bold min-h-[44px] cursor-pointer inline-flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5" /> {t('agent_apply')}</button>
@@ -314,7 +314,7 @@ export const FloatingAiCopilot: React.FC<FloatingAiCopilotProps> = ({
               </div>
             )}
             {lastApplied && lastApplied.length > 0 && (
-              <button onClick={handleUndoLast} className="text-[11px] font-bold text-[#6B6860] underline underline-offset-4 cursor-pointer self-start min-h-[32px]">{t('agent_undo')}</button>
+              <button onClick={handleUndoLast} className="text-[11px] font-bold text-[var(--text-secondary)] underline underline-offset-4 cursor-pointer self-start min-h-[32px]">{t('agent_undo')}</button>
             )}
             <div ref={messagesEndRef} />
           </div>
@@ -322,20 +322,20 @@ export const FloatingAiCopilot: React.FC<FloatingAiCopilotProps> = ({
           {/* Chat Input */}
           <form
             onSubmit={handleSendMessage}
-            className="p-3 border-t border-[#DFDACB] dark:border-[#2C2B27] bg-[#FAF9F5] dark:bg-[#1F1E1B] flex items-center gap-2"
+            className="p-3 border-t border-[var(--border-default)] bg-[var(--bg-surface)] flex items-center gap-2"
           >
             <input
               type="text"
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               placeholder={t('agent_input_ph')}
-              className="flex-1 px-3.5 py-2 text-xs bg-white dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#D97757] text-[#141413] dark:text-[#FAF9F5]"
+              className="flex-1 px-3.5 py-2 text-xs bg-[var(--bg-surface)] border border-[var(--border-default)] text-[var(--text-primary)] rounded-xl focus:outline-none focus:border-[var(--accent-fill)] focus:ring-2 focus:ring-[var(--accent-fill)]/20 text-[var(--text-primary)]"
             />
             <button
               type="submit"
               aria-label={t('agent_send')}
               disabled={!inputText.trim() || isThinking}
-              className="p-2 bg-[#D97757] hover:bg-[#C86646] disabled:opacity-50 text-white rounded-xl transition-colors cursor-pointer shadow-xs"
+              className="p-2 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] disabled:opacity-50 text-white rounded-xl transition-colors cursor-pointer shadow-xs"
             >
               <Send className="w-3.5 h-3.5" />
             </button>

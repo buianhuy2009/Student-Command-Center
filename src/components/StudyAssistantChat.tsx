@@ -148,29 +148,29 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
 
   if (isFullScreen) {
     return (
-      <div className="flex-1 flex flex-col h-full bg-[#FAF9F5] dark:bg-[#141413] text-[#141413] dark:text-[#FAF9F5] overflow-hidden animate-in fade-in duration-200">
+      <div className="flex-1 flex flex-col h-full bg-[var(--bg-canvas)] text-[var(--text-primary)] overflow-hidden animate-in fade-in duration-200">
         {/* Top Bar with Prominent Return Button */}
-        <div className="h-16 px-4 sm:px-6 bg-white dark:bg-[#1A1917] border-b border-[#DFDACB] dark:border-[#2C2B27] flex items-center justify-between shadow-xs shrink-0">
+        <div className="h-16 px-4 sm:px-6 bg-[var(--bg-surface)] border-b border-[var(--border-default)] flex items-center justify-between shadow-xs shrink-0">
           <div className="flex items-center gap-3">
             <button
               onClick={onClose}
-              className="px-3.5 py-1.5 bg-[#D97757]/10 hover:bg-[#D97757]/20 text-[#D97757] rounded-xl text-xs font-bold flex items-center gap-2 transition-colors cursor-pointer border border-[#D97757]/30 shadow-2xs"
+              className="px-3.5 py-1.5 bg-[var(--accent-soft)] hover:bg-[var(--accent-soft)]/80 text-[var(--accent-text)] border border-[var(--accent-border)] rounded-xl text-xs font-bold flex items-center gap-2 transition-colors cursor-pointer  shadow-2xs"
               title={t('coach_return')}
               aria-label={t('coach_return')}
             >
               <ArrowLeft className="w-4 h-4" />
               <span>{t('coach_return')}</span>
             </button>
-            <div className="h-5 w-[1px] bg-[#DFDACB] dark:bg-[#2C2B27] hidden sm:block" />
+            <div className="h-5 w-[1px] bg-[var(--border-default)] hidden sm:block" />
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-[#D97757] text-white flex items-center justify-center shadow-xs">
+              <div className="w-8 h-8 rounded-xl bg-[var(--accent-fill)] text-white flex items-center justify-center shadow-xs">
                 <Sparkles className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-[#141413] dark:text-[#FAF9F5] leading-tight">
+                <h3 className="text-sm font-bold text-[var(--text-primary)] leading-tight">
                   {t('coach_title')}
                 </h3>
-                <p className="text-[10px] text-[#6B6860]">
+                <p className="text-[10px] text-[var(--text-secondary)]">
                   {t('coach_sub_full')}
                 </p>
               </div>
@@ -186,7 +186,7 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
                 },
               ])
             }
-            className="p-2 text-[#8C897F] hover:text-rose-600 dark:hover:text-rose-400 rounded-xl hover:bg-[#EFECE2] dark:hover:bg-[#252422] transition-colors cursor-pointer"
+            className="p-2 text-[var(--text-muted)] hover:text-rose-600 dark:hover:text-rose-400 rounded-xl hover:bg-[var(--bg-hover)] transition-colors cursor-pointer"
             title={t('coach_clear_title')}
             aria-label={t('coach_clear_title')}
           >
@@ -194,7 +194,7 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
           </button>
         </div>
 
-        <div className="px-4 sm:px-6 py-2 text-xs font-semibold bg-[#D97757]/10 text-[#B5502F] border-b border-[#D97757]/20 shrink-0">
+        <div className="px-4 sm:px-6 py-2 text-xs font-semibold bg-[var(--accent-soft)] text-[var(--accent-text)] border-b border-[var(--accent-border)] shrink-0">
           <div className="max-w-3xl mx-auto">{tutorBanner}</div>
         </div>
 
@@ -209,7 +209,7 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
                 }`}
               >
                 {msg.role === 'assistant' && (
-                  <div className="w-8 h-8 rounded-xl bg-[#D97757]/15 text-[#D97757] flex items-center justify-center shrink-0 mt-0.5 shadow-2xs border border-[#D97757]/30">
+                  <div className="w-8 h-8 rounded-xl bg-[var(--accent-soft)] text-[var(--accent-text)] border border-[var(--accent-border)] flex items-center justify-center shrink-0 mt-0.5 shadow-2xs ">
                     <Bot className="w-4 h-4" />
                   </div>
                 )}
@@ -217,8 +217,8 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
                 <div
                   className={`max-w-[85%] p-4 rounded-2xl shadow-2xs ${
                     msg.role === 'user'
-                      ? 'bg-[#D97757] text-white rounded-br-xs'
-                      : 'bg-white dark:bg-[#1A1917] text-[#141413] dark:text-[#FAF9F5] border border-[#DFDACB] dark:border-[#2C2B27] rounded-bl-xs'
+                      ? 'bg-[var(--accent-fill)] text-white rounded-br-xs shadow-xs'
+                      : 'bg-[var(--bg-surface)] text-[var(--text-primary)] border border-[var(--border-default)] rounded-bl-xs'
                   }`}
                 >
                   <div className="prose prose-sm dark:prose-invert max-w-none leading-relaxed">
@@ -227,7 +227,7 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
                 </div>
 
                 {msg.role === 'user' && (
-                  <div className="w-8 h-8 rounded-xl bg-[#EFECE2] dark:bg-[#252422] text-[#141413] dark:text-[#FAF9F5] flex items-center justify-center shrink-0 mt-0.5 shadow-2xs font-bold text-xs border border-[#DFDACB] dark:border-[#2C2B27]">
+                  <div className="w-8 h-8 rounded-xl bg-[var(--bg-subtle)] text-[var(--text-primary)] flex items-center justify-center shrink-0 mt-0.5 shadow-2xs font-bold text-xs border border-[var(--border-default)]">
                     <UserIcon className="w-4 h-4" />
                   </div>
                 )}
@@ -236,10 +236,10 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
 
             {isSending && streamingContent && (
               <div className="flex items-start gap-3 justify-start">
-                <div className="w-8 h-8 rounded-xl bg-[#D97757]/15 text-[#D97757] flex items-center justify-center shrink-0 mt-0.5 border border-[#D97757]/30">
+                <div className="w-8 h-8 rounded-xl bg-[var(--accent-soft)] text-[var(--accent-text)] border border-[var(--accent-border)] flex items-center justify-center shrink-0 mt-0.5 ">
                   <Bot className="w-4 h-4" />
                 </div>
-                <div className="max-w-[85%] p-4 rounded-2xl bg-white dark:bg-[#1A1917] border border-[#DFDACB] dark:border-[#2C2B27] rounded-bl-xs">
+                <div className="max-w-[85%] p-4 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-bl-xs">
                   <div className="prose prose-sm dark:prose-invert max-w-none leading-relaxed">
                     <MathMarkdown>{streamingContent}</MathMarkdown>
                   </div>
@@ -247,8 +247,8 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
               </div>
             )}
             {isSending && !streamingContent && (
-              <div className="flex items-center gap-2.5 text-[#6B6860] text-xs py-2">
-                <Bot className="w-5 h-5 text-[#D97757] animate-pulse" />
+              <div className="flex items-center gap-2.5 text-[var(--text-secondary)] text-xs py-2">
+                <Bot className="w-5 h-5 text-[var(--accent-text)] animate-pulse" />
                 <span className="animate-pulse font-medium">{t('coach_analyzing')}</span>
               </div>
             )}
@@ -259,7 +259,7 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
 
         {/* Suggested Prompt Chips */}
         {messages.length < 4 && (
-          <div className="px-4 sm:px-6 py-2 border-t border-[#DFDACB] dark:border-[#2C2B27] bg-white/50 dark:bg-[#1A1917]/50">
+          <div className="px-4 sm:px-6 py-2 border-t border-[var(--border-default)] bg-[var(--bg-surface)]/50">
             <div className="max-w-3xl mx-auto flex gap-2 overflow-x-auto scrollbar-none">
               {PROMPT_SUGGESTION_KEYS.map((key) => {
                 const promptText = t(key);
@@ -267,7 +267,7 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
                   <button
                     key={key}
                     onClick={() => handleSend(promptText)}
-                    className="text-xs font-medium px-3 py-1.5 bg-white dark:bg-[#1A1917] border border-[#DFDACB] dark:border-[#2C2B27] rounded-xl text-[#5C5A54] dark:text-[#B5B2A8] hover:border-[#D97757] hover:text-[#D97757] whitespace-nowrap shrink-0 transition-colors cursor-pointer shadow-2xs"
+                    className="text-xs font-medium px-3 py-1.5 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl text-[var(--text-secondary)] hover:border-[var(--accent-border)] hover:text-[var(--accent-text)] whitespace-nowrap shrink-0 transition-colors cursor-pointer shadow-2xs"
                   >
                     {promptText}
                   </button>
@@ -278,7 +278,7 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
         )}
 
         {/* Bottom Input Box */}
-        <div className="p-4 sm:p-6 border-t border-[#DFDACB] dark:border-[#2C2B27] bg-white dark:bg-[#1A1917]/90 shrink-0">
+        <div className="p-4 sm:p-6 border-t border-[var(--border-default)] bg-[var(--bg-surface)] shrink-0">
           <div className="max-w-3xl mx-auto flex gap-3">
             <input
               type="text"
@@ -292,13 +292,13 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
               }}
               placeholder={t('coach_input_ph_full')}
               aria-label={t('coach_input_ph_full')}
-              className="flex-1 px-4 py-3 bg-[#FAF9F5] dark:bg-[#141413] border border-[#DFDACB] dark:border-[#2C2B27] rounded-2xl text-sm focus:ring-2 focus:ring-[#D97757] outline-none text-[#141413] dark:text-[#FAF9F5] placeholder:text-[#8C897F]"
+              className="flex-1 px-4 py-3 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-2xl text-sm focus:border-[var(--accent-fill)] focus:ring-2 focus:ring-[var(--accent-fill)]/20 outline-none text-[var(--text-primary)] placeholder:text-[var(--text-muted)]"
             />
             <button
               onClick={() => handleSend()}
               disabled={!inputText.trim() || isSending}
               aria-label={t('coach_send')}
-              className="px-5 py-3 bg-[#D97757] hover:bg-[#C86646] disabled:opacity-40 text-white rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-xs"
+              className="px-5 py-3 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] disabled:opacity-40 text-white rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-xs"
             >
               {isSending ? (
                 <RefreshCw className="w-4 h-4 animate-spin" />
@@ -318,13 +318,13 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
   // Slide-over Drawer Fallback
   return (
     <div
-      className="fixed bottom-4 right-4 z-50 w-full sm:w-96 max-w-[calc(100vw-2rem)] h-[540px] max-h-[85vh] bg-white dark:bg-[#1A1917] border border-[#DFDACB] dark:border-[#2C2B27] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-5 duration-200"
+      className="fixed bottom-4 right-4 z-50 w-full sm:w-96 max-w-[calc(100vw-2rem)] h-[540px] max-h-[85vh] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-5 duration-200"
       id="ai-study-coach-pane"
     >
-      <div className="p-3.5 bg-[#141413] dark:bg-[#252422] text-[#FAF9F5] border-b border-[#D97757]/30 flex items-center justify-between shrink-0 shadow-xs">
+      <div className="p-3.5 bg-[var(--bg-raised)] text-[var(--text-primary)] border-b border-[var(--border-default)] flex items-center justify-between shrink-0 shadow-xs">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center">
-            <Sparkles className="w-4 h-4 text-amber-300" />
+            <Sparkles className="w-4 h-4 text-[var(--status-warn-text)]" />
           </div>
           <div>
             <h4 className="text-xs font-bold leading-none">{t('coach_title')}</h4>
@@ -359,7 +359,7 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
         </div>
       </div>
 
-      <div className="px-3.5 py-1.5 text-[11px] font-semibold bg-[#D97757]/10 text-[#B5502F] border-b border-[#D97757]/20 shrink-0">{tutorBanner}</div>
+      <div className="px-3.5 py-1.5 text-[11px] font-semibold bg-[var(--accent-soft)] text-[var(--accent-text)] border-b border-[var(--accent-border)] shrink-0">{tutorBanner}</div>
 
       <div className="flex-1 overflow-y-auto p-3.5 space-y-3 text-xs">
         {messages.map((msg, idx) => (
@@ -370,15 +370,15 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
             }`}
           >
             {msg.role === 'assistant' && (
-              <div className="w-6 h-6 rounded-md bg-[#D97757]/15 text-[#D97757] flex items-center justify-center shrink-0 mt-0.5">
+              <div className="w-6 h-6 rounded-md bg-[var(--accent-soft)] text-[var(--accent-text)] border border-[var(--accent-border)] flex items-center justify-center shrink-0 mt-0.5">
                 <Bot className="w-3.5 h-3.5" />
               </div>
             )}
             <div
               className={`max-w-[82%] p-2.5 rounded-xl ${
                 msg.role === 'user'
-                  ? 'bg-[#D97757] text-white rounded-br-xs'
-                  : 'bg-[#FAF9F5] dark:bg-[#252422] text-[#141413] dark:text-[#FAF9F5] border border-[#DFDACB] dark:border-[#2C2B27] rounded-bl-xs'
+                  ? 'bg-[var(--accent-fill)] text-white rounded-br-xs shadow-xs'
+                  : 'bg-[var(--bg-surface)] text-[var(--text-primary)] border border-[var(--border-default)] rounded-bl-xs'
               }`}
             >
               <div className="prose prose-xs dark:prose-invert max-w-none leading-relaxed">
@@ -386,7 +386,7 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
               </div>
             </div>
             {msg.role === 'user' && (
-              <div className="w-6 h-6 rounded-md bg-[#EFECE2] dark:bg-[#2C2B27] text-[#6B6860] flex items-center justify-center shrink-0 mt-0.5">
+              <div className="w-6 h-6 rounded-md bg-[var(--bg-subtle)] text-[var(--text-secondary)] border border-[var(--border-default)] flex items-center justify-center shrink-0 mt-0.5">
                 <UserIcon className="w-3.5 h-3.5" />
               </div>
             )}
@@ -395,10 +395,10 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
 
         {isSending && streamingContent && (
           <div className="flex items-start gap-2 justify-start">
-            <div className="w-6 h-6 rounded-md bg-[#D97757]/15 text-[#D97757] flex items-center justify-center shrink-0 mt-0.5">
+            <div className="w-6 h-6 rounded-md bg-[var(--accent-soft)] text-[var(--accent-text)] border border-[var(--accent-border)] flex items-center justify-center shrink-0 mt-0.5">
               <Bot className="w-3.5 h-3.5" />
             </div>
-            <div className="max-w-[82%] p-2.5 rounded-xl bg-[#FAF9F5] dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] rounded-bl-xs">
+            <div className="max-w-[82%] p-2.5 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-bl-xs">
               <div className="prose prose-xs dark:prose-invert max-w-none leading-relaxed">
                 <MathMarkdown>{streamingContent}</MathMarkdown>
               </div>
@@ -406,15 +406,15 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
           </div>
         )}
         {isSending && !streamingContent && (
-          <div className="flex items-center gap-2 text-[#8C897F] text-xs py-1">
-            <Bot className="w-4 h-4 text-[#D97757] animate-pulse" />
+          <div className="flex items-center gap-2 text-[var(--text-muted)] text-xs py-1">
+            <Bot className="w-4 h-4 text-[var(--accent-text)] animate-pulse" />
             <span className="animate-pulse font-medium">{t('coach_thinking')}</span>
           </div>
         )}
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="p-2.5 border-t border-[#DFDACB] dark:border-[#2C2B27] bg-white dark:bg-[#1A1917] flex gap-2">
+      <div className="p-2.5 border-t border-[var(--border-default)] bg-[var(--bg-surface)] flex gap-2">
         <input
           type="text"
           value={inputText}
@@ -424,13 +424,13 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
           }}
           placeholder={t('coach_input_ph_drawer')}
           aria-label={t('coach_input_ph_drawer')}
-          className="flex-1 px-3 py-1.5 bg-[#FAF9F5] dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] rounded-xl text-xs outline-none text-[#141413] dark:text-[#FAF9F5]"
+          className="flex-1 px-3 py-1.5 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl text-xs outline-none text-[var(--text-primary)]"
         />
         <button
           onClick={() => handleSend()}
           disabled={!inputText.trim() || isSending}
           aria-label={t('coach_send')}
-          className="p-2 bg-[#D97757] hover:bg-[#C86646] text-white rounded-xl"
+          className="p-2 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-xl"
         >
           <Send className="w-3.5 h-3.5" />
         </button>

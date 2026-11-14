@@ -476,21 +476,21 @@ Example format:
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
       {/* Header Bar */}
-      <div className="bg-white dark:bg-[#1A1917] rounded-2xl p-5 border border-[#DFDACB] dark:border-[#2C2B27] flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs">
+      <div className="bg-[var(--bg-surface)] rounded-2xl p-5 border border-[var(--border-default)] flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+          <div className="w-10 h-10 rounded-xl bg-[var(--accent-fill)] text-white flex items-center justify-center shrink-0 shadow-xs">
             <Brain className="w-5 h-5" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-base sm:text-lg font-bold text-[#141413] dark:text-[#FAF9F5] tracking-tight">
+              <h2 className="text-base sm:text-lg font-bold text-[var(--text-primary)] tracking-tight">
                 {t('flashcards_title')}
               </h2>
-              <span className="px-2 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 rounded-full">
+              <span className="px-2 py-0.5 text-[10px] font-bold bg-[var(--status-warn-bg)] text-[var(--status-warn-text)] border border-[var(--status-warn-border)] rounded-full">
                 {t('flashcards_badge')}
               </span>
             </div>
-            <p className="text-xs text-[#8C897F] mt-0.5">
+            <p className="text-xs text-[var(--text-muted)] mt-0.5">
               {t('flashcards_sub')}
             </p>
           </div>
@@ -501,7 +501,7 @@ Example format:
             <>
               <button
                 onClick={handleCopyTsv}
-                className="px-3 py-1.5 bg-[#FAF9F5] dark:bg-[#252422] hover:bg-[#EFECE2] dark:hover:bg-[#2C2A26] text-[#5C5A54] dark:text-[#B5B2A8] rounded-xl text-xs font-semibold border border-[#DFDACB] dark:border-[#2C2B27] flex items-center gap-1.5 transition-colors cursor-pointer"
+                className="px-3 py-1.5 bg-[var(--bg-subtle)] hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] rounded-xl text-xs font-semibold border border-[var(--border-default)] flex items-center gap-1.5 transition-colors cursor-pointer"
                 title={t('flashcards_copy_tsv_title')}
               >
                 {copiedTsv ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
@@ -510,7 +510,7 @@ Example format:
 
               <button
                 onClick={handleDownloadTsv}
-                className="px-3 py-1.5 bg-[#FAF9F5] dark:bg-[#252422] hover:bg-[#EFECE2] dark:hover:bg-[#2C2A26] text-[#5C5A54] dark:text-[#B5B2A8] rounded-xl text-xs font-semibold border border-[#DFDACB] dark:border-[#2C2B27] flex items-center gap-1.5 transition-colors cursor-pointer"
+                className="px-3 py-1.5 bg-[var(--bg-subtle)] hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] rounded-xl text-xs font-semibold border border-[var(--border-default)] flex items-center gap-1.5 transition-colors cursor-pointer"
                 title={t('flashcards_download_tsv_title')}
               >
                 {downloadedTsv ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Download className="w-3.5 h-3.5" />}
@@ -524,8 +524,8 @@ Example format:
             onClick={() => setShowTsvImport((v) => !v)}
             className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors shadow-xs cursor-pointer ${
               showTsvImport
-                ? 'bg-[#D97757] text-white'
-                : 'bg-[#FAF9F5] dark:bg-[#252422] hover:bg-[#EFECE2] dark:hover:bg-[#2C2A26] text-[#141413] dark:text-[#FAF9F5] border border-[#DFDACB] dark:border-[#2C2B27]'
+                ? 'bg-[var(--accent-fill)] text-white'
+                : 'bg-[var(--bg-subtle)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] border border-[var(--border-default)]'
             }`}
           >
             <Upload className="w-3.5 h-3.5" />
@@ -537,19 +537,19 @@ Example format:
       {showTsvImport && (
         <form
           onSubmit={handleImportTsv}
-          className="bg-white dark:bg-[#1A1917] rounded-2xl border border-[#DFDACB] dark:border-[#2C2B27] p-5 shadow-xs space-y-3"
+          className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-5 shadow-xs space-y-3"
         >
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
-              <h3 className="text-xs font-bold uppercase tracking-wider text-[#141413] dark:text-[#FAF9F5]">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--text-primary)]">
                 {t('flashcards_import_title')}
               </h3>
-              <p className="text-[11px] text-[#8C897F] mt-0.5">
+              <p className="text-[11px] text-[var(--text-muted)] mt-0.5">
                 {t('flashcards_import_desc')}
               </p>
             </div>
-            <label className="px-3 py-1.5 bg-[#FAF9F5] dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] rounded-xl text-xs font-semibold cursor-pointer hover:border-[#D97757] inline-flex items-center gap-1.5 w-fit">
-              <Upload className="w-3.5 h-3.5 text-[#D97757]" />
+            <label className="px-3 py-1.5 bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-xl text-xs font-semibold cursor-pointer hover:border-[var(--accent-border)] inline-flex items-center gap-1.5 w-fit">
+              <Upload className="w-3.5 h-3.5 text-[var(--accent-text)]" />
               <span>{t('flashcards_choose_file')}</span>
               <input type="file" accept=".tsv,.txt,text/tab-separated-values,text/plain" onChange={handleTsvFileChange} className="hidden" />
             </label>
@@ -559,14 +559,14 @@ Example format:
             value={tsvTitle}
             onChange={(e) => setTsvTitle(e.target.value)}
             placeholder={t('flashcards_import_title_ph')}
-            className="w-full px-3 py-2 text-xs bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#D97757] text-[#141413] dark:text-[#FAF9F5]"
+            className="w-full px-3 py-2 text-xs bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--accent-fill)] text-[var(--text-primary)]"
           />
           <textarea
             rows={4}
             value={tsvText}
             onChange={(e) => setTsvText(e.target.value)}
             placeholder={t('flashcards_import_text_ph')}
-            className="w-full px-3 py-2 text-xs font-mono bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#D97757] text-[#141413] dark:text-[#FAF9F5]"
+            className="w-full px-3 py-2 text-xs font-mono bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--accent-fill)] text-[var(--text-primary)]"
           />
           {tsvImportError && (
             <p className="text-xs text-rose-600 dark:text-rose-400" role="alert">
@@ -577,13 +577,13 @@ Example format:
             <button
               type="button"
               onClick={() => setShowTsvImport(false)}
-              className="px-3 py-1.5 text-xs font-semibold text-[#5C5A54] dark:text-[#B5B2A8] cursor-pointer"
+              className="px-3 py-1.5 text-xs font-semibold text-[var(--text-secondary)] cursor-pointer"
             >
               {t('common_cancel')}
             </button>
             <button
               type="submit"
-              className="px-4 py-1.5 bg-[#D97757] hover:bg-[#C86646] text-white text-xs font-bold rounded-xl cursor-pointer"
+              className="px-4 py-1.5 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white text-xs font-bold rounded-xl cursor-pointer"
             >
               {t('flashcards_import_submit')}
             </button>
@@ -596,16 +596,16 @@ Example format:
         {/* Left: Decks List & Generator (5 cols) */}
         <div className="lg:col-span-5 space-y-5">
           {/* AI Generator Form */}
-          <section className="bg-white dark:bg-[#1A1917] rounded-2xl border border-[#DFDACB] dark:border-[#2C2B27] p-5 shadow-xs">
-            <h3 className="text-xs font-bold text-[#141413] dark:text-[#FAF9F5] uppercase tracking-wider flex items-center gap-2 pb-3 border-b border-[#DFDACB] dark:border-[#2C2B27]">
-              <Sparkles className="w-3.5 h-3.5 text-[#D97757]" />
+          <section className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-5 shadow-xs">
+            <h3 className="text-xs font-bold text-[var(--text-primary)] uppercase tracking-wider flex items-center gap-2 pb-3 border-b border-[var(--border-default)]">
+              <Sparkles className="w-3.5 h-3.5 text-[var(--accent-text)]" />
               <span>{t('flashcards_gen_title')}</span>
             </h3>
 
             <form onSubmit={handleGenerateDeck} className="mt-4 space-y-3">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[11px] font-semibold text-[#5C5A54] dark:text-[#B5B2A8] mb-1">
+                  <label className="block text-[11px] font-semibold text-[var(--text-secondary)] mb-1">
                     {t('subject')}
                   </label>
                   <input
@@ -613,12 +613,12 @@ Example format:
                     value={genSubject}
                     onChange={(e) => setGenSubject(e.target.value)}
                     placeholder={t('flashcards_subj_ph')}
-                    className="w-full px-3 py-2 text-xs bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#D97757] text-[#141413] dark:text-[#FAF9F5]"
+                    className="w-full px-3 py-2 text-xs bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--accent-fill)] text-[var(--text-primary)]"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-semibold text-[#5C5A54] dark:text-[#B5B2A8] mb-1">
+                  <label className="block text-[11px] font-semibold text-[var(--text-secondary)] mb-1">
                     {t('flashcards_topic_label')}
                   </label>
                   <input
@@ -627,19 +627,19 @@ Example format:
                     value={genTopic}
                     onChange={(e) => setGenTopic(e.target.value)}
                     placeholder={t('flashcards_topic_ph')}
-                    className="w-full px-3 py-2 text-xs bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#D97757] text-[#141413] dark:text-[#FAF9F5]"
+                    className="w-full px-3 py-2 text-xs bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--accent-fill)] text-[var(--text-primary)]"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-[11px] font-semibold text-[#5C5A54] dark:text-[#B5B2A8] mb-1">
+                <label className="block text-[11px] font-semibold text-[var(--text-secondary)] mb-1">
                   {t('flashcards_count_label')}
                 </label>
                 <select
                   value={genCount}
                   onChange={(e) => setGenCount(Number(e.target.value))}
-                  className="w-full px-3 py-2 text-xs bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#D97757] text-[#141413] dark:text-[#FAF9F5]"
+                  className="w-full px-3 py-2 text-xs bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--accent-fill)] text-[var(--text-primary)]"
                 >
                   <option value={5}>{t('flashcards_count_5')}</option>
                   <option value={8}>{t('flashcards_count_8')}</option>
@@ -649,7 +649,7 @@ Example format:
               </div>
 
               <div>
-                <label className="block text-[11px] font-semibold text-[#5C5A54] dark:text-[#B5B2A8] mb-1">
+                <label className="block text-[11px] font-semibold text-[var(--text-secondary)] mb-1">
                   {t('flashcards_notes_label')}
                 </label>
                 <textarea
@@ -657,7 +657,7 @@ Example format:
                   value={genNotes}
                   onChange={(e) => setGenNotes(e.target.value)}
                   placeholder={t('flashcards_notes_ph')}
-                  className="w-full px-3 py-2 text-xs bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#D97757] text-[#141413] dark:text-[#FAF9F5]"
+                  className="w-full px-3 py-2 text-xs bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--accent-fill)] text-[var(--text-primary)]"
                 />
               </div>
 
@@ -672,7 +672,7 @@ Example format:
                 <button
                   type="submit"
                   disabled={isGenerating || !genTopic.trim()}
-                  className="px-4 py-2 bg-[#D97757] hover:bg-[#C86646] disabled:opacity-50 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+                  className="px-4 py-2 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] disabled:opacity-50 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
                 >
                   <Sparkles className={`w-3.5 h-3.5 ${isGenerating ? 'animate-spin' : ''}`} />
                   <span>{isGenerating ? t('flashcards_generating') : t('flashcards_generate_btn')}</span>
@@ -682,15 +682,15 @@ Example format:
           </section>
 
           {/* Saved Decks List */}
-          <section className="bg-white dark:bg-[#1A1917] rounded-2xl border border-[#DFDACB] dark:border-[#2C2B27] p-5 shadow-xs">
-            <h3 className="text-xs font-bold text-[#141413] dark:text-[#FAF9F5] uppercase tracking-wider flex items-center gap-2 pb-3 border-b border-[#DFDACB] dark:border-[#2C2B27]">
-              <Layers className="w-3.5 h-3.5 text-amber-500" />
+          <section className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-5 shadow-xs">
+            <h3 className="text-xs font-bold text-[var(--text-primary)] uppercase tracking-wider flex items-center gap-2 pb-3 border-b border-[var(--border-default)]">
+              <Layers className="w-3.5 h-3.5 text-[var(--accent-text)]" />
               <span>{t('flashcards_saved_decks', { count: decks.length })}</span>
             </h3>
 
             <div className="mt-4 space-y-2 max-h-60 overflow-y-auto">
               {decks.length === 0 ? (
-                <div className="py-8 text-center text-xs text-[#8C897F]">
+                <div className="py-8 text-center text-xs text-[var(--text-muted)]">
                   <p>{t('flashcards_no_decks')}</p>
                   <p className="text-[11px] mt-0.5">{t('flashcards_no_decks_hint')}</p>
                 </div>
@@ -707,16 +707,16 @@ Example format:
                       }}
                       className={`p-3 rounded-xl border flex items-center justify-between gap-3 cursor-pointer transition-colors ${
                         isSelected
-                          ? 'bg-[#D97757]/10 border-[#D97757] text-[#141413] dark:text-[#FAF9F5]'
-                          : 'bg-[#FAF9F5] dark:bg-[#1F1E1B] border-[#DFDACB] dark:border-[#2C2B27] text-[#5C5A54] dark:text-[#B5B2A8] hover:border-[#D97757]/40'
+                          ? 'bg-[var(--accent-fill)]/10 border-[var(--accent-fill)] text-[var(--text-primary)]'
+                          : 'bg-[var(--bg-subtle)] border-[var(--border-default)] text-[var(--text-secondary)] hover:border-[var(--accent-border)]'
                       }`}
                     >
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300">
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-[var(--status-warn-bg)] text-[var(--status-warn-text)] border border-[var(--status-warn-border)]">
                             {deck.subject}
                           </span>
-                          <span className="text-[10px] text-[#8C897F]">{t('flashcards_cards_count', { count: deck.cards.length })}</span>
+                          <span className="text-[10px] text-[var(--text-muted)]">{t('flashcards_cards_count', { count: deck.cards.length })}</span>
                         </div>
                         <h4 className="text-xs font-bold truncate mt-1">{deck.title}</h4>
                       </div>
@@ -726,7 +726,7 @@ Example format:
                           e.stopPropagation();
                           handleDeleteDeck(deck.id);
                         }}
-                        className="p-1.5 text-[#8C897F] hover:text-rose-600 rounded-lg transition-colors cursor-pointer"
+                        className="p-1.5 text-[var(--text-muted)] hover:text-rose-600 rounded-lg transition-colors cursor-pointer"
                         title={t('flashcards_delete_deck')}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -737,8 +737,8 @@ Example format:
               )}
             </div>
             {/* Retention Heatmap */}
-            <div className="mt-4 p-3 bg-[#FAF9F5] dark:bg-[#1F1E1B] rounded-xl border border-[#DFDACB] dark:border-[#2C2B27]">
-              <h4 className="text-[11px] font-bold uppercase tracking-wider text-[#5C5A54] dark:text-[#B5B2A8] mb-2 flex items-center gap-1.5">{t('flashcards_heatmap_title')}</h4>
+            <div className="mt-4 p-3 bg-[var(--bg-subtle)] rounded-xl border border-[var(--border-default)]">
+              <h4 className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-secondary)] mb-2 flex items-center gap-1.5">{t('flashcards_heatmap_title')}</h4>
               <div className="grid grid-cols-13 gap-1">
                 {(() => {
                   const map: Record<string, number> = {};
@@ -754,17 +754,17 @@ Example format:
                   for (let i=90; i>=0; i--) { const dd=new Date(today); dd.setDate(today.getDate()-i); days.push(dd.toISOString().split('T')[0]); }
                   return days.map((day,i)=>{
                     const cnt = map[day]||0;
-                    let bg='bg-[#EFECE2] dark:bg-[#2C2B27]';
+                    let bg='bg-[var(--bg-subtle)]';
                     if (cnt===1) bg='bg-emerald-200 dark:bg-emerald-900';
                     else if (cnt===2) bg='bg-emerald-300 dark:bg-emerald-800';
                     else if (cnt>=3) bg='bg-emerald-500 dark:bg-emerald-700';
-                    return <div key={i} title={t('flashcards_heatmap_tip', { day, count: cnt })} className={`w-3 h-3 rounded-sm ${bg} border border-[#DFDACB]/40`} />;
+                    return <div key={i} title={t('flashcards_heatmap_tip', { day, count: cnt })} className={`w-3 h-3 rounded-sm ${bg} border border-[var(--border-default)]`} />;
                   });
                 })()}
               </div>
-              <p className="text-[10px] text-[#8C897F] mt-1">{t('flashcards_heatmap_legend')}</p>
+              <p className="text-[10px] text-[var(--text-muted)] mt-1">{t('flashcards_heatmap_legend')}</p>
               <div className="mt-3">
-                <h5 className="text-[10px] font-bold text-[#8C897F] uppercase tracking-wider">{t('flashcards_curve_title')}</h5>
+                <h5 className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider">{t('flashcards_curve_title')}</h5>
                 <div className="flex items-end gap-1 h-16 mt-1">
                   {(() => {
                     const buckets = [0,0,0,0,0]; // 0:new, 1:1d, 2:3-6d, 3:7-21d, 4:30d+
@@ -777,7 +777,7 @@ Example format:
                     return buckets.map((v,i)=>(
                       <div key={i} className="flex-1 flex flex-col items-center gap-1">
                         <div className="w-full bg-violet-500 rounded-t" style={{height: `${(v/max)*48+4}px`, opacity: 0.6 + i*0.08}} title={t('flashcards_bucket_tip', { label: labels[i], count: v })} />
-                        <span className="text-[9px] font-bold text-[#8C897F]">{labels[i]}</span>
+                        <span className="text-[9px] font-bold text-[var(--text-muted)]">{labels[i]}</span>
                       </div>
                     ));
                   })()}
@@ -789,31 +789,31 @@ Example format:
 
         {/* Right: Interactive 3D Study Viewer (7 cols) */}
         <div className="lg:col-span-7">
-          <section className="bg-white dark:bg-[#1A1917] rounded-2xl border border-[#DFDACB] dark:border-[#2C2B27] p-6 shadow-xs flex flex-col justify-between h-full min-h-[460px]">
+          <section className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-6 shadow-xs flex flex-col justify-between h-full min-h-[460px]">
             {displayDeck && currentCard ? (
               <>
                 {/* Queue Summary */}
                 <div className="flex items-center gap-2 text-[11px] font-bold mb-2 flex-wrap">
                   <span className="px-2 py-1 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200 dark:border-rose-800">{t('flashcards_due_today_count', { count: queueSummary.due })}</span>
                   <span className="px-2 py-1 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 border border-blue-200 dark:border-blue-800">{t('flashcards_new_count', { count: queueSummary.new })}</span>
-                  <span className="px-2 py-1 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800">{t('flashcards_learning_count', { count: queueSummary.learning })}</span>
-                  <span className="ml-auto text-[10px] text-[#8C897F] font-mono">{t('flashcards_queue_order')}</span>
+                  <span className="px-2 py-1 rounded-full bg-[var(--status-warn-bg)] text-[var(--status-warn-text)] border border-[var(--status-warn-border)]">{t('flashcards_learning_count', { count: queueSummary.learning })}</span>
+                  <span className="ml-auto text-[10px] text-[var(--text-muted)] font-mono">{t('flashcards_queue_order')}</span>
                 </div>
                 {/* Review Session Size */}
                 <div className="flex items-center gap-1.5 flex-wrap mb-3">
-                  <span className="text-[11px] font-bold text-[#5C5A54] dark:text-[#B5B2A8]">{t('flashcards_session_size')}</span>
+                  <span className="text-[11px] font-bold text-[var(--text-secondary)]">{t('flashcards_session_size')}</span>
                   {[10, 20, 50].map((n) => (
                     <button
                       key={n}
                       onClick={() => { setSessionLimit(n); setCustomSessionInput(''); setCurrentCardIndex(0); setIsFlipped(false); }}
-                      className={`px-2 py-1 rounded-lg text-[11px] font-bold border transition-colors cursor-pointer ${sessionLimit === n ? 'bg-[#D97757] text-white border-[#D97757]' : 'bg-[#FAF9F5] dark:bg-[#252422] text-[#5C5A54] dark:text-[#B5B2A8] border-[#DFDACB] dark:border-[#2C2B27] hover:border-[#D97757]/40'}`}
+                      className={`px-2 py-1 rounded-lg text-[11px] font-bold border transition-colors cursor-pointer ${sessionLimit === n ? 'bg-[var(--accent-fill)] text-white border-[var(--accent-fill)]' : 'bg-[var(--bg-subtle)] text-[var(--text-secondary)] border-[var(--border-default)] hover:border-[var(--accent-border)]'}`}
                     >
                       {n}
                     </button>
                   ))}
                   <button
                     onClick={() => { setSessionLimit('all'); setCustomSessionInput(''); setCurrentCardIndex(0); setIsFlipped(false); }}
-                    className={`px-2 py-1 rounded-lg text-[11px] font-bold border transition-colors cursor-pointer ${sessionLimit === 'all' ? 'bg-[#D97757] text-white border-[#D97757]' : 'bg-[#FAF9F5] dark:bg-[#252422] text-[#5C5A54] dark:text-[#B5B2A8] border-[#DFDACB] dark:border-[#2C2B27] hover:border-[#D97757]/40'}`}
+                    className={`px-2 py-1 rounded-lg text-[11px] font-bold border transition-colors cursor-pointer ${sessionLimit === 'all' ? 'bg-[var(--accent-fill)] text-white border-[var(--accent-fill)]' : 'bg-[var(--bg-subtle)] text-[var(--text-secondary)] border-[var(--border-default)] hover:border-[var(--accent-border)]'}`}
                   >
                     {t('all')}
                   </button>
@@ -833,16 +833,16 @@ Example format:
                     }}
                     placeholder={t('flashcards_custom_ph')}
                     title={t('flashcards_custom_title')}
-                    className="w-20 px-2 py-1 text-[11px] bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D97757] text-[#141413] dark:text-[#FAF9F5]"
+                    className="w-20 px-2 py-1 text-[11px] bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--accent-fill)] text-[var(--text-primary)]"
                   />
                 </div>
                 {/* Top Deck Info & Card Index */}
-                <div className="flex items-center justify-between pb-3 border-b border-[#DFDACB] dark:border-[#2C2B27]">
+                <div className="flex items-center justify-between pb-3 border-b border-[var(--border-default)]">
                   <div>
-                    <h3 className="text-sm font-bold text-[#141413] dark:text-[#FAF9F5] truncate">
+                    <h3 className="text-sm font-bold text-[var(--text-primary)] truncate">
                       {displayDeck!.title}
                     </h3>
-                    <span className="text-[11px] text-[#8C897F]">
+                    <span className="text-[11px] text-[var(--text-muted)]">
                       {t('flashcards_session_progress', {
                         current: displayDeck!.cards.length > 0 ? Math.min(currentCardIndex + 1, displayDeck!.cards.length) : 0,
                         total: displayDeck!.cards.length,
@@ -857,7 +857,7 @@ Example format:
                     className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer border ${
                       currentCard.mastered
                         ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
-                        : 'bg-[#FAF9F5] dark:bg-[#252422] text-[#5C5A54] dark:text-[#B5B2A8] border-[#DFDACB] dark:border-[#2C2B27]'
+                        : 'bg-[var(--bg-subtle)] text-[var(--text-secondary)] border-[var(--border-default)]'
                     }`}
                   >
                     <CheckCircle2 className="w-3.5 h-3.5" />
@@ -873,21 +873,21 @@ Example format:
                   <div
                     className={`w-full p-8 rounded-2xl border-2 transition-all duration-300 shadow-sm flex flex-col items-center justify-center text-center relative ${
                       isFlipped
-                        ? 'bg-gradient-to-br from-amber-500/10 to-orange-500/10 border-[#D97757] dark:bg-[#252422]'
-                        : 'bg-[#FAF9F5] dark:bg-[#1F1E1B] border-[#DFDACB] dark:border-[#2C2B27] hover:border-[#D97757]/60'
+                        ? 'bg-[var(--accent-soft)] border-[var(--accent-fill)]'
+                        : 'bg-[var(--bg-subtle)] border-[var(--border-default)] hover:border-[var(--accent-border)]'
                     }`}
                   >
-                    <span className="absolute top-3 left-4 text-[10px] uppercase font-bold tracking-wider text-[#8C897F]">
+                    <span className="absolute top-3 left-4 text-[10px] uppercase font-bold tracking-wider text-[var(--text-muted)]">
                       {isFlipped ? t('flashcards_side_back') : t('flashcards_side_front')}
                     </span>
 
                     <div className="my-auto py-4">
-                      <p className="text-base sm:text-lg font-bold text-[#141413] dark:text-[#FAF9F5] max-w-lg leading-relaxed">
+                      <p className="text-base sm:text-lg font-bold text-[var(--text-primary)] max-w-lg leading-relaxed">
                         {isFlipped ? currentCard.back : currentCard.front}
                       </p>
                     </div>
 
-                    <div className="absolute bottom-3 text-[11px] text-[#8C897F] flex items-center gap-1">
+                    <div className="absolute bottom-3 text-[11px] text-[var(--text-muted)] flex items-center gap-1">
                       <RotateCw className="w-3 h-3" />
                       <span>{t('flashcards_flip_hint')}</span>
                     </div>
@@ -896,12 +896,12 @@ Example format:
 
                 {/* Recall Rating Bar */}
                 {isFlipped && (
-                  <div className="mb-6 p-4 rounded-2xl bg-white dark:bg-[#1A1917] border border-[#DFDACB] dark:border-[#2C2B27] shadow-xs space-y-2 animate-in fade-in">
+                  <div className="mb-6 p-4 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-default)] shadow-xs space-y-2 animate-in fade-in">
                     <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-bold text-[#8C897F] uppercase tracking-wider">
+                      <span className="text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-wider">
                         {t('flashcards_rate_title')}
                       </span>
-                      <span className="text-[10px] text-[#8C897F] font-mono">
+                      <span className="text-[10px] text-[var(--text-muted)] font-mono">
                         {t('flashcards_reviewed_count', { count: currentCard.repetitions || 0 })}
                       </span>
                     </div>
@@ -917,7 +917,7 @@ Example format:
 
                       <button
                         onClick={() => handleRateCard(2)}
-                        className="p-2 rounded-xl bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:hover:bg-amber-900/60 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-xs font-bold text-center transition-colors cursor-pointer"
+                        className="p-2 rounded-xl bg-[var(--status-warn-bg)] hover:bg-[var(--bg-hover)] border border-[var(--status-warn-border)] text-[var(--status-warn-text)] text-xs font-bold text-center transition-colors cursor-pointer"
                       >
                         <span className="block">{t('flashcards_rate_hard')}</span>
                         <span className="text-[10px] opacity-75 font-normal">{t('flashcards_next_days', { days: 1 })}</span>
@@ -947,11 +947,11 @@ Example format:
                 )}
 
                 {/* Bottom Navigation & Keyboard Shortcuts Bar */}
-                <div className="pt-4 border-t border-[#DFDACB] dark:border-[#2C2B27] flex items-center justify-between">
+                <div className="pt-4 border-t border-[var(--border-default)] flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <button
                       onClick={handlePrevCard}
-                      className="px-3.5 py-1.5 bg-[#FAF9F5] dark:bg-[#252422] hover:bg-[#EFECE2] dark:hover:bg-[#2C2A26] text-[#141413] dark:text-[#FAF9F5] border border-[#DFDACB] dark:border-[#2C2B27] rounded-xl text-xs font-semibold flex items-center gap-1 cursor-pointer transition-colors"
+                      className="px-3.5 py-1.5 bg-[var(--bg-subtle)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] border border-[var(--border-default)] rounded-xl text-xs font-semibold flex items-center gap-1 cursor-pointer transition-colors"
                     >
                       <ChevronLeft className="w-4 h-4" />
                       <span>{t('flashcards_prev')}</span>
@@ -959,30 +959,30 @@ Example format:
 
                     <button
                       onClick={handleNextCard}
-                      className="px-3.5 py-1.5 bg-[#FAF9F5] dark:bg-[#252422] hover:bg-[#EFECE2] dark:hover:bg-[#2C2A26] text-[#141413] dark:text-[#FAF9F5] border border-[#DFDACB] dark:border-[#2C2B27] rounded-xl text-xs font-semibold flex items-center gap-1 cursor-pointer transition-colors"
+                      className="px-3.5 py-1.5 bg-[var(--bg-subtle)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] border border-[var(--border-default)] rounded-xl text-xs font-semibold flex items-center gap-1 cursor-pointer transition-colors"
                     >
                       <span>{t('flashcards_next')}</span>
                       <ChevronRight className="w-4 h-4" />
                     </button>
                   </div>
 
-                  <div className="hidden sm:flex items-center gap-2 text-[11px] text-[#8C897F] font-mono">
-                    <kbd className="px-1.5 py-0.5 bg-[#EFECE2] dark:bg-[#252422] rounded border border-[#DFDACB] dark:border-[#2C2B27]">Space</kbd>
+                  <div className="hidden sm:flex items-center gap-2 text-[11px] text-[var(--text-muted)] font-mono">
+                    <kbd className="px-1.5 py-0.5 bg-[var(--bg-subtle)] rounded border border-[var(--border-default)]">Space</kbd>
                     <span>{t('flashcards_kbd_flip')}</span>
-                    <kbd className="px-1.5 py-0.5 bg-[#EFECE2] dark:bg-[#252422] rounded border border-[#DFDACB] dark:border-[#2C2B27]">← / →</kbd>
+                    <kbd className="px-1.5 py-0.5 bg-[var(--bg-subtle)] rounded border border-[var(--border-default)]">← / →</kbd>
                     <span>{t('flashcards_kbd_nav')}</span>
-                    <kbd className="px-1.5 py-0.5 bg-[#EFECE2] dark:bg-[#252422] rounded border border-[#DFDACB] dark:border-[#2C2B27]">1–4</kbd>
+                    <kbd className="px-1.5 py-0.5 bg-[var(--bg-subtle)] rounded border border-[var(--border-default)]">1–4</kbd>
                     <span>{t('flashcards_kbd_grade')}</span>
                   </div>
                 </div>
               </>
             ) : (
               <div className="my-auto py-16 px-4 text-center">
-                <Brain className="w-12 h-12 mx-auto text-amber-500/80 mb-3" />
-                <h4 className="text-base font-bold text-[#141413] dark:text-[#FAF9F5]">
+                <Brain className="w-12 h-12 mx-auto text-[var(--accent-fill)]/80 mb-3" />
+                <h4 className="text-base font-bold text-[var(--text-primary)]">
                   {t('flashcards_empty_title')}
                 </h4>
-                <p className="text-xs text-[#8C897F] mt-1 max-w-sm mx-auto">
+                <p className="text-xs text-[var(--text-muted)] mt-1 max-w-sm mx-auto">
                   {t('flashcards_empty_desc')}
                 </p>
               </div>

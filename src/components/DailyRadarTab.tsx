@@ -359,34 +359,34 @@ export const DailyRadarTab: React.FC<DailyRadarTabProps> = ({
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
       {/* Top Clean Header */}
-      <div className="bg-white dark:bg-[#1A1917] rounded-2xl p-5 border border-[#DFDACB] dark:border-[#2C2B27] flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs">
+      <div className="bg-[var(--bg-surface)] rounded-2xl p-5 border border-[var(--border-default)] flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[#D97757]/15 text-[#D97757] dark:text-[#E59A7C] flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-[var(--accent-soft)] text-[var(--accent-text)] border border-[var(--accent-border)] flex items-center justify-center shrink-0">
             <CalendarIcon className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-base sm:text-lg font-bold text-[#141413] dark:text-[#FAF9F5] tracking-tight">
+            <h2 className="text-base sm:text-lg font-bold text-[var(--text-primary)] tracking-tight">
               {formatDate(new Date(), {
                 weekday: 'long',
                 month: 'short',
                 day: 'numeric',
               })}
             </h2>
-            <p className="text-xs text-[#6B6860] dark:text-[#B5B2A8] mt-0.5">
+            <p className="text-xs text-[var(--text-muted)] mt-0.5">
               {events.length} {events.length === 1 ? t('radar_event_1') : t('radar_events')} {t('radar_scheduled_today')}
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2 shrink-0 flex-wrap">
-          <div className="inline-flex items-center p-1 rounded-xl bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27]">
+          <div className="inline-flex items-center p-1 rounded-xl bg-[var(--bg-subtle)] border border-[var(--border-default)]">
             <button
               type="button"
               onClick={() => setViewMode('agenda')}
               className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
                 viewMode === 'agenda'
-                  ? 'bg-[#D97757] text-white shadow-2xs'
-                  : 'text-[#5C5A54] dark:text-[#B5B2A8] hover:text-[#141413] dark:hover:text-[#FAF9F5]'
+                  ? 'bg-[var(--accent-fill)] text-white shadow-2xs'
+                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
               }`}
             >
               {t('radar_tab_agenda')}
@@ -396,8 +396,8 @@ export const DailyRadarTab: React.FC<DailyRadarTabProps> = ({
               onClick={() => setViewMode('planner')}
               className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors cursor-pointer flex items-center gap-1 ${
                 viewMode === 'planner'
-                  ? 'bg-[#D97757] text-white shadow-2xs'
-                  : 'text-[#5C5A54] dark:text-[#B5B2A8] hover:text-[#141413] dark:hover:text-[#FAF9F5]'
+                  ? 'bg-[var(--accent-fill)] text-white shadow-2xs'
+                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
               }`}
             >
               <Sparkles className="w-3 h-3" />
@@ -411,8 +411,8 @@ export const DailyRadarTab: React.FC<DailyRadarTabProps> = ({
                 onClick={() => setShowChronotypePanel(!showChronotypePanel)}
                 className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer border ${
                   showChronotypePanel
-                    ? 'bg-[#D97757] text-white border-[#D97757] shadow-xs'
-                    : 'bg-[#D97757]/10 text-[#D97757] dark:text-[#E59A7C] hover:bg-[#D97757]/20 border-[#D97757]/30'
+                    ? 'bg-[var(--accent-fill)] text-white border-[var(--accent-fill)] shadow-xs'
+                    : 'bg-[var(--accent-soft)] text-[var(--accent-text)] hover:bg-[var(--accent-fill)]/20 border-[var(--accent-border)]'
                 }`}
                 title={t('radar_chrono_title')}
               >
@@ -422,7 +422,7 @@ export const DailyRadarTab: React.FC<DailyRadarTabProps> = ({
 
               <button
                 onClick={() => onOpenScheduleModal()}
-                className="px-3.5 py-1.5 bg-[#D97757] hover:bg-[#C86646] text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+                className="px-3.5 py-1.5 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>{t('radar_add_focus')}</span>
@@ -431,7 +431,7 @@ export const DailyRadarTab: React.FC<DailyRadarTabProps> = ({
               <button
                 id="btn-refresh-schedule-radar"
                 onClick={() => (!isGoogleConnected && onConnectGoogle ? onConnectGoogle() : onRefreshEvents())}
-                className="p-1.5 rounded-xl hover:bg-[#FAF9F5] dark:hover:bg-[#252422] text-[#8C897F] dark:text-[#B5B2A8] hover:text-[#D97757] dark:hover:text-[#E59A7C] transition-colors cursor-pointer border border-transparent hover:border-[#DFDACB] dark:hover:border-[#2C2B27]"
+                className="p-1.5 rounded-xl hover:bg-[var(--bg-hover)] text-[var(--text-muted)] hover:text-[var(--accent-text)]  transition-colors cursor-pointer border border-transparent hover:border-[var(--border-default)]"
                 title={isGoogleConnected ? t('radar_sync_title') : t('radar_connect_cal')}
               >
                 <RefreshCw className="w-3.5 h-3.5" />
@@ -452,25 +452,25 @@ export const DailyRadarTab: React.FC<DailyRadarTabProps> = ({
       ) : (
       <>
       {showChronotypePanel && (
-        <div className="p-4 bg-[#D97757]/5 dark:bg-[#D97757]/10 border border-[#D97757]/30 rounded-2xl space-y-4 animate-in slide-in-from-top-3 duration-250">
+        <div className="p-4 bg-[var(--accent-soft)] border border-[var(--accent-border)] rounded-2xl space-y-4 animate-in slide-in-from-top-3 duration-250">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h4 className="text-xs font-bold text-[#141413] dark:text-[#FAF9F5] uppercase tracking-wider">
+              <h4 className="text-xs font-bold text-[var(--text-primary)] uppercase tracking-wider">
                 {t('radar_peak')}
               </h4>
-              <p className="text-[10px] text-[#6B6860] dark:text-[#B5B2A8] mt-0.5">
+              <p className="text-[10px] text-[var(--text-muted)] mt-0.5">
                 {t('radar_peak_hint')}
               </p>
             </div>
 
-            <div className="flex items-center gap-1.5 bg-white dark:bg-[#252422] p-1 rounded-xl border border-[#DFDACB] dark:border-[#2C2B27]">
+            <div className="flex items-center gap-1.5 bg-[var(--bg-surface)] p-1 rounded-xl border border-[var(--border-default)]">
               <button
                 type="button"
                 onClick={() => setChronotype('morning')}
                 className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${
                   chronotype === 'morning'
-                    ? 'bg-[#D97757] text-white shadow-2xs'
-                    : 'text-[#5C5A54] dark:text-[#B5B2A8] hover:bg-[#FAF9F5] dark:hover:bg-[#1F1E1B]'
+                    ? 'bg-[var(--accent-fill)] text-white shadow-2xs'
+                    : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'
                 }`}
               >
                 {t('radar_morning')}
@@ -480,8 +480,8 @@ export const DailyRadarTab: React.FC<DailyRadarTabProps> = ({
                 onClick={() => setChronotype('balanced')}
                 className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${
                   chronotype === 'balanced'
-                    ? 'bg-[#D97757] text-white shadow-2xs'
-                    : 'text-[#5C5A54] dark:text-[#B5B2A8] hover:bg-[#FAF9F5] dark:hover:bg-[#1F1E1B]'
+                    ? 'bg-[var(--accent-fill)] text-white shadow-2xs'
+                    : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'
                 }`}
               >
                 {t('radar_balanced')}
@@ -491,8 +491,8 @@ export const DailyRadarTab: React.FC<DailyRadarTabProps> = ({
                 onClick={() => setChronotype('evening')}
                 className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${
                   chronotype === 'evening'
-                    ? 'bg-[#D97757] text-white shadow-2xs'
-                    : 'text-[#5C5A54] dark:text-[#B5B2A8] hover:bg-[#FAF9F5] dark:hover:bg-[#1F1E1B]'
+                    ? 'bg-[var(--accent-fill)] text-white shadow-2xs'
+                    : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'
                 }`}
               >
                 {t('radar_night')}
@@ -500,14 +500,14 @@ export const DailyRadarTab: React.FC<DailyRadarTabProps> = ({
             </div>      </div>
 
           <div className="flex items-center justify-between flex-wrap gap-2">
-            <span className="text-xs text-[#6B6860] dark:text-[#B5B2A8]">
+            <span className="text-xs text-[var(--text-muted)]">
               {pendingAssignments.length} {t('radar_pending_tasks')} • {t('radar_scans_gaps')}
             </span>
             <div className="flex items-center gap-2">
               <button
                 onClick={handleGenerateSlots}
                 disabled={isSuggestingSlots}
-                className="px-3.5 py-1.5 bg-[#D97757] hover:bg-[#C86646] disabled:opacity-50 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+                className="px-3.5 py-1.5 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] disabled:opacity-50 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
               >
                 <Sparkles className={`w-3.5 h-3.5 ${isSuggestingSlots ? 'animate-spin' : ''}`} />
                 <span>{isSuggestingSlots ? t('radar_calculating') : t('radar_generate')}</span>
@@ -541,14 +541,14 @@ export const DailyRadarTab: React.FC<DailyRadarTabProps> = ({
           {studySlotResult && (
             <div className="space-y-3 pt-2">
               {studySlotResult.chronotypeAdvice && (
-                <div className="p-3 bg-[#D97757]/10 dark:bg-[#D97757]/15 rounded-xl text-xs text-[#141413] dark:text-[#FAF9F5] flex items-start gap-2">
-                  <Sparkles className="w-4 h-4 text-[#D97757] dark:text-[#E8A07E] shrink-0 mt-0.5" />
+                <div className="p-3 bg-[var(--accent-soft)] rounded-xl text-xs text-[var(--text-primary)] flex items-start gap-2">
+                  <Sparkles className="w-4 h-4 text-[var(--accent-text)] shrink-0 mt-0.5" />
                   <span>{studySlotResult.chronotypeAdvice}</span>
                 </div>
               )}
 
               {studySlotResult.suggestedSlots.length === 0 ? (
-                <p className="text-xs text-[#6B6860] dark:text-[#B5B2A8] italic py-2">
+                <p className="text-xs text-[var(--text-muted)] italic py-2">
                   {t('radar_all_added')}
                 </p>
               ) : (
@@ -556,22 +556,22 @@ export const DailyRadarTab: React.FC<DailyRadarTabProps> = ({
                   {studySlotResult.suggestedSlots.map((slot, idx) => (
                     <div
                       key={idx}
-                      className="p-3.5 bg-white dark:bg-[#252422] rounded-xl border border-[#DFDACB] dark:border-[#2C2B27] shadow-2xs flex flex-col justify-between gap-2.5"
+                      className="p-3.5 bg-[var(--bg-surface)] rounded-xl border border-[var(--border-default)] shadow-2xs flex flex-col justify-between gap-2.5"
                     >
                       <div>
                         <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold font-mono text-[#D97757] dark:text-[#E8A07E] flex items-center gap-1">
+                          <span className="text-xs font-bold font-mono text-[var(--accent-text)] flex items-center gap-1">
                             <Clock className="w-3.5 h-3.5" />
                             <span>{slot.startTime} - {slot.endTime}</span>
                           </span>
-                          <span className="px-2 py-0.5 text-[10px] font-bold rounded-md bg-[#EFECE2] dark:bg-[#252422] text-[#5C5A54] dark:text-[#B5B2A8]">
+                          <span className="px-2 py-0.5 text-[10px] font-bold rounded-md bg-[var(--bg-subtle)] text-[var(--text-secondary)]">
                             {slot.taskSubject}
                           </span>
                         </div>
-                        <h4 className="text-xs font-bold text-[#141413] dark:text-[#FAF9F5] mt-1.5">
+                        <h4 className="text-xs font-bold text-[var(--text-primary)] mt-1.5">
                           {slot.taskName}
                         </h4>
-                        <p className="text-[11px] text-[#6B6860] dark:text-[#B5B2A8] mt-1">
+                        <p className="text-[11px] text-[var(--text-muted)] mt-1">
                           {slot.reason}
                         </p>
                       </div>
@@ -579,7 +579,7 @@ export const DailyRadarTab: React.FC<DailyRadarTabProps> = ({
                       <button
                         onClick={() => handleApplySlot(slot, idx)}
                         disabled={schedulingSlotIndex === idx}
-                        className="w-full py-1.5 px-3 bg-[#D97757]/10 dark:bg-[#D97757]/15 hover:bg-[#D97757] text-[#D97757] dark:text-[#E59A7C] hover:text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 border border-[#D97757]/30 transition-colors cursor-pointer"
+                        className="w-full py-1.5 px-3 bg-[var(--accent-soft)] hover:bg-[var(--accent-fill)] text-[var(--accent-text)] hover:text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 border border-[var(--accent-border)] transition-colors cursor-pointer"
                       >
                         <Plus className="w-3.5 h-3.5" />
                         <span>{schedulingSlotIndex === idx ? t('radar_scheduling') : t('radar_add_to_cal')}</span>
@@ -594,10 +594,10 @@ export const DailyRadarTab: React.FC<DailyRadarTabProps> = ({
       )}
 
       {/* Main Schedule Container */}
-      <section className="bg-white dark:bg-[#1A1917] rounded-2xl border border-[#DFDACB] dark:border-[#2C2B27] p-5 sm:p-6 shadow-xs">
+      <section className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-5 sm:p-6 shadow-xs">
         {/* Card Header */}
-        <div className="flex justify-between items-center pb-3 border-b border-[#DFDACB] dark:border-[#2C2B27]">
-          <h3 className="font-bold text-[#141413] dark:text-[#FAF9F5] text-xs uppercase tracking-wider">
+        <div className="flex justify-between items-center pb-3 border-b border-[var(--border-default)]">
+          <h3 className="font-bold text-[var(--text-primary)] text-xs uppercase tracking-wider">
             {t('radar_timeline')}
           </h3>
         </div>
@@ -612,15 +612,15 @@ export const DailyRadarTab: React.FC<DailyRadarTabProps> = ({
             />
           </div>
         ) : calendarError ? (
-          <div className="mt-3 p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl flex items-center justify-between gap-3 text-xs text-amber-900 dark:text-amber-200">
+          <div className="mt-3 p-3 bg-[var(--status-warn-bg)] border border-[var(--status-warn-border)] rounded-xl flex items-center justify-between gap-3 text-xs text-[var(--status-warn-text)]">
             <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+              <Sparkles className="w-4 h-4 text-[var(--status-warn-text)] shrink-0" />
               <span>{calendarError}</span>
             </div>
             {onConnectGoogle && (
               <button
                 onClick={onConnectGoogle}
-                className="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-semibold shrink-0 cursor-pointer text-xs"
+                className="px-2.5 py-1 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-lg font-semibold shrink-0 cursor-pointer text-xs"
               >
                 {t('radar_reconnect')}
               </button>
@@ -631,16 +631,16 @@ export const DailyRadarTab: React.FC<DailyRadarTabProps> = ({
         {/* Schedule Timeline */}
         <div className="mt-5 space-y-3.5">
           {!isGoogleConnected ? (
-            <div className="py-12 px-4 text-center bg-[#FAF9F5] dark:bg-[#252422]/60 rounded-xl border border-dashed border-[#DFDACB] dark:border-[#2C2B27]">
-              <CalendarIcon className="w-10 h-10 mx-auto text-[#D97757] dark:text-[#E59A7C] mb-2 opacity-80" />
-              <h3 className="text-sm font-bold text-[#141413] dark:text-[#FAF9F5]">{t('radar_disconnected')}</h3>
-              <p className="text-xs text-[#6B6860] dark:text-[#B5B2A8] mt-1 max-w-md mx-auto">
+            <div className="py-12 px-4 text-center bg-[var(--bg-subtle)]/60 rounded-xl border border-dashed border-[var(--border-default)]">
+              <CalendarIcon className="w-10 h-10 mx-auto text-[var(--accent-text)] mb-2 opacity-80" />
+              <h3 className="text-sm font-bold text-[var(--text-primary)]">{t('radar_disconnected')}</h3>
+              <p className="text-xs text-[var(--text-muted)] mt-1 max-w-md mx-auto">
                 {t('radar_disconnected_hint')}
               </p>
               {onConnectGoogle && (
                 <button
                   onClick={onConnectGoogle}
-                  className="mt-3 px-4 py-2 bg-[#D97757] hover:bg-[#C86646] text-white text-xs font-semibold rounded-xl inline-flex items-center gap-2 cursor-pointer shadow-xs transition-colors"
+                  className="mt-3 px-4 py-2 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white text-xs font-semibold rounded-xl inline-flex items-center gap-2 cursor-pointer shadow-xs transition-colors"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
                   <span>{t('radar_connect_cal')}</span>
@@ -648,24 +648,24 @@ export const DailyRadarTab: React.FC<DailyRadarTabProps> = ({
               )}
             </div>
           ) : isLoadingEvents ? (
-            <div className="py-16 flex flex-col items-center justify-center text-[#6B6860] dark:text-[#B5B2A8]">
-              <RefreshCw className="w-7 h-7 animate-spin text-[#D97757] dark:text-[#E59A7C] mb-2" />
-              <p className="text-xs font-semibold text-[#6B6860] dark:text-[#B5B2A8]">
+            <div className="py-16 flex flex-col items-center justify-center text-[var(--text-muted)]">
+              <RefreshCw className="w-7 h-7 animate-spin text-[var(--accent-text)] mb-2" />
+              <p className="text-xs font-semibold text-[var(--text-muted)]">
                 {t('radar_syncing')}
               </p>
             </div>
           ) : combinedTimeline.length === 0 ? (
-            <div className="py-16 text-center text-[#6B6860] dark:text-[#B5B2A8]">
-              <CalendarIcon className="w-10 h-10 mx-auto text-[#DFDACB] dark:text-[#2C2B27] mb-2" />
-              <p className="text-sm font-semibold text-[#141413] dark:text-[#FAF9F5]">
+            <div className="py-16 text-center text-[var(--text-muted)]">
+              <CalendarIcon className="w-10 h-10 mx-auto text-[var(--border-default)] mb-2" />
+              <p className="text-sm font-semibold text-[var(--text-primary)]">
                 {t('radar_no_commit')}
               </p>
-              <p className="text-xs text-[#6B6860] dark:text-[#B5B2A8] mt-1 max-w-sm mx-auto">
+              <p className="text-xs text-[var(--text-muted)] mt-1 max-w-sm mx-auto">
                 {t('radar_clear_hint')}
               </p>
               <button
                 onClick={() => onOpenScheduleModal()}
-                className="mt-4 px-4 py-2 text-xs font-semibold bg-[#D97757] hover:bg-[#C86646] text-white rounded-xl transition-colors shadow-2xs"
+                className="mt-4 px-4 py-2 text-xs font-semibold bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-xl transition-colors shadow-2xs"
               >
                 {t('radar_schedule_45')}
               </button>
@@ -686,7 +686,7 @@ export const DailyRadarTab: React.FC<DailyRadarTabProps> = ({
                   className="flex items-start gap-3.5 group timeline-reveal-item"
                 >
                   {/* Time on left */}
-                  <div className="w-16 text-xs font-mono font-medium text-[#6B6860] dark:text-[#B5B2A8] pt-2.5 shrink-0 text-right">
+                  <div className="w-16 text-xs font-mono font-medium text-[var(--text-muted)] pt-2.5 shrink-0 text-right">
                     {formatEventTime(event.start?.dateTime)}
                   </div>
 
@@ -694,14 +694,14 @@ export const DailyRadarTab: React.FC<DailyRadarTabProps> = ({
                   <div
                     className={`flex-1 p-4 rounded-xl border-l-4 transition-all ${
                       event.isCanvas
-                        ? 'border-[#D97757] bg-[#D97757]/10 dark:bg-[#D97757]/10 text-[#141413] dark:text-[#FAF9F5]'
+                        ? 'border-[var(--accent-fill)] bg-[var(--accent-soft)] dark:bg-[var(--accent-soft)] text-[var(--text-primary)]'
                         : event.isStudyBlock
-                        ? 'border-[#D97757] bg-[#D97757]/10 dark:bg-[#D97757]/15 text-[#141413] dark:text-[#FAF9F5]'
+                        ? 'border-[var(--accent-fill)] bg-[var(--accent-soft)] text-[var(--text-primary)]'
                         : isCurrent
-                        ? 'border-amber-500 bg-amber-50/80 dark:bg-amber-950/30 text-[#141413] dark:text-[#FAF9F5] shadow-xs'
+                        ? 'border-[var(--status-warn-border)] bg-[var(--status-warn-bg)] text-[var(--text-primary)] shadow-xs'
                         : isPast
-                        ? 'border-[#DFDACB] dark:border-[#2C2B27] bg-[#FAF9F5] dark:bg-[#252422]/40 text-[#6B6860] dark:text-[#B5B2A8] opacity-60'
-                        : 'border-[#DFDACB] dark:border-[#2C2B27] bg-white dark:bg-[#1A1917] text-[#141413] dark:text-[#FAF9F5] hover:border-[#D97757]'
+                        ? 'border-[var(--border-default)] bg-[var(--bg-subtle)]/40 text-[var(--text-muted)] opacity-60'
+                        : 'border-[var(--border-default)] bg-[var(--bg-surface)] text-[var(--text-primary)] hover:border-[var(--accent-fill)]'
                     }`}
                   >
                     <div className="flex items-start justify-between gap-3">
@@ -709,45 +709,45 @@ export const DailyRadarTab: React.FC<DailyRadarTabProps> = ({
                         <div className="flex items-center gap-2 flex-wrap">
                           <div className="flex items-center gap-1">
                             {event.isCanvas && (
-                              <svg className="w-3.5 h-3.5 text-[#D97757] dark:text-[#E59A7C] shrink-0" viewBox="0 0 24 24" fill="currentColor">
-                                <circle cx="12" cy="12" r="10" className="text-[#D97757]/20 dark:text-[#E59A7C]/20" />
-                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" className="text-[#D97757] dark:text-[#E59A7C]" />
+                              <svg className="w-3.5 h-3.5 text-[var(--accent-text)] shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                                <circle cx="12" cy="12" r="10" className="text-[var(--accent-text)]/20 " />
+                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" className="text-[var(--accent-text)]" />
                               </svg>
                             )}
                             <h4
                               className={`text-sm font-semibold truncate ${
-                                isPast ? 'line-through text-[#6B6860] dark:text-[#B5B2A8]' : 'text-[#141413] dark:text-[#FAF9F5]'
+                                isPast ? 'line-through text-[var(--text-muted)]' : 'text-[var(--text-primary)]'
                               }`}
                             >
                               {event.summary}
                             </h4>
                           </div>
                           {isCurrent && (
-                            <span className="px-1.5 py-0.2 text-[10px] font-bold bg-amber-500 text-white rounded">
+                            <span className="px-1.5 py-0.2 text-[10px] font-bold bg-[var(--status-warn-border)] text-white rounded">
                               {t('radar_live_now')}
                             </span>
                           )}
                           {event.isStudyBlock && (
-                            <span className="px-1.5 py-0.2 text-[10px] font-bold bg-[#D97757] text-white rounded">
+                            <span className="px-1.5 py-0.2 text-[10px] font-bold bg-[var(--accent-fill)] text-white rounded">
                               {t('radar_45m_focus')}
                             </span>
                           )}
                           {event.isCanvas && (
-                            <span className="px-1.5 py-0.2 text-[9px] font-bold bg-[#D97757] text-white rounded uppercase tracking-wider">
+                            <span className="px-1.5 py-0.2 text-[9px] font-bold bg-[var(--accent-fill)] text-white rounded uppercase tracking-wider">
                               {t('radar_lms_deadline')}
                             </span>
                           )}
                         </div>
 
                         {event.location && (
-                          <div className="text-[11px] text-[#6B6860] dark:text-[#B5B2A8] font-mono mt-1 truncate flex items-center gap-1">
-                            <MapPin className="w-3 h-3 text-[#6B6860] dark:text-[#B5B2A8] shrink-0" />
+                          <div className="text-[11px] text-[var(--text-muted)] font-mono mt-1 truncate flex items-center gap-1">
+                            <MapPin className="w-3 h-3 text-[var(--text-muted)] shrink-0" />
                             <span>{event.location}</span>
                           </div>
                         )}
 
                         {event.description && (
-                          <p className="text-xs text-[#6B6860] dark:text-[#B5B2A8] mt-1.5 line-clamp-2 leading-relaxed">
+                          <p className="text-xs text-[var(--text-muted)] mt-1.5 line-clamp-2 leading-relaxed">
                             {event.description.replace(/<[^>]*>?/gm, '')}
                           </p>
                         )}
@@ -773,8 +773,8 @@ export const DailyRadarTab: React.FC<DailyRadarTabProps> = ({
                             rel="noreferrer"
                               className={`p-1.5 rounded-lg transition-colors ${
                                 event.isCanvas
-                                  ? 'text-[#D97757] dark:text-[#E59A7C] hover:bg-[#D97757]/10'
-                                  : 'text-[#6B6860] hover:text-[#141413] dark:text-[#B5B2A8] dark:hover:text-[#FAF9F5]'
+                                  ? 'text-[var(--accent-text)] hover:bg-[var(--accent-soft)]'
+                                  : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
                               }`}
                             title={event.isCanvas ? t('radar_open_canvas') : t('radar_open_gcal')}
                           >
@@ -791,10 +791,10 @@ export const DailyRadarTab: React.FC<DailyRadarTabProps> = ({
         </div>
 
         {/* Footer info & Direct links */}
-        <div className="mt-6 pt-4 border-t border-[#DFDACB] dark:border-[#2C2B27] flex items-center justify-between text-xs text-[#6B6860] dark:text-[#B5B2A8]">
+        <div className="mt-6 pt-4 border-t border-[var(--border-default)] flex items-center justify-between text-xs text-[var(--text-muted)]">
           <button
             onClick={() => onOpenScheduleModal()}
-            className="font-semibold text-[#D97757] dark:text-[#E8A07E] hover:underline flex items-center gap-1 cursor-pointer"
+            className="font-semibold text-[var(--accent-text)] hover:underline flex items-center gap-1 cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>{t('radar_schedule_another')}</span>
@@ -803,7 +803,7 @@ export const DailyRadarTab: React.FC<DailyRadarTabProps> = ({
             href="https://calendar.google.com"
             target="_blank"
             rel="noreferrer"
-            className="font-medium hover:text-[#D97757] dark:hover:text-[#E59A7C] inline-flex items-center gap-1"
+            className="font-medium hover:text-[var(--accent-text)]  inline-flex items-center gap-1"
           >
             <span>{t('radar_open_gcal_btn')}</span>
             <ExternalLink className="w-3 h-3" />
@@ -816,42 +816,42 @@ export const DailyRadarTab: React.FC<DailyRadarTabProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div
             onClick={() => onNavigateToTab('canvas')}
-            className="p-4 bg-white dark:bg-[#1A1917] rounded-2xl border border-[#DFDACB] dark:border-[#2C2B27] hover:border-[#D97757] transition-all cursor-pointer shadow-xs group flex items-center justify-between"
+            className="p-4 bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] hover:border-[var(--accent-fill)] transition-all cursor-pointer shadow-xs group flex items-center justify-between"
           >
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-[#D97757]/15 text-[#D97757] dark:text-[#E59A7C] flex items-center justify-center shrink-0">
+              <div className="w-8 h-8 rounded-lg bg-[var(--accent-soft)] text-[var(--accent-text)] border border-[var(--accent-border)] flex items-center justify-center shrink-0">
                 <Layers className="w-4 h-4" />
               </div>
               <div>
-                <h4 className="text-xs font-bold text-[#141413] dark:text-[#FAF9F5]">
+                <h4 className="text-xs font-bold text-[var(--text-primary)]">
                   {t('radar_canvas_title')}
                 </h4>
-                <p className="text-[11px] text-[#6B6860] dark:text-[#B5B2A8]">
+                <p className="text-[11px] text-[var(--text-muted)]">
                   {t('radar_canvas_hint')}
                 </p>
               </div>
             </div>
-            <ArrowRight className="w-4 h-4 text-[#6B6860] dark:text-[#B5B2A8] group-hover:translate-x-1 transition-transform" />
+            <ArrowRight className="w-4 h-4 text-[var(--text-muted)] group-hover:translate-x-1 transition-transform" />
           </div>
 
           <div
             onClick={() => onNavigateToTab('gmail')}
-            className="p-4 bg-white dark:bg-[#1A1917] rounded-2xl border border-[#DFDACB] dark:border-[#2C2B27] hover:border-rose-400 dark:hover:border-rose-500 transition-all cursor-pointer shadow-xs group flex items-center justify-between"
+            className="p-4 bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] hover:border-rose-400 dark:hover:border-rose-500 transition-all cursor-pointer shadow-xs group flex items-center justify-between"
           >
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
                 <Mail className="w-4 h-4" />
               </div>
               <div>
-                <h4 className="text-xs font-bold text-[#141413] dark:text-[#FAF9F5]">
+                <h4 className="text-xs font-bold text-[var(--text-primary)]">
                   {t('radar_gmail_title')}
                 </h4>
-                <p className="text-[11px] text-[#6B6860] dark:text-[#B5B2A8]">
+                <p className="text-[11px] text-[var(--text-muted)]">
                   {t('radar_gmail_hint')}
                 </p>
               </div>
             </div>
-            <ArrowRight className="w-4 h-4 text-[#6B6860] dark:text-[#B5B2A8] group-hover:translate-x-1 transition-transform" />
+            <ArrowRight className="w-4 h-4 text-[var(--text-muted)] group-hover:translate-x-1 transition-transform" />
           </div>
         </div>
       )}

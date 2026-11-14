@@ -6,6 +6,12 @@
     <description>Plain-English updates to StudentOS — what changed and why it matters for studying.</description>
     <language>en-us</language>
     <item>
+      <title>v2.19.0 — Calmer Paper &amp; Slate Design, On-Demand Google Permissions &amp; 15-App Study Suite</title>
+      <link>https://sutdent-command-center.vercel.app/?changelog=2.19.0</link>
+      <pubDate>Sat, 14 Nov 2026 12:30:00 GMT</pubDate>
+      <description>StudentOS v2.19.0 introduces an eye-friendly Paper and Slate design for glare-free studying, on-demand Google permissions, a focused 15-app study suite, unified English and Vietnamese translations, and instant task updates.</description>
+    </item>
+    <item>
       <title>v2.18.5 — Homepage Links to the Privacy Policy for Google Verification</title>
       <link>https://sutdent-command-center.vercel.app/privacy</link>
       <pubDate>Sat, 17 Oct 2026 01:30:00 GMT</pubDate>

@@ -679,7 +679,7 @@ const ORIGIN_META: Record<DatedTask['origin'], { labelKey: string; chip: string 
   assignment: { labelKey: 'plan_origin_tracker', chip: 'bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300' },
   canvas: { labelKey: 'plan_origin_canvas', chip: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300' },
   classroom: { labelKey: 'plan_origin_classroom', chip: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' },
-  gmail: { labelKey: 'plan_origin_gmail', chip: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' },
+  gmail: { labelKey: 'plan_origin_gmail', chip: 'bg-[var(--status-warn-bg)] text-[var(--status-warn-text)] border border-[var(--status-warn-border)]' },
 };
 
 function dueNote(dueISO: string): string {
@@ -1101,10 +1101,10 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
       <div
         role="region"
         aria-label={t('plan_pending_aria')}
-        className="rounded-2xl border-2 border-[#D97757]/60 bg-[#FDF5F1] p-4 dark:border-[#D97757]/50 dark:bg-[#2A1E19]"
+        className="rounded-2xl border-2 border-[var(--accent-border)] bg-[var(--accent-soft)] p-4"
       >
-        <p className="flex items-center gap-2 text-sm font-bold text-[#1A1917] dark:text-[#F5F2EA]">
-          <GitCompare className="h-4 w-4 shrink-0 text-[#D97757]" aria-hidden="true" />
+        <p className="flex items-center gap-2 text-sm font-bold text-[var(--text-primary)]">
+          <GitCompare className="h-4 w-4 shrink-0 text-[var(--accent-text)]" aria-hidden="true" />
           {n === 0 ? t('plan_pending_none') : t(n === 1 ? 'plan_pending_one' : 'plan_pending_other', { count: n })}
         </p>
         {n > 0 && (
@@ -1114,19 +1114,19 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
                 key={i}
                 className={`break-words text-xs leading-relaxed ${
                   d.type === 'added'
-                    ? 'text-emerald-700 dark:text-emerald-300'
+                    ? 'text-[var(--status-ok-text)]'
                     : d.type === 'removed'
                       ? 'text-rose-700 dark:text-rose-300'
-                      : 'text-[#3A3835] dark:text-[#D6D2C7]'
+                      : 'text-[var(--text-secondary)]'
                 }`}
               >
                 {diffLine(d)}
               </li>
             ))}
-            {n > 12 && <li className="text-xs text-[#6B6860] dark:text-[#A8A49A]">{t('plan_more_count', { count: n - 12 })}</li>}
+            {n > 12 && <li className="text-xs text-[var(--text-muted)]">{t('plan_more_count', { count: n - 12 })}</li>}
           </ul>
         )}
-        <p className="mt-2 text-[11px] text-[#6B6860] dark:text-[#A8A49A]">
+        <p className="mt-2 text-[11px] text-[var(--text-muted)]">
           {t('plan_pending_note')}
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
@@ -1134,7 +1134,7 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
             <button
               type="button"
               onClick={applyPending}
-              className="rounded-xl bg-[#D97757] px-4 py-2 text-xs font-bold text-white transition hover:bg-[#C86646]"
+              className="rounded-xl bg-[var(--accent-fill)] px-4 py-2 text-xs font-bold text-white transition hover:bg-[var(--accent-hover)]"
             >
               {t('plan_apply_btn')}
             </button>
@@ -1142,7 +1142,7 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
           <button
             type="button"
             onClick={discardPending}
-            className="rounded-xl border border-[#DFDACB] bg-white px-4 py-2 text-xs font-bold text-[#6B6860] transition hover:border-[#D97757] dark:border-[#2C2B27] dark:bg-[#1A1917] dark:text-[#A8A49A]"
+            className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] px-4 py-2 text-xs font-bold text-[var(--text-muted)] transition hover:border-[var(--accent-border)] hover:bg-[var(--bg-hover)]"
           >
             {n > 0 ? t('plan_keep_current_btn') : t('close')}
           </button>
@@ -1155,12 +1155,12 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
   const renderUndated = () => {
     if (undated.length === 0) return null;
     return (
-      <div className="mx-auto w-full max-w-3xl rounded-3xl border border-amber-300 bg-amber-50 p-5 shadow-card dark:border-amber-800 dark:bg-amber-950/30">
-        <p className="flex items-center gap-2 text-sm font-bold text-amber-900 dark:text-amber-100">
+      <div className="mx-auto w-full max-w-3xl rounded-3xl border border-[var(--status-warn-border)] bg-[var(--status-warn-bg)] p-5 shadow-card">
+        <p className="flex items-center gap-2 text-sm font-bold text-[var(--status-warn-text)]">
           <CalendarClock className="h-4 w-4 shrink-0" aria-hidden="true" />
           {t('plan_undated_title')} ({undated.length})
         </p>
-        <p className="mt-1 text-xs leading-relaxed text-amber-800 dark:text-amber-200">
+        <p className="mt-1 text-xs leading-relaxed text-[var(--status-warn-text)]">
           {t('plan_undated_sub')}
         </p>
         <ul className="mt-3 space-y-2">
@@ -1169,21 +1169,21 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
             return (
               <li
                 key={u.key}
-                className="flex items-start justify-between gap-3 rounded-2xl border border-amber-200 bg-white p-3 dark:border-amber-900 dark:bg-[#1F1E1B]"
+                className="flex items-start justify-between gap-3 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-3"
               >
                 <div className="min-w-0">
                   <p className="flex flex-wrap items-center gap-1.5">
                     <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${meta.chip}`}>{t(meta.labelKey)}</span>
-                    <span className="min-w-0 break-words text-xs font-bold text-[#1A1917] dark:text-[#F5F2EA]">{u.title}</span>
+                    <span className="min-w-0 break-words text-xs font-bold text-[var(--text-primary)]">{u.title}</span>
                   </p>
-                  <p className="mt-1 text-[11px] text-[#6B6860] dark:text-[#A8A49A]">{u.subject}</p>
+                  <p className="mt-1 text-[11px] text-[var(--text-muted)]">{u.subject}</p>
                 </div>
                 {u.url && (
                   <a
                     href={u.url}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-[#DFDACB] px-2 py-1 text-[11px] font-bold text-[#6B6860] transition hover:border-[#D97757] hover:text-[#D97757] dark:border-[#2C2B27] dark:text-[#A8A49A]"
+                    className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-[var(--border-default)] px-2 py-1 text-[11px] font-bold text-[var(--text-muted)] transition hover:border-[var(--accent-border)] hover:text-[var(--accent-text)]  "
                   >
                     <ExternalLink className="h-3 w-3" aria-hidden="true" />
                     {t('common_open')}
@@ -1193,7 +1193,7 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
             );
           })}
           {undated.length > 10 && (
-            <li className="px-1 text-[11px] text-amber-800 dark:text-amber-200">{t('plan_more_items', { count: undated.length - 10 })}</li>
+            <li className="px-1 text-[11px] text-[var(--status-warn-text)]">{t('plan_more_items', { count: undated.length - 10 })}</li>
           )}
         </ul>
       </div>
@@ -1204,18 +1204,18 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
   const renderHistory = () => {
     if (history.length === 0) return null;
     return (
-      <div className="mx-auto w-full max-w-3xl rounded-3xl border border-[#DFDACB] bg-white shadow-card dark:border-[#2C2B27] dark:bg-[#1A1917]">
+      <div className="mx-auto w-full max-w-3xl rounded-3xl border border-[var(--border-default)] bg-[var(--bg-surface)] shadow-card">
         <button
           type="button"
           onClick={() => setShowHistory((v) => !v)}
           aria-expanded={showHistory}
           className="flex w-full items-center justify-between gap-2 p-5 text-left"
         >
-          <span className="flex min-w-0 items-center gap-2 text-sm font-bold text-[#1A1917] dark:text-[#F5F2EA]">
-            <History className="h-4 w-4 shrink-0 text-[#D97757]" aria-hidden="true" />
+          <span className="flex min-w-0 items-center gap-2 text-sm font-bold text-[var(--text-primary)]">
+            <History className="h-4 w-4 shrink-0 text-[var(--accent-text)]" aria-hidden="true" />
             <span className="truncate">{t('plan_history_title', { count: history.length })}</span>
           </span>
-          <ChevronRight className={`h-4 w-4 shrink-0 text-[#6B6860] transition-transform dark:text-[#A8A49A] ${showHistory ? 'rotate-90' : ''}`} aria-hidden="true" />
+          <ChevronRight className={`h-4 w-4 shrink-0 text-[var(--text-muted)] transition-transform  ${showHistory ? 'rotate-90' : ''}`} aria-hidden="true" />
         </button>
         {showHistory && (
           <ul className="space-y-2 px-5 pb-5">
@@ -1230,13 +1230,13 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
               return (
                 <li
                   key={v.id}
-                  className="flex flex-col gap-2 rounded-2xl border border-[#DFDACB] bg-[#FAF9F5] p-3 sm:flex-row sm:items-center sm:justify-between dark:border-[#2C2B27] dark:bg-[#1F1E1B]"
+                  className="flex flex-col gap-2 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-subtle)] p-3 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div className="min-w-0">
-                    <p className="break-words text-xs font-bold text-[#1A1917] dark:text-[#F5F2EA]">
+                    <p className="break-words text-xs font-bold text-[var(--text-primary)]">
                       {t('plan_history_before')}: “{v.label}”
                     </p>
-                    <p className="text-[11px] text-[#6B6860] dark:text-[#A8A49A]">
+                    <p className="text-[11px] text-[var(--text-muted)]">
                       {when} · {t(sessions === 1 ? 'plan_session_one' : 'plan_session_other', { count: sessions })}
                     </p>
                   </div>
@@ -1244,7 +1244,7 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
                     type="button"
                     onClick={() => restoreVersion(v, t('plan_restore_label'))}
                     disabled={phase !== null}
-                    className="inline-flex shrink-0 items-center justify-center gap-1 rounded-lg border border-[#DFDACB] bg-white px-3 py-1.5 text-[11px] font-bold text-[#6B6860] transition hover:border-[#D97757] hover:text-[#D97757] disabled:opacity-50 dark:border-[#2C2B27] dark:bg-[#1A1917] dark:text-[#A8A49A]"
+                    className="inline-flex shrink-0 items-center justify-center gap-1 rounded-lg border border-[var(--border-default)] bg-white px-3 py-1.5 text-[11px] font-bold text-[var(--text-muted)] transition hover:border-[var(--accent-border)] hover:text-[var(--accent-text)] disabled:opacity-50   "
                   >
                     <Undo2 className="h-3 w-3" aria-hidden="true" />
                     {t('plan_restore_btn')}
@@ -1263,29 +1263,29 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
   if (tasks.length === 0) {
     return (
       <div className="mx-auto w-full max-w-3xl space-y-4 overflow-x-hidden px-1">
-        <div className="rounded-3xl border border-[#DFDACB] bg-white p-6 shadow-card dark:border-[#2C2B27] dark:bg-[#1A1917] sm:p-8">
+        <div className="rounded-3xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-6 shadow-card sm:p-8">
           <div className="flex items-start gap-3">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 text-white shadow-sm">
               <CalendarCheck className="h-5 w-5" aria-hidden="true" />
             </div>
             <div className="min-w-0">
-              <h2 className="text-lg font-bold text-[#1A1917] dark:text-[#F5F2EA]">{t('plan_title')}</h2>
-              <p className="mt-1 text-sm leading-relaxed text-[#6B6860] dark:text-[#A8A49A]">
+              <h2 className="text-lg font-bold text-[var(--text-primary)]">{t('plan_title')}</h2>
+              <p className="mt-1 text-sm leading-relaxed text-[var(--text-muted)]">
                 {t('plan_empty_intro')}
               </p>
             </div>
           </div>
-          <div className="mt-6 flex flex-col items-center rounded-2xl border border-dashed border-[#DFDACB] px-4 py-10 text-center dark:border-[#2C2B27]">
-            <ListPlus className="h-8 w-8 text-[#A8A49A]" aria-hidden="true" />
-            <p className="mt-3 max-w-sm text-sm font-semibold text-[#1A1917] dark:text-[#F5F2EA]">
+          <div className="mt-6 flex flex-col items-center rounded-2xl border border-dashed border-[var(--border-default)] px-4 py-10 text-center ">
+            <ListPlus className="h-8 w-8 text-[var(--text-muted)]" aria-hidden="true" />
+            <p className="mt-3 max-w-sm text-sm font-semibold text-[var(--text-primary)]">
               {t('plan_nothing_dated_t')}
             </p>
-            <p className="mt-1 max-w-sm text-xs leading-relaxed text-[#6B6860] dark:text-[#A8A49A]">
+            <p className="mt-1 max-w-sm text-xs leading-relaxed text-[var(--text-muted)]">
               {t('plan_nothing_dated_s')}
             </p>
           </div>
           {!hasMeetingFeed && (
-            <p className="mt-4 flex items-start gap-2 text-xs leading-relaxed text-[#6B6860] dark:text-[#A8A49A]">
+            <p className="mt-4 flex items-start gap-2 text-xs leading-relaxed text-[var(--text-muted)]">
               <CalendarX2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
               {t('plan_connect_gcal_empty')}
             </p>
@@ -1299,15 +1299,15 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
   return (
     <div className="mx-auto w-full max-w-4xl space-y-4 overflow-x-hidden px-1">
       {/* Header */}
-      <div className="rounded-3xl border border-[#DFDACB] bg-white p-5 shadow-card dark:border-[#2C2B27] dark:bg-[#1A1917] sm:p-6">
+      <div className="rounded-3xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-5 shadow-card sm:p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex min-w-0 items-start gap-3">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 text-white shadow-sm">
               <Sparkles className="h-5 w-5" aria-hidden="true" />
             </div>
             <div className="min-w-0">
-              <h2 className="text-lg font-bold text-[#1A1917] dark:text-[#F5F2EA]">{t('plan_title')}</h2>
-              <p className="mt-0.5 text-xs leading-relaxed text-[#6B6860] dark:text-[#A8A49A]">
+              <h2 className="text-lg font-bold text-[var(--text-primary)]">{t('plan_title')}</h2>
+              <p className="mt-0.5 text-xs leading-relaxed text-[var(--text-muted)]">
                 {t(tasks.length === 1 ? 'plan_hdr_items_one' : 'plan_hdr_items_other', { count: tasks.length })}
                 {hasMeetingFeed ? t(busySpans.length === 1 ? 'plan_hdr_busy_one' : 'plan_hdr_busy_other', { count: busySpans.length }) : ''}
                 {plan ? t('plan_hdr_hours', { hours: Math.round(totalStudyMin / 60) }) : ''}
@@ -1321,7 +1321,7 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
                 onClick={undoLast}
                 disabled={phase !== null}
                 aria-label={t('plan_undo_aria')}
-                className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-[#DFDACB] bg-white px-3 py-2 text-xs font-bold text-[#6B6860] transition hover:border-[#D97757] hover:text-[#D97757] disabled:cursor-not-allowed disabled:opacity-60 dark:border-[#2C2B27] dark:bg-[#1A1917] dark:text-[#A8A49A]"
+                className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-[var(--border-default)] bg-white px-3 py-2 text-xs font-bold text-[var(--text-muted)] transition hover:border-[var(--accent-border)] hover:text-[var(--accent-text)] disabled:cursor-not-allowed disabled:opacity-60   "
               >
                 <Undo2 className="h-4 w-4" aria-hidden="true" />
                 {t('plan_undo_btn')}
@@ -1332,7 +1332,7 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
               onClick={handleRegenerate}
               disabled={phase !== null}
               aria-label={t('plan_regen_aria')}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#D97757] px-4 py-2 text-xs font-bold text-white transition hover:bg-[#C86646] disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--accent-fill)] px-4 py-2 text-xs font-bold text-white transition hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {phase ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <RefreshCw className="h-4 w-4" aria-hidden="true" />}
               {phase ? t('plan_planning_btn') : t('plan_regen')}
@@ -1352,12 +1352,12 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
               <Sparkles className="h-3 w-3" aria-hidden="true" />
               {plan.mode === 'ai' ? t('plan_badge_ai') : t('plan_badge_offline')}
             </span>
-            <span className="text-[#6B6860] dark:text-[#A8A49A]">
+            <span className="text-[var(--text-muted)]">
               {t('plan_built_at')}{' '}
               {formatDate(new Date(plan.generatedAt), { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
             </span>
             {constraints.avoidMornings && (
-              <span className="rounded-full bg-amber-100 px-2.5 py-1 font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+              <span className="rounded-full bg-[var(--status-warn-bg)] px-2.5 py-1 font-semibold text-[var(--status-warn-text)] border border-[var(--status-warn-border)]">
                 {t('plan_chip_no_mornings')}
               </span>
             )}
@@ -1389,7 +1389,7 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
         {aiError && (
           <div
             role="alert"
-            className="mt-3 flex items-start gap-2 rounded-2xl border border-amber-300 bg-amber-50 p-3 text-xs leading-relaxed text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200"
+            className="mt-3 flex items-start gap-2 rounded-2xl border border-[var(--status-warn-border)] bg-[var(--status-warn-bg)] p-3 text-xs leading-relaxed text-[var(--status-warn-text)]"
           >
             <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
             <p>
@@ -1399,7 +1399,7 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
           </div>
         )}
         {!hasMeetingFeed && tasks.length > 0 && (
-          <p className="mt-3 flex items-start gap-2 text-xs leading-relaxed text-[#6B6860] dark:text-[#A8A49A]">
+          <p className="mt-3 flex items-start gap-2 text-xs leading-relaxed text-[var(--text-muted)]">
             <CalendarX2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
             {t('plan_connect_gcal_tip')}
           </p>
@@ -1409,14 +1409,14 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
 
       {/* Loading skeleton */}
       {phase && (
-        <div aria-busy="true" aria-label={t('plan_busy_aria')} className="rounded-3xl border border-[#DFDACB] bg-white p-5 shadow-card dark:border-[#2C2B27] dark:bg-[#1A1917]">
-          <p className="flex items-center gap-2 text-sm font-semibold text-[#1A1917] dark:text-[#F5F2EA]">
-            <Loader2 className="h-4 w-4 animate-spin text-[#D97757]" aria-hidden="true" />
+        <div aria-busy="true" aria-label={t('plan_busy_aria')} className="rounded-3xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-5 shadow-card">
+          <p className="flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]">
+            <Loader2 className="h-4 w-4 animate-spin text-[var(--accent-text)]" aria-hidden="true" />
             {phase}
           </p>
           <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3" aria-hidden="true">
             {[0, 1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="animate-pulse rounded-2xl border border-[#DFDACB] p-3 dark:border-[#2C2B27]">
+              <div key={i} className="animate-pulse rounded-2xl border border-[var(--border-default)] p-3 ">
                 <div className="h-3 w-2/3 rounded bg-stone-200 dark:bg-stone-700" />
                 <div className="mt-2 h-2 w-1/2 rounded bg-stone-100 dark:bg-stone-800" />
                 <div className="mt-2 h-2 w-full rounded bg-stone-100 dark:bg-stone-800" />
@@ -1449,15 +1449,15 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
                     onClick={() => setSelectedDay(day)}
                     className={`flex min-w-[64px] flex-1 flex-col items-center gap-0.5 rounded-2xl border px-2 py-2 text-xs font-bold transition ${
                       active
-                        ? 'border-[#D97757] bg-[#D97757] text-white shadow-sm'
-                        : 'border-[#DFDACB] bg-white text-[#6B6860] hover:border-[#D97757]/50 dark:border-[#2C2B27] dark:bg-[#1A1917] dark:text-[#A8A49A]'
+                        ? 'border-[var(--accent-fill)] bg-[var(--accent-fill)] text-white shadow-sm'
+                        : 'border-[var(--border-default)] bg-white text-[var(--text-muted)] hover:border-[var(--accent-border)]   '
                     }`}
                   >
                     <span className="text-[10px] font-semibold uppercase tracking-wide opacity-80">
                       {shortWeekday(day)}
                     </span>
                     <span className="text-sm">{d.getDate()}</span>
-                    <span className={`rounded-full px-1.5 text-[10px] font-bold ${active ? 'bg-white/25 text-white' : 'bg-[#D97757]/10 text-[#D97757]'}`}>
+                    <span className={`rounded-full px-1.5 text-[10px] font-bold ${active ? 'bg-white/25 text-white' : 'bg-[var(--accent-soft)] text-[var(--accent-text)]'}`}>
                       {n === 0 ? '·' : t(n === 1 ? 'plan_block_one' : 'plan_block_other', { count: n })}
                     </span>
                   </button>
@@ -1467,12 +1467,12 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
 
             <section
               aria-label={dayLabel(selectedDay)}
-              className="rounded-3xl border border-[#DFDACB] bg-white p-5 shadow-card dark:border-[#2C2B27] dark:bg-[#1A1917]"
+              className="rounded-3xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-5 shadow-card"
             >
               <div className="flex items-center justify-between gap-2">
                 <div>
-                  <h3 className="text-base font-bold text-[#1A1917] dark:text-[#F5F2EA]">{dayLabel(selectedDay)}</h3>
-                  <p className="text-xs text-[#6B6860] dark:text-[#A8A49A]">
+                  <h3 className="text-base font-bold text-[var(--text-primary)]">{dayLabel(selectedDay)}</h3>
+                  <p className="text-xs text-[var(--text-muted)]">
                     {dayBlocks.length === 0 && meetingsToday.length === 0
                       ? t('plan_nothing_scheduled')
                       : t(dayBlocks.length === 1 ? 'plan_day_summary_one' : 'plan_day_summary_other', {
@@ -1483,10 +1483,10 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
                   </p>
                 </div>
                 <div className="flex items-center gap-1">
-                  <button type="button" onClick={() => stepDay(-1)} disabled={days.indexOf(selectedDay) === 0} aria-label={t('plan_prev_day_aria')} className="rounded-xl border border-[#DFDACB] p-2 text-[#6B6860] transition hover:border-[#D97757] disabled:opacity-40 dark:border-[#2C2B27] dark:text-[#A8A49A]">
+                  <button type="button" onClick={() => stepDay(-1)} disabled={days.indexOf(selectedDay) === 0} aria-label={t('plan_prev_day_aria')} className="rounded-xl border border-[var(--border-default)] p-2 text-[var(--text-muted)] transition hover:border-[var(--accent-border)] disabled:opacity-40  ">
                     <ChevronLeft className="h-4 w-4" aria-hidden="true" />
                   </button>
-                  <button type="button" onClick={() => stepDay(1)} disabled={days.indexOf(selectedDay) === days.length - 1} aria-label={t('plan_next_day_aria')} className="rounded-xl border border-[#DFDACB] p-2 text-[#6B6860] transition hover:border-[#D97757] disabled:opacity-40 dark:border-[#2C2B27] dark:text-[#A8A49A]">
+                  <button type="button" onClick={() => stepDay(1)} disabled={days.indexOf(selectedDay) === days.length - 1} aria-label={t('plan_next_day_aria')} className="rounded-xl border border-[var(--border-default)] p-2 text-[var(--text-muted)] transition hover:border-[var(--accent-border)] disabled:opacity-40  ">
                     <ChevronRight className="h-4 w-4" aria-hidden="true" />
                   </button>
                 </div>
@@ -1523,17 +1523,17 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
                       key={b.id}
                       className={`rounded-2xl border p-4 ${b.tentative ? 'border-dashed border-2' : ''} ${
                         b.kind === 'review'
-                          ? `${b.tentative ? 'border-amber-400 dark:border-amber-700' : 'border-emerald-200 dark:border-emerald-900'} bg-emerald-50 dark:bg-emerald-950/40`
-                          : `${b.tentative ? 'border-amber-400 dark:border-amber-700' : 'border-violet-200 dark:border-violet-900'} bg-violet-50 dark:bg-violet-950/30`
-                      } ${b.locked ? 'ring-2 ring-[#D97757]/40' : ''}`}
+                          ? `${b.tentative ? 'border-[var(--status-warn-border)]' : 'border-[var(--status-ok-border)]'} bg-[var(--status-ok-bg)]`
+                          : `${b.tentative ? 'border-[var(--status-warn-border)]' : 'border-[var(--border-default)]'} bg-[var(--bg-subtle)]`
+                      } ${b.locked ? 'ring-2 ring-[var(--accent-fill)]/40' : ''}`}
                     >
                       <div className="flex items-start justify-between gap-2">
-                        <p className="flex items-center gap-1.5 text-sm font-bold text-[#1A1917] dark:text-[#F5F2EA]">
+                        <p className="flex items-center gap-1.5 text-sm font-bold text-[var(--text-primary)]">
                           {b.kind === 'review'
                             ? <BookOpen className="h-4 w-4 shrink-0 text-emerald-600" aria-hidden="true" />
                             : <CalendarCheck className="h-4 w-4 shrink-0 text-violet-600" aria-hidden="true" />}
                           {fmtTime(b.startMin)} – {fmtTime(b.endMin)}
-                          <span className="text-xs font-semibold text-[#6B6860] dark:text-[#A8A49A]">({t('plan_min_short', { count: dur })})</span>
+                          <span className="text-xs font-semibold text-[var(--text-muted)]">({t('plan_min_short', { count: dur })})</span>
                         </p>
                         <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
                           <button
@@ -1543,8 +1543,8 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
                             aria-label={b.locked ? t('plan_unlock_aria', { title: b.title }) : t('plan_lock_aria', { title: b.title })}
                             className={`inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-[11px] font-bold transition ${
                               b.locked
-                                ? 'border-[#D97757] bg-[#D97757] text-white hover:bg-[#C86646]'
-                                : 'border-[#DFDACB] text-[#6B6860] hover:border-[#D97757] hover:text-[#D97757] dark:border-[#2C2B27] dark:text-[#A8A49A]'
+                                ? 'border-[var(--accent-fill)] bg-[var(--accent-fill)] text-white hover:bg-[var(--accent-hover)]'
+                                : 'border-[var(--border-default)] text-[var(--text-muted)] hover:border-[var(--accent-border)] hover:text-[var(--accent-text)]  '
                             }`}
                           >
                             {b.locked ? <LockOpen className="h-3 w-3" aria-hidden="true" /> : <Lock className="h-3 w-3" aria-hidden="true" />}
@@ -1555,7 +1555,7 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
                               type="button"
                               onClick={() => beginEdit(b)}
                               aria-label={t('plan_edit_time_aria', { title: b.title })}
-                              className="inline-flex items-center gap-1 rounded-lg border border-[#DFDACB] px-2 py-1 text-[11px] font-bold text-[#6B6860] transition hover:border-[#D97757] hover:text-[#D97757] dark:border-[#2C2B27] dark:text-[#A8A49A]"
+                              className="inline-flex items-center gap-1 rounded-lg border border-[var(--border-default)] px-2 py-1 text-[11px] font-bold text-[var(--text-muted)] transition hover:border-[var(--accent-border)] hover:text-[var(--accent-text)]  "
                             >
                               <Pencil className="h-3 w-3" aria-hidden="true" />
                               {t('plan_edit_time_btn')}
@@ -1563,19 +1563,19 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
                           )}
                         </div>
                       </div>
-                      <p className="mt-1 text-sm font-bold leading-snug text-[#1A1917] dark:text-[#F5F2EA]">
+                      <p className="mt-1 text-sm font-bold leading-snug text-[var(--text-primary)]">
                         {b.title}
                       </p>
-                      <p className="text-xs font-medium text-[#6B6860] dark:text-[#A8A49A]">{b.subject}</p>
+                      <p className="text-xs font-medium text-[var(--text-muted)]">{b.subject}</p>
                       {(b.locked || b.tentative) && (
                         <p className="mt-1.5 flex flex-wrap gap-1.5">
                           {b.locked && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-[#D97757]/15 px-2 py-0.5 text-[10px] font-bold text-[#B85C38] dark:text-[#F0A385]">
+                            <span className="inline-flex items-center gap-1 rounded-full bg-[var(--accent-soft)] px-2 py-0.5 text-[10px] font-bold text-[var(--accent-text)]">
                               🔒 {t('plan_locked_badge')}
                             </span>
                           )}
                           {b.tentative && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">
+                            <span className="inline-flex items-center gap-1 rounded-full bg-[var(--status-warn-bg)] px-2 py-0.5 text-[10px] font-bold text-[var(--status-warn-text)] border border-[var(--status-warn-border)]">
                               <TriangleAlert className="h-3 w-3" aria-hidden="true" />
                               {t('plan_tentative_badge')}
                             </span>
@@ -1583,22 +1583,22 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
                         </p>
                       )}
                       {b.manual && b.locked && (
-                        <p className="mt-1 text-[11px] font-semibold text-[#B85C38] dark:text-[#F0A385]">
+                        <p className="mt-1 text-[11px] font-semibold text-[var(--accent-text)]">
                           {t('plan_manual_locked_note')}
                         </p>
                       )}
-                      <p className="mt-1 text-xs italic leading-snug text-[#6B6860] dark:text-[#A8A49A]">
+                      <p className="mt-1 text-xs italic leading-snug text-[var(--text-muted)]">
                         {b.reason}
                       </p>
                       {editingId === b.id && (
-                        <div className="mt-3 rounded-xl border border-[#DFDACB] bg-white p-3 dark:border-[#2C2B27] dark:bg-[#1F1E1B]">
+                        <div className="mt-3 rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-3">
                           <div className="flex flex-wrap items-center gap-2">
                             <label className="sr-only" htmlFor={`day-${b.id}`}>{t('plan_field_day')}</label>
                             <select
                               id={`day-${b.id}`}
                               value={editDay}
                               onChange={(ev) => setEditDay(ev.target.value)}
-                              className="rounded-lg border border-[#DFDACB] bg-white px-2 py-1.5 text-xs font-bold text-[#1A1917] dark:border-[#2C2B27] dark:bg-[#1A1917] dark:text-[#F5F2EA]"
+                              className="rounded-lg border border-[var(--border-default)] bg-white px-2 py-1.5 text-xs font-bold text-[var(--text-primary)]"
                             >
                               {days.map((d) => (
                                 <option key={d} value={d}>
@@ -1612,44 +1612,44 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
                               type="time"
                               value={editStart}
                               onChange={(ev) => setEditStart(ev.target.value)}
-                              className="rounded-lg border border-[#DFDACB] bg-white px-2 py-1.5 text-xs font-bold text-[#1A1917] dark:border-[#2C2B27] dark:bg-[#1A1917] dark:text-[#F5F2EA]"
+                              className="rounded-lg border border-[var(--border-default)] bg-white px-2 py-1.5 text-xs font-bold text-[var(--text-primary)]"
                             />
-                            <span className="text-xs font-bold text-[#6B6860] dark:text-[#A8A49A]">–</span>
+                            <span className="text-xs font-bold text-[var(--text-muted)]">–</span>
                             <label className="sr-only" htmlFor={`end-${b.id}`}>{t('plan_field_end')}</label>
                             <input
                               id={`end-${b.id}`}
                               type="time"
                               value={editEnd}
                               onChange={(ev) => setEditEnd(ev.target.value)}
-                              className="rounded-lg border border-[#DFDACB] bg-white px-2 py-1.5 text-xs font-bold text-[#1A1917] dark:border-[#2C2B27] dark:bg-[#1A1917] dark:text-[#F5F2EA]"
+                              className="rounded-lg border border-[var(--border-default)] bg-white px-2 py-1.5 text-xs font-bold text-[var(--text-primary)]"
                             />
                             <button
                               type="button"
                               onClick={() => saveEdit(b)}
                               disabled={!valid}
-                              className="rounded-lg bg-[#D97757] px-3 py-1.5 text-xs font-bold text-white transition hover:bg-[#B85C38] disabled:cursor-not-allowed disabled:opacity-50"
+                              className="rounded-lg bg-[var(--accent-fill)] px-3 py-1.5 text-xs font-bold text-white transition hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
                             >
                               {t('common_save')}
                             </button>
                             <button
                               type="button"
                               onClick={() => setEditingId(null)}
-                              className="rounded-lg border border-[#DFDACB] px-3 py-1.5 text-xs font-bold text-[#6B6860] dark:border-[#2C2B27] dark:text-[#A8A49A]"
+                              className="rounded-lg border border-[var(--border-default)] px-3 py-1.5 text-xs font-bold text-[var(--text-muted)]"
                             >
                               {t('cancel')}
                             </button>
                           </div>
                           {!valid && (
-                            <p className="mt-2 text-[11px] font-semibold text-amber-700 dark:text-amber-300">
+                            <p className="mt-2 text-[11px] font-semibold text-[var(--status-warn-text)]">
                               {t('plan_edit_invalid')}
                             </p>
                           )}
                           {valid && clash && (
-                            <p className="mt-2 text-[11px] font-semibold text-amber-700 dark:text-amber-300">
+                            <p className="mt-2 text-[11px] font-semibold text-[var(--status-warn-text)]">
                               {t('plan_edit_clash', { day: dayLabel(targetDay).split('·')[0].trim() })}.
                             </p>
                           )}
-                          <p className="mt-1 text-[11px] text-[#6B6860] dark:text-[#A8A49A]">
+                          <p className="mt-1 text-[11px] text-[var(--text-muted)]">
                             {t('plan_edit_locks_note')}
                           </p>
                         </div>
@@ -1658,13 +1658,13 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
                   );
                 })}
                 {breaks.length > 0 && (
-                  <p className="flex items-center gap-1.5 px-1 text-xs font-medium text-[#6B6860] dark:text-[#A8A49A]">
+                  <p className="flex items-center gap-1.5 px-1 text-xs font-medium text-[var(--text-muted)]">
                     <Coffee className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                     {t(breaks.length === 1 ? 'plan_breather_one' : 'plan_breather_other', { count: breaks.length })}
                   </p>
                 )}
                 {isEmpty && (
-                  <p className="rounded-2xl border border-dashed border-[#DFDACB] p-6 text-center text-xs text-[#A8A49A] dark:border-[#2C2B27]">
+                  <p className="rounded-2xl border border-dashed border-[var(--border-default)] p-6 text-center text-xs text-[var(--text-muted)] ">
                     {t('plan_open_day')}
                   </p>
                 )}
@@ -1676,18 +1676,18 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
 
       {/* Connected resources — the todo lists behind this plan, no tab-hopping */}
       {plan && !phase && (
-        <div className="mx-auto w-full max-w-3xl rounded-3xl border border-[#DFDACB] bg-white shadow-card dark:border-[#2C2B27] dark:bg-[#1A1917]">
+        <div className="mx-auto w-full max-w-3xl rounded-3xl border border-[var(--border-default)] bg-[var(--bg-surface)] shadow-card">
           <button
             type="button"
             onClick={() => setShowSources((v) => !v)}
             aria-expanded={showSources}
             className="flex w-full items-center justify-between gap-2 p-5 text-left"
           >
-            <span className="flex min-w-0 items-center gap-2 text-sm font-bold text-[#1A1917] dark:text-[#F5F2EA]">
-              <ListTodo className="h-4 w-4 shrink-0 text-[#D97757]" aria-hidden="true" />
+            <span className="flex min-w-0 items-center gap-2 text-sm font-bold text-[var(--text-primary)]">
+              <ListTodo className="h-4 w-4 shrink-0 text-[var(--accent-text)]" aria-hidden="true" />
               <span className="truncate">{t(tasks.length === 1 ? 'plan_from_items_one' : 'plan_from_items_other', { count: tasks.length })}</span>
             </span>
-            <ChevronRight className={`h-4 w-4 shrink-0 text-[#6B6860] transition-transform dark:text-[#A8A49A] ${showSources ? 'rotate-90' : ''}`} aria-hidden="true" />
+            <ChevronRight className={`h-4 w-4 shrink-0 text-[var(--text-muted)] transition-transform  ${showSources ? 'rotate-90' : ''}`} aria-hidden="true" />
           </button>
           {showSources && (
             <ul className="space-y-2 px-5 pb-5">
@@ -1697,22 +1697,22 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
                 return (
                   <li
                     key={item.key}
-                    className="flex items-start justify-between gap-3 rounded-2xl border border-[#DFDACB] bg-[#FAF9F5] p-3 dark:border-[#2C2B27] dark:bg-[#1F1E1B]"
+                    className="flex items-start justify-between gap-3 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-subtle)] p-3"
                   >
                     <div className="min-w-0">
                       <p className="flex flex-wrap items-center gap-1.5">
                         <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${meta.chip}`}>{t(meta.labelKey)}</span>
-                        <span className="min-w-0 break-words text-xs font-bold text-[#1A1917] dark:text-[#F5F2EA]">{item.title}</span>
+                        <span className="min-w-0 break-words text-xs font-bold text-[var(--text-primary)]">{item.title}</span>
                         {item.tentative && (
-                          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">
+                          <span className="rounded-full bg-[var(--status-warn-bg)] px-2 py-0.5 text-[10px] font-bold text-[var(--status-warn-text)] border border-[var(--status-warn-border)]">
                             {t('plan_tentative_badge')}
                           </span>
                         )}
                       </p>
-                      <p className="mt-1 text-[11px] text-[#6B6860] dark:text-[#A8A49A]">
+                      <p className="mt-1 text-[11px] text-[var(--text-muted)]">
                         {item.subject} · {dueNote(item.dueISO)} · ~{item.minutes} {t('plan_min_unit')}
                       </p>
-                      <p className={`mt-0.5 text-[11px] font-semibold ${placed > 0 ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-700 dark:text-amber-300'}`}>
+                      <p className={`mt-0.5 text-[11px] font-semibold ${placed > 0 ? 'text-[var(--status-ok-text)]' : 'text-[var(--status-warn-text)]'}`}>
                         {placed > 0
                           ? t(placed === 1 ? 'plan_placed_one' : 'plan_placed_other', { count: placed })
                           : t('plan_not_placed')}
@@ -1723,7 +1723,7 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
                         href={item.url}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-[#DFDACB] px-2 py-1 text-[11px] font-bold text-[#6B6860] transition hover:border-[#D97757] hover:text-[#D97757] dark:border-[#2C2B27] dark:text-[#A8A49A]"
+                        className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-[var(--border-default)] px-2 py-1 text-[11px] font-bold text-[var(--text-muted)] transition hover:border-[var(--accent-border)] hover:text-[var(--accent-text)]  "
                       >
                         <ExternalLink className="h-3 w-3" aria-hidden="true" />
                         {t('common_open')}
@@ -1741,17 +1741,17 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
       {renderHistory()}
 
       {/* Chat re-plan */}
-      <div className="rounded-3xl border border-[#DFDACB] bg-white p-5 shadow-card dark:border-[#2C2B27] dark:bg-[#1A1917] sm:p-6">
-        <h3 className="flex items-center gap-2 text-sm font-bold text-[#1A1917] dark:text-[#F5F2EA]">
-          <MessageSquareText className="h-4 w-4 text-[#D97757]" aria-hidden="true" />
+      <div className="rounded-3xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-5 shadow-card sm:p-6">
+        <h3 className="flex items-center gap-2 text-sm font-bold text-[var(--text-primary)]">
+          <MessageSquareText className="h-4 w-4 text-[var(--accent-text)]" aria-hidden="true" />
           {t('plan_chat_title')}
         </h3>
-        <p className="mt-1 text-xs leading-relaxed text-[#6B6860] dark:text-[#A8A49A]">
+        <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
           {t('plan_chat_sub')}
         </p>
         <div aria-live="polite" className="mt-3 space-y-2">
           {chat.length === 0 && (
-            <p className="rounded-2xl bg-[#FAF9F5] p-3 text-xs text-[#6B6860] dark:bg-[#1F1E1B] dark:text-[#A8A49A]">
+            <p className="rounded-2xl bg-[var(--bg-subtle)] p-3 text-xs text-[var(--text-muted)]">
               {t('plan_chat_empty')}
             </p>
           )}
@@ -1760,8 +1760,8 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
               key={i}
               className={`max-w-full whitespace-pre-line break-words rounded-2xl p-3 text-xs leading-relaxed ${
                 m.role === 'user'
-                  ? 'ml-auto w-fit max-w-[90%] bg-[#D97757] font-medium text-white'
-                  : 'mr-auto w-fit max-w-[90%] border border-[#DFDACB] bg-[#FAF9F5] text-[#3A3835] dark:border-[#2C2B27] dark:bg-[#1F1E1B] dark:text-[#D6D2C7]'
+                  ? 'ml-auto w-fit max-w-[90%] bg-[var(--accent-fill)] font-medium text-white'
+                  : 'mr-auto w-fit max-w-[90%] border border-[var(--border-default)] bg-[var(--bg-subtle)] text-[var(--text-secondary)]'
               }`}
             >
               {m.text}
@@ -1781,13 +1781,13 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
             placeholder={t('plan_chat_ph')}
             autoComplete="off"
             disabled={phase !== null}
-            className="min-w-0 flex-1 rounded-xl border border-[#DFDACB] bg-white px-3 py-2.5 text-sm text-[#1A1917] outline-none placeholder:text-[#A8A49A] focus:border-[#D97757] focus:ring-2 focus:ring-[#D97757]/30 dark:border-[#2C2B27] dark:bg-[#1F1E1B] dark:text-[#F5F2EA]"
+            className="min-w-0 flex-1 rounded-xl border border-[var(--border-default)] bg-white px-3 py-2.5 text-sm text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)] focus:border-[var(--accent-fill)] focus:ring-2 focus:ring-[var(--accent-fill)]/30   "
           />
           <button
             type="submit"
             disabled={phase !== null || !draft.trim()}
             aria-label={t('plan_chat_send_aria')}
-            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-[#1A1917] px-4 py-2.5 text-xs font-bold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-[#F5F2EA] dark:text-[#1A1917]"
+            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2.5 text-xs font-bold text-[var(--bg-canvas)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {phase ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Send className="h-4 w-4" aria-hidden="true" />}
             {t('plan_chat_send_btn')}

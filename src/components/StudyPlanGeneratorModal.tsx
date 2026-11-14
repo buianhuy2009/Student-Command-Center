@@ -179,19 +179,19 @@ export const StudyPlanGeneratorModal: React.FC<StudyPlanGeneratorModalProps> = (
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 select-none animate-in fade-in duration-200">
-      <div className="bg-[#FAF9F5] dark:bg-[#1A1917] w-full max-w-4xl h-[90vh] rounded-3xl border border-[#DFDACB] dark:border-[#2C2B27] flex flex-col overflow-hidden shadow-2xl">
+      <div className="bg-[var(--bg-raised)] text-[var(--text-primary)] w-full max-w-4xl h-[90vh] rounded-3xl border border-[var(--border-default)] flex flex-col overflow-hidden shadow-2xl">
         
         {/* Header */}
-        <div className="px-6 py-5 border-b border-[#DFDACB] dark:border-[#2C2B27] flex items-center justify-between bg-white dark:bg-[#1A1917] shrink-0">
+        <div className="px-6 py-5 border-b border-[var(--border-default)] flex items-center justify-between bg-[var(--bg-surface)] shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-[#D97757] text-white flex items-center justify-center shadow-xs">
+            <div className="w-10 h-10 rounded-2xl bg-[var(--accent-fill)] text-white flex items-center justify-center shadow-xs">
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-extrabold text-[#141413] dark:text-[#FAF9F5]">
+              <h2 className="text-base font-extrabold text-[var(--text-primary)]">
                 {t('plan_title')}
               </h2>
-              <p className="text-xs text-[#8C897F] dark:text-[#B5B2A8]">
+              <p className="text-xs text-[var(--text-muted)]">
                 {t('plan_sub')}
               </p>
             </div>
@@ -200,7 +200,7 @@ export const StudyPlanGeneratorModal: React.FC<StudyPlanGeneratorModalProps> = (
           <button
             onClick={onClose}
             aria-label={t('close')}
-            className="p-2 rounded-xl bg-[#FAF9F5] dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] text-[#8C897F] dark:text-[#B5B2A8] hover:text-[#141413] dark:hover:text-[#FAF9F5] hover:border-[#D97757] transition-all cursor-pointer"
+            className="p-2 rounded-xl bg-[var(--bg-subtle)] border border-[var(--border-default)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--accent-border)] transition-all cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
@@ -210,30 +210,30 @@ export const StudyPlanGeneratorModal: React.FC<StudyPlanGeneratorModalProps> = (
         <div className="flex-1 flex flex-col md:flex-row overflow-hidden min-h-0">
           
           {/* Left Column: Constraints & Assignment Picker */}
-          <div className="w-full md:w-80 border-r border-[#DFDACB] dark:border-[#2C2B27] bg-[#FAF9F5] dark:bg-[#141413] p-5 overflow-y-auto space-y-6 shrink-0">
+          <div className="w-full md:w-80 border-r border-[var(--border-default)] bg-[var(--bg-subtle)] p-5 overflow-y-auto space-y-6 shrink-0">
             
             {/* Start Time & Target Duration */}
             <div className="space-y-3">
-              <label className="text-xs font-bold uppercase tracking-wider text-[#8C897F] dark:text-[#B5B2A8] block">
+              <label className="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] block">
                 {t('plan_session_timing')}
               </label>
               <div className="grid grid-cols-2 gap-2">
-                <div className="p-3 bg-white dark:bg-[#1F1E1B] rounded-xl border border-[#DFDACB] dark:border-[#2C2B27] space-y-1">
-                  <span className="text-[10px] text-[#8C897F] dark:text-[#B5B2A8] font-bold block">{t('plan_start_time')}</span>
+                <div className="p-3 bg-[var(--bg-surface)] rounded-xl border border-[var(--border-default)] space-y-1">
+                  <span className="text-[10px] text-[var(--text-muted)] font-bold block">{t('plan_start_time')}</span>
                   <input
                     type="time"
                     value={startTime}
                     onChange={(e) => setStartTime(e.target.value)}
-                    className="w-full bg-transparent text-xs font-mono font-bold text-[#141413] dark:text-[#FAF9F5] focus:outline-none"
+                    className="w-full bg-transparent text-xs font-mono font-bold text-[var(--text-primary)] focus:outline-none"
                   />
                 </div>
 
-                <div className="p-3 bg-white dark:bg-[#1F1E1B] rounded-xl border border-[#DFDACB] dark:border-[#2C2B27] space-y-1">
-                  <span className="text-[10px] text-[#8C897F] dark:text-[#B5B2A8] font-bold block">{t('plan_total_hours')}</span>
+                <div className="p-3 bg-[var(--bg-surface)] rounded-xl border border-[var(--border-default)] space-y-1">
+                  <span className="text-[10px] text-[var(--text-muted)] font-bold block">{t('plan_total_hours')}</span>
                   <select
                     value={targetHours}
                     onChange={(e) => setTargetHours(Number(e.target.value))}
-                    className="w-full bg-transparent text-xs font-bold text-[#141413] dark:text-[#FAF9F5] focus:outline-none cursor-pointer"
+                    className="w-full bg-transparent text-xs font-bold text-[var(--text-primary)] focus:outline-none cursor-pointer"
                   >
                     <option value={2}>2 {t('plan_hours')}</option>
                     <option value={3}>3 {t('plan_hours')}</option>
@@ -247,10 +247,10 @@ export const StudyPlanGeneratorModal: React.FC<StudyPlanGeneratorModalProps> = (
 
             {/* Pacing & Strategy */}
             <div className="space-y-3">
-              <label className="text-xs font-bold uppercase tracking-wider text-[#8C897F] dark:text-[#B5B2A8] block">
+              <label className="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] block">
                 {t('plan_pacing')}
               </label>
-              <div className="grid grid-cols-3 gap-1.5 bg-[#EFECE2]/50 dark:bg-[#252422]/50 p-1.5 rounded-xl border border-[#DFDACB] dark:border-[#2C2B27]">
+              <div className="grid grid-cols-3 gap-1.5 bg-[var(--bg-canvas)] p-1.5 rounded-xl border border-[var(--border-default)]">
                 {PACING_OPTIONS.map((p) => (
                   <button
                     key={p.id}
@@ -258,8 +258,8 @@ export const StudyPlanGeneratorModal: React.FC<StudyPlanGeneratorModalProps> = (
                     onClick={() => setStudyPacing(p.id as any)}
                     className={`py-1.5 px-2 rounded-lg text-center transition-all cursor-pointer ${
                       studyPacing === p.id
-                        ? 'bg-[#D97757] text-white shadow-xs'
-                        : 'text-[#5C5A54] dark:text-[#B5B2A8] hover:text-[#141413] dark:hover:text-[#FAF9F5]'
+                        ? 'bg-[var(--accent-fill)] text-white shadow-xs'
+                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                     }`}
                   >
                     <div className="text-xs font-bold">{p.label}</div>
@@ -272,14 +272,14 @@ export const StudyPlanGeneratorModal: React.FC<StudyPlanGeneratorModalProps> = (
             {/* Select Target Deadlines */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-bold uppercase tracking-wider text-[#8C897F] dark:text-[#B5B2A8]">
+                <label className="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">
                   {t('plan_targets')} ({selectedAssignmentIds.length})
                 </label>
               </div>
 
               <div className="space-y-2 max-h-48 overflow-y-auto">
                 {pendingAssignments.length === 0 ? (
-                  <p className="text-xs text-[#8C897F] dark:text-[#B5B2A8] py-2">{t('plan_no_pending')}</p>
+                  <p className="text-xs text-[var(--text-muted)] py-2">{t('plan_no_pending')}</p>
                 ) : (
                   pendingAssignments.map((a) => {
                     const isSelected = selectedAssignmentIds.includes(a.id);
@@ -289,15 +289,15 @@ export const StudyPlanGeneratorModal: React.FC<StudyPlanGeneratorModalProps> = (
                         onClick={() => toggleAssignment(a.id)}
                         className={`p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-2 text-xs ${
                           isSelected
-                            ? 'bg-white dark:bg-[#1F1E1B] border-[#D97757] shadow-xs'
-                            : 'bg-white/60 dark:bg-[#1F1E1B]/60 border-[#DFDACB] dark:border-[#2C2B27] opacity-60'
+                            ? 'bg-[var(--bg-surface)] border-[var(--accent-border)] shadow-xs'
+                            : 'bg-[var(--bg-surface)]/60 border-[var(--border-default)] opacity-60'
                         }`}
                       >
                         <div className="min-w-0 flex-1">
-                          <p className="font-bold text-[#141413] dark:text-[#FAF9F5] truncate">
+                          <p className="font-bold text-[var(--text-primary)] truncate">
                             {a.assignmentName}
                           </p>
-                          <span className="text-[10px] text-[#8C897F] dark:text-[#B5B2A8]">
+                          <span className="text-[10px] text-[var(--text-muted)]">
                             {a.subject || t('plan_course')} • {t('plan_due')} {a.dueDate || t('plan_soon')}
                           </span>
                         </div>
@@ -305,7 +305,7 @@ export const StudyPlanGeneratorModal: React.FC<StudyPlanGeneratorModalProps> = (
                           type="checkbox"
                           checked={isSelected}
                           onChange={() => {}}
-                          className="w-3.5 h-3.5 rounded text-[#D97757] dark:text-[#E59A7C] focus:ring-[#D97757] pointer-events-none"
+                          className="w-3.5 h-3.5 rounded text-[var(--accent-text)] focus:ring-[var(--accent-fill)] pointer-events-none"
                         />
                       </div>
                     );
@@ -318,7 +318,7 @@ export const StudyPlanGeneratorModal: React.FC<StudyPlanGeneratorModalProps> = (
             <button
               onClick={handleGeneratePlan}
               disabled={isGenerating || selectedAssignmentIds.length === 0}
-              className="w-full py-3 bg-[#D97757] hover:bg-[#C86646] text-white rounded-2xl font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              className="w-full py-3 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-2xl font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
             >
               <Sparkles className={`w-4 h-4 ${isGenerating ? 'animate-spin' : ''}`} />
               <span>{isGenerating ? t('plan_synthesizing') : t('plan_generate')}</span>
@@ -326,17 +326,17 @@ export const StudyPlanGeneratorModal: React.FC<StudyPlanGeneratorModalProps> = (
           </div>
 
           {/* Right Column: Generated Plan View */}
-          <div className="flex-1 bg-white dark:bg-[#1A1917] p-6 sm:p-8 overflow-y-auto flex flex-col justify-between space-y-6">
+          <div className="flex-1 bg-[var(--bg-surface)] p-6 sm:p-8 overflow-y-auto flex flex-col justify-between space-y-6">
             
             {planBlocks.length === 0 ? (
               <div className="my-auto text-center space-y-3 py-16">
-                <div className="w-12 h-12 rounded-3xl bg-[#FAF9F5] dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] flex items-center justify-center mx-auto text-[#D97757] dark:text-[#E59A7C]">
+                <div className="w-12 h-12 rounded-3xl bg-[var(--bg-subtle)] border border-[var(--border-default)] flex items-center justify-center mx-auto text-[var(--accent-text)]">
                   <Clock className="w-6 h-6" />
                 </div>
-                <h3 className="text-base font-bold text-[#141413] dark:text-[#FAF9F5]">
+                <h3 className="text-base font-bold text-[var(--text-primary)]">
                   {t('plan_ready_title')}
                 </h3>
-                <p className="text-xs text-[#8C897F] dark:text-[#B5B2A8] max-w-sm mx-auto leading-relaxed">
+                <p className="text-xs text-[var(--text-muted)] max-w-sm mx-auto leading-relaxed">
                   {t('plan_ready_hint')}
                 </p>
               </div>
@@ -344,20 +344,20 @@ export const StudyPlanGeneratorModal: React.FC<StudyPlanGeneratorModalProps> = (
               <div className="space-y-6">
                 
                 {/* Summary Banner */}
-                <div className="p-4 rounded-2xl bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] flex items-start justify-between gap-4">
+                <div className="p-4 rounded-2xl bg-[var(--bg-subtle)] border border-[var(--border-default)] flex items-start justify-between gap-4">
                   <div className="space-y-1">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#D97757] dark:text-[#E59A7C] flex items-center gap-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--accent-text)] flex items-center gap-1">
                       <Brain className="w-3.5 h-3.5" />
                       <span>{t('plan_flow_title')}</span>
                     </span>
-                    <p className="text-xs text-[#141413] dark:text-[#FAF9F5] font-medium leading-relaxed">
+                    <p className="text-xs text-[var(--text-primary)] font-medium leading-relaxed">
                       {planSummary}
                     </p>
                   </div>
 
                   <button
                     onClick={handleCopyPlan}
-                    className="p-2 rounded-xl bg-white dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] text-[#8C897F] dark:text-[#B5B2A8] hover:text-[#141413] dark:hover:text-[#FAF9F5] transition-colors cursor-pointer shrink-0"
+                    className="p-2 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-default)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer shrink-0"
                     title={t('plan_copy')}
                   >
                     {copied ? <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" /> : <Copy className="w-4 h-4" />}
@@ -371,24 +371,24 @@ export const StudyPlanGeneratorModal: React.FC<StudyPlanGeneratorModalProps> = (
                       key={idx}
                       className={`p-4 rounded-2xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
                         block.isBreak
-                          ? 'bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900/40 text-emerald-900 dark:text-emerald-300'
-                          : 'bg-[#FAF9F5] dark:bg-[#1F1E1B] border-[#DFDACB] dark:border-[#2C2B27]'
+                          ? 'bg-[var(--status-ok-bg)] border border-[var(--status-ok-border)] text-[var(--status-ok-text)]'
+                          : 'bg-[var(--bg-subtle)] border border-[var(--border-default)]'
                       }`}
                     >
                       <div className="flex items-center gap-3">
-                        <div className="font-mono text-xs font-bold px-2.5 py-1 rounded-lg bg-white dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] shrink-0">
+                        <div className="font-mono text-xs font-bold px-2.5 py-1 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-default)] shrink-0">
                           {block.timeRange}
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
-                            <h4 className="text-xs font-bold text-[#141413] dark:text-[#FAF9F5]">
+                            <h4 className="text-xs font-bold text-[var(--text-primary)]">
                               {block.assignmentTitle}
                             </h4>
-                            <span className="text-[10px] font-semibold text-[#8C897F] dark:text-[#B5B2A8]">
+                            <span className="text-[10px] font-semibold text-[var(--text-muted)]">
                               ({block.courseName})
                             </span>
                           </div>
-                          <p className="text-xs text-[#5C5A54] dark:text-[#B5B2A8] mt-0.5">
+                          <p className="text-xs text-[var(--text-secondary)] mt-0.5">
                             {block.objective}
                           </p>
                         </div>
@@ -417,8 +417,8 @@ export const StudyPlanGeneratorModal: React.FC<StudyPlanGeneratorModalProps> = (
 
             {/* Bottom Actions Bar */}
             {planBlocks.length > 0 && (
-              <div className="pt-4 border-t border-[#DFDACB] dark:border-[#2C2B27] flex items-center justify-between gap-3 shrink-0">
-                <span className="text-xs text-[#8C897F] dark:text-[#B5B2A8]">
+              <div className="pt-4 border-t border-[var(--border-default)] flex items-center justify-between gap-3 shrink-0">
+                <span className="text-xs text-[var(--text-muted)]">
                   {planBlocks.filter((b) => !b.isBreak).length} {t('plan_focus_blocks')} • {planBlocks.filter((b) => b.isBreak).length} {t('plan_rest_breaks')}
                 </span>
 
@@ -429,7 +429,7 @@ export const StudyPlanGeneratorModal: React.FC<StudyPlanGeneratorModalProps> = (
                         onClose();
                         onStartFocusSession(studyPacing === 'pomo' ? 25 : 50);
                       }}
-                      className="px-4 py-2 bg-[#141413] dark:bg-[#FAF9F5] text-white dark:text-[#141413] rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-1.5"
+                      className="px-4 py-2 bg-[var(--text-primary)] text-[var(--bg-canvas)] rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-1.5"
                     >
                       <Play className="w-3.5 h-3.5 fill-current" />
                       <span>{t('plan_start_first')}</span>
@@ -438,7 +438,7 @@ export const StudyPlanGeneratorModal: React.FC<StudyPlanGeneratorModalProps> = (
 
                   <button
                     onClick={onClose}
-                    className="px-4 py-2 bg-[#D97757] hover:bg-[#C86646] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-1"
+                    className="px-4 py-2 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-1"
                   >
                     <span>{t('done')}</span>
                     <ArrowRight className="w-3.5 h-3.5" />

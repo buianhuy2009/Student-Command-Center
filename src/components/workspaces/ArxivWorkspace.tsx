@@ -82,19 +82,19 @@ export const ArxivWorkspace: React.FC = () => {
   };
 
   return (
-    <div className="h-full flex flex-col overflow-hidden bg-[#FAF9F5] dark:bg-[#141413] p-4 sm:p-6 space-y-5 animate-in fade-in select-none">
+    <div className="h-full flex flex-col overflow-hidden bg-[var(--bg-canvas)] p-4 sm:p-6 space-y-5 animate-in fade-in select-none">
       
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#DFDACB] dark:border-[#2C2B27] shrink-0">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[var(--border-default)] shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-rose-500 to-red-600 flex items-center justify-center text-white shadow-xs">
             <BookOpen className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-base font-bold text-[#141413] dark:text-[#FAF9F5]">
+            <h2 className="text-base font-bold text-[var(--text-primary)]">
               {t('arxiv_title')}
             </h2>
-            <p className="text-xs text-[#8C897F]">
+            <p className="text-xs text-[var(--text-muted)]">
               {t('arxiv_sub')}
             </p>
           </div>
@@ -103,20 +103,20 @@ export const ArxivWorkspace: React.FC = () => {
         {/* Search Bar & Category */}
         <form onSubmit={handleSearch} className="flex items-center gap-2">
           <div className="relative">
-            <Search className="w-4 h-4 text-[#8C897F] absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-[var(--text-muted)] absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={t('arxiv_search_ph')}
-              className="pl-9 pr-4 py-2 bg-white dark:bg-[#1A1917] border border-[#DFDACB] dark:border-[#2C2B27] rounded-xl text-xs text-[#141413] dark:text-[#FAF9F5] focus:outline-none focus:border-[#D97757] w-64"
+              className="pl-9 pr-4 py-2 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-fill)] w-64"
             />
           </div>
 
           <select
             value={category}
             onChange={(e) => setCategory(e.target.value)}
-            className="px-3 py-2 bg-white dark:bg-[#1A1917] border border-[#DFDACB] dark:border-[#2C2B27] rounded-xl text-xs font-semibold text-[#141413] dark:text-[#FAF9F5] focus:outline-none cursor-pointer"
+            className="px-3 py-2 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl text-xs font-semibold text-[var(--text-primary)] focus:outline-none cursor-pointer"
           >
             {CATEGORIES.map((cat) => (
               <option key={cat.id} value={cat.id}>
@@ -128,7 +128,7 @@ export const ArxivWorkspace: React.FC = () => {
           <button
             type="submit"
             disabled={isLoading}
-            className="px-4 py-2 bg-[#D97757] hover:bg-[#C86646] disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-1.5"
+            className="px-4 py-2 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-1.5"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
             <span>{t('search')}</span>
@@ -142,26 +142,26 @@ export const ArxivWorkspace: React.FC = () => {
         {/* Left: Paper Cards List */}
         <div className="lg:col-span-6 overflow-y-auto space-y-2.5 pr-1">
           {isLoading ? (
-            <div className="py-20 text-center text-[#8C897F] text-xs space-y-2">
-              <RefreshCw className="w-7 h-7 text-[#D97757] animate-spin mx-auto opacity-70" />
+            <div className="py-20 text-center text-[var(--text-muted)] text-xs space-y-2">
+              <RefreshCw className="w-7 h-7 text-[var(--accent-text)] animate-spin mx-auto opacity-70" />
               <p>{t('arxiv_loading')}</p>
             </div>
           ) : error ? (
             <div className="py-20 text-center text-xs space-y-3">
-              <p className="font-bold text-[#141413] dark:text-[#FAF9F5]">{error}</p>
-              <p className="text-[#8C897F]">{t('arxiv_kept_query', { query })}</p>
-              <button onClick={() => handleSearch()} className="px-4 py-2 bg-[#D97757] hover:bg-[#C86646] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer">
+              <p className="font-bold text-[var(--text-primary)]">{error}</p>
+              <p className="text-[var(--text-muted)]">{t('arxiv_kept_query', { query })}</p>
+              <button onClick={() => handleSearch()} className="px-4 py-2 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer">
                 {t('retry')}
               </button>
             </div>
           ) : papers.length === 0 ? (
-            <div className="py-20 text-center text-[#8C897F] text-xs space-y-2">
+            <div className="py-20 text-center text-[var(--text-muted)] text-xs space-y-2">
               <BookOpen className="w-8 h-8 mx-auto opacity-30" />
               <p>{t('arxiv_empty')}</p>
             </div>
           ) : (
             <>
-              <p className="text-[11px] text-[#8C897F] px-1">{t('arxiv_results_count', { count: papers.length })}</p>
+              <p className="text-[11px] text-[var(--text-muted)] px-1">{t('arxiv_results_count', { count: papers.length })}</p>
             {papers.map((paper) => {
               const isSelected = selectedPaper?.id === paper.id;
               return (
@@ -170,22 +170,22 @@ export const ArxivWorkspace: React.FC = () => {
                   onClick={() => setSelectedPaper(paper)}
                   className={`p-4 rounded-2xl border transition-all cursor-pointer space-y-2 ${
                     isSelected
-                      ? 'bg-white dark:bg-[#1A1917] border-[#D97757] shadow-xs'
-                      : 'bg-white/60 dark:bg-[#1A1917]/60 border-[#DFDACB] dark:border-[#2C2B27] hover:bg-white dark:hover:bg-[#1A1917]'
+                      ? 'bg-[var(--bg-surface)] border-[var(--accent-fill)] shadow-xs'
+                      : 'bg-[var(--bg-surface)]/60 border-[var(--border-default)] hover:bg-[var(--bg-hover)]'
                   }`}
                 >
-                  <div className="flex items-center justify-between gap-2 text-[10px] text-[#8C897F]">
-                    <span className="px-2 py-0.5 rounded-md bg-[#FAF9F5] dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] font-mono font-bold text-[#D97757]">
+                  <div className="flex items-center justify-between gap-2 text-[10px] text-[var(--text-muted)]">
+                    <span className="px-2 py-0.5 rounded-md bg-[var(--bg-subtle)] border border-[var(--border-default)] font-mono font-bold text-[var(--accent-text)]">
                       {paper.primaryCategory}
                     </span>
                     <span>{paper.published}</span>
                   </div>
 
-                  <h3 className="text-xs font-bold text-[#141413] dark:text-[#FAF9F5] leading-snug line-clamp-2">
+                  <h3 className="text-xs font-bold text-[var(--text-primary)] leading-snug line-clamp-2">
                     {paper.title}
                   </h3>
 
-                  <div className="text-[11px] text-[#8C897F] truncate">
+                  <div className="text-[11px] text-[var(--text-muted)] truncate">
                     {paper.authors.join(', ')}
                   </div>
                 </div>
@@ -196,35 +196,35 @@ export const ArxivWorkspace: React.FC = () => {
         </div>
 
         {/* Right: Selected Paper Abstract & PDF Viewer Trigger */}
-        <div className="lg:col-span-6 bg-white dark:bg-[#1A1917] rounded-3xl border border-[#DFDACB] dark:border-[#2C2B27] p-6 shadow-xs flex flex-col justify-between overflow-y-auto">
+        <div className="lg:col-span-6 bg-[var(--bg-surface)] rounded-3xl border border-[var(--border-default)] p-6 shadow-xs flex flex-col justify-between overflow-y-auto">
           {selectedPaper ? (
             <div className="space-y-5">
-              <div className="space-y-2 pb-4 border-b border-[#DFDACB]/60 dark:border-[#2C2B27]/60">
+              <div className="space-y-2 pb-4 border-b border-[var(--border-default)]">
                 <div className="flex items-center gap-2">
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#FAF9F5] dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] text-[#D97757]">
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[var(--bg-subtle)] border border-[var(--border-default)] text-[var(--accent-text)]">
                     {selectedPaper.primaryCategory}
                   </span>
-                  <span className="text-[11px] text-[#8C897F]">
+                  <span className="text-[11px] text-[var(--text-muted)]">
                     {t('arxiv_published')} {selectedPaper.published}
                   </span>
                 </div>
 
-                <h2 className="text-sm font-extrabold text-[#141413] dark:text-[#FAF9F5] leading-snug">
+                <h2 className="text-sm font-extrabold text-[var(--text-primary)] leading-snug">
                   {selectedPaper.title}
                 </h2>
 
-                <p className="text-xs text-[#8C897F]">
-                  <span className="font-semibold text-[#141413] dark:text-[#FAF9F5]">{t('arxiv_authors')} </span>
+                <p className="text-xs text-[var(--text-muted)]">
+                  <span className="font-semibold text-[var(--text-primary)]">{t('arxiv_authors')} </span>
                   {selectedPaper.authors.join(', ')}
                 </p>
               </div>
 
               {/* Abstract */}
               <div className="space-y-1.5">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C897F] block">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] block">
                   {t('arxiv_abstract')}
                 </span>
-                <div className="p-4 bg-[#FAF9F5] dark:bg-[#1F1E1B] rounded-2xl border border-[#DFDACB]/60 dark:border-[#2C2B27]/60 text-xs text-[#5C5A54] dark:text-[#B5B2A8] leading-relaxed max-h-72 overflow-y-auto">
+                <div className="p-4 bg-[var(--bg-subtle)] rounded-2xl border border-[var(--border-default)] text-xs text-[var(--text-secondary)] leading-relaxed max-h-72 overflow-y-auto">
                   {selectedPaper.summary}
                 </div>
               </div>
@@ -233,7 +233,7 @@ export const ArxivWorkspace: React.FC = () => {
               <div className="flex flex-wrap items-center gap-2 pt-2">
                 <button
                   onClick={() => handleCopyCitation(selectedPaper)}
-                  className="px-3 py-2 bg-[#FAF9F5] dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] hover:border-[#D97757] text-[#141413] dark:text-[#FAF9F5] rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5"
+                  className="px-3 py-2 bg-[var(--bg-subtle)] border border-[var(--border-default)] hover:border-[var(--accent-fill)] text-[var(--text-primary)] rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5"
                 >
                   {copiedId === selectedPaper.id ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
                   <span>{copiedId === selectedPaper.id ? t('arxiv_copied') : t('arxiv_copy')}</span>
@@ -241,7 +241,7 @@ export const ArxivWorkspace: React.FC = () => {
 
                 <button
                   onClick={() => handleSaveToNotes(selectedPaper)}
-                  className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer border transition-colors ${savedToNotesId === selectedPaper.id ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'bg-white dark:bg-[#252422] border-[#DFDACB] dark:border-[#2C2B27] hover:border-violet-500 text-[#141413] dark:text-[#FAF9F5]'}`}
+                  className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer border transition-colors ${savedToNotesId === selectedPaper.id ? 'bg-[var(--status-ok-bg)] border-[var(--status-ok-border)] text-[var(--status-ok-text)]' : 'bg-[var(--bg-surface)] border-[var(--border-default)] hover:border-[var(--accent-border)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)]'}`}
                 >
                   {savedToNotesId === selectedPaper.id ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Save className="w-3.5 h-3.5 text-violet-600" />}
                   <span>{savedToNotesId === selectedPaper.id ? t('arxiv_saved') : t('arxiv_save')}</span>
@@ -251,7 +251,7 @@ export const ArxivWorkspace: React.FC = () => {
                   href={selectedPaper.pdfUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="px-4 py-2 bg-[#D97757] hover:bg-[#C86646] text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                  className="px-4 py-2 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
                 >
                   <Download className="w-3.5 h-3.5" />
                   <span>{t('arxiv_open_pdf')}</span>
@@ -260,13 +260,13 @@ export const ArxivWorkspace: React.FC = () => {
               </div>
             </div>
           ) : (
-            <div className="my-auto text-center text-[#8C897F] text-xs py-16 space-y-2">
+            <div className="my-auto text-center text-[var(--text-muted)] text-xs py-16 space-y-2">
               <BookOpen className="w-10 h-10 mx-auto opacity-30" />
               <p>{t('arxiv_select_hint')}</p>
             </div>
           )}
 
-          <div className="pt-4 border-t border-[#DFDACB]/60 dark:border-[#2C2B27]/60 text-[10px] text-[#8C897F] flex items-center justify-between">
+          <div className="pt-4 border-t border-[var(--border-default)] text-[10px] text-[var(--text-muted)] flex items-center justify-between">
             <span>{t('arxiv_footer_a')}</span>
             <span className="font-mono">{t('arxiv_footer_b')}</span>
           </div>

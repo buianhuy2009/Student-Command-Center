@@ -18,13 +18,13 @@ export const DueTrustBadge: React.FC<{ assignment: Assignment; onConfirm?: (a: A
             onConfirm?.(a);
           }}
           title={a.aiEvidence ? `${t('gmail_ai_read_label')} “${a.aiEvidence}”` : undefined}
-          className="px-1.5 py-0.5 rounded text-[9px] font-bold border border-dashed border-amber-400 bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-200 hover:border-amber-600"
+          className="px-1.5 py-0.5 rounded text-[9px] font-bold border border-dashed border-[var(--status-warn-border)] bg-[var(--status-warn-bg)] text-[var(--status-warn-text)] hover:opacity-90 transition-opacity"
         >
           {onConfirm ? t('trust_unconfirmed_tap') : t('trust_unconfirmed')}
         </button>
       )}
       {status === 'missing' && (
-        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold border border-dashed border-amber-400 text-amber-800 dark:text-amber-200">
+        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold border border-dashed border-[var(--status-warn-border)] text-[var(--status-warn-text)]">
           {t('trust_missing')}
         </span>
       )}
@@ -34,7 +34,7 @@ export const DueTrustBadge: React.FC<{ assignment: Assignment; onConfirm?: (a: A
           target="_blank"
           rel="noreferrer"
           onClick={(e) => e.stopPropagation()}
-          className="inline-flex items-center gap-0.5 text-[9px] font-bold text-[#D97757] hover:underline"
+          className="inline-flex items-center gap-0.5 text-[9px] font-bold text-[var(--accent-text)] hover:underline"
         >
           <ExternalLink className="w-2.5 h-2.5" />
           {t('trust_source')}

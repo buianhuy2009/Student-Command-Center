@@ -213,9 +213,9 @@ export const GeoGebraWorkspace: React.FC = () => {
   };
 
   return (
-    <div className={`flex flex-col h-full w-full select-none ${isFullscreen ? 'fixed inset-0 z-50 bg-[#FAF9F5] dark:bg-[#141413] p-4' : ''}`}>
+    <div className={`flex flex-col h-full w-full select-none ${isFullscreen ? 'fixed inset-0 z-50 bg-[var(--bg-canvas)] p-4' : ''}`}>
       {/* 5-Tab Switcher */}
-      <div className="flex items-center gap-1.5 p-1 bg-[#FAF9F5] dark:bg-[#1F1E1B] rounded-xl border border-[#DFDACB] dark:border-[#2C2B27] mb-3 w-fit overflow-x-auto">
+      <div className="flex items-center gap-1.5 p-1 bg-[var(--bg-subtle)] rounded-xl border border-[var(--border-default)] mb-3 w-fit overflow-x-auto">
         {([
           { id: 'graphing' as GeoTab, label: t('geo_graphing'), icon: Calculator },
           { id: 'geometry' as GeoTab, label: t('geo_geometry'), icon: Shapes },
@@ -225,17 +225,17 @@ export const GeoGebraWorkspace: React.FC = () => {
         ]).map(tab => {
           const Icon = tab.icon;
           return (
-            <button key={tab.id} onClick={() => handleTabChange(tab.id)} className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer ${activeTab === tab.id ? 'bg-[#D97757] text-white shadow-xs' : 'text-[#5C5A54] dark:text-[#B5B2A8] hover:text-[#141413]'}`}>
+            <button key={tab.id} onClick={() => handleTabChange(tab.id)} className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer ${activeTab === tab.id ? 'bg-[var(--accent-fill)] text-white shadow-xs' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'}`}>
               <Icon className="w-3.5 h-3.5" /><span>{tab.label}</span>
             </button>
           );
         })}
       </div>
       {/* Toolbar */}
-      <div className="flex items-center justify-between pb-2 mb-2 border-b border-[#DFDACB] dark:border-[#2C2B27] shrink-0 text-xs select-none">
+      <div className="flex items-center justify-between pb-2 mb-2 border-b border-[var(--border-default)] shrink-0 text-xs select-none">
         <div className="flex items-center gap-2">
-          <span className="font-bold text-[#141413] dark:text-[#FAF9F5]">GeoGebra {GEO_LABELS[activeTab]}</span>
-          <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 font-semibold">
+          <span className="font-bold text-[var(--text-primary)]">GeoGebra {GEO_LABELS[activeTab]}</span>
+          <span className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--status-info-bg)] text-[var(--status-info-text)] border border-[var(--status-info-border)] font-semibold">
             {t('geo_suite_badge')}
           </span>
         </div>
@@ -243,7 +243,7 @@ export const GeoGebraWorkspace: React.FC = () => {
         <div className="flex items-center gap-2">
           <button
             onClick={handleRetry}
-            className="p-1.5 rounded-lg bg-white dark:bg-[#1A1917] border border-[#DFDACB] dark:border-[#2C2B27] hover:border-[#D97757] text-[#5C5A54] dark:text-[#B5B2A8] transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--accent-border)] hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] transition-colors cursor-pointer"
             title={t('geo_reload')}
           >
             <RefreshCw className="w-3.5 h-3.5" />
@@ -251,7 +251,7 @@ export const GeoGebraWorkspace: React.FC = () => {
 
           <button
             onClick={() => setIsFullscreen(!isFullscreen)}
-            className="p-1.5 rounded-lg bg-white dark:bg-[#1A1917] border border-[#DFDACB] dark:border-[#2C2B27] hover:border-[#D97757] text-[#5C5A54] dark:text-[#B5B2A8] transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--accent-border)] hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] transition-colors cursor-pointer"
             title={isFullscreen ? t('desm_exit') : t('desm_expand')}
           >
             {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
@@ -261,7 +261,7 @@ export const GeoGebraWorkspace: React.FC = () => {
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            className="px-2.5 py-1 rounded-lg bg-white dark:bg-[#1A1917] border border-[#DFDACB] dark:border-[#2C2B27] hover:border-[#D97757] text-[#141413] dark:text-[#FAF9F5] font-bold flex items-center gap-1 transition-colors"
+            className="px-2.5 py-1 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--accent-border)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] font-bold flex items-center gap-1 transition-colors"
           >
             <span>{t('geo_open_tab')}</span>
             <ExternalLink className="w-3 h-3" />
@@ -270,13 +270,13 @@ export const GeoGebraWorkspace: React.FC = () => {
       </div>
 
       {/* Embed */}
-      <div key={`${activeTab}-${reloadKey}`} className="flex-1 w-full min-h-[550px] rounded-2xl overflow-hidden border border-[#DFDACB] dark:border-[#2C2B27] bg-white shadow-xs">
+      <div key={`${activeTab}-${reloadKey}`} className="flex-1 w-full min-h-[550px] rounded-2xl overflow-hidden border border-[var(--border-default)] bg-[var(--bg-surface)] shadow-xs">
         {(phase === 'applet-loading' || phase === 'applet-ready') && (
           <div className="relative w-full h-full min-h-[550px]">
             {phase === 'applet-loading' && (
-              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-white dark:bg-[#1A1917]">
-                <Loader2 className="w-6 h-6 text-[#D97757] animate-spin" />
-                <p className="text-xs text-[#8C897F] font-medium">{t('geo_loading', { tool: GEO_LABELS[activeTab] })}</p>
+              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-[var(--bg-surface)]">
+                <Loader2 className="w-6 h-6 text-[var(--accent-fill)] animate-spin" />
+                <p className="text-xs text-[var(--text-muted)] font-medium">{t('geo_loading', { tool: GEO_LABELS[activeTab] })}</p>
               </div>
             )}
             <div id={APPLET_CONTAINER_ID} ref={containerRef} className="w-full h-full min-h-[550px]" />
@@ -286,9 +286,9 @@ export const GeoGebraWorkspace: React.FC = () => {
         {phase === 'iframe' && (
           <div className="relative w-full h-full min-h-[550px]">
             {!iframeLoaded && (
-              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-white dark:bg-[#1A1917]">
-                <Loader2 className="w-6 h-6 text-[#D97757] animate-spin" />
-                <p className="text-xs text-[#8C897F] font-medium">{t('geo_loading', { tool: GEO_LABELS[activeTab] })}</p>
+              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-[var(--bg-surface)]">
+                <Loader2 className="w-6 h-6 text-[var(--accent-fill)] animate-spin" />
+                <p className="text-xs text-[var(--text-muted)] font-medium">{t('geo_loading', { tool: GEO_LABELS[activeTab] })}</p>
               </div>
             )}
             <iframe
@@ -303,18 +303,18 @@ export const GeoGebraWorkspace: React.FC = () => {
         )}
 
         {phase === 'error' && (
-          <div className="flex flex-col items-center justify-center p-6 text-center w-full h-full min-h-[550px] bg-[#FAF9F5] dark:bg-[#1F1E1B]">
-            <AlertCircle className="w-10 h-10 text-amber-500 mb-2" />
-            <h4 className="text-sm font-bold text-[#141413] dark:text-[#FAF9F5]">
+          <div className="flex flex-col items-center justify-center p-6 text-center w-full h-full min-h-[550px] bg-[var(--bg-subtle)]">
+            <AlertCircle className="w-10 h-10 text-[var(--status-warn-text)] mb-2" />
+            <h4 className="text-sm font-bold text-[var(--text-primary)]">
               {t('geo_load_error_title')}
             </h4>
-            <p className="text-xs text-[#8C897F] max-w-sm mt-1">
+            <p className="text-xs text-[var(--text-muted)] max-w-sm mt-1">
               {t('geo_load_error_sub')}
             </p>
             <div className="mt-4 flex items-center gap-2">
               <button
                 onClick={handleRetry}
-                className="px-4 py-2 bg-[#D97757] hover:bg-[#C86646] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
+                className="px-4 py-2 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
                 <span>{t('geo_reload')}</span>
@@ -323,7 +323,7 @@ export const GeoGebraWorkspace: React.FC = () => {
                 href={url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-4 py-2 rounded-xl bg-white dark:bg-[#1A1917] border border-[#DFDACB] dark:border-[#2C2B27] hover:border-[#D97757] text-[#141413] dark:text-[#FAF9F5] text-xs font-bold flex items-center gap-1.5 transition-colors"
+                className="px-4 py-2 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--accent-border)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] text-xs font-bold flex items-center gap-1.5 transition-colors"
               >
                 <span>{t('geo_open_tab')}</span>
                 <ExternalLink className="w-3.5 h-3.5" />

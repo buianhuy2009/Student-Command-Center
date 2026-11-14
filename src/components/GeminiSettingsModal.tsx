@@ -185,7 +185,7 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
       s.state === 'expired'
         ? 'bg-rose-100 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-800'
         : s.state === 'expiring'
-        ? 'bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-800'
+        ? 'bg-[var(--status-warn-bg)] text-[var(--status-warn-text)] border border-[var(--status-warn-border)]'
         : 'bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800';
     return (
       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${cls}`}>
@@ -195,19 +195,19 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-[#141413]/70 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-[#1A1917] rounded-3xl max-w-lg w-full border border-[#DFDACB] dark:border-[#2C2B27] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+      <div className="bg-[var(--bg-raised)] text-[var(--text-primary)] rounded-3xl max-w-lg w-full border border-[var(--border-default)] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="p-6 border-b border-[#DFDACB] dark:border-[#2C2B27] flex items-center justify-between bg-[#FAF9F5] dark:bg-[#1F1E1B]">
+        <div className="p-6 border-b border-[var(--border-default)] flex items-center justify-between bg-[var(--bg-surface)]">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 via-[#D97757] to-rose-500 text-white flex items-center justify-center shadow-md shadow-[#D97757]/30">
+            <div className="w-10 h-10 rounded-2xl bg-[var(--accent-fill)] text-white flex items-center justify-center shadow-md">
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-[#141413] dark:text-[#FAF9F5]">
+              <h3 className="text-base font-bold text-[var(--text-primary)]">
                 {t('ai_key_title')}
               </h3>
-              <p className="text-xs text-[#8C897F]">
+              <p className="text-xs text-[var(--text-muted)]">
                 {t('ai_key_sub')}
               </p>
             </div>
@@ -216,7 +216,7 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
           <button
             onClick={onClose}
             aria-label={t('close')}
-            className="p-1.5 text-[#8C897F] hover:bg-[#EFECE2] dark:hover:bg-[#2C2A26] rounded-xl transition-colors cursor-pointer"
+            className="p-1.5 text-[var(--text-muted)] hover:bg-[var(--bg-hover)] rounded-xl transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
@@ -224,10 +224,10 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
 
         {/* Content */}
         <div className="p-6 space-y-4">
-          <div className="p-3.5 bg-[#FAF9F5] dark:bg-[#1F1E1B] rounded-2xl border border-[#DFDACB] dark:border-[#2C2B27] flex items-start gap-2.5 text-xs text-[#5C5A54] dark:text-[#B5B2A8]">
+          <div className="p-3.5 bg-[var(--bg-subtle)] rounded-2xl border border-[var(--border-default)] flex items-start gap-2.5 text-xs text-[var(--text-secondary)]">
             <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
             <div className="flex-1">
-              <span className="font-bold text-[#141413] dark:text-[#FAF9F5] block mb-0.5">
+              <span className="font-bold text-[var(--text-primary)] block mb-0.5">
                 {t('ai_key_vault_title')}
               </span>
               {vaultLocked ? t('ai_key_vault_locked_desc') : t('ai_key_vault_unlocked_desc')}
@@ -238,7 +238,7 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
                   onChange={e=>setVaultPin(e.target.value)}
                   placeholder={t('ai_key_vault_pin_ph')}
                   aria-label={t('ai_key_vault_pin_ph')}
-                  className="px-2 py-1 text-xs bg-white dark:bg-[#1A1917] border border-[#DFDACB] dark:border-[#2C2B27] rounded-lg w-40"
+                  className="px-2 py-1 text-xs bg-[var(--bg-surface)] border border-[var(--border-default)] text-[var(--text-primary)] rounded-lg w-40"
                 />
                 {!vaultLocked ? (
                   <button onClick={async()=>{
@@ -256,7 +256,7 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
                       if(data.groq) try{ localStorage.setItem('scc_groq_api_key', data.groq); }catch{}
                       if(data.groq) setGroqKey(data.groq);
                       setVaultLocked(false); setStatusMessage(t('ai_key_vault_unlocked_msg')); setTestStatus('success');
-                    }} className="px-2 py-1 text-xs font-bold bg-[#D97757] text-white rounded-lg">{t('ai_key_vault_unlock_btn')}</button>
+                    }} className="px-2 py-1 text-xs font-bold bg-[var(--accent-fill)] text-white rounded-lg">{t('ai_key_vault_unlock_btn')}</button>
                     <button onClick={()=>{ vaultClear(); setVaultLocked(false); setStatusMessage(t('ai_key_vault_cleared')); setTestStatus('idle'); }} className="px-2 py-1 text-xs text-rose-600 border border-rose-200 rounded-lg">{t('ai_key_vault_clear')}</button>
                   </>
                 )}
@@ -265,8 +265,8 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
           </div>
 
           {/* Key manager: masked list with per-key Edit / Delete + expiry */}
-          <div className="p-3.5 bg-[#FAF9F5] dark:bg-[#1F1E1B] rounded-2xl border border-[#DFDACB] dark:border-[#2C2B27] space-y-3">
-            <p className="text-xs font-bold text-[#141413] dark:text-[#FAF9F5]">{t('ai_key_configured_keys')}</p>
+          <div className="p-3.5 bg-[var(--bg-subtle)] rounded-2xl border border-[var(--border-default)] space-y-3">
+            <p className="text-xs font-bold text-[var(--text-primary)]">{t('ai_key_configured_keys')}</p>
 
             {/* Gemini row */}
             <div className="flex items-start justify-between gap-2 text-xs">
@@ -274,14 +274,14 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-bold">{t('ai_key_gemini_name')}</span>
                   {apiKey.trim() ? (
-                    <span className="font-mono text-[11px] text-[#6B6860]">{maskApiKey(apiKey)}</span>
+                    <span className="font-mono text-[11px] text-[var(--text-secondary)]">{maskApiKey(apiKey)}</span>
                   ) : (
-                    <span className="text-[11px] text-[#8C897F]">{t('ai_key_not_configured')}</span>
+                    <span className="text-[11px] text-[var(--text-muted)]">{t('ai_key_not_configured')}</span>
                   )}
                   {expiryBadge(geminiExpiryStatus)}
                 </div>
                 {geminiExpiryStatus.state === 'expired' && (
-                  <p className="text-[11px] text-amber-700 dark:text-amber-300 mt-1">
+                  <p className="text-[11px] text-[var(--status-warn-text)] mt-1">
                     {t('ai_key_expired_warn')}
                   </p>
                 )}
@@ -292,7 +292,7 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
                       value={editGeminiValue}
                       onChange={(e) => setEditGeminiValue(e.target.value)}
                       placeholder={t('ai_key_gemini_edit_ph')}
-                      className="flex-1 px-2 py-1.5 text-xs font-mono bg-white dark:bg-[#1A1917] border border-[#DFDACB] dark:border-[#2C2B27] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D97757] text-[#141413] dark:text-[#FAF9F5]"
+                      className="flex-1 px-2 py-1.5 text-xs font-mono bg-[var(--bg-surface)] border border-[var(--border-default)] text-[var(--text-primary)] rounded-lg focus:outline-none focus:border-[var(--accent-fill)] focus:ring-2 focus:ring-[var(--accent-fill)]/20 text-[var(--text-primary)]"
                     />
                     <button
                       onClick={() => {
@@ -303,32 +303,32 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
                         setTestStatus('idle');
                         setStatusMessage(t('ai_key_gemini_updated'));
                       }}
-                      className="px-2 py-1.5 text-[11px] font-bold bg-[#D97757] text-white rounded-lg"
+                      className="px-2 py-1.5 text-[11px] font-bold bg-[var(--accent-fill)] text-white rounded-lg"
                     >
                       {t('common_save')}
                     </button>
                     <button
                       onClick={() => setEditingGemini(false)}
-                      className="px-2 py-1.5 text-[11px] text-[#5C5A54] dark:text-[#B5B2A8] border border-[#DFDACB] dark:border-[#2C2B27] rounded-lg"
+                      className="px-2 py-1.5 text-[11px] text-[var(--text-secondary)] border border-[var(--border-default)] rounded-lg"
                     >
                       {t('common_cancel')}
                     </button>
                   </div>
                 ) : (
                   <div className="flex items-center gap-2 mt-2 flex-wrap">
-                    <label className="text-[11px] text-[#6B6860] flex items-center gap-1">
+                    <label className="text-[11px] text-[var(--text-secondary)] flex items-center gap-1">
                       {t('ai_key_expires_label')}
                       <input
                         type="date"
                         value={geminiExpiry}
                         onChange={(e) => { setGeminiExpiry(e.target.value); setGeminiKeyExpiry(e.target.value || null); }}
-                        className="px-1.5 py-1 text-[11px] bg-white dark:bg-[#1A1917] border border-[#DFDACB] dark:border-[#2C2B27] rounded-lg"
+                        className="px-1.5 py-1 text-[11px] bg-[var(--bg-surface)] border border-[var(--border-default)] text-[var(--text-primary)] rounded-lg"
                       />
                     </label>
                     {geminiExpiry && (
                       <button
                         onClick={() => { setGeminiExpiry(''); setGeminiKeyExpiry(null); }}
-                        className="text-[11px] text-[#8C897F] hover:underline"
+                        className="text-[11px] text-[var(--text-muted)] hover:underline"
                       >
                         {t('ai_key_clear_date')}
                       </button>
@@ -342,7 +342,7 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
                     title={t('ai_key_edit_title')}
                     aria-label={t('ai_key_edit_title')}
                     onClick={() => { setEditGeminiValue(apiKey); setEditingGemini(true); }}
-                    className="p-1.5 text-[#6B6860] hover:text-[#D97757] hover:bg-white dark:hover:bg-[#252422] rounded-lg border border-transparent hover:border-[#DFDACB] dark:hover:border-[#2C2B27]"
+                    className="p-1.5 text-[var(--text-secondary)] hover:text-[var(--accent-text)] hover:bg-[var(--bg-hover)] rounded-lg border border-transparent hover:border-[var(--border-default)]"
                   >
                     <Pencil className="w-3.5 h-3.5" />
                   </button>
@@ -350,7 +350,7 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
                     title={t('ai_key_gemini_delete_title')}
                     aria-label={t('ai_key_gemini_delete_title')}
                     onClick={handleClear}
-                    className="p-1.5 text-[#6B6860] hover:text-rose-600 hover:bg-white dark:hover:bg-[#252422] rounded-lg border border-transparent hover:border-rose-200"
+                    className="p-1.5 text-[var(--text-secondary)] hover:text-rose-600 hover:bg-[var(--bg-hover)] rounded-lg border border-transparent hover:border-rose-200"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
@@ -358,7 +358,7 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
               )}
             </div>
 
-            <div className="h-px bg-[#DFDACB] dark:bg-[#2C2B27]" />
+            <div className="h-px bg-[var(--border-default)]" />
 
             {/* Groq row */}
             <div className="flex items-start justify-between gap-2 text-xs">
@@ -366,14 +366,14 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-bold">{t('ai_key_groq_name')}</span>
                   {groqKey.trim() ? (
-                    <span className="font-mono text-[11px] text-[#6B6860]">{maskApiKey(groqKey)}</span>
+                    <span className="font-mono text-[11px] text-[var(--text-secondary)]">{maskApiKey(groqKey)}</span>
                   ) : (
-                    <span className="text-[11px] text-[#8C897F]">{t('ai_key_not_configured')}</span>
+                    <span className="text-[11px] text-[var(--text-muted)]">{t('ai_key_not_configured')}</span>
                   )}
                   {expiryBadge(groqExpiryStatus)}
                 </div>
                 {groqExpiryStatus.state === 'expired' && (
-                  <p className="text-[11px] text-amber-700 dark:text-amber-300 mt-1">
+                  <p className="text-[11px] text-[var(--status-warn-text)] mt-1">
                     {t('ai_key_expired_warn')}
                   </p>
                 )}
@@ -384,7 +384,7 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
                       value={editGroqValue}
                       onChange={(e) => setEditGroqValue(e.target.value)}
                       placeholder={t('ai_key_groq_edit_ph')}
-                      className="flex-1 px-2 py-1.5 text-xs font-mono bg-white dark:bg-[#1A1917] border border-[#DFDACB] dark:border-[#2C2B27] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D97757] text-[#141413] dark:text-[#FAF9F5]"
+                      className="flex-1 px-2 py-1.5 text-xs font-mono bg-[var(--bg-surface)] border border-[var(--border-default)] text-[var(--text-primary)] rounded-lg focus:outline-none focus:border-[var(--accent-fill)] focus:ring-2 focus:ring-[var(--accent-fill)]/20 text-[var(--text-primary)]"
                     />
                     <button
                       onClick={() => {
@@ -395,32 +395,32 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
                         setGroqTestStatus('idle');
                         setGroqStatusMessage(t('ai_key_groq_updated'));
                       }}
-                      className="px-2 py-1.5 text-[11px] font-bold bg-[#D97757] text-white rounded-lg"
+                      className="px-2 py-1.5 text-[11px] font-bold bg-[var(--accent-fill)] text-white rounded-lg"
                     >
                       {t('common_save')}
                     </button>
                     <button
                       onClick={() => setEditingGroq(false)}
-                      className="px-2 py-1.5 text-[11px] text-[#5C5A54] dark:text-[#B5B2A8] border border-[#DFDACB] dark:border-[#2C2B27] rounded-lg"
+                      className="px-2 py-1.5 text-[11px] text-[var(--text-secondary)] border border-[var(--border-default)] rounded-lg"
                     >
                       {t('common_cancel')}
                     </button>
                   </div>
                 ) : (
                   <div className="flex items-center gap-2 mt-2 flex-wrap">
-                    <label className="text-[11px] text-[#6B6860] flex items-center gap-1">
+                    <label className="text-[11px] text-[var(--text-secondary)] flex items-center gap-1">
                       {t('ai_key_expires_label')}
                       <input
                         type="date"
                         value={groqExpiry}
                         onChange={(e) => { setGroqExpiry(e.target.value); setGroqKeyExpiry(e.target.value || null); }}
-                        className="px-1.5 py-1 text-[11px] bg-white dark:bg-[#1A1917] border border-[#DFDACB] dark:border-[#2C2B27] rounded-lg"
+                        className="px-1.5 py-1 text-[11px] bg-[var(--bg-surface)] border border-[var(--border-default)] text-[var(--text-primary)] rounded-lg"
                       />
                     </label>
                     {groqExpiry && (
                       <button
                         onClick={() => { setGroqExpiry(''); setGroqKeyExpiry(null); }}
-                        className="text-[11px] text-[#8C897F] hover:underline"
+                        className="text-[11px] text-[var(--text-muted)] hover:underline"
                       >
                         {t('ai_key_clear_date')}
                       </button>
@@ -434,7 +434,7 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
                     title={t('ai_key_edit_title')}
                     aria-label={t('ai_key_edit_title')}
                     onClick={() => { setEditGroqValue(groqKey); setEditingGroq(true); }}
-                    className="p-1.5 text-[#6B6860] hover:text-[#D97757] hover:bg-white dark:hover:bg-[#252422] rounded-lg border border-transparent hover:border-[#DFDACB] dark:hover:border-[#2C2B27]"
+                    className="p-1.5 text-[var(--text-secondary)] hover:text-[var(--accent-text)] hover:bg-[var(--bg-hover)] rounded-lg border border-transparent hover:border-[var(--border-default)]"
                   >
                     <Pencil className="w-3.5 h-3.5" />
                   </button>
@@ -442,7 +442,7 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
                     title={t('ai_key_groq_delete_title')}
                     aria-label={t('ai_key_groq_delete_title')}
                     onClick={handleClearGroq}
-                    className="p-1.5 text-[#6B6860] hover:text-rose-600 hover:bg-white dark:hover:bg-[#252422] rounded-lg border border-transparent hover:border-rose-200"
+                    className="p-1.5 text-[var(--text-secondary)] hover:text-rose-600 hover:bg-[var(--bg-hover)] rounded-lg border border-transparent hover:border-rose-200"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
@@ -452,23 +452,23 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-[#141413] dark:text-[#FAF9F5] mb-1">
+            <label className="block text-xs font-bold text-[var(--text-primary)] mb-1">
               {t('ai_key_gemini_label')}
             </label>
             <div className="relative">
-              <Key className="w-4 h-4 text-[#8C897F] absolute left-3 top-1/2 -translate-y-1/2" />
+              <Key className="w-4 h-4 text-[var(--text-muted)] absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type={showKey ? 'text' : 'password'}
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
                 placeholder="AIzaSy..."
-                className="w-full pl-9 pr-10 py-2.5 text-xs font-mono bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#D97757] text-[#141413] dark:text-[#FAF9F5]"
+                className="w-full pl-9 pr-10 py-2.5 text-xs font-mono bg-[var(--bg-surface)] border border-[var(--border-default)] text-[var(--text-primary)] rounded-xl focus:outline-none focus:border-[var(--accent-fill)] focus:ring-2 focus:ring-[var(--accent-fill)]/20 text-[var(--text-primary)]"
               />
               <button
                 type="button"
                 aria-label={showKey ? t('ai_key_hide') : t('ai_key_show')}
                 onClick={() => setShowKey(!showKey)}
-                className="p-1.5 text-[#8C897F] hover:text-[#141413] dark:hover:text-[#FAF9F5] absolute right-2.5 top-1/2 -translate-y-1/2"
+                className="p-1.5 text-[var(--text-muted)] hover:text-[var(--text-primary)] absolute right-2.5 top-1/2 -translate-y-1/2"
               >
                 {showKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
               </button>
@@ -476,23 +476,23 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-[#141413] dark:text-[#FAF9F5] mb-1">
-              {t('ai_key_groq_label')} <span className="font-normal text-[#8C897F]">{t('ai_key_groq_fallback_hint')}</span>
+            <label className="block text-xs font-bold text-[var(--text-primary)] mb-1">
+              {t('ai_key_groq_label')} <span className="font-normal text-[var(--text-muted)]">{t('ai_key_groq_fallback_hint')}</span>
             </label>
             <div className="relative">
-              <Key className="w-4 h-4 text-[#8C897F] absolute left-3 top-1/2 -translate-y-1/2" />
+              <Key className="w-4 h-4 text-[var(--text-muted)] absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type={showGroqKey ? 'text' : 'password'}
                 value={groqKey}
                 onChange={(e) => setGroqKey(e.target.value)}
                 placeholder="gsk_..."
-                className="w-full pl-9 pr-10 py-2.5 text-xs font-mono bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#D97757] text-[#141413] dark:text-[#FAF9F5]"
+                className="w-full pl-9 pr-10 py-2.5 text-xs font-mono bg-[var(--bg-surface)] border border-[var(--border-default)] text-[var(--text-primary)] rounded-xl focus:outline-none focus:border-[var(--accent-fill)] focus:ring-2 focus:ring-[var(--accent-fill)]/20 text-[var(--text-primary)]"
               />
               <button
                 type="button"
                 aria-label={showGroqKey ? t('ai_key_hide') : t('ai_key_show')}
                 onClick={() => setShowGroqKey(!showGroqKey)}
-                className="p-1.5 text-[#8C897F] hover:text-[#141413] dark:hover:text-[#FAF9F5] absolute right-2.5 top-1/2 -translate-y-1/2"
+                className="p-1.5 text-[var(--text-muted)] hover:text-[var(--text-primary)] absolute right-2.5 top-1/2 -translate-y-1/2"
               >
                 {showGroqKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
               </button>
@@ -501,14 +501,14 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
               <button
                 onClick={handleTestGroq}
                 disabled={isTestingGroq || !groqKey.trim()}
-                className="px-3 py-1.5 bg-white dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] hover:border-[#D97757] text-[#141413] dark:text-[#FAF9F5] rounded-xl text-[11px] font-bold transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                className="px-3 py-1.5 bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] border border-[var(--border-default)] hover:border-[var(--accent-border)] text-[var(--text-primary)] rounded-xl text-[11px] font-bold transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
               >
-                <RefreshCw className={`w-3 h-3 ${isTestingGroq ? 'animate-spin text-[#D97757]' : ''}`} />
+                <RefreshCw className={`w-3 h-3 ${isTestingGroq ? 'animate-spin text-[var(--accent-text)]' : ''}`} />
                 <span>{isTestingGroq ? t('ai_key_verifying') : t('ai_key_groq_test_btn')}</span>
               </button>
               <button
                 onClick={handleSaveGroq}
-                className="px-3 py-1.5 bg-white dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] hover:border-[#D97757] text-[#141413] dark:text-[#FAF9F5] rounded-xl text-[11px] font-bold transition-colors cursor-pointer"
+                className="px-3 py-1.5 bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] border border-[var(--border-default)] hover:border-[var(--accent-border)] text-[var(--text-primary)] rounded-xl text-[11px] font-bold transition-colors cursor-pointer"
               >
                 {t('ai_key_save_groq_btn')}
               </button>
@@ -540,15 +540,15 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
           </div>
 
           {/* Daily quota progress bar — surfaced before error (50/day) */}
-          <div className="p-3 rounded-xl bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] space-y-1.5">
+          <div className="p-3 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-default)] text-[var(--text-primary)] space-y-1.5">
             <div className="flex items-center justify-between text-xs font-bold">
               <span>{t('ai_key_quota_title')}</span>
-              <span className="font-mono text-[11px] text-[#6B6860]">{t('ai_key_quota_stats', { used: quota.used, limit: quota.limit, remaining: quota.remaining })}</span>
+              <span className="font-mono text-[11px] text-[var(--text-secondary)]">{t('ai_key_quota_stats', { used: quota.used, limit: quota.limit, remaining: quota.remaining })}</span>
             </div>
-            <div className="h-2 bg-white dark:bg-[#252422] rounded-full overflow-hidden border border-[#DFDACB] dark:border-[#2C2B27]">
-              <div className="h-full bg-[#D97757] transition-all" style={{ width: `${Math.min(100, (quota.used/quota.limit)*100)}%` }} />
+            <div className="h-2 bg-[var(--bg-surface)] rounded-full overflow-hidden border border-[var(--border-default)]">
+              <div className="h-full bg-[var(--accent-fill)] transition-all" style={{ width: `${Math.min(100, (quota.used/quota.limit)*100)}%` }} />
             </div>
-            <p className="text-[11px] text-[#6B6860]">{t('ai_key_quota_note')}</p>
+            <p className="text-[11px] text-[var(--text-secondary)]">{t('ai_key_quota_note')}</p>
           </div>
 
           {/* Test Status Banner */}
@@ -564,12 +564,12 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
             >
               {testStatus === 'success' && <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />}
               {testStatus === 'failed' && <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />}
-              {testStatus === 'idle' && <Sparkles className="w-4 h-4 shrink-0 text-amber-600" />}
+              {testStatus === 'idle' && <Sparkles className="w-4 h-4 shrink-0 text-[var(--status-warn-text)]" />}
               <span className="break-words">{statusMessage}</span>
             </div>
           )}
           {/* sessionStorage option */}
-          <div className="flex items-center gap-2 text-[11px] text-[#6B6860]">
+          <div className="flex items-center gap-2 text-[11px] text-[var(--text-secondary)]">
             <input type="checkbox" id="sessionOnly" checked={sessionOnly} onChange={(e)=>{
               setSessionOnly(e.target.checked);
               if (apiKey.trim()) setClientGeminiApiKey(apiKey, { sessionOnly: e.target.checked });
@@ -582,7 +582,7 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
               href="https://aistudio.google.com/app/apikey"
               target="_blank"
               rel="noreferrer"
-              className="text-[#D97757] hover:underline font-semibold flex items-center gap-1"
+              className="text-[var(--accent-text)] hover:underline font-semibold flex items-center gap-1"
             >
               <span>{t('ai_key_get_free')}</span>
               <ExternalLink className="w-3 h-3" />
@@ -601,10 +601,10 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
         </div>
 
         {/* Footer Actions */}
-        <div className="p-4 border-t border-[#DFDACB] dark:border-[#2C2B27] bg-[#FAF9F5] dark:bg-[#1F1E1B] flex items-center justify-end gap-2.5">
+        <div className="p-4 border-t border-[var(--border-default)] bg-[var(--bg-surface)] flex items-center justify-end gap-2.5">
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded-xl text-xs font-semibold text-[#5C5A54] dark:text-[#B5B2A8] hover:bg-[#EFECE2] dark:hover:bg-[#2C2A26] transition-colors cursor-pointer"
+            className="px-4 py-2 rounded-xl text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-colors cursor-pointer"
           >
             {t('common_cancel')}
           </button>
@@ -612,15 +612,15 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
           <button
             onClick={handleTest}
             disabled={isTesting || !apiKey.trim()}
-            className="px-4 py-2 bg-white dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] hover:border-[#D97757] text-[#141413] dark:text-[#FAF9F5] rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+            className="px-4 py-2 bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] border border-[var(--border-default)] hover:border-[var(--accent-border)] text-[var(--text-primary)] rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isTesting ? 'animate-spin text-[#D97757]' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${isTesting ? 'animate-spin text-[var(--accent-text)]' : ''}`} />
             <span>{isTesting ? t('ai_key_verifying') : t('ai_key_test_btn')}</span>
           </button>
 
           <button
             onClick={handleSave}
-            className="px-5 py-2 bg-[#D97757] hover:bg-[#C86646] text-white rounded-xl text-xs font-bold transition-colors cursor-pointer shadow-xs"
+            className="px-5 py-2 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-xl text-xs font-bold transition-colors cursor-pointer shadow-xs"
           >
             {t('ai_key_save_btn')}
           </button>

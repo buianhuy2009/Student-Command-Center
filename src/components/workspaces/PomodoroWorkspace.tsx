@@ -27,7 +27,17 @@ export interface PomodoroWorkspaceProps {
 export const PomodoroWorkspace: React.FC<PomodoroWorkspaceProps> = ({ initialMinutes }) => {
   const { lang, t } = useT();
   // Timer States
-  const initialWorkMins = typeof initialMinutes === 'number' && initialMinutes > 0 ? initialMinutes : 25;
+  const initialWorkMins = (() => {
+    try {
+      const requested = localStorage.getItem('scc_pomo_requested_duration');
+      if (requested) {
+        localStorage.removeItem('scc_pomo_requested_duration');
+        const parsed = parseInt(requested, 10);
+        if (Number.isFinite(parsed) && parsed >= 1 && parsed <= 120) return parsed;
+      }
+    } catch {}
+    return typeof initialMinutes === 'number' && initialMinutes > 0 ? initialMinutes : 25;
+  })();
   const [mode, setMode] = useState<'work' | 'short' | 'long'>('work');
   const [durationMinutes, setDurationMinutes] = useState<number>(initialWorkMins);
   const [timeLeftSeconds, setTimeLeftSeconds] = useState<number>(initialWorkMins * 60);
@@ -40,6 +50,21 @@ export const PomodoroWorkspace: React.FC<PomodoroWorkspaceProps> = ({ initialMin
       setIsRunning(false);
     }
   }, [initialMinutes]);
+
+  useEffect(() => {
+    const handlePomoStart = (e: Event) => {
+      const detail = (e as CustomEvent<{ minutes?: number; autoStart?: boolean }>).detail;
+      const mins = Number(detail?.minutes);
+      if (!Number.isFinite(mins) || mins < 1 || mins > 120) return;
+      try { localStorage.removeItem('scc_pomo_requested_duration'); } catch {}
+      setMode('work');
+      setDurationMinutes(mins);
+      setTimeLeftSeconds(mins * 60);
+      setIsRunning(detail?.autoStart !== false);
+    };
+    window.addEventListener('scc-pomo-start', handlePomoStart);
+    return () => window.removeEventListener('scc-pomo-start', handlePomoStart);
+  }, []);
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [completedSessions, setCompletedSessions] = useState<number>(() => {
     try {
@@ -246,21 +271,21 @@ export const PomodoroWorkspace: React.FC<PomodoroWorkspaceProps> = ({ initialMin
     <div className="space-y-6 select-none animate-in fade-in duration-150 max-w-5xl mx-auto">
       
       {/* 1. Top Header Bar */}
-      <div className="bg-white dark:bg-[#1A1917] rounded-3xl border border-[#DFDACB] dark:border-[#2C2B27] p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-[var(--bg-surface)] rounded-3xl border border-[var(--border-default)] p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
           <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-rose-500 to-red-600 text-white flex items-center justify-center shadow-md shadow-rose-500/20 font-bold">
             <Timer className="w-6 h-6" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-lg font-bold text-[#141413] dark:text-[#FAF9F5]">
+              <h2 className="text-lg font-bold text-[var(--text-primary)]">
                 {t('pom_title')}
               </h2>
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-300 dark:border-rose-800">
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[var(--status-err-bg)] text-[var(--status-err-text)] border border-[var(--status-err-border)]">
                 {t('pom_badge')}
               </span>
             </div>
-            <p className="text-xs text-[#8C897F] mt-0.5">
+            <p className="text-xs text-[var(--text-muted)] mt-0.5">
               {t('pom_sub')}
             </p>
           </div>
@@ -268,7 +293,7 @@ export const PomodoroWorkspace: React.FC<PomodoroWorkspaceProps> = ({ initialMin
 
         {/* Stats Pill */}
         <div className="flex items-center gap-3">
-          <div className="px-3.5 py-1.5 rounded-2xl bg-[#FAF9F5] dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] flex items-center gap-2 text-xs font-bold text-[#141413] dark:text-[#FAF9F5]">
+          <div className="px-3.5 py-1.5 rounded-2xl bg-[var(--bg-subtle)] border border-[var(--border-default)] flex items-center gap-2 text-xs font-bold text-[var(--text-primary)]">
             <CheckCircle2 className="w-4 h-4 text-emerald-600" />
             <span>{completedSessions} {t('pom_intervals')}</span>
           </div>
@@ -280,7 +305,7 @@ export const PomodoroWorkspace: React.FC<PomodoroWorkspaceProps> = ({ initialMin
         
         {/* Left: Pomodoro Clock (7 cols) */}
         <div
-          className="lg:col-span-7 bg-white dark:bg-[#1A1917] rounded-3xl border border-[#DFDACB] dark:border-[#2C2B27] p-8 shadow-xs flex flex-col items-center justify-center space-y-6 text-center"
+          className="lg:col-span-7 bg-[var(--bg-surface)] rounded-3xl border border-[var(--border-default)] p-8 shadow-xs flex flex-col items-center justify-center space-y-6 text-center"
           tabIndex={0}
           role="group"
           aria-label={t('pom_group_aria')}
@@ -288,13 +313,13 @@ export const PomodoroWorkspace: React.FC<PomodoroWorkspaceProps> = ({ initialMin
         >
           
           {/* Preset Selector */}
-          <div className="flex items-center gap-1.5 bg-[#FAF9F5] dark:bg-[#1F1E1B] p-1.5 rounded-2xl border border-[#DFDACB] dark:border-[#2C2B27]">
+          <div className="flex items-center gap-1.5 bg-[var(--bg-subtle)] p-1.5 rounded-2xl border border-[var(--border-default)]">
             <button
               onClick={() => setPreset('work', 25)}
               className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                 mode === 'work' && durationMinutes === 25
-                  ? 'bg-[#D97757] text-white shadow-xs'
-                  : 'text-[#5C5A54] dark:text-[#B5B2A8] hover:text-[#D97757]'
+                  ? 'bg-[var(--accent-fill)] text-white shadow-xs'
+                  : 'text-[var(--text-secondary)] hover:text-[var(--accent-text)]'
               }`}
             >
               {t('pom_preset_pomo')}
@@ -303,8 +328,8 @@ export const PomodoroWorkspace: React.FC<PomodoroWorkspaceProps> = ({ initialMin
               onClick={() => setPreset('work', 50)}
               className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                 mode === 'work' && durationMinutes === 50
-                  ? 'bg-[#D97757] text-white shadow-xs'
-                  : 'text-[#5C5A54] dark:text-[#B5B2A8] hover:text-[#D97757]'
+                  ? 'bg-[var(--accent-fill)] text-white shadow-xs'
+                  : 'text-[var(--text-secondary)] hover:text-[var(--accent-text)]'
               }`}
             >
               {t('pom_preset_deep')}
@@ -313,8 +338,8 @@ export const PomodoroWorkspace: React.FC<PomodoroWorkspaceProps> = ({ initialMin
               onClick={() => setPreset('short', 5)}
               className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                 mode === 'short'
-                  ? 'bg-[#D97757] text-white shadow-xs'
-                  : 'text-[#5C5A54] dark:text-[#B5B2A8] hover:text-[#D97757]'
+                  ? 'bg-[var(--accent-fill)] text-white shadow-xs'
+                  : 'text-[var(--text-secondary)] hover:text-[var(--accent-text)]'
               }`}
             >
               {t('pom_preset_short')}
@@ -323,8 +348,8 @@ export const PomodoroWorkspace: React.FC<PomodoroWorkspaceProps> = ({ initialMin
               onClick={() => setPreset('long', 15)}
               className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                 mode === 'long'
-                  ? 'bg-[#D97757] text-white shadow-xs'
-                  : 'text-[#5C5A54] dark:text-[#B5B2A8] hover:text-[#D97757]'
+                  ? 'bg-[var(--accent-fill)] text-white shadow-xs'
+                  : 'text-[var(--text-secondary)] hover:text-[var(--accent-text)]'
               }`}
             >
               {t('pom_preset_long')}
@@ -337,22 +362,22 @@ export const PomodoroWorkspace: React.FC<PomodoroWorkspaceProps> = ({ initialMin
               role="timer"
               aria-live="polite"
               aria-label={`${formatTime(timeLeftSeconds)} ${t('pom_aria_remaining')} ${mode === 'work' ? t('focus') : t('pom_break')} ${t('pom_aria_timer')}`}
-              className="text-7xl sm:text-8xl font-mono font-extrabold text-[#141413] dark:text-[#FAF9F5] tracking-tighter"
+              className="text-7xl sm:text-8xl font-mono font-extrabold text-[var(--text-primary)] tracking-tighter"
             >
               {formatTime(timeLeftSeconds)}
             </div>
             <span aria-live="polite" role="status" className="sr-only">
               {liveAnnouncement}
             </span>
-            <span className="px-3 py-1 rounded-full text-xs font-bold bg-[#FAF9F5] dark:bg-[#252422] text-[#8C897F] border border-[#DFDACB] dark:border-[#2C2B27]">
+            <span className="px-3 py-1 rounded-full text-xs font-bold bg-[var(--bg-subtle)] text-[var(--text-muted)] border border-[var(--border-default)]">
               {mode === 'work' ? t('pom_mode_work') : t('pom_mode_break')}
             </span>
           </div>
 
           {/* Progress Bar */}
-          <div className="w-full max-w-md h-2 bg-[#FAF9F5] dark:bg-[#1F1E1B] rounded-full overflow-hidden border border-[#DFDACB]/60 dark:border-[#2C2B27]/60">
+          <div className="w-full max-w-md h-2 bg-[var(--bg-subtle)] rounded-full overflow-hidden border border-[var(--border-default)]">
             <div
-              className="h-full bg-[#D97757] transition-all duration-1000"
+              className="h-full bg-[var(--accent-fill)] transition-all duration-1000"
               style={{ width: `${progressPercent}%` }}
             />
           </div>
@@ -363,8 +388,8 @@ export const PomodoroWorkspace: React.FC<PomodoroWorkspaceProps> = ({ initialMin
               onClick={handleToggleTimer}
               className={`px-8 py-3.5 rounded-2xl text-xs font-bold transition-all shadow-md cursor-pointer flex items-center gap-2 ${
                 isRunning
-                  ? 'bg-[#141413] dark:bg-[#FAF9F5] text-white dark:text-[#141413]'
-                  : 'bg-[#D97757] hover:bg-[#C86646] text-white'
+                  ? 'bg-[var(--text-primary)] text-[var(--bg-canvas)]'
+                  : 'bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white'
               }`}
             >
               {isRunning ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 fill-current" />}
@@ -376,7 +401,7 @@ export const PomodoroWorkspace: React.FC<PomodoroWorkspaceProps> = ({ initialMin
                 setIsRunning(false);
                 setTimeLeftSeconds(durationMinutes * 60);
               }}
-              className="p-3.5 rounded-2xl bg-[#FAF9F5] dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] hover:border-[#D97757] text-[#8C897F] hover:text-[#141413] transition-colors cursor-pointer"
+              className="p-3.5 rounded-2xl bg-[var(--bg-subtle)] border border-[var(--border-default)] hover:border-[var(--accent-fill)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
               title={t('pom_reset_title')}
             >
               <RotateCcw className="w-4 h-4" />
@@ -388,11 +413,11 @@ export const PomodoroWorkspace: React.FC<PomodoroWorkspaceProps> = ({ initialMin
         <div className="lg:col-span-5 space-y-6">
           
           {/* Ambient Soundscape Synthesizer */}
-          <div className="bg-white dark:bg-[#1A1917] rounded-3xl border border-[#DFDACB] dark:border-[#2C2B27] p-6 shadow-xs space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-[#DFDACB]/60 dark:border-[#2C2B27]/60">
+          <div className="bg-[var(--bg-surface)] rounded-3xl border border-[var(--border-default)] p-6 shadow-xs space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-[var(--border-default)]">
               <div className="flex items-center gap-2">
-                <Volume2 className="w-4 h-4 text-[#D97757]" />
-                <span className="text-xs font-bold uppercase tracking-wider text-[#141413] dark:text-[#FAF9F5]">
+                <Volume2 className="w-4 h-4 text-[var(--accent-text)]" />
+                <span className="text-xs font-bold uppercase tracking-wider text-[var(--text-primary)]">
                   {t('pom_sound_title')}
                 </span>
               </div>
@@ -411,8 +436,8 @@ export const PomodoroWorkspace: React.FC<PomodoroWorkspaceProps> = ({ initialMin
                   onClick={() => ambientAudio.playTrack(snd.id)}
                   className={`p-2.5 rounded-xl border text-[11px] font-bold text-left transition-all cursor-pointer ${
                     activeSound === snd.id
-                      ? 'bg-[#D97757] text-white border-[#D97757] shadow-xs'
-                      : 'bg-[#FAF9F5] dark:bg-[#1F1E1B] border-[#DFDACB] dark:border-[#2C2B27] text-[#5C5A54] dark:text-[#B5B2A8] hover:border-[#D97757]/60'
+                      ? 'bg-[var(--accent-fill)] text-white border-[var(--accent-fill)] shadow-xs'
+                      : 'bg-[var(--bg-subtle)] border-[var(--border-default)] text-[var(--text-secondary)] hover:border-[var(--accent-fill)]/60'
                   }`}
                 >
                   {getAmbientTrackShortLabel(snd.id)}
@@ -423,7 +448,7 @@ export const PomodoroWorkspace: React.FC<PomodoroWorkspaceProps> = ({ initialMin
             {/* Volume Slider */}
             {activeSound !== 'none' && (
               <div className="pt-2 flex items-center gap-3">
-                <Volume2 className="w-4 h-4 text-[#8C897F] shrink-0" />
+                <Volume2 className="w-4 h-4 text-[var(--text-muted)] shrink-0" />
                 <input
                   type="range"
                   min="0"
@@ -432,9 +457,9 @@ export const PomodoroWorkspace: React.FC<PomodoroWorkspaceProps> = ({ initialMin
                   value={soundVolume}
                   onChange={(e) => setSoundVolume(parseFloat(e.target.value))}
                   aria-label={t('pom_volume_aria')}
-                  className="w-full accent-[#D97757] cursor-pointer"
+                  className="w-full accent-[var(--accent-fill)] cursor-pointer"
                 />
-                <span className="text-[11px] font-mono text-[#8C897F] w-10 text-right">
+                <span className="text-[11px] font-mono text-[var(--text-muted)] w-10 text-right">
                   {Math.round(soundVolume * 100)}%
                 </span>
               </div>
@@ -442,10 +467,10 @@ export const PomodoroWorkspace: React.FC<PomodoroWorkspaceProps> = ({ initialMin
           </div>
 
           {/* Quick Focus Scratchpad */}
-          <div className="bg-white dark:bg-[#1A1917] rounded-3xl border border-[#DFDACB] dark:border-[#2C2B27] p-6 shadow-xs space-y-3">
-            <div className="flex items-center gap-2 pb-2 border-b border-[#DFDACB]/60 dark:border-[#2C2B27]/60">
-              <FileText className="w-4 h-4 text-[#D97757]" />
-              <span className="text-xs font-bold uppercase tracking-wider text-[#141413] dark:text-[#FAF9F5]">
+          <div className="bg-[var(--bg-surface)] rounded-3xl border border-[var(--border-default)] p-6 shadow-xs space-y-3">
+            <div className="flex items-center gap-2 pb-2 border-b border-[var(--border-default)]">
+              <FileText className="w-4 h-4 text-[var(--accent-text)]" />
+              <span className="text-xs font-bold uppercase tracking-wider text-[var(--text-primary)]">
                 {t('pom_scratch_title')}
               </span>
             </div>
@@ -460,7 +485,7 @@ export const PomodoroWorkspace: React.FC<PomodoroWorkspaceProps> = ({ initialMin
               }}
               placeholder={t('pom_scratch_ph')}
               rows={4}
-              className="w-full p-3 text-xs bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] rounded-2xl focus:outline-none focus:ring-1 focus:ring-[#D97757] text-[#141413] dark:text-[#FAF9F5] resize-none leading-relaxed"
+              className="w-full p-3 text-xs bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-2xl focus:outline-none focus:ring-1 focus:ring-[var(--accent-fill)] text-[var(--text-primary)] resize-none leading-relaxed"
             />
           </div>
 

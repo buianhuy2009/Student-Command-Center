@@ -252,27 +252,27 @@ export const PhETWorkspace: React.FC = () => {
   });
 
   return (
-    <div className={`flex flex-col h-full w-full select-none ${isFullscreen ? 'fixed inset-0 z-50 bg-[#FAF9F5] dark:bg-[#141413] p-4' : ''}`}>
+    <div className={`flex flex-col h-full w-full select-none ${isFullscreen ? 'fixed inset-0 z-50 bg-[var(--bg-canvas)] p-4' : ''}`}>
       
       {/* Active Sim Viewer */}
       {activeSim ? (
         <div className="flex flex-col h-full space-y-3">
-          <div className="flex items-center justify-between pb-2 border-b border-[#DFDACB] dark:border-[#2C2B27] text-xs">
+          <div className="flex items-center justify-between pb-2 border-b border-[var(--border-default)] text-xs">
             <button
               onClick={() => setActiveSim(null)}
-              className="px-3 py-1.5 rounded-xl bg-white dark:bg-[#1A1917] border border-[#DFDACB] dark:border-[#2C2B27] hover:border-[#D97757] text-[#141413] dark:text-[#FAF9F5] font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+              className="px-3 py-1.5 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--accent-border)] text-[var(--text-primary)] font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>{t('phet_back')}</span>
             </button>
 
             <div className="flex items-center gap-2">
-              <span className="font-bold text-[#141413] dark:text-[#FAF9F5]">{t(activeSim.titleKey)}</span>
+              <span className="font-bold text-[var(--text-primary)]">{t(activeSim.titleKey)}</span>
               <button
                 onClick={() => setIsFullscreen(!isFullscreen)}
                 title={isFullscreen ? t('desm_exit') : t('desm_expand')}
                 aria-label={isFullscreen ? t('desm_exit') : t('desm_expand')}
-                className="p-1.5 rounded-lg bg-white dark:bg-[#1A1917] border border-[#DFDACB] dark:border-[#2C2B27] hover:border-[#D97757] text-[#5C5A54] dark:text-[#B5B2A8] transition-colors cursor-pointer"
+                className="p-1.5 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--accent-border)] text-[var(--text-secondary)] transition-colors cursor-pointer"
               >
                 {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
               </button>
@@ -280,7 +280,7 @@ export const PhETWorkspace: React.FC = () => {
                 href={activeSim.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-2.5 py-1 rounded-lg bg-white dark:bg-[#1A1917] border border-[#DFDACB] dark:border-[#2C2B27] hover:border-[#D97757] text-[#141413] dark:text-[#FAF9F5] font-bold flex items-center gap-1"
+                className="px-2.5 py-1 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--accent-border)] text-[var(--text-primary)] font-bold flex items-center gap-1"
               >
                 <span>{t('phet_open_tab')}</span>
                 <ExternalLink className="w-3 h-3" />
@@ -288,7 +288,7 @@ export const PhETWorkspace: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex-1 w-full min-h-[550px] rounded-2xl overflow-hidden border border-[#DFDACB] dark:border-[#2C2B27] bg-white shadow-xs">
+          <div className="flex-1 w-full min-h-[550px] rounded-2xl overflow-hidden border border-[var(--border-default)] bg-white shadow-xs">
             <IframeErrorBoundary
               title={t(activeSim.titleKey)}
               src={activeSim.url}
@@ -299,21 +299,21 @@ export const PhETWorkspace: React.FC = () => {
       ) : (
         /* Catalog View */
         <div className="space-y-6">
-          <div className="bg-white dark:bg-[#1A1917] rounded-3xl border border-[#DFDACB] dark:border-[#2C2B27] p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="bg-[var(--bg-surface)] rounded-3xl border border-[var(--border-default)] p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3.5">
-              <div className="w-11 h-11 rounded-2xl bg-amber-500 text-white flex items-center justify-center shadow-md shadow-amber-500/20">
+              <div className="w-11 h-11 rounded-2xl bg-[var(--accent-fill)] text-white flex items-center justify-center shadow-md shadow-[var(--accent-fill)]/20">
                 <Atom className="w-5 h-5" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h2 className="text-lg font-bold text-[#141413] dark:text-[#FAF9F5]">
+                  <h2 className="text-lg font-bold text-[var(--text-primary)]">
                     {t('phet_title')}
                   </h2>
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300 dark:border-amber-800">
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[var(--status-warn-bg)] text-[var(--status-warn-text)] border border-[var(--status-warn-border)]">
                     CU Boulder
                   </span>
                 </div>
-                <p className="text-xs text-[#8C897F] mt-0.5">
+                <p className="text-xs text-[var(--text-muted)] mt-0.5">
                   {t('phet_sub')}
                 </p>
               </div>
@@ -326,8 +326,8 @@ export const PhETWorkspace: React.FC = () => {
                   onClick={() => setCategory(cat.id)}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                     category === cat.id
-                      ? 'bg-[#D97757] text-white shadow-xs'
-                      : 'bg-[#FAF9F5] dark:bg-[#252422] text-[#5C5A54] dark:text-[#B5B2A8] border border-[#DFDACB] dark:border-[#2C2B27]'
+                      ? 'bg-[var(--accent-fill)] text-white shadow-xs'
+                      : 'bg-[var(--bg-subtle)] text-[var(--text-secondary)] border border-[var(--border-default)]'
                   }`}
                 >
                   {t(cat.labelKey)}
@@ -338,41 +338,41 @@ export const PhETWorkspace: React.FC = () => {
 
           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8C897F] pointer-events-none" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)] pointer-events-none" />
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder={t('phet_search_ph')}
                 aria-label={t('phet_search_aria')}
-                className="w-full pl-9 pr-9 py-2.5 rounded-xl bg-white dark:bg-[#1A1917] border border-[#DFDACB] dark:border-[#2C2B27] focus:border-[#D97757] focus:outline-none text-sm text-[#141413] dark:text-[#FAF9F5] placeholder:text-[#8C897F]"
+                className="w-full pl-9 pr-9 py-2.5 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-default)] focus:border-[var(--accent-fill)] focus:outline-none text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)]"
               />
               {search && (
                 <button
                   onClick={() => setSearch('')}
                   aria-label={t('phet_clear_search')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded-lg text-[#8C897F] hover:text-[#D97757] hover:bg-[#EFECE2] dark:hover:bg-[#2C2A26] transition-colors cursor-pointer"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded-lg text-[var(--text-muted)] hover:text-[var(--accent-text)] hover:bg-[var(--bg-hover)] transition-colors cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
               )}
             </div>
-            <span className="text-xs text-[#8C897F] font-medium shrink-0" aria-live="polite">
+            <span className="text-xs text-[var(--text-muted)] font-medium shrink-0" aria-live="polite">
               {t('phet_count', { filtered: filtered.length, total: PHET_SIMS.length })}
             </span>
           </div>
 
           {filtered.length === 0 ? (
-            <div className="bg-white dark:bg-[#1A1917] rounded-3xl border border-[#DFDACB] dark:border-[#2C2B27] p-10 text-center space-y-3">
-              <p className="text-sm font-bold text-[#141413] dark:text-[#FAF9F5]">
+            <div className="bg-[var(--bg-surface)] rounded-3xl border border-[var(--border-default)] p-10 text-center space-y-3">
+              <p className="text-sm font-bold text-[var(--text-primary)]">
                 {t('phet_empty_title', { search })}
               </p>
-              <p className="text-xs text-[#8C897F]">
+              <p className="text-xs text-[var(--text-muted)]">
                 {t('phet_empty_sub')}
               </p>
               <button
                 onClick={() => { setSearch(''); setCategory('All'); }}
-                className="px-4 py-2 bg-[#D97757] hover:bg-[#C86646] text-white rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                className="px-4 py-2 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-xl text-xs font-bold transition-colors cursor-pointer"
               >
                 {t('phet_clear_filters')}
               </button>
@@ -383,21 +383,21 @@ export const PhETWorkspace: React.FC = () => {
               <div
                 key={sim.id}
                 onClick={() => setActiveSim(sim)}
-                className="bg-white dark:bg-[#1A1917] rounded-3xl border border-[#DFDACB] dark:border-[#2C2B27] p-5 shadow-xs hover:border-[#D97757] transition-all cursor-pointer flex flex-col justify-between space-y-4 group"
+                className="bg-[var(--bg-surface)] rounded-3xl border border-[var(--border-default)] p-5 shadow-xs hover:border-[var(--accent-border)] transition-all cursor-pointer flex flex-col justify-between space-y-4 group"
               >
                 <div className="space-y-2">
-                  <span className="text-[10px] font-bold uppercase text-[#D97757]">
+                  <span className="text-[10px] font-bold uppercase text-[var(--accent-text)]">
                     {t(CATEGORY_KEY[sim.category])}
                   </span>
-                  <h3 className="text-sm font-bold text-[#141413] dark:text-[#FAF9F5] group-hover:text-[#D97757] transition-colors">
+                  <h3 className="text-sm font-bold text-[var(--text-primary)] group-hover:text-[var(--accent-text)] transition-colors">
                     {t(sim.titleKey)}
                   </h3>
-                  <p className="text-xs text-[#8C897F] leading-relaxed line-clamp-2">
+                  <p className="text-xs text-[var(--text-muted)] leading-relaxed line-clamp-2">
                     {t(sim.descKey)}
                   </p>
                 </div>
 
-                <button className="w-full py-2 bg-[#FAF9F5] dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] group-hover:border-[#D97757] group-hover:bg-[#D97757] group-hover:text-white rounded-xl text-xs font-bold text-[#141413] dark:text-[#FAF9F5] transition-all flex items-center justify-center gap-1.5">
+                <button className="w-full py-2 bg-[var(--bg-subtle)] border border-[var(--border-default)] group-hover:border-[var(--accent-border)] group-hover:bg-[var(--accent-fill)] group-hover:text-white rounded-xl text-xs font-bold text-[var(--text-primary)] transition-all flex items-center justify-center gap-1.5">
                   <span>{t('phet_launch')}</span>
                 </button>
               </div>
