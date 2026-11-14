@@ -1,19 +1,19 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { X, ArrowRight, ArrowLeft, MapPin, MousePointerClick } from 'lucide-react';
-import { useLang } from '../services/i18n';
+import { useT } from '../services/i18n';
 
 interface TourStop {
   id: string;
-  tag: { en: string; vi: string };
-  title: { en: string; vi: string };
-  body: { en: string; vi: string };
+  tagKey: string;
+  titleKey: string;
+  bodyKey: string;
   /** Navigate to this tab when the stop activates (Next/Back/jump auto-move). */
   tab?: string;
   /** Anchor candidates in priority order — first visible match wins. */
-  selectors: string[];
+  selectors: readonly string[];
   /** Optional "Try it" action: finishes the tour, then opens the real UI. */
   tryIt?: 'search' | 'sync' | 'coach';
-  tryItLabel?: { en: string; vi: string };
+  tryItLabelKey?: string;
   tip?: 'SHORTCUT_TIP';
 }
 
@@ -25,81 +25,63 @@ function isMac(): boolean {
   } catch { return true; }
 }
 
-const TOUR_STOPS: TourStop[] = [
+const TOUR_STOPS: readonly TourStop[] = [
   {
     id: 'sidebar',
-    tag: { en: 'Stop 1 of 6 · Sidebar', vi: 'Điểm 1/6 · Thanh bên' },
-    title: { en: 'Your 5 home bases live here', vi: 'Các mục chính của bạn ở ngay đây' },
-    body: {
-      en: 'Canvas, Schedule, Tracker, Gmail and Drive are always one click away. Badges tell you what is urgent — no need to open every app.',
-      vi: 'Canvas, Lịch học, Bài tập, Gmail và Drive luôn sẵn sàng chỉ với một chạm. Nhãn báo hạn giúp bạn thấy ngay việc gấp.',
-    },
-    selectors: ['aside[aria-label="Primary navigation"]'],
+    tagKey: 'intro_s1_tag',
+    titleKey: 'intro_s1_title',
+    bodyKey: 'intro_s1_body',
+    selectors: ['[data-tour="sidebar"]', 'aside[aria-label]'],
   },
   {
     id: 'search',
-    tag: { en: 'Stop 2 of 6 · Search', vi: 'Điểm 2/6 · Tìm kiếm' },
-    title: { en: 'One search for everything', vi: 'Một ô tìm kiếm cho mọi thứ' },
-    body: {
-      en: 'Assignments, files, emails and tools live behind the top-bar search box — with quick actions right inside. Typing math copies the answer.',
-      vi: 'Bài tập, tệp, email và công cụ đều tìm thấy từ thanh tìm kiếm phía trên. Gõ phép tính sẽ tự sao chép kết quả.',
-    },
+    tagKey: 'intro_s2_tag',
+    titleKey: 'intro_s2_title',
+    bodyKey: 'intro_s2_body',
     selectors: ['[data-tour="search"]'],
     tryIt: 'search',
-    tryItLabel: { en: 'Try search', vi: 'Thử tìm kiếm' },
+    tryItLabelKey: 'intro_s2_try',
     tip: 'SHORTCUT_TIP',
   },
   {
     id: 'sync',
-    tag: { en: 'Stop 3 of 6 · Google Apps', vi: 'Điểm 3/6 · Ứng dụng Google' },
-    title: { en: 'Connect only what you use', vi: 'Chỉ kết nối những gì bạn cần' },
-    body: {
-      en: 'Calendar, Gmail, Drive, Sheets, and Classroom each ask for permission separately only when you turn them on. StudentOS never sends email for you, and you can disconnect anytime in Settings.',
-      vi: 'Calendar, Gmail, Drive, Sheets và Classroom sẽ xin quyền riêng khi bạn mở dùng. StudentOS không bao giờ tự gửi email thay bạn và bạn có thể tắt bất cứ lúc nào trong Cài đặt.',
-    },
+    tagKey: 'intro_s3_tag',
+    titleKey: 'intro_s3_title',
+    bodyKey: 'intro_s3_body',
     selectors: ['[data-tour="sync"]', '#btn-nav-google-sync'],
     tryIt: 'sync',
-    tryItLabel: { en: 'View Google Connections', vi: 'Xem Kết nối Google' },
+    tryItLabelKey: 'intro_s3_try',
   },
   {
     id: 'tracker',
-    tag: { en: 'Stop 4 of 6 · Assignment Tracker', vi: 'Điểm 4/6 · Theo dõi bài tập' },
-    title: { en: 'All deadlines, one list', vi: 'Mọi hạn nộp trong một danh sách' },
-    body: {
-      en: 'Paste your Canvas calendar link once, test it, then save. Overdue and due-today badges keep today clear.',
-      vi: 'Dán liên kết lịch Canvas một lần, kiểm tra rồi lưu. Nhãn Quá hạn và Hạn hôm nay giúp bạn luôn nắm rõ việc cần làm.',
-    },
+    tagKey: 'intro_s4_tag',
+    titleKey: 'intro_s4_title',
+    bodyKey: 'intro_s4_body',
     tab: 'tracker',
-    selectors: ['[data-tour-tab="tracker"]', 'aside[aria-label="Primary navigation"]'],
+    selectors: ['[data-tour-tab="tracker"]', '[data-tour="sidebar"]', 'aside[aria-label]'],
   },
   {
     id: 'coach',
-    tag: { en: 'Stop 5 of 6 · AI Coach', vi: 'Điểm 5/6 · Trợ lý AI' },
-    title: { en: 'Stuck? Ask the AI Coach', vi: 'Bí bài? Hỏi Trợ lý học tập AI' },
-    body: {
-      en: 'Study plans, essay feedback and email drafts — grounded in your real work, with sources shown under every answer.',
-      vi: 'Lập kế hoạch học, góp ý bài viết và soạn nháp email — bám sát bài học thật của bạn.',
-    },
+    tagKey: 'intro_s5_tag',
+    titleKey: 'intro_s5_title',
+    bodyKey: 'intro_s5_body',
     selectors: ['[data-tour="coach"]', '#btn-nav-ai-coach'],
     tryIt: 'coach',
-    tryItLabel: { en: 'Open AI Coach', vi: 'Mở Trợ lý AI' },
+    tryItLabelKey: 'intro_s5_try',
   },
   {
     id: 'focus',
-    tag: { en: 'Stop 6 of 6 · Focus', vi: 'Điểm 6/6 · Tập trung' },
-    title: { en: 'Focus without distractions', vi: 'Học tập trung không xao nhãng' },
-    body: {
-      en: 'Start a 25-minute Pomodoro from the Focus tab. Press Esc to exit — your streak is saved. Rain and soft background sounds are built in.',
-      vi: 'Bắt đầu phiên tập trung 25 phút từ mục Tập trung. Nhấn Esc để thoát bất cứ lúc nào — chuỗi ngày học của bạn vẫn được lưu.',
-    },
+    tagKey: 'intro_s6_tag',
+    titleKey: 'intro_s6_title',
+    bodyKey: 'intro_s6_body',
     tab: 'pomodoro',
-    selectors: ['[data-tour-tab="pomodoro"]', 'aside[aria-label="Primary navigation"]'],
+    selectors: ['[data-tour-tab="pomodoro"]', '[data-tour="sidebar"]', 'aside[aria-label]'],
   },
-];
+] as const;
 
 interface Rect { top: number; left: number; width: number; height: number; }
 
-function resolveTarget(selectors: string[]): HTMLElement | null {
+function resolveTarget(selectors: readonly string[]): HTMLElement | null {
   for (const sel of selectors) {
     try {
       const el = document.querySelector(sel) as HTMLElement | null;
@@ -130,8 +112,7 @@ export const InteractiveIntroModal: React.FC<InteractiveIntroModalProps> = ({
   onOpenAiCoach,
   onOpenGoogleSync,
 }) => {
-  const [lang] = useLang();
-  const isVi = lang === 'vi';
+  const { t } = useT();
   const [currentStep, setCurrentStep] = useState(0);
   const [rect, setRect] = useState<Rect | null>(null);
   const [macPlatform, setMacPlatform] = useState(true);
@@ -143,15 +124,9 @@ export const InteractiveIntroModal: React.FC<InteractiveIntroModalProps> = ({
 
   const stop = TOUR_STOPS[currentStep];
   const isLast = currentStep === TOUR_STOPS.length - 1;
-  const shortcutTip = isVi
-    ? macPlatform
-      ? 'Nhấn ⌘K để tìm kiếm từ mọi nơi'
-      : 'Nhấn Ctrl+K để tìm kiếm từ mọi nơi'
-    : macPlatform
-    ? 'Press ⌘K to search from anywhere'
-    : 'Press Ctrl+K to search from anywhere';
+  const shortcutTip = macPlatform ? t('intro_shortcut_mac') : t('intro_shortcut_win');
 
-  const measure = useCallback((selectors: string[]) => {
+  const measure = useCallback((selectors: readonly string[]) => {
     const el = resolveTarget(selectors);
     if (!el) { setRect(null); return; }
     try {
@@ -247,7 +222,7 @@ export const InteractiveIntroModal: React.FC<InteractiveIntroModalProps> = ({
   }
 
   return (
-    <div className="fixed inset-0 z-[70] pointer-events-none select-none" role="dialog" aria-modal="true" aria-label={isVi ? 'Hướng dẫn nhanh StudentOS' : 'StudentOS guided tour'}>
+    <div className="fixed inset-0 z-[70] pointer-events-none select-none" role="dialog" aria-modal="true" aria-label={t('intro_dialog_aria')}>
       {/* Dim layer */}
       <div className="absolute inset-0 bg-[#141413]/55" />
       {/* Spotlight cutout */}
@@ -271,14 +246,14 @@ export const InteractiveIntroModal: React.FC<InteractiveIntroModalProps> = ({
       >
         <div className="flex items-center justify-between gap-2">
           <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#D97757]/15 text-[#D97757]">
-            {isVi ? stop.tag.vi : stop.tag.en}
+            {t(stop.tagKey)}
           </span>
           <button
             type="button"
             onClick={handleSkip}
             className="p-1.5 rounded-lg text-[#6B6860] hover:text-[#141413] dark:text-[#B5B2A8] dark:hover:text-[#FAF9F5] hover:bg-[#EFECE2] dark:hover:bg-[#252422] transition-colors cursor-pointer"
-            title={isVi ? 'Bỏ qua hướng dẫn' : 'Skip tour'}
-            aria-label={isVi ? 'Bỏ qua hướng dẫn' : 'Skip tour'}
+            title={t('intro_skip')}
+            aria-label={t('intro_skip')}
           >
             <X className="w-4 h-4" />
           </button>
@@ -287,17 +262,17 @@ export const InteractiveIntroModal: React.FC<InteractiveIntroModalProps> = ({
         <div>
           <h3 className="text-sm font-extrabold text-[#141413] dark:text-[#FAF9F5] leading-snug flex items-center gap-1.5">
             <MapPin className="w-4 h-4 text-[#D97757] shrink-0" />
-            <span>{isVi ? stop.title.vi : stop.title.en}</span>
+            <span>{t(stop.titleKey)}</span>
           </h3>
           <p className="text-xs text-[#5C5A54] dark:text-[#B5B2A8] mt-1 leading-relaxed">
-            {isVi ? stop.body.vi : stop.body.en}
+            {t(stop.bodyKey)}
           </p>
           {stop.tip === 'SHORTCUT_TIP' && (
             <p className="text-[11px] font-semibold text-[#D97757] mt-1.5">{shortcutTip}</p>
           )}
         </div>
 
-        {stop.tryIt && stop.tryItLabel && (
+        {stop.tryIt && stop.tryItLabelKey && (
           <button
             type="button"
             onClick={handleTryIt}
@@ -305,9 +280,7 @@ export const InteractiveIntroModal: React.FC<InteractiveIntroModalProps> = ({
           >
             <MousePointerClick className="w-3.5 h-3.5" />
             <span>
-              {isVi
-                ? `${stop.tryItLabel.vi} — đóng hướng dẫn & mở ngay`
-                : `${stop.tryItLabel.en} — end tour & open it`}
+              {t('intro_try_it_suffix', { label: t(stop.tryItLabelKey) })}
             </span>
           </button>
         )}
@@ -322,7 +295,7 @@ export const InteractiveIntroModal: React.FC<InteractiveIntroModalProps> = ({
                 className={`h-2 rounded-full transition-all cursor-pointer ${
                   currentStep === idx ? 'w-6 bg-[#D97757]' : 'w-2 bg-[#DFDACB] dark:bg-[#2C2B27]'
                 }`}
-                aria-label={isVi ? `Chuyển đến ${s.id}` : `Jump to ${s.id}`}
+                aria-label={t('intro_jump_to', { step: idx + 1 })}
               />
             ))}
           </div>
@@ -334,7 +307,7 @@ export const InteractiveIntroModal: React.FC<InteractiveIntroModalProps> = ({
                 className="px-3 py-1.5 bg-white dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] hover:border-[#D97757] text-[#141413] dark:text-[#FAF9F5] text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-1"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
-                <span>{isVi ? 'Quay lại' : 'Back'}</span>
+                <span>{t('common_back')}</span>
               </button>
             )}
             <button
@@ -343,7 +316,7 @@ export const InteractiveIntroModal: React.FC<InteractiveIntroModalProps> = ({
               className="px-4 py-1.5 bg-[#D97757] hover:bg-[#C86646] text-white text-xs font-bold rounded-xl transition-all shadow-xs cursor-pointer flex items-center gap-1"
             >
               <span>
-                {isLast ? (isVi ? 'Bắt đầu học' : 'Start studying') : (isVi ? 'Tiếp' : 'Next')}
+                {isLast ? t('intro_start_studying') : t('common_next')}
               </span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>

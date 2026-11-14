@@ -18,7 +18,13 @@ import {
 } from 'lucide-react';
 import { Assignment } from '../types';
 import { generateDailyStudyPlan } from '../services/gemini';
-import { t, useLang } from '../services/i18n';
+import { useT } from '../services/i18n';
+
+const PACING_OPTIONS = [
+  { id: 'pomo', label: '25 / 5m', desc: 'plan_pace_sprint' },
+  { id: 'deep', label: '50 / 10m', desc: 'plan_pace_deep' },
+  { id: 'flow', label: '90 / 15m', desc: 'plan_pace_flow' },
+] as const;
 
 export interface PlannedBlock {
   timeRange: string;
@@ -58,7 +64,7 @@ export const StudyPlanGeneratorModal: React.FC<StudyPlanGeneratorModalProps> = (
   const [planBlocks, setPlanBlocks] = useState<PlannedBlock[]>([]);
   const [planSummary, setPlanSummary] = useState<string>('');
   const [copied, setCopied] = useState(false);
-  useLang();
+  const { t } = useT();
 
   const pendingAssignments = useMemo(() => {
     return assignments.filter((a) => a.status !== 'Done');
@@ -94,14 +100,14 @@ export const StudyPlanGeneratorModal: React.FC<StudyPlanGeneratorModalProps> = (
       if (result && result.blocks && Array.isArray(result.blocks)) {
         const blocks: PlannedBlock[] = result.blocks.map((b) => ({
           timeRange: b.time || '09:00 - 09:50',
-          assignmentTitle: b.task || 'Focus Block',
-          courseName: b.strategy || 'Study Block',
-          objective: b.strategy || 'Complete key problem sets and review objectives.',
+          assignmentTitle: b.task || t('plan_fallback_block'),
+          courseName: b.strategy || t('plan_fallback_course'),
+          objective: b.strategy || t('plan_fallback_obj'),
           isBreak: b.task.toLowerCase().includes('break') || b.task.toLowerCase().includes('rest'),
           intensity: b.task.toLowerCase().includes('break') ? 'REST' : 'HIGH',
         }));
         setPlanBlocks(blocks);
-        setPlanSummary(result.summary || 'Prioritised plan generated based on your deadlines.');
+        setPlanSummary(result.summary || t('plan_fallback_summary'));
       } else {
         throw new Error('Invalid plan format');
       }
@@ -128,8 +134,8 @@ export const StudyPlanGeneratorModal: React.FC<StudyPlanGeneratorModalProps> = (
         fallbackBlocks.push({
           timeRange: `${startFormatted} - ${endFormatted}`,
           assignmentTitle: item.assignmentName,
-          courseName: item.subject || 'Coursework',
-          objective: `Deep focus on key problem sets and thesis outline for ${item.assignmentName}.`,
+          courseName: item.subject || t('plan_fallback_course'),
+          objective: t('plan_fallback_item_obj', { title: item.assignmentName }),
           isBreak: false,
           intensity: item.priority === 'High' ? 'HIGH' : 'MEDIUM',
         });
@@ -144,9 +150,9 @@ export const StudyPlanGeneratorModal: React.FC<StudyPlanGeneratorModalProps> = (
 
         fallbackBlocks.push({
           timeRange: `${String(bStartHour).padStart(2, '0')}:${String(bStartMin).padStart(2, '0')} - ${String(bEndHour).padStart(2, '0')}:${String(bEndMin).padStart(2, '0')}`,
-          assignmentTitle: 'Rest & Mental Reset',
-          courseName: 'Break',
-          objective: 'Hydrate, step away from screens, and rest your eyes.',
+          assignmentTitle: t('plan_fallback_rest_title'),
+          courseName: t('plan_fallback_rest_course'),
+          objective: t('plan_fallback_rest_obj'),
           isBreak: true,
           intensity: 'REST',
         });
@@ -156,7 +162,7 @@ export const StudyPlanGeneratorModal: React.FC<StudyPlanGeneratorModalProps> = (
       });
 
       setPlanBlocks(fallbackBlocks);
-      setPlanSummary('Prioritised schedule structured around your most urgent deliverables.');
+      setPlanSummary(t('plan_fallback_urgent_summary'));
     } finally {
       setIsGenerating(false);
     }
@@ -164,9 +170,9 @@ export const StudyPlanGeneratorModal: React.FC<StudyPlanGeneratorModalProps> = (
 
   const handleCopyPlan = () => {
     const text = planBlocks
-      .map((b) => `${b.timeRange} | ${b.isBreak ? 'REST' : b.courseName}: ${b.assignmentTitle} - ${b.objective}`)
+      .map((b) => `${b.timeRange} | ${b.isBreak ? t('plan_rest') : b.courseName}: ${b.assignmentTitle} - ${b.objective}`)
       .join('\n');
-    navigator.clipboard.writeText(`DAILY STUDY PLAN\n${planSummary}\n\n${text}`);
+    navigator.clipboard.writeText(`${t('plan_copy_header')}\n${planSummary}\n\n${text}`);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -193,6 +199,7 @@ export const StudyPlanGeneratorModal: React.FC<StudyPlanGeneratorModalProps> = (
 
           <button
             onClick={onClose}
+            aria-label={t('close')}
             className="p-2 rounded-xl bg-[#FAF9F5] dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] text-[#8C897F] dark:text-[#B5B2A8] hover:text-[#141413] dark:hover:text-[#FAF9F5] hover:border-[#D97757] transition-all cursor-pointer"
           >
             <X className="w-4 h-4" />
@@ -244,11 +251,7 @@ export const StudyPlanGeneratorModal: React.FC<StudyPlanGeneratorModalProps> = (
                 {t('plan_pacing')}
               </label>
               <div className="grid grid-cols-3 gap-1.5 bg-[#EFECE2]/50 dark:bg-[#252422]/50 p-1.5 rounded-xl border border-[#DFDACB] dark:border-[#2C2B27]">
-                {[
-                  { id: 'pomo', label: '25 / 5m', desc: 'plan_pace_sprint' },
-                  { id: 'deep', label: '50 / 10m', desc: 'plan_pace_deep' },
-                  { id: 'flow', label: '90 / 15m', desc: 'plan_pace_flow' },
-                ].map((p) => (
+                {PACING_OPTIONS.map((p) => (
                   <button
                     key={p.id}
                     type="button"

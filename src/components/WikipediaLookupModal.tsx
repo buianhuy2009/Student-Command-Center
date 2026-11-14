@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import {
   X,
   Search,
-  BookOpen,
   ExternalLink,
   RefreshCw,
   Globe,
@@ -10,6 +9,7 @@ import {
   Check,
 } from 'lucide-react';
 import { fetchWikipediaSummary, WikipediaSummary } from '../services/publicApis';
+import { useT } from '../services/i18n';
 
 interface WikipediaLookupModalProps {
   isOpen: boolean;
@@ -22,6 +22,7 @@ export const WikipediaLookupModal: React.FC<WikipediaLookupModalProps> = ({
   onClose,
   initialQuery = '',
 }) => {
+  const { t } = useT();
   const [searchTerm, setSearchTerm] = useState(initialQuery);
   const [summary, setSummary] = useState<WikipediaSummary | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -51,10 +52,10 @@ export const WikipediaLookupModal: React.FC<WikipediaLookupModalProps> = ({
       if (data) {
         setSummary(data);
       } else {
-        setError(`No exact Wikipedia entry found for "${term}". Try another spelling or related term.`);
+        setError(t('wiki_not_found', { term }));
       }
     } catch {
-      setError('Failed to contact Wikipedia API.');
+      setError(t('wiki_error'));
     } finally {
       setIsLoading(false);
     }
@@ -109,13 +110,14 @@ export const WikipediaLookupModal: React.FC<WikipediaLookupModalProps> = ({
                 <Globe className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="text-xs font-bold text-[#141413] dark:text-[#FAF9F5]">Wikipedia Quick Look</h3>
-                <p className="text-[10px] text-[#8C897F]">Live verified encyclopedia summaries</p>
+                <h3 className="text-xs font-bold text-[#141413] dark:text-[#FAF9F5]">{t('wiki_title')}</h3>
+                <p className="text-[10px] text-[#8C897F]">{t('wiki_sub')}</p>
               </div>
             </div>
 
             <button
               onClick={onClose}
+              aria-label={t('close')}
               className="p-1.5 text-[#8C897F] hover:text-[#141413] dark:hover:text-[#FAF9F5] rounded-lg cursor-pointer"
             >
               <X className="w-4 h-4" />
@@ -129,7 +131,7 @@ export const WikipediaLookupModal: React.FC<WikipediaLookupModalProps> = ({
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Lookup any concept, theorem, historical event..."
+                placeholder={t('wiki_ph')}
                 className="w-full pl-8 pr-3 py-2 bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] rounded-xl text-xs text-[#141413] dark:text-[#FAF9F5] focus:outline-none focus:border-[#D97757]"
               />
             </div>
@@ -138,7 +140,7 @@ export const WikipediaLookupModal: React.FC<WikipediaLookupModalProps> = ({
               disabled={isLoading || !searchTerm.trim()}
               className="px-3.5 py-2 bg-[#D97757] hover:bg-[#C86646] disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer"
             >
-              Lookup
+              {t('wiki_lookup_btn')}
             </button>
           </form>
         </div>
@@ -148,7 +150,7 @@ export const WikipediaLookupModal: React.FC<WikipediaLookupModalProps> = ({
           {isLoading ? (
             <div className="py-12 text-center text-[#8C897F] text-xs space-y-2">
               <RefreshCw className="w-6 h-6 text-[#D97757] animate-spin mx-auto opacity-70" />
-              <p>Querying Wikipedia encyclopedia...</p>
+              <p>{t('wiki_loading')}</p>
             </div>
           ) : error ? (
             <div className="p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 rounded-2xl text-xs text-amber-900 dark:text-amber-300">
@@ -174,7 +176,7 @@ export const WikipediaLookupModal: React.FC<WikipediaLookupModalProps> = ({
                       className="px-2.5 py-1 bg-[#FAF9F5] dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] hover:border-[#D97757] text-[#141413] dark:text-[#FAF9F5] rounded-xl text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer shrink-0"
                     >
                       {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                      <span>{copied ? 'Copied' : 'Copy'}</span>
+                      <span>{copied ? t('common_copied') : t('common_copy')}</span>
                     </button>
                   </div>
                   {summary.description && (
@@ -196,7 +198,7 @@ export const WikipediaLookupModal: React.FC<WikipediaLookupModalProps> = ({
                   rel="noreferrer"
                   className="px-3.5 py-1.5 bg-[#FAF9F5] dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] hover:border-[#D97757] text-[#141413] dark:text-[#FAF9F5] rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors"
                 >
-                  <span>Read Full Article</span>
+                  <span>{t('wiki_read_full')}</span>
                   <ExternalLink className="w-3.5 h-3.5" />
                 </a>
               </div>
@@ -204,7 +206,7 @@ export const WikipediaLookupModal: React.FC<WikipediaLookupModalProps> = ({
           ) : (
             <div className="py-12 text-center text-[#8C897F] text-xs space-y-1">
               <Globe className="w-8 h-8 mx-auto opacity-30" />
-              <p>Type any keyword to inspect its verified Wikipedia definition</p>
+              <p>{t('wiki_empty_hint')}</p>
             </div>
           )}
         </div>

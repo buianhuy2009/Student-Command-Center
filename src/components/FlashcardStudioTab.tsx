@@ -17,6 +17,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { calculateSM2, ReviewQuality, SRSCard } from '../services/srsEngine';
+import { useT } from '../services/i18n';
 
 export interface Flashcard {
   id: string;
@@ -86,6 +87,7 @@ function saveDecks(decks: CardDeck[]) {
 }
 
 export const FlashcardStudioTab: React.FC = () => {
+  const { t, formatDate } = useT();
   const [decks, setDecks] = useState<CardDeck[]>(loadSavedDecks);
   const [activeDeckId, setActiveDeckId] = useState<string | null>(() => {
     const saved = loadSavedDecks();
@@ -264,12 +266,12 @@ Example format:
 
       const jsonMatch = reply.match(/\[\s*\{[\s\S]*\}\s*\]/);
       if (!jsonMatch) {
-        throw new Error('AI response did not contain a valid JSON flashcard array. Please try again.');
+        throw new Error(t('flashcards_gen_bad_format'));
       }
 
       const rawArray = JSON.parse(jsonMatch[0]);
       if (!Array.isArray(rawArray) || rawArray.length === 0) {
-        throw new Error('No flashcards were returned. Try adding more context or checking your AI settings.');
+        throw new Error(t('flashcards_gen_empty'));
       }
 
       const parsedCards: Flashcard[] = rawArray
@@ -282,7 +284,7 @@ Example format:
         }));
 
       if (parsedCards.length === 0) {
-        throw new Error('Parsed flashcards were empty. Please refine your prompt and retry.');
+        throw new Error(t('flashcards_gen_empty_parsed'));
       }
 
       const newDeck: CardDeck = {
@@ -290,7 +292,7 @@ Example format:
         title: genTopic.trim(),
         subject: genSubject.trim() || 'General',
         cards: parsedCards,
-        createdAt: new Date().toLocaleDateString(),
+        createdAt: formatDate(new Date()),
       };
 
       const updated = [newDeck, ...decks];
@@ -305,7 +307,7 @@ Example format:
       setGenNotes('');
     } catch (err: any) {
       console.error('Error generating flashcards:', err);
-      setGenError(err?.message || 'Could not generate flashcards. Configure Gemini or Groq in Settings or use TSV Import.');
+      setGenError(err?.message || t('flashcards_gen_err'));
     } finally {
       setIsGenerating(false);
     }
@@ -432,16 +434,16 @@ Example format:
     });
 
     if (parsed.length === 0) {
-      setTsvImportError('No valid rows found. Use one card per line separated by a Tab: Front[TAB]Back');
+      setTsvImportError(t('flashcards_import_err'));
       return;
     }
 
     const newDeck: CardDeck = {
       id: `deck-${Date.now()}`,
-      title: tsvTitle.trim() || 'Imported TSV Deck',
-      subject: 'Imported',
+      title: tsvTitle.trim() || t('flashcards_import_default_title'),
+      subject: t('flashcards_import_default_subj'),
       cards: parsed,
-      createdAt: new Date().toLocaleDateString(),
+      createdAt: formatDate(new Date()),
     };
 
     const updated = [newDeck, ...decks];
@@ -482,14 +484,14 @@ Example format:
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-base sm:text-lg font-bold text-[#141413] dark:text-[#FAF9F5] tracking-tight">
-                Flashcards (SM-2)
+                {t('flashcards_title')}
               </h2>
               <span className="px-2 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 rounded-full">
-                Spaced Repetition
+                {t('flashcards_badge')}
               </span>
             </div>
             <p className="text-xs text-[#8C897F] mt-0.5">
-              AI card generation, SM-2 spaced repetition review, and TSV import/export
+              {t('flashcards_sub')}
             </p>
           </div>
         </div>
@@ -500,19 +502,19 @@ Example format:
               <button
                 onClick={handleCopyTsv}
                 className="px-3 py-1.5 bg-[#FAF9F5] dark:bg-[#252422] hover:bg-[#EFECE2] dark:hover:bg-[#2C2A26] text-[#5C5A54] dark:text-[#B5B2A8] rounded-xl text-xs font-semibold border border-[#DFDACB] dark:border-[#2C2B27] flex items-center gap-1.5 transition-colors cursor-pointer"
-                title="Copy tab-separated Front\tBack rows to clipboard"
+                title={t('flashcards_copy_tsv_title')}
               >
                 {copiedTsv ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
-                <span>{copiedTsv ? 'Copied TSV!' : 'Copy TSV'}</span>
+                <span>{copiedTsv ? t('flashcards_copied_tsv') : t('flashcards_copy_tsv')}</span>
               </button>
 
               <button
                 onClick={handleDownloadTsv}
                 className="px-3 py-1.5 bg-[#FAF9F5] dark:bg-[#252422] hover:bg-[#EFECE2] dark:hover:bg-[#2C2A26] text-[#5C5A54] dark:text-[#B5B2A8] rounded-xl text-xs font-semibold border border-[#DFDACB] dark:border-[#2C2B27] flex items-center gap-1.5 transition-colors cursor-pointer"
-                title="Download deck as tab-separated .tsv file"
+                title={t('flashcards_download_tsv_title')}
               >
                 {downloadedTsv ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Download className="w-3.5 h-3.5" />}
-                <span>{downloadedTsv ? 'Downloaded .tsv!' : 'Export TSV'}</span>
+                <span>{downloadedTsv ? t('flashcards_downloaded_tsv') : t('flashcards_export_tsv')}</span>
               </button>
             </>
           )}
@@ -527,7 +529,7 @@ Example format:
             }`}
           >
             <Upload className="w-3.5 h-3.5" />
-            <span>Import TSV</span>
+            <span>{t('flashcards_import_tsv')}</span>
           </button>
         </div>
       </div>
@@ -540,15 +542,15 @@ Example format:
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
               <h3 className="text-xs font-bold uppercase tracking-wider text-[#141413] dark:text-[#FAF9F5]">
-                Import Tab-Separated (TSV) Flashcards
+                {t('flashcards_import_title')}
               </h3>
               <p className="text-[11px] text-[#8C897F] mt-0.5">
-                Paste Front[TAB]Back lines or upload a .tsv/.txt deck file.
+                {t('flashcards_import_desc')}
               </p>
             </div>
             <label className="px-3 py-1.5 bg-[#FAF9F5] dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] rounded-xl text-xs font-semibold cursor-pointer hover:border-[#D97757] inline-flex items-center gap-1.5 w-fit">
               <Upload className="w-3.5 h-3.5 text-[#D97757]" />
-              <span>Choose .tsv / .txt</span>
+              <span>{t('flashcards_choose_file')}</span>
               <input type="file" accept=".tsv,.txt,text/tab-separated-values,text/plain" onChange={handleTsvFileChange} className="hidden" />
             </label>
           </div>
@@ -556,14 +558,14 @@ Example format:
             type="text"
             value={tsvTitle}
             onChange={(e) => setTsvTitle(e.target.value)}
-            placeholder="Deck title (e.g. Organic Chemistry Mechanisms)"
+            placeholder={t('flashcards_import_title_ph')}
             className="w-full px-3 py-2 text-xs bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#D97757] text-[#141413] dark:text-[#FAF9F5]"
           />
           <textarea
             rows={4}
             value={tsvText}
             onChange={(e) => setTsvText(e.target.value)}
-            placeholder={"Mitochondria\tSite of aerobic ATP synthesis\nATP Synthase\tEnzyme driven by the proton gradient"}
+            placeholder={t('flashcards_import_text_ph')}
             className="w-full px-3 py-2 text-xs font-mono bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#D97757] text-[#141413] dark:text-[#FAF9F5]"
           />
           {tsvImportError && (
@@ -577,13 +579,13 @@ Example format:
               onClick={() => setShowTsvImport(false)}
               className="px-3 py-1.5 text-xs font-semibold text-[#5C5A54] dark:text-[#B5B2A8] cursor-pointer"
             >
-              Cancel
+              {t('common_cancel')}
             </button>
             <button
               type="submit"
               className="px-4 py-1.5 bg-[#D97757] hover:bg-[#C86646] text-white text-xs font-bold rounded-xl cursor-pointer"
             >
-              Import Cards
+              {t('flashcards_import_submit')}
             </button>
           </div>
         </form>
@@ -597,34 +599,34 @@ Example format:
           <section className="bg-white dark:bg-[#1A1917] rounded-2xl border border-[#DFDACB] dark:border-[#2C2B27] p-5 shadow-xs">
             <h3 className="text-xs font-bold text-[#141413] dark:text-[#FAF9F5] uppercase tracking-wider flex items-center gap-2 pb-3 border-b border-[#DFDACB] dark:border-[#2C2B27]">
               <Sparkles className="w-3.5 h-3.5 text-[#D97757]" />
-              <span>Generate New Card Deck</span>
+              <span>{t('flashcards_gen_title')}</span>
             </h3>
 
             <form onSubmit={handleGenerateDeck} className="mt-4 space-y-3">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[11px] font-semibold text-[#5C5A54] dark:text-[#B5B2A8] mb-1">
-                    Subject
+                    {t('subject')}
                   </label>
                   <input
                     type="text"
                     value={genSubject}
                     onChange={(e) => setGenSubject(e.target.value)}
-                    placeholder="e.g. Biology, History"
+                    placeholder={t('flashcards_subj_ph')}
                     className="w-full px-3 py-2 text-xs bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#D97757] text-[#141413] dark:text-[#FAF9F5]"
                   />
                 </div>
 
                 <div>
                   <label className="block text-[11px] font-semibold text-[#5C5A54] dark:text-[#B5B2A8] mb-1">
-                    Topic Title *
+                    {t('flashcards_topic_label')}
                   </label>
                   <input
                     type="text"
                     required
                     value={genTopic}
                     onChange={(e) => setGenTopic(e.target.value)}
-                    placeholder="e.g. Organic Chemistry Reactions"
+                    placeholder={t('flashcards_topic_ph')}
                     className="w-full px-3 py-2 text-xs bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#D97757] text-[#141413] dark:text-[#FAF9F5]"
                   />
                 </div>
@@ -632,29 +634,29 @@ Example format:
 
               <div>
                 <label className="block text-[11px] font-semibold text-[#5C5A54] dark:text-[#B5B2A8] mb-1">
-                  Card Count
+                  {t('flashcards_count_label')}
                 </label>
                 <select
                   value={genCount}
                   onChange={(e) => setGenCount(Number(e.target.value))}
                   className="w-full px-3 py-2 text-xs bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#D97757] text-[#141413] dark:text-[#FAF9F5]"
                 >
-                  <option value={5}>5 Cards (Quick Review)</option>
-                  <option value={8}>8 Cards (Standard)</option>
-                  <option value={12}>12 Cards (Comprehensive)</option>
-                  <option value={15}>15 Cards (Full Chapter)</option>
+                  <option value={5}>{t('flashcards_count_5')}</option>
+                  <option value={8}>{t('flashcards_count_8')}</option>
+                  <option value={12}>{t('flashcards_count_12')}</option>
+                  <option value={15}>{t('flashcards_count_15')}</option>
                 </select>
               </div>
 
               <div>
                 <label className="block text-[11px] font-semibold text-[#5C5A54] dark:text-[#B5B2A8] mb-1">
-                  Study Notes / Textbook Excerpts (Optional)
+                  {t('flashcards_notes_label')}
                 </label>
                 <textarea
                   rows={2}
                   value={genNotes}
                   onChange={(e) => setGenNotes(e.target.value)}
-                  placeholder="Paste lecture notes or specific terms you want included..."
+                  placeholder={t('flashcards_notes_ph')}
                   className="w-full px-3 py-2 text-xs bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#D97757] text-[#141413] dark:text-[#FAF9F5]"
                 />
               </div>
@@ -673,7 +675,7 @@ Example format:
                   className="px-4 py-2 bg-[#D97757] hover:bg-[#C86646] disabled:opacity-50 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
                 >
                   <Sparkles className={`w-3.5 h-3.5 ${isGenerating ? 'animate-spin' : ''}`} />
-                  <span>{isGenerating ? 'Generating Cards...' : 'Generate Deck'}</span>
+                  <span>{isGenerating ? t('flashcards_generating') : t('flashcards_generate_btn')}</span>
                 </button>
               </div>
             </form>
@@ -683,14 +685,14 @@ Example format:
           <section className="bg-white dark:bg-[#1A1917] rounded-2xl border border-[#DFDACB] dark:border-[#2C2B27] p-5 shadow-xs">
             <h3 className="text-xs font-bold text-[#141413] dark:text-[#FAF9F5] uppercase tracking-wider flex items-center gap-2 pb-3 border-b border-[#DFDACB] dark:border-[#2C2B27]">
               <Layers className="w-3.5 h-3.5 text-amber-500" />
-              <span>Saved Decks ({decks.length})</span>
+              <span>{t('flashcards_saved_decks', { count: decks.length })}</span>
             </h3>
 
             <div className="mt-4 space-y-2 max-h-60 overflow-y-auto">
               {decks.length === 0 ? (
                 <div className="py-8 text-center text-xs text-[#8C897F]">
-                  <p>No card decks created yet.</p>
-                  <p className="text-[11px] mt-0.5">Use the generator above to create your first flashcard deck.</p>
+                  <p>{t('flashcards_no_decks')}</p>
+                  <p className="text-[11px] mt-0.5">{t('flashcards_no_decks_hint')}</p>
                 </div>
               ) : (
                 decks.map((deck) => {
@@ -714,7 +716,7 @@ Example format:
                           <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300">
                             {deck.subject}
                           </span>
-                          <span className="text-[10px] text-[#8C897F]">{deck.cards.length} cards</span>
+                          <span className="text-[10px] text-[#8C897F]">{t('flashcards_cards_count', { count: deck.cards.length })}</span>
                         </div>
                         <h4 className="text-xs font-bold truncate mt-1">{deck.title}</h4>
                       </div>
@@ -725,7 +727,7 @@ Example format:
                           handleDeleteDeck(deck.id);
                         }}
                         className="p-1.5 text-[#8C897F] hover:text-rose-600 rounded-lg transition-colors cursor-pointer"
-                        title="Delete Deck"
+                        title={t('flashcards_delete_deck')}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -736,7 +738,7 @@ Example format:
             </div>
             {/* Retention Heatmap */}
             <div className="mt-4 p-3 bg-[#FAF9F5] dark:bg-[#1F1E1B] rounded-xl border border-[#DFDACB] dark:border-[#2C2B27]">
-              <h4 className="text-[11px] font-bold uppercase tracking-wider text-[#5C5A54] dark:text-[#B5B2A8] mb-2 flex items-center gap-1.5">📊 Retention Heatmap (last 13 weeks)</h4>
+              <h4 className="text-[11px] font-bold uppercase tracking-wider text-[#5C5A54] dark:text-[#B5B2A8] mb-2 flex items-center gap-1.5">{t('flashcards_heatmap_title')}</h4>
               <div className="grid grid-cols-13 gap-1">
                 {(() => {
                   const map: Record<string, number> = {};
@@ -748,12 +750,6 @@ Example format:
                     )
                   );
                   const today = new Date();
-                  const cells = [];
-                  for (let w=0; w<13; w++) {
-                    for (let d=0; d<7; d++) {
-                      // Not full calendar alignment but simple
-                    }
-                  }
                   const days: string[] = [];
                   for (let i=90; i>=0; i--) { const dd=new Date(today); dd.setDate(today.getDate()-i); days.push(dd.toISOString().split('T')[0]); }
                   return days.map((day,i)=>{
@@ -762,13 +758,13 @@ Example format:
                     if (cnt===1) bg='bg-emerald-200 dark:bg-emerald-900';
                     else if (cnt===2) bg='bg-emerald-300 dark:bg-emerald-800';
                     else if (cnt>=3) bg='bg-emerald-500 dark:bg-emerald-700';
-                    return <div key={i} title={`${day}: ${cnt} reviews`} className={`w-3 h-3 rounded-sm ${bg} border border-[#DFDACB]/40`} />;
+                    return <div key={i} title={t('flashcards_heatmap_tip', { day, count: cnt })} className={`w-3 h-3 rounded-sm ${bg} border border-[#DFDACB]/40`} />;
                   });
                 })()}
               </div>
-              <p className="text-[10px] text-[#8C897F] mt-1">Darker = more reviews • hover for counts</p>
+              <p className="text-[10px] text-[#8C897F] mt-1">{t('flashcards_heatmap_legend')}</p>
               <div className="mt-3">
-                <h5 className="text-[10px] font-bold text-[#8C897F] uppercase tracking-wider">Forgetting Curve (interval distribution)</h5>
+                <h5 className="text-[10px] font-bold text-[#8C897F] uppercase tracking-wider">{t('flashcards_curve_title')}</h5>
                 <div className="flex items-end gap-1 h-16 mt-1">
                   {(() => {
                     const buckets = [0,0,0,0,0]; // 0:new, 1:1d, 2:3-6d, 3:7-21d, 4:30d+
@@ -777,10 +773,10 @@ Example format:
                       if ((c.repetitions||0)===0) buckets[0]++; else if (iv<=1) buckets[1]++; else if (iv<=6) buckets[2]++; else if (iv<=21) buckets[3]++; else buckets[4]++;
                     }));
                     const max = Math.max(1, ...buckets);
-                    const labels=['New','1d','≤6d','≤21d','30d+'];
+                    const labels=[t('flashcards_bucket_new'), t('flashcards_bucket_1d'), t('flashcards_bucket_6d'), t('flashcards_bucket_21d'), t('flashcards_bucket_30d')];
                     return buckets.map((v,i)=>(
                       <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                        <div className="w-full bg-violet-500 rounded-t" style={{height: `${(v/max)*48+4}px`, opacity: 0.6 + i*0.08}} title={`${labels[i]}: ${v} cards`} />
+                        <div className="w-full bg-violet-500 rounded-t" style={{height: `${(v/max)*48+4}px`, opacity: 0.6 + i*0.08}} title={t('flashcards_bucket_tip', { label: labels[i], count: v })} />
                         <span className="text-[9px] font-bold text-[#8C897F]">{labels[i]}</span>
                       </div>
                     ));
@@ -798,14 +794,14 @@ Example format:
               <>
                 {/* Queue Summary */}
                 <div className="flex items-center gap-2 text-[11px] font-bold mb-2 flex-wrap">
-                  <span className="px-2 py-1 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200 dark:border-rose-800">{queueSummary.due} Due Today</span>
-                  <span className="px-2 py-1 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 border border-blue-200 dark:border-blue-800">{queueSummary.new} New</span>
-                  <span className="px-2 py-1 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800">{queueSummary.learning} Learning</span>
-                  <span className="ml-auto text-[10px] text-[#8C897F] font-mono">Overdue → New → Due order</span>
+                  <span className="px-2 py-1 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200 dark:border-rose-800">{t('flashcards_due_today_count', { count: queueSummary.due })}</span>
+                  <span className="px-2 py-1 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 border border-blue-200 dark:border-blue-800">{t('flashcards_new_count', { count: queueSummary.new })}</span>
+                  <span className="px-2 py-1 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800">{t('flashcards_learning_count', { count: queueSummary.learning })}</span>
+                  <span className="ml-auto text-[10px] text-[#8C897F] font-mono">{t('flashcards_queue_order')}</span>
                 </div>
                 {/* Review Session Size */}
                 <div className="flex items-center gap-1.5 flex-wrap mb-3">
-                  <span className="text-[11px] font-bold text-[#5C5A54] dark:text-[#B5B2A8]">Session size:</span>
+                  <span className="text-[11px] font-bold text-[#5C5A54] dark:text-[#B5B2A8]">{t('flashcards_session_size')}</span>
                   {[10, 20, 50].map((n) => (
                     <button
                       key={n}
@@ -819,7 +815,7 @@ Example format:
                     onClick={() => { setSessionLimit('all'); setCustomSessionInput(''); setCurrentCardIndex(0); setIsFlipped(false); }}
                     className={`px-2 py-1 rounded-lg text-[11px] font-bold border transition-colors cursor-pointer ${sessionLimit === 'all' ? 'bg-[#D97757] text-white border-[#D97757]' : 'bg-[#FAF9F5] dark:bg-[#252422] text-[#5C5A54] dark:text-[#B5B2A8] border-[#DFDACB] dark:border-[#2C2B27] hover:border-[#D97757]/40'}`}
                   >
-                    All
+                    {t('all')}
                   </button>
                   <input
                     type="number"
@@ -835,8 +831,8 @@ Example format:
                         setIsFlipped(false);
                       }
                     }}
-                    placeholder="Custom"
-                    title="Custom session size"
+                    placeholder={t('flashcards_custom_ph')}
+                    title={t('flashcards_custom_title')}
                     className="w-20 px-2 py-1 text-[11px] bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D97757] text-[#141413] dark:text-[#FAF9F5]"
                   />
                 </div>
@@ -847,7 +843,12 @@ Example format:
                       {displayDeck!.title}
                     </h3>
                     <span className="text-[11px] text-[#8C897F]">
-                      Session {displayDeck!.cards.length > 0 ? Math.min(currentCardIndex + 1, displayDeck!.cards.length) : 0}/{displayDeck!.cards.length} • {queueSummary.due} due{sessionLimit !== 'all' && activeDeck ? ` (of ${activeDeck.cards.length})` : ''}
+                      {t('flashcards_session_progress', {
+                        current: displayDeck!.cards.length > 0 ? Math.min(currentCardIndex + 1, displayDeck!.cards.length) : 0,
+                        total: displayDeck!.cards.length,
+                        due: queueSummary.due,
+                      })}
+                      {sessionLimit !== 'all' && activeDeck ? t('flashcards_session_of', { total: activeDeck.cards.length }) : ''}
                     </span>
                   </div>
 
@@ -860,7 +861,7 @@ Example format:
                     }`}
                   >
                     <CheckCircle2 className="w-3.5 h-3.5" />
-                    <span>{currentCard.mastered ? 'Mastered' : 'Mark Mastered'}</span>
+                    <span>{currentCard.mastered ? t('flashcards_mastered') : t('flashcards_mark_mastered')}</span>
                   </button>
                 </div>
 
@@ -877,7 +878,7 @@ Example format:
                     }`}
                   >
                     <span className="absolute top-3 left-4 text-[10px] uppercase font-bold tracking-wider text-[#8C897F]">
-                      {isFlipped ? 'Answer / Definition' : 'Prompt / Term'}
+                      {isFlipped ? t('flashcards_side_back') : t('flashcards_side_front')}
                     </span>
 
                     <div className="my-auto py-4">
@@ -888,20 +889,20 @@ Example format:
 
                     <div className="absolute bottom-3 text-[11px] text-[#8C897F] flex items-center gap-1">
                       <RotateCw className="w-3 h-3" />
-                      <span>Click or press Space to flip</span>
+                      <span>{t('flashcards_flip_hint')}</span>
                     </div>
                   </div>
                 </div>
 
-                {/* SuperMemo SM-2 Recall Rating Bar */}
+                {/* Recall Rating Bar */}
                 {isFlipped && (
                   <div className="mb-6 p-4 rounded-2xl bg-white dark:bg-[#1A1917] border border-[#DFDACB] dark:border-[#2C2B27] shadow-xs space-y-2 animate-in fade-in">
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] font-bold text-[#8C897F] uppercase tracking-wider">
-                        Rate Your Recall (SM-2 Spaced Repetition)
+                        {t('flashcards_rate_title')}
                       </span>
                       <span className="text-[10px] text-[#8C897F] font-mono">
-                        EF: {currentCard.easeFactor || 2.5} • Reps: {currentCard.repetitions || 0}
+                        {t('flashcards_reviewed_count', { count: currentCard.repetitions || 0 })}
                       </span>
                     </div>
 
@@ -910,25 +911,25 @@ Example format:
                         onClick={() => handleRateCard(1)}
                         className="p-2 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 border border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300 text-xs font-bold text-center transition-colors cursor-pointer"
                       >
-                        <span className="block">Again (1)</span>
-                        <span className="text-[10px] opacity-75 font-normal">Next: 1d</span>
+                        <span className="block">{t('flashcards_rate_again')}</span>
+                        <span className="text-[10px] opacity-75 font-normal">{t('flashcards_next_days', { days: 1 })}</span>
                       </button>
 
                       <button
                         onClick={() => handleRateCard(2)}
                         className="p-2 rounded-xl bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:hover:bg-amber-900/60 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-xs font-bold text-center transition-colors cursor-pointer"
                       >
-                        <span className="block">Hard (2)</span>
-                        <span className="text-[10px] opacity-75 font-normal">Next: 1d</span>
+                        <span className="block">{t('flashcards_rate_hard')}</span>
+                        <span className="text-[10px] opacity-75 font-normal">{t('flashcards_next_days', { days: 1 })}</span>
                       </button>
 
                       <button
                         onClick={() => handleRateCard(4)}
                         className="p-2 rounded-xl bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-900/60 border border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-300 text-xs font-bold text-center transition-colors cursor-pointer"
                       >
-                        <span className="block">Good (4)</span>
+                        <span className="block">{t('flashcards_rate_good')}</span>
                         <span className="text-[10px] opacity-75 font-normal">
-                          Next: {Math.max(1, (currentCard.interval || 1) * 2)}d
+                          {t('flashcards_next_days', { days: Math.max(1, (currentCard.interval || 1) * 2) })}
                         </span>
                       </button>
 
@@ -936,9 +937,9 @@ Example format:
                         onClick={() => handleRateCard(5)}
                         className="p-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-xs font-bold text-center transition-colors cursor-pointer"
                       >
-                        <span className="block">Easy (5)</span>
+                        <span className="block">{t('flashcards_rate_easy')}</span>
                         <span className="text-[10px] opacity-75 font-normal">
-                          Next: {Math.max(6, Math.round((currentCard.interval || 1) * 2.5))}d
+                          {t('flashcards_next_days', { days: Math.max(6, Math.round((currentCard.interval || 1) * 2.5)) })}
                         </span>
                       </button>
                     </div>
@@ -953,25 +954,25 @@ Example format:
                       className="px-3.5 py-1.5 bg-[#FAF9F5] dark:bg-[#252422] hover:bg-[#EFECE2] dark:hover:bg-[#2C2A26] text-[#141413] dark:text-[#FAF9F5] border border-[#DFDACB] dark:border-[#2C2B27] rounded-xl text-xs font-semibold flex items-center gap-1 cursor-pointer transition-colors"
                     >
                       <ChevronLeft className="w-4 h-4" />
-                      <span>Previous (←)</span>
+                      <span>{t('flashcards_prev')}</span>
                     </button>
 
                     <button
                       onClick={handleNextCard}
                       className="px-3.5 py-1.5 bg-[#FAF9F5] dark:bg-[#252422] hover:bg-[#EFECE2] dark:hover:bg-[#2C2A26] text-[#141413] dark:text-[#FAF9F5] border border-[#DFDACB] dark:border-[#2C2B27] rounded-xl text-xs font-semibold flex items-center gap-1 cursor-pointer transition-colors"
                     >
-                      <span>Next (→)</span>
+                      <span>{t('flashcards_next')}</span>
                       <ChevronRight className="w-4 h-4" />
                     </button>
                   </div>
 
                   <div className="hidden sm:flex items-center gap-2 text-[11px] text-[#8C897F] font-mono">
                     <kbd className="px-1.5 py-0.5 bg-[#EFECE2] dark:bg-[#252422] rounded border border-[#DFDACB] dark:border-[#2C2B27]">Space</kbd>
-                    <span>Flip</span>
+                    <span>{t('flashcards_kbd_flip')}</span>
                     <kbd className="px-1.5 py-0.5 bg-[#EFECE2] dark:bg-[#252422] rounded border border-[#DFDACB] dark:border-[#2C2B27]">← / →</kbd>
-                    <span>Navigate</span>
+                    <span>{t('flashcards_kbd_nav')}</span>
                     <kbd className="px-1.5 py-0.5 bg-[#EFECE2] dark:bg-[#252422] rounded border border-[#DFDACB] dark:border-[#2C2B27]">1–4</kbd>
-                    <span>Grade</span>
+                    <span>{t('flashcards_kbd_grade')}</span>
                   </div>
                 </div>
               </>
@@ -979,10 +980,10 @@ Example format:
               <div className="my-auto py-16 px-4 text-center">
                 <Brain className="w-12 h-12 mx-auto text-amber-500/80 mb-3" />
                 <h4 className="text-base font-bold text-[#141413] dark:text-[#FAF9F5]">
-                  Select or Generate a Flashcard Deck
+                  {t('flashcards_empty_title')}
                 </h4>
                 <p className="text-xs text-[#8C897F] mt-1 max-w-sm mx-auto">
-                  Enter a topic in the generator on the left to create SM-2 study cards for active recall or import/export TSV decks.
+                  {t('flashcards_empty_desc')}
                 </p>
               </div>
             )}

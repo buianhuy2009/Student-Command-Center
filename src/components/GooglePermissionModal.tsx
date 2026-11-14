@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { X, CheckCircle2, ShieldCheck, Ban, ArrowRight, Loader2 } from 'lucide-react';
 import { AppLogo } from './AppLogo';
 import type { GoogleFeature } from '../services/googleAuth';
-import { useLang } from '../services/i18n';
+import { useT } from '../services/i18n';
 
 export interface GooglePermissionModalProps {
   isOpen: boolean;
@@ -13,176 +13,51 @@ export interface GooglePermissionModalProps {
   onCancel: () => void;
 }
 
-interface BilingualText {
-  en: string;
-  vi: string;
-}
-
 interface FeatureCopy {
   logoId: string;
-  title: BilingualText;
-  whyWeAsk: BilingualText;
-  canDo: BilingualText[];
-  neverDo: BilingualText[];
+  titleKey: string;
+  whyKey: string;
+  canDoKeys: readonly string[];
+  neverDoKeys: readonly string[];
 }
 
 const FEATURE_COPY: Record<GoogleFeature, FeatureCopy> = {
   calendar: {
     logoId: 'radar',
-    title: {
-      en: 'Connect Google Calendar',
-      vi: 'Kết nối Google Calendar',
-    },
-    whyWeAsk: {
-      en: 'So StudentOS can show your classes alongside deadlines and add study blocks when you choose.',
-      vi: 'Để StudentOS hiện lịch học cạnh hạn nộp bài và thêm buổi tự học vào lịch khi bạn chọn.',
-    },
-    canDo: [
-      {
-        en: 'Show your upcoming classes and calendar events in your daily schedule',
-        vi: 'Hiển thị các buổi học và sự kiện sắp tới trên lịch học hằng ngày',
-      },
-      {
-        en: 'Add new study sessions to your calendar when you tap Save',
-        vi: 'Thêm khung giờ tự học mới vào lịch khi bạn bấm Lưu',
-      },
-    ],
-    neverDo: [
-      {
-        en: 'Never delete or change your existing events unless you ask',
-        vi: 'Không tự ý xóa hay sửa các sự kiện đã có của bạn',
-      },
-      {
-        en: 'Never share your calendar with anyone else',
-        vi: 'Không chia sẻ lịch của bạn với bất kỳ ai khác',
-      },
-    ],
+    titleKey: 'gperm_cal_title',
+    whyKey: 'gperm_cal_why',
+    canDoKeys: ['gperm_cal_can1', 'gperm_cal_can2'],
+    neverDoKeys: ['gperm_cal_nev1', 'gperm_cal_nev2'],
   },
   gmail: {
     logoId: 'gmail',
-    title: {
-      en: 'Connect Gmail',
-      vi: 'Kết nối Gmail',
-    },
-    whyWeAsk: {
-      en: 'So StudentOS can spot homework, exam dates, and teacher announcements hidden in your inbox.',
-      vi: 'Để StudentOS tìm giúp bài tập, ngày thi và thông báo từ thầy cô trong hộp thư của bạn.',
-    },
-    canDo: [
-      {
-        en: 'Read school-related emails to highlight assignment names and due dates',
-        vi: 'Đọc các email học tập để rút ra tên bài tập và hạn nộp',
-      },
-      {
-        en: 'Show short email summaries inside your Gmail tab',
-        vi: 'Hiển thị tóm tắt ngắn gọn ngay trong mục Gmail',
-      },
-    ],
-    neverDo: [
-      {
-        en: 'Never send, reply to, or delete any email for you',
-        vi: 'Không bao giờ gửi, trả lời hay xóa bất kỳ email nào thay bạn',
-      },
-      {
-        en: 'Never sell your emails or use them to show ads',
-        vi: 'Không bán dữ liệu email hay dùng để hiển thị quảng cáo',
-      },
-    ],
+    titleKey: 'gperm_gmail_title',
+    whyKey: 'gperm_gmail_why',
+    canDoKeys: ['gperm_gmail_can1', 'gperm_gmail_can2'],
+    neverDoKeys: ['gperm_gmail_nev1', 'gperm_gmail_nev2'],
   },
   drive: {
     logoId: 'drive',
-    title: {
-      en: 'Connect Google Drive & Docs',
-      vi: 'Kết nối Google Drive & Docs',
-    },
-    whyWeAsk: {
-      en: 'So StudentOS can create study docs for you and open only the files you make or pick here.',
-      vi: 'Để StudentOS tạo tài liệu học giúp bạn và chỉ mở những tệp bạn tạo hoặc chọn ở đây.',
-    },
-    canDo: [
-      {
-        en: 'Create new study docs and assignment starters when you ask',
-        vi: 'Tạo tài liệu học hoặc bài mẫu mới khi bạn yêu cầu',
-      },
-      {
-        en: 'Open and update only the files made or picked inside StudentOS',
-        vi: 'Chỉ mở và cập nhật các tệp do StudentOS tạo hoặc bạn tự chọn',
-      },
-    ],
-    neverDo: [
-      {
-        en: 'Never see, open, or touch any of your other Drive files or photos',
-        vi: 'Không xem, mở hay chạm vào các tệp Drive hoặc ảnh khác của bạn',
-      },
-      {
-        en: 'Never share your documents unless you click Share',
-        vi: 'Không chia sẻ tài liệu nếu bạn không tự bấm Chia sẻ',
-      },
-    ],
+    titleKey: 'gperm_drive_title',
+    whyKey: 'gperm_drive_why',
+    canDoKeys: ['gperm_drive_can1', 'gperm_drive_can2'],
+    neverDoKeys: ['gperm_drive_nev1', 'gperm_drive_nev2'],
   },
   sheets: {
     logoId: 'tracker',
-    title: {
-      en: 'Connect Google Sheets',
-      vi: 'Kết nối Google Sheets',
-    },
-    whyWeAsk: {
-      en: 'So StudentOS can save your personal assignment list in a spreadsheet inside your Google Drive.',
-      vi: 'Để StudentOS lưu danh sách bài tập của bạn vào một bảng tính riêng trên Google Drive.',
-    },
-    canDo: [
-      {
-        en: 'Create your own StudentOS Assignment Tracker spreadsheet',
-        vi: 'Tạo bảng tính theo dõi bài tập riêng cho bạn',
-      },
-      {
-        en: 'Update rows inside that spreadsheet when you add or finish tasks',
-        vi: 'Cập nhật các dòng trong chính bảng tính đó khi bạn thêm hoặc hoàn thành bài',
-      },
-    ],
-    neverDo: [
-      {
-        en: 'Never view or edit any of your other Google Sheets or Drive files',
-        vi: 'Không xem hay sửa bất kỳ bảng tính hoặc tệp Drive nào khác của bạn',
-      },
-      {
-        en: 'Never share your spreadsheet with anyone else',
-        vi: 'Không chia sẻ bảng bài tập của bạn với bất kỳ ai',
-      },
-    ],
+    titleKey: 'gperm_sheets_title',
+    whyKey: 'gperm_sheets_why',
+    canDoKeys: ['gperm_sheets_can1', 'gperm_sheets_can2'],
+    neverDoKeys: ['gperm_sheets_nev1', 'gperm_sheets_nev2'],
   },
   classroom: {
     logoId: 'classroom',
-    title: {
-      en: 'Connect Google Classroom',
-      vi: 'Kết nối Google Classroom',
-    },
-    whyWeAsk: {
-      en: 'So StudentOS can bring your classes, homework, and teacher announcements into one checklist.',
-      vi: 'Để StudentOS gom các lớp học, bài tập và thông báo của thầy cô về một danh sách gọn gàng.',
-    },
-    canDo: [
-      {
-        en: 'See the names of your enrolled classes',
-        vi: 'Xem tên các lớp học bạn đang tham gia',
-      },
-      {
-        en: 'Read your assignments, due dates, and teacher announcements',
-        vi: 'Đọc bài tập, hạn nộp và thông báo từ giáo viên',
-      },
-    ],
-    neverDo: [
-      {
-        en: 'Never see your grades, edit teacher posts, or turn in work for you',
-        vi: 'Không xem điểm số, không sửa bài đăng và không nộp bài thay bạn',
-      },
-      {
-        en: 'Never post comments or messages to your classes',
-        vi: 'Không đăng bình luận hay tin nhắn nào lên lớp học của bạn',
-      },
-    ],
+    titleKey: 'gperm_cls_title',
+    whyKey: 'gperm_cls_why',
+    canDoKeys: ['gperm_cls_can1', 'gperm_cls_can2'],
+    neverDoKeys: ['gperm_cls_nev1', 'gperm_cls_nev2'],
   },
-};
+} as const;
 
 export const GooglePermissionModal: React.FC<GooglePermissionModalProps> = ({
   isOpen,
@@ -192,9 +67,7 @@ export const GooglePermissionModal: React.FC<GooglePermissionModalProps> = ({
   onConfirm,
   onCancel,
 }) => {
-  const [lang] = useLang();
-  const isVi = lang === 'vi';
-  const pick = (b: BilingualText) => (isVi ? b.vi : b.en);
+  const { t } = useT();
 
   useEffect(() => {
     if (!isOpen) return;
@@ -233,11 +106,11 @@ export const GooglePermissionModal: React.FC<GooglePermissionModalProps> = ({
                 id="google-permission-modal-title"
                 className="text-base sm:text-lg font-extrabold text-[#141413] dark:text-[#FAF9F5] leading-snug"
               >
-                {pick(info.title)}
+                {t(info.titleKey)}
               </h2>
               {userEmail && (
                 <p className="text-[11px] font-medium text-[#6B6860] dark:text-[#B5B2A8] truncate mt-0.5">
-                  {isVi ? `Tài khoản: ${userEmail}` : `Using ${userEmail}`}
+                  {t('gperm_using_email', { email: userEmail })}
                 </p>
               )}
             </div>
@@ -247,7 +120,7 @@ export const GooglePermissionModal: React.FC<GooglePermissionModalProps> = ({
             type="button"
             onClick={onCancel}
             disabled={isConnecting}
-            aria-label={isVi ? 'Đóng' : 'Close'}
+            aria-label={t('common_close')}
             className="p-1.5 rounded-xl text-[#6B6860] hover:text-[#141413] dark:text-[#B5B2A8] dark:hover:text-[#FAF9F5] hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer disabled:opacity-40"
           >
             <X className="w-5 h-5" />
@@ -259,10 +132,10 @@ export const GooglePermissionModal: React.FC<GooglePermissionModalProps> = ({
           {/* Why we ask */}
           <div className="p-3.5 rounded-2xl bg-white dark:bg-[#1A1917] border border-[#DFDACB] dark:border-[#2C2B27] space-y-1">
             <p className="text-[11px] font-bold uppercase tracking-wider text-[#D97757]">
-              {isVi ? 'Vì sao cần kết nối này?' : 'Why we ask'}
+              {t('gperm_why_heading')}
             </p>
             <p className="text-xs sm:text-[13px] text-[#141413] dark:text-[#FAF9F5] leading-relaxed">
-              {pick(info.whyWeAsk)}
+              {t(info.whyKey)}
             </p>
           </div>
 
@@ -270,13 +143,13 @@ export const GooglePermissionModal: React.FC<GooglePermissionModalProps> = ({
           <div className="p-3.5 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/25 border border-emerald-200 dark:border-emerald-900/60 space-y-2">
             <p className="font-bold text-emerald-900 dark:text-emerald-200 flex items-center gap-1.5">
               <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-              <span>{isVi ? 'StudentOS sẽ có thể:' : 'What StudentOS will be able to do'}</span>
+              <span>{t('gperm_can_heading')}</span>
             </p>
             <ul className="space-y-1.5 text-[#141413] dark:text-[#E6E4DC]">
-              {info.canDo.map((item, idx) => (
-                <li key={idx} className="flex items-start gap-2 leading-relaxed">
+              {info.canDoKeys.map((key) => (
+                <li key={key} className="flex items-start gap-2 leading-relaxed">
                   <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-emerald-600 dark:bg-emerald-400 shrink-0" />
-                  <span>{pick(item)}</span>
+                  <span>{t(key)}</span>
                 </li>
               ))}
             </ul>
@@ -286,13 +159,13 @@ export const GooglePermissionModal: React.FC<GooglePermissionModalProps> = ({
           <div className="p-3.5 rounded-2xl bg-[#FAF9F5] dark:bg-[#1A1917] border border-[#DFDACB] dark:border-[#2C2B27] space-y-2">
             <p className="font-bold text-[#141413] dark:text-[#FAF9F5] flex items-center gap-1.5">
               <Ban className="w-4 h-4 text-[#D97757] shrink-0" />
-              <span>{isVi ? 'Những điều chúng tôi KHÔNG BAO GIỜ làm:' : 'What we never do'}</span>
+              <span>{t('gperm_never_heading')}</span>
             </p>
             <ul className="space-y-1.5 text-[#5C5A54] dark:text-[#B5B2A8]">
-              {info.neverDo.map((item, idx) => (
-                <li key={idx} className="flex items-start gap-2 leading-relaxed">
+              {info.neverDoKeys.map((key) => (
+                <li key={key} className="flex items-start gap-2 leading-relaxed">
                   <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-[#D97757] shrink-0" />
-                  <span>{pick(item)}</span>
+                  <span>{t(key)}</span>
                 </li>
               ))}
             </ul>
@@ -301,9 +174,7 @@ export const GooglePermissionModal: React.FC<GooglePermissionModalProps> = ({
           <p className="text-[11px] text-[#6B6860] dark:text-[#B5B2A8] flex items-start gap-1.5 leading-relaxed px-1">
             <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
             <span>
-              {isVi
-                ? 'Bạn luôn nắm quyền kiểm soát — có thể tắt kết nối này bất cứ lúc nào trong Cài đặt hoặc Tài khoản Google.'
-                : 'You stay in control — you can turn this off anytime in Settings or your Google Account.'}
+              {t('gperm_control_note')}
             </span>
           </p>
         </div>
@@ -316,7 +187,7 @@ export const GooglePermissionModal: React.FC<GooglePermissionModalProps> = ({
             disabled={isConnecting}
             className="px-4 py-2.5 rounded-xl text-xs font-semibold text-[#5C5A54] dark:text-[#B5B2A8] hover:bg-[#EFECE2] dark:hover:bg-[#252422] transition-colors cursor-pointer min-h-[44px] disabled:opacity-50"
           >
-            {isVi ? 'Để sau' : 'Not now'}
+            {t('gperm_not_now')}
           </button>
           <button
             type="button"
@@ -327,11 +198,11 @@ export const GooglePermissionModal: React.FC<GooglePermissionModalProps> = ({
             {isConnecting ? (
               <>
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                <span>{isVi ? 'Đang mở Google...' : 'Opening Google...'}</span>
+                <span>{t('gperm_opening')}</span>
               </>
             ) : (
               <>
-                <span>{isVi ? 'Cho phép & Tiếp tục' : 'Allow & Continue'}</span>
+                <span>{t('gperm_allow')}</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </>
             )}

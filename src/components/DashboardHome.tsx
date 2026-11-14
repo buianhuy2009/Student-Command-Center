@@ -18,7 +18,7 @@ import { useNasaApod } from '../hooks/useNasaApod';
 import { usePomodoroStore } from '../stores/pomodoroStore';
 import { EmptyAssignments } from './EmptyState';
 import { MainFlowCard } from './MainFlowCard';
-import { t, useLang } from '../services/i18n';
+import { useT } from '../services/i18n';
 
 const LOCAL_STORAGE_NAME_KEY = 'scc_user_preferred_name';
 const LOCAL_STORAGE_INTENTION_KEY = 'scc_user_daily_intention';
@@ -62,7 +62,7 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
   canvasCount = 0,
   classroomCount = 0,
 }) => {
-  useLang();
+  const { t, lang, formatDate } = useT();
   // Time-aware greeting prefix
   const greetingKey = useMemo(() => {
     const hour = new Date().getHours();
@@ -77,14 +77,14 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
     return (
       localStorage.getItem(LOCAL_STORAGE_NAME_KEY) ||
       user?.displayName?.split(' ')[0] ||
-      'Student'
+      t('dash_default_student')
     );
   });
   const [isEditingName, setIsEditingName] = useState(false);
   const [nameInput, setNameInput] = useState(studentName);
 
   const handleSaveName = () => {
-    const trimmed = nameInput.trim() || 'Student';
+    const trimmed = nameInput.trim() || t('dash_default_student');
     setStudentName(trimmed);
     localStorage.setItem(LOCAL_STORAGE_NAME_KEY, trimmed);
     setIsEditingName(false);
@@ -214,12 +214,12 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
 
   // todayFormattedDate kept for potential use but not shown above fold (moved to navbar)
   const todayFormattedDate = useMemo(() => {
-    return new Intl.DateTimeFormat('en-US', {
+    return formatDate(new Date(), {
       weekday: 'long',
       month: 'long',
       day: 'numeric',
-    }).format(new Date());
-  }, []);
+    });
+  }, [formatDate, lang]);
 
   // Vibe background glow — bumped to /25 in dark for visibility
   const vibeGlowClass = {
@@ -270,6 +270,7 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
                 />
                 <button
                   onClick={handleSaveName}
+                  aria-label={t('common_save')}
                   className="p-3 bg-[#D97757] text-white rounded-xl shadow-sm cursor-pointer"
                 >
                   <Check className="w-5 h-5" strokeWidth={1.75} />
@@ -310,6 +311,7 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
                 />
                 <button
                   onClick={handleSaveIntention}
+                  aria-label={t('common_save')}
                   className="p-2 bg-[#D97757] text-white rounded-lg cursor-pointer shrink-0"
                 >
                   <Check className="w-4 h-4" />
@@ -602,22 +604,22 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
             )}
             {apodError && !nasaApod && (
               <div className="p-3 rounded-xl bg-gradient-to-br from-indigo-950 via-[#1A1917] to-[#D97757]/20 border border-[#DFDACB] dark:border-[#2C2B27] text-xs space-y-2" role="status" aria-live="polite">
-                <p className="font-bold text-[#141413] dark:text-[#FAF9F5]">NASA giới hạn hoặc mất mạng. Đang hiện ảnh dự phòng — bấm Thử lại.</p>
+                <p className="font-bold text-[#141413] dark:text-[#FAF9F5]">{t('dash_apod_error')}</p>
                 <p className="text-[#6B6860] dark:text-[#B5B2A8]">{apodError}</p>
-                <button type="button" onClick={reloadApod} className="px-3 py-2 bg-[#D97757] text-white rounded-xl text-xs font-bold min-h-[44px] cursor-pointer">Thử lại • Retry</button>
+                <button type="button" onClick={reloadApod} className="px-3 py-2 bg-[#D97757] text-white rounded-xl text-xs font-bold min-h-[44px] cursor-pointer">{t('retry')}</button>
               </div>
             )}
             {nasaApod && (
               <div className="space-y-2">
                 {nasaApod.mediaType === 'image' ? (
-                  <img src={nasaApod.url} alt={nasaApod.title || 'NASA Astronomy Picture of the Day'} loading="lazy" decoding="async" fetchPriority="low" referrerPolicy="no-referrer" className="w-full max-h-72 object-cover rounded-xl border border-[#DFDACB] dark:border-[#2C2B27]" />
+                  <img src={nasaApod.url} alt={nasaApod.title || t('dash_apod_aria')} loading="lazy" decoding="async" fetchPriority="low" referrerPolicy="no-referrer" className="w-full max-h-72 object-cover rounded-xl border border-[#DFDACB] dark:border-[#2C2B27]" />
                 ) : (
                   <div className="p-3 rounded-xl bg-indigo-950 text-white text-xs space-y-2">
                     {nasaApod.thumbnailUrl && (
-                      <img src={nasaApod.thumbnailUrl} alt={nasaApod.title || 'NASA video thumbnail'} loading="lazy" decoding="async" referrerPolicy="no-referrer" className="w-full max-h-72 object-cover rounded-xl border border-white/20" />
+                      <img src={nasaApod.thumbnailUrl} alt={nasaApod.title || t('dash_apod_video_alt')} loading="lazy" decoding="async" referrerPolicy="no-referrer" className="w-full max-h-72 object-cover rounded-xl border border-white/20" />
                     )}
-                    <p className="font-bold">Hôm nay NASA chọn video — Today&apos;s NASA pick is a video</p>
-                    <a href={nasaApod.url} target="_blank" rel="noreferrer" className="underline underline-offset-4 font-bold inline-block min-h-[44px] py-2">Xem video trên NASA • Watch video on NASA</a>
+                    <p className="font-bold">{t('dash_apod_video_title')}</p>
+                    <a href={nasaApod.url} target="_blank" rel="noreferrer" className="underline underline-offset-4 font-bold inline-block min-h-[44px] py-2">{t('dash_apod_watch_video')}</a>
                   </div>
                 )}
                 <p className="text-xs font-bold text-[#141413] dark:text-[#FAF9F5]">{nasaApod.title} <span className="font-mono font-medium text-[10px] text-[#6B6860]">{nasaApod.date}</span></p>
@@ -645,7 +647,7 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
 
       {/* Bottom Section: Command Center Label */}
       <div className="text-[10px] text-[#8C897F] dark:text-[#B5B2A8] font-mono select-none uppercase tracking-wider shrink-0">
-        Student Command Center • Version 2.4.2
+        {t('dash_footer_brand')}
       </div>
 
     </div>

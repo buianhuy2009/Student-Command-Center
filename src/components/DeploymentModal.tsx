@@ -14,6 +14,7 @@ import {
   Terminal,
   RefreshCw,
 } from 'lucide-react';
+import { useT } from '../services/i18n';
 
 interface DeploymentModalProps {
   isOpen: boolean;
@@ -21,6 +22,7 @@ interface DeploymentModalProps {
 }
 
 export const DeploymentModal: React.FC<DeploymentModalProps> = ({ isOpen, onClose }) => {
+  const { t } = useT();
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [healthStatus, setHealthStatus] = useState<{
     status?: string;
@@ -38,11 +40,11 @@ export const DeploymentModal: React.FC<DeploymentModalProps> = ({ isOpen, onClos
     setIsCheckingHealth(true);
     try {
       const res = await fetch('/api/health');
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!res.ok) throw new Error(t('deploy_http_err', { status: res.status }));
       const data = await res.json();
       setHealthStatus(data);
     } catch (err: any) {
-      setHealthStatus({ error: err.message || 'API unreachable' });
+      setHealthStatus({ error: err.message || t('deploy_api_unreachable') });
     } finally {
       setIsCheckingHealth(false);
     }
@@ -78,16 +80,17 @@ export const DeploymentModal: React.FC<DeploymentModalProps> = ({ isOpen, onClos
             </div>
             <div>
               <h3 className="text-lg font-bold text-[#141413] dark:text-[#FAF9F5]">
-                Vercel Deployment & Integration Guide
+                {t('deploy_title')}
               </h3>
               <p className="text-xs text-[#6B6860]">
-                Ensure Google Workspace, Canvas LMS, and Gemini AI work smoothly on Vercel
+                {t('deploy_sub')}
               </p>
             </div>
           </div>
 
           <button
             onClick={onClose}
+            aria-label={t('common_close')}
             className="text-[#8C897F] hover:text-[#141413] dark:hover:text-[#FAF9F5] p-1.5 rounded-lg hover:bg-[#FAF9F5] dark:hover:bg-[#252422] transition-colors"
           >
             <X className="w-5 h-5" />
@@ -108,12 +111,12 @@ export const DeploymentModal: React.FC<DeploymentModalProps> = ({ isOpen, onClos
               />
               <div>
                 <span className="font-bold text-[#141413] dark:text-[#FAF9F5] text-xs">
-                  Serverless Backend API Status:{' '}
+                  {t('deploy_status_label')}
                 </span>
                 <span className="text-[#6B6860] font-mono text-xs">
                   {healthStatus?.status === 'ok'
-                    ? `Healthy (${healthStatus.platform || 'ready'})`
-                    : healthStatus?.error || 'Checking...'}
+                    ? t('deploy_status_healthy', { platform: healthStatus.platform || t('deploy_status_ready') })
+                    : healthStatus?.error || t('deploy_status_checking')}
                 </span>
               </div>
             </div>
@@ -124,7 +127,7 @@ export const DeploymentModal: React.FC<DeploymentModalProps> = ({ isOpen, onClos
               className="px-2.5 py-1 text-xs font-semibold bg-[#EFECE2] dark:bg-[#2C2B27] hover:bg-[#DFDACB] dark:hover:bg-[#383632] text-[#141413] dark:text-[#FAF9F5] rounded-lg flex items-center gap-1 transition-colors"
             >
               <RefreshCw className={`w-3 h-3 ${isCheckingHealth ? 'animate-spin' : ''}`} />
-              <span>Ping API</span>
+              <span>{t('deploy_ping')}</span>
             </button>
           </div>
 
@@ -133,68 +136,68 @@ export const DeploymentModal: React.FC<DeploymentModalProps> = ({ isOpen, onClos
             <div className="flex items-start justify-between gap-2">
               <div className="flex items-center gap-2 text-indigo-700 dark:text-indigo-300 font-bold">
                 <ShieldCheck className="w-4 h-4" />
-                <span>1. Google Workspace & Firebase Auth (Crucial)</span>
+                <span>{t('deploy_sec1_title')}</span>
               </div>
               <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200">
-                Action Required
+                {t('deploy_sec1_badge')}
               </span>
             </div>
 
             <p className="text-slate-600 dark:text-slate-300 text-xs leading-relaxed">
-              Google Auth blocks sign-in popups on new domains until authorized. When deploying to Vercel, you must add your Vercel domain to Firebase Console.
+              {t('deploy_sec1_desc')}
             </p>
 
             <div className="bg-white dark:bg-[#1A1917] p-3 rounded-lg border border-indigo-200/80 dark:border-indigo-800/80 space-y-2 text-xs">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-[#6B6860]">Current domain to add:</span>
+                <span className="text-[#6B6860]">{t('deploy_sec1_domain_label')}</span>
                 <button
                   onClick={() => copyToClipboard(currentHostname, 'host')}
                   className="px-2 py-0.5 bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 rounded font-mono font-bold flex items-center gap-1 hover:bg-indigo-100 transition-colors"
                 >
-                  <span>{currentHostname || 'your-app.vercel.app'}</span>
+                  <span>{currentHostname || t('deploy_sec1_domain_ph')}</span>
                   {copiedKey === 'host' ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
                 </button>
               </div>
 
               <div className="pt-1.5 border-t border-[#DFDACB] dark:border-[#2C2B27] space-y-1 text-[#5C5A54] dark:text-[#B5B2A8]">
-                <p className="font-semibold text-[#141413] dark:text-[#FAF9F5]">Steps to enable Google Sign-In:</p>
+                <p className="font-semibold text-[#141413] dark:text-[#FAF9F5]">{t('deploy_sec1_steps_title')}</p>
                 <ol className="list-decimal list-inside space-y-1 pl-1 text-[11px] text-[#6B6860]">
                   <li>
-                    Open{' '}
+                    {t('deploy_sec1_step1_pre')}
                     <a
                       href="https://console.firebase.google.com"
                       target="_blank"
                       rel="noreferrer"
                       className="text-indigo-600 dark:text-indigo-400 underline inline-flex items-center gap-0.5"
                     >
-                      Firebase Console <ExternalLink className="w-2.5 h-2.5" />
+                      {t('deploy_sec1_step1_link')} <ExternalLink className="w-2.5 h-2.5" />
                     </a>
                   </li>
                   <li>
-                    Navigate to <strong>Authentication</strong> → <strong>Settings</strong> tab → <strong>Authorized Domains</strong>
+                    {t('deploy_sec1_step2')}
                   </li>
                   <li>
-                    Click <strong>Add Domain</strong> and enter <code className="bg-[#FAF9F5] dark:bg-[#252422] px-1 py-0.5 rounded font-bold">{currentHostname || 'your-app.vercel.app'}</code> (or <code className="bg-[#FAF9F5] dark:bg-[#252422] px-1 py-0.5 rounded font-bold">*.vercel.app</code>)
+                    {t('deploy_sec1_step3_pre')}<code className="bg-[#FAF9F5] dark:bg-[#252422] px-1 py-0.5 rounded font-bold">{currentHostname || t('deploy_sec1_domain_ph')}</code>{t('deploy_sec1_step3_or')}<code className="bg-[#FAF9F5] dark:bg-[#252422] px-1 py-0.5 rounded font-bold">*.vercel.app</code>)
                   </li>
                 </ol>
               </div>
             </div>
           </div>
 
-          {/* Integration 2: Canvas LMS Proxy */}
+          {/* Integration 2: Canvas Proxy */}
           <div className="p-4 rounded-xl border border-orange-100 dark:border-orange-900/50 bg-orange-50/40 dark:bg-orange-950/20 space-y-2.5">
             <div className="flex items-start justify-between gap-2">
               <div className="flex items-center gap-2 text-orange-700 dark:text-orange-300 font-bold">
                 <Layers className="w-4 h-4" />
-                <span>2. Canvas LMS Calendar Feed Proxy</span>
+                <span>{t('deploy_sec2_title')}</span>
               </div>
               <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200 flex items-center gap-1">
-                <CheckCircle2 className="w-3 h-3" /> Configured
+                <CheckCircle2 className="w-3 h-3" /> {t('deploy_sec2_badge')}
               </span>
             </div>
 
             <p className="text-[#6B6860] text-xs leading-relaxed">
-              Canvas LMS blocks direct browser requests due to CORS. We have configured <code className="font-mono bg-white dark:bg-[#1A1917] px-1 py-0.5 rounded">api/index.ts</code> and <code className="font-mono bg-white dark:bg-[#1A1917] px-1 py-0.5 rounded">vercel.json</code> to proxy <code className="font-mono">/api/canvas/proxy</code> via Vercel Serverless Functions automatically!
+              {t('deploy_sec2_desc_pre')}<code className="font-mono bg-white dark:bg-[#1A1917] px-1 py-0.5 rounded">api/index.ts</code>{t('deploy_sec2_desc_mid')}<code className="font-mono bg-white dark:bg-[#1A1917] px-1 py-0.5 rounded">vercel.json</code>{t('deploy_sec2_desc_post')}<code className="font-mono">/api/canvas/proxy</code>.
             </p>
           </div>
 
@@ -203,36 +206,36 @@ export const DeploymentModal: React.FC<DeploymentModalProps> = ({ isOpen, onClos
             <div className="flex items-start justify-between gap-2">
               <div className="flex items-center gap-2 text-amber-800 dark:text-amber-300 font-bold">
                 <Sparkles className="w-4 h-4" />
-                <span>3. Gemini AI Features (Email Scanner, Quick Draft, Assistant)</span>
+                <span>{t('deploy_sec3_title')}</span>
               </div>
               <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-900 text-amber-800 dark:text-amber-200">
-                Vercel Env Var
+                {t('deploy_sec3_badge')}
               </span>
             </div>
 
             <p className="text-[#6B6860] text-xs leading-relaxed">
-              To enable server-side AI processing on Vercel:
+              {t('deploy_sec3_desc')}
             </p>
 
             <div className="bg-white dark:bg-[#1A1917] p-3 rounded-lg border border-amber-200/80 dark:border-amber-800/80 space-y-2 text-xs">
               <p className="text-[#5C5A54] dark:text-[#B5B2A8]">
-                1. Go to your Vercel Project → <strong>Settings</strong> → <strong>Environment Variables</strong>
+                {t('deploy_sec3_step1')}
               </p>
               <div className="flex items-center justify-between p-2 rounded bg-[#FAF9F5] dark:bg-[#252422] font-mono text-xs">
                 <div>
-                  <span className="text-[#6B6860]">Key: </span>
+                  <span className="text-[#6B6860]">{t('deploy_sec3_key_label')}</span>
                   <span className="font-bold text-[#141413] dark:text-[#FAF9F5]">GEMINI_API_KEY</span>
                 </div>
                 <button
                   onClick={() => copyToClipboard('GEMINI_API_KEY', 'envkey')}
                   className="px-2 py-0.5 bg-[#EFECE2] dark:bg-[#2C2B27] text-[#5C5A54] dark:text-[#B5B2A8] rounded hover:bg-[#DFDACB] transition-colors flex items-center gap-1 text-[11px]"
                 >
-                  <span>Copy Key</span>
+                  <span>{t('deploy_sec3_copy_key')}</span>
                   {copiedKey === 'envkey' ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
                 </button>
               </div>
               <p className="text-[11px] text-[#6B6860]">
-                2. Paste your Gemini API key and redeploy.
+                {t('deploy_sec3_step2')}
               </p>
             </div>
           </div>
@@ -241,13 +244,13 @@ export const DeploymentModal: React.FC<DeploymentModalProps> = ({ isOpen, onClos
         {/* Footer */}
         <div className="mt-4 pt-3 border-t border-[#DFDACB] dark:border-[#2C2B27] flex items-center justify-between shrink-0">
           <span className="text-[11px] text-[#8C897F]">
-            Files added: <code className="font-mono text-[#6B6860]">api/index.ts</code> & <code className="font-mono text-[#6B6860]">vercel.json</code>
+            {t('deploy_footer_files')}<code className="font-mono text-[#6B6860]">api/index.ts</code> & <code className="font-mono text-[#6B6860]">vercel.json</code>
           </span>
           <button
             onClick={onClose}
             className="px-4 py-2 text-xs font-bold bg-[#D97757] hover:bg-[#C86646] text-white rounded-xl cursor-pointer shadow-xs transition-colors"
           >
-            Close Guide
+            {t('deploy_close_btn')}
           </button>
         </div>
       </div>

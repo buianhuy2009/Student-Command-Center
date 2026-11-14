@@ -16,7 +16,7 @@ import {
   hasFeatureAccess,
   type GoogleFeature,
 } from "../services/googleAuth";
-import { useLang } from "../services/i18n";
+import { useT } from "../services/i18n";
 
 export interface GoogleSyncHubModalProps {
   isOpen: boolean;
@@ -65,8 +65,7 @@ export const GoogleSyncHubModal: React.FC<GoogleSyncHubModalProps> = ({
   onConnectGmail,
   isConnectingGmail = false,
 }) => {
-  const [lang] = useLang();
-  const isVi = lang === "vi";
+  const { t } = useT();
   const [, setScopeTick] = useState(0);
 
   useEffect(() => {
@@ -129,112 +128,78 @@ export const GoogleSyncHubModal: React.FC<GoogleSyncHubModalProps> = ({
       id: "calendar",
       name: "Google Calendar",
       appId: "radar",
-      description: isVi
-        ? "Hiện lịch học cùng hạn nộp bài và thêm giờ tự học khi bạn chọn."
-        : "Shows your classes next to deadlines and adds study blocks you choose.",
+      description: t("ghub_cal_desc"),
       connected: checkFeatureConnected("calendar"),
       stat: checkFeatureConnected("calendar")
-        ? isVi
-          ? `${calendarEventsCount} sự kiện`
-          : `${calendarEventsCount} events`
-        : isVi
-        ? "Chưa kết nối"
-        : "Not connected",
+        ? t("ghub_cal_stat", { count: calendarEventsCount })
+        : t("ghub_not_connected"),
       isActionLoading: false,
-      actionLabel: isVi ? "Làm mới" : "Refresh",
+      actionLabel: t("common_refresh"),
       externalUrl: "https://calendar.google.com",
-      externalLabel: isVi ? "Mở Calendar" : "Open Calendar",
+      externalLabel: t("ghub_cal_open"),
     },
     {
       id: "gmail",
       name: "Gmail",
       appId: "gmail",
-      description: isVi
-        ? "Tìm bài tập, ngày thi và thông báo từ thầy cô trong hộp thư (chỉ đọc)."
-        : "Spots homework, exam dates, and teacher announcements in your inbox (read-only).",
+      description: t("ghub_gmail_desc"),
       connected: checkFeatureConnected("gmail"),
       stat: checkFeatureConnected("gmail")
-        ? isVi
-          ? `${emailCount} email đã quét`
-          : `${emailCount} emails found`
-        : isVi
-        ? "Chưa kết nối"
-        : "Not connected",
+        ? t("ghub_gmail_stat", { count: emailCount })
+        : t("ghub_not_connected"),
       action: onConnectGmail,
       isActionLoading: isConnectingGmail,
-      actionLabel: isVi ? "Quét lại Gmail" : "Refresh Gmail",
+      actionLabel: t("ghub_gmail_action"),
       externalUrl: "https://mail.google.com",
-      externalLabel: isVi ? "Mở Gmail" : "Open Gmail",
+      externalLabel: t("ghub_gmail_open"),
     },
     {
       id: "drive",
       name: "Google Drive & Docs",
       appId: "drive",
-      description: isVi
-        ? "Tạo tài liệu học và mở các tệp bạn tạo hoặc tự chọn trong StudentOS."
-        : "Creates study docs and opens only the files you make or pick in StudentOS.",
+      description: t("ghub_drive_desc"),
       connected: checkFeatureConnected("drive"),
       stat: checkFeatureConnected("drive")
-        ? isVi
-          ? `${schoolFilesCount} tệp`
-          : `${schoolFilesCount} files`
-        : isVi
-        ? "Chưa kết nối"
-        : "Not connected",
+        ? t("ghub_drive_stat", { count: schoolFilesCount })
+        : t("ghub_not_connected"),
       isActionLoading: false,
-      actionLabel: isVi ? "Làm mới" : "Refresh",
+      actionLabel: t("common_refresh"),
       externalUrl: "https://drive.google.com",
-      externalLabel: isVi ? "Mở Drive" : "Open Drive",
+      externalLabel: t("ghub_drive_open"),
     },
     {
       id: "sheets",
       name: "Google Sheets",
       appId: "tracker",
-      description: isVi
-        ? "Lưu bảng theo dõi bài tập, hạn nộp và trạng thái học tập của riêng bạn."
-        : "Keeps your personal assignment checklist saved in a Google spreadsheet.",
+      description: t("ghub_sheets_desc"),
       connected: checkFeatureConnected("sheets"),
       stat: checkFeatureConnected("sheets")
         ? sheetUrl
-          ? isVi
-            ? "Đã liên kết bảng tính"
-            : "Sheet ready"
-          : isVi
-          ? "Sẵn sàng tạo bảng"
-          : "Ready to create"
-        : isVi
-        ? "Chưa kết nối"
-        : "Not connected",
+          ? t("ghub_sheets_ready")
+          : t("ghub_sheets_create")
+        : t("ghub_not_connected"),
       action: onSyncSheet,
       isActionLoading: isSyncingSheet,
-      actionLabel: isVi ? "Cập nhật Sheet" : "Update Sheet",
+      actionLabel: t("ghub_sheets_action"),
       externalUrl: sheetUrl,
-      externalLabel: isVi ? "Mở Sheet" : "Open Sheet",
+      externalLabel: t("ghub_sheets_open"),
     },
     {
       id: "classroom",
       name: "Google Classroom",
       appId: "classroom",
-      description: isVi
-        ? "Mang tên lớp học, bài tập đang mở và thông báo của thầy cô về một nơi."
-        : "Brings your enrolled classes, homework, and teacher posts into one list.",
+      description: t("ghub_cls_desc"),
       connected: checkFeatureConnected("classroom"),
       stat: checkFeatureConnected("classroom")
         ? classroomCount > 0
-          ? isVi
-            ? `${classroomCount} bài tập`
-            : `${classroomCount} assignments`
-          : isVi
-          ? "Đã kết nối"
-          : "Connected"
-        : isVi
-        ? "Chưa kết nối"
-        : "Not connected",
+          ? t("ghub_cls_stat", { count: classroomCount })
+          : t("ghub_connected")
+        : t("ghub_not_connected"),
       action: onSyncClassroom,
       isActionLoading: isSyncingClassroom,
-      actionLabel: isVi ? "Cập nhật Classroom" : "Update Classroom",
+      actionLabel: t("ghub_cls_action"),
       externalUrl: "https://classroom.google.com",
-      externalLabel: isVi ? "Mở Classroom" : "Open Classroom",
+      externalLabel: t("ghub_cls_open"),
     },
   ];
 
@@ -267,27 +232,23 @@ export const GoogleSyncHubModal: React.FC<GoogleSyncHubModalProps> = ({
                   id="google-sync-hub-title"
                   className="text-lg font-bold text-[#141413] dark:text-[#FAF9F5]"
                 >
-                  {isVi ? "Kết nối Google của bạn" : "Your Google Connections"}
+                  {t("ghub_title")}
                 </h2>
                 {connectedCount > 0 ? (
                   <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 flex items-center gap-1">
                     <CheckCircle2 className="w-3 h-3" />
-                    {isVi ? `Đã bật ${connectedCount}/5` : `${connectedCount} of 5 connected`}
+                    {t("ghub_connected_count", { count: connectedCount })}
                   </span>
                 ) : (
                   <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#EFECE2] text-[#5C5A54] dark:bg-[#252422] dark:text-[#B5B2A8] border border-[#DFDACB] dark:border-[#2C2B27]">
-                    {isVi ? "Chưa bật công cụ nào" : "Choose what to connect"}
+                    {t("ghub_choose_connect")}
                   </span>
                 )}
               </div>
               <p className="text-xs text-[#6B6860] dark:text-[#B5B2A8] mt-0.5 truncate">
                 {user?.email
-                  ? isVi
-                    ? `Đang đăng nhập: ${user.email}`
-                    : `Signed in as ${user.email}`
-                  : isVi
-                  ? "Mỗi ứng dụng Google kết nối riêng khi bạn cần"
-                  : "Each Google app connects separately only when you need it"}
+                  ? t("ghub_signed_in_as", { email: user.email })
+                  : t("ghub_subtitle_anon")}
               </p>
             </div>
           </div>
@@ -295,7 +256,7 @@ export const GoogleSyncHubModal: React.FC<GoogleSyncHubModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            aria-label={isVi ? "Đóng" : "Close"}
+            aria-label={t("common_close")}
             className="w-9 h-9 rounded-xl flex items-center justify-center text-[#6B6860] hover:text-[#141413] dark:text-[#B5B2A8] dark:hover:text-[#FAF9F5] hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer shrink-0"
           >
             <X className="w-5 h-5" />
@@ -307,9 +268,7 @@ export const GoogleSyncHubModal: React.FC<GoogleSyncHubModalProps> = ({
           <div className="flex items-center gap-2 text-xs font-semibold text-[#141413] dark:text-[#FAF9F5]">
             <Sparkles className="w-4 h-4 text-[#D97757] shrink-0" />
             <span>
-              {isVi
-                ? "Chỉ bật những công cụ Google bạn thật sự muốn dùng — từng cái một."
-                : "Connect only the Google tools you want to use — one at a time."}
+              {t("ghub_banner")}
             </span>
           </div>
 
@@ -323,22 +282,18 @@ export const GoogleSyncHubModal: React.FC<GoogleSyncHubModalProps> = ({
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? "animate-spin" : ""}`} />
                 {isSyncing
-                  ? isVi
-                    ? "Đang làm mới..."
-                    : "Refreshing..."
-                  : isVi
-                  ? "Làm mới các mục đã bật"
-                  : "Refresh Connected"}
+                  ? t("ghub_refreshing")
+                  : t("ghub_refresh_connected")}
               </button>
               <button
                 type="button"
                 onClick={onDisconnectGoogle}
                 className="px-2.5 py-1.5 rounded-xl text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer flex items-center gap-1"
-                title={isVi ? "Ngắt kết nối Google" : "Disconnect Google apps"}
-                aria-label={isVi ? "Ngắt kết nối Google" : "Disconnect Google apps"}
+                title={t("ghub_disconnect_aria")}
+                aria-label={t("ghub_disconnect_aria")}
               >
                 <Unlink className="w-3.5 h-3.5" />
-                <span>{isVi ? "Ngắt hết" : "Disconnect"}</span>
+                <span>{t("ghub_disconnect")}</span>
               </button>
             </div>
           )}
@@ -389,9 +344,7 @@ export const GoogleSyncHubModal: React.FC<GoogleSyncHubModalProps> = ({
                           className={`w-3 h-3 ${svc.isActionLoading ? "animate-spin text-[#D97757]" : ""}`}
                         />
                         {svc.isActionLoading
-                          ? isVi
-                            ? "Đang cập nhật..."
-                            : "Updating..."
+                          ? t("ghub_updating")
                           : svc.actionLabel}
                       </button>
                     )
@@ -409,12 +362,8 @@ export const GoogleSyncHubModal: React.FC<GoogleSyncHubModalProps> = ({
                       )}
                       <span>
                         {isThisConnecting
-                          ? isVi
-                            ? "Đang kết nối..."
-                            : "Connecting..."
-                          : isVi
-                          ? "Kết nối"
-                          : "Connect"}
+                          ? t("ghub_connecting")
+                          : t("ghub_connect")}
                       </span>
                     </button>
                   )}
@@ -442,9 +391,7 @@ export const GoogleSyncHubModal: React.FC<GoogleSyncHubModalProps> = ({
           <div className="flex items-center gap-2">
             <Clock className="w-3.5 h-3.5 text-[#D97757] shrink-0" />
             <span>
-              {isVi
-                ? "Các mục bạn đã bật sẽ tự làm mới nhẹ nhàng trong lúc bạn học."
-                : "Your connected apps stay updated quietly while you study."}
+              {t("ghub_footer_note")}
             </span>
           </div>
           <button
@@ -452,7 +399,7 @@ export const GoogleSyncHubModal: React.FC<GoogleSyncHubModalProps> = ({
             onClick={onClose}
             className="px-4 py-1.5 rounded-xl text-xs font-bold bg-white dark:bg-[#1A1917] border border-[#DFDACB] dark:border-[#2C2B27] hover:border-[#D97757] text-[#141413] dark:text-[#FAF9F5] transition-all cursor-pointer shrink-0"
           >
-            {isVi ? "Đóng" : "Close"}
+            {t("common_close")}
           </button>
         </div>
       </div>

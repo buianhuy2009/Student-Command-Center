@@ -29,6 +29,8 @@ export interface SRSDeck {
   updatedAt: string;
 }
 
+import { formatDate, t } from './i18n';
+
 export type ReviewQuality = 0 | 1 | 2 | 3 | 4 | 5;
 
 export const QUALITY_LABELS: Record<ReviewQuality, { label: string; desc: string; color: string }> = {
@@ -39,6 +41,17 @@ export const QUALITY_LABELS: Record<ReviewQuality, { label: string; desc: string
   4: { label: 'Good (4)', desc: 'Correct after hesitation', color: 'bg-blue-700 text-white' },
   5: { label: 'Perfect (5)', desc: 'Instant, confident recall', color: 'bg-emerald-700 text-white' },
 };
+
+export function getQualityLabels(): Record<ReviewQuality, { label: string; desc: string; color: string }> {
+  return {
+    0: { label: t('srs_q0_label'), desc: t('srs_q0_desc'), color: QUALITY_LABELS[0].color },
+    1: { label: t('srs_q1_label'), desc: t('srs_q1_desc'), color: QUALITY_LABELS[1].color },
+    2: { label: t('srs_q2_label'), desc: t('srs_q2_desc'), color: QUALITY_LABELS[2].color },
+    3: { label: t('srs_q3_label'), desc: t('srs_q3_desc'), color: QUALITY_LABELS[3].color },
+    4: { label: t('srs_q4_label'), desc: t('srs_q4_desc'), color: QUALITY_LABELS[4].color },
+    5: { label: t('srs_q5_label'), desc: t('srs_q5_desc'), color: QUALITY_LABELS[5].color },
+  };
+}
 
 /**
  * Calculates next SM-2 review parameters for a card given student's response quality (0-5)
@@ -124,18 +137,19 @@ export function loadSRSDecks(): SRSDeck[] {
   }
 
   // Default baseline sample deck
+  const todayStr = formatDate(new Date());
   const sampleDeck: SRSDeck = {
     id: 'deck-sample-neuro',
-    title: 'Cognitive Science & Memory (SM-2 Primer)',
-    subject: 'Psychology',
-    createdAt: new Date().toLocaleDateString(),
-    updatedAt: new Date().toLocaleDateString(),
+    title: t('srs_sample_title'),
+    subject: t('srs_sample_subject'),
+    createdAt: todayStr,
+    updatedAt: todayStr,
     cards: [
       {
         id: 'card-sm2-1',
-        front: 'What is the Testing Effect (Retrieval Practice)?',
-        back: 'The finding that actively retrieving information from memory produces stronger and longer-lasting retention than passive re-reading.',
-        tags: ['Memory', 'Cognition'],
+        front: t('srs_card1_front'),
+        back: t('srs_card1_back'),
+        tags: [t('srs_tag_memory'), t('srs_tag_cognition')],
         repetitions: 1,
         interval: 1,
         easeFactor: 2.5,
@@ -143,9 +157,9 @@ export function loadSRSDecks(): SRSDeck[] {
       },
       {
         id: 'card-sm2-2',
-        front: 'What does the Ease Factor (EF) determine in the SM-2 algorithm?',
-        back: 'It reflects card difficulty. It starts at 2.5 (min 1.3). It multiplies previous interval when recall is successful.',
-        tags: ['Algorithms', 'Spaced Repetition'],
+        front: t('srs_card2_front'),
+        back: t('srs_card2_back'),
+        tags: [t('srs_tag_methods'), t('srs_tag_review')],
         repetitions: 2,
         interval: 6,
         easeFactor: 2.6,
@@ -153,9 +167,9 @@ export function loadSRSDecks(): SRSDeck[] {
       },
       {
         id: 'card-sm2-3',
-        front: 'What is the Feynman Technique formula for conceptual mastery?',
-        back: '1. Select concept -> 2. Teach it to a 12-year-old -> 3. Identify knowledge gaps -> 4. Review source material & create analogy.',
-        tags: ['Learning Methods'],
+        front: t('srs_card3_front'),
+        back: t('srs_card3_back'),
+        tags: [t('srs_tag_study_tips')],
         repetitions: 0,
         interval: 0,
         easeFactor: 2.5,

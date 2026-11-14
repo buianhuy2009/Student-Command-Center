@@ -1,7 +1,7 @@
 import React from 'react';
 import { RefreshCw, ShieldAlert } from 'lucide-react';
 import { ApiEnablementInfo } from '../types';
-import { useLang } from '../services/i18n';
+import { useT } from '../services/i18n';
 
 interface ApiActivationBannerProps {
   info: ApiEnablementInfo;
@@ -10,7 +10,7 @@ interface ApiActivationBannerProps {
   compact?: boolean;
 }
 
-function getFriendlyFeatureName(info: ApiEnablementInfo, isVi: boolean): string {
+function getFriendlyFeatureName(info: ApiEnablementInfo, fallback: string): string {
   const raw = `${info.serviceId || ''} ${info.serviceName || ''}`.toLowerCase();
   if (raw.includes('calendar')) return 'Google Calendar';
   if (raw.includes('gmail') || raw.includes('mail')) return 'Gmail';
@@ -18,7 +18,7 @@ function getFriendlyFeatureName(info: ApiEnablementInfo, isVi: boolean): string 
   if (raw.includes('doc')) return 'Google Docs';
   if (raw.includes('classroom')) return 'Google Classroom';
   if (raw.includes('drive')) return 'Google Drive';
-  return isVi ? 'Tính năng Google này' : 'This Google feature';
+  return fallback;
 }
 
 export const ApiActivationBanner: React.FC<ApiActivationBannerProps> = ({
@@ -26,9 +26,8 @@ export const ApiActivationBanner: React.FC<ApiActivationBannerProps> = ({
   onRetry,
   isRetrying = false,
 }) => {
-  const [lang] = useLang();
-  const isVi = lang === 'vi';
-  const featureName = getFriendlyFeatureName(info, isVi);
+  const { t } = useT();
+  const featureName = getFriendlyFeatureName(info, t('api_feature_generic'));
 
   return (
     <div className="p-4 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/50 dark:to-orange-950/40 border border-amber-300 dark:border-amber-700/80 rounded-2xl shadow-xs space-y-2 animate-in fade-in">
@@ -39,14 +38,10 @@ export const ApiActivationBanner: React.FC<ApiActivationBannerProps> = ({
           </div>
           <div>
             <h3 className="text-xs sm:text-sm font-bold text-amber-950 dark:text-amber-100">
-              {isVi
-                ? `${featureName} hiện chưa hoạt động`
-                : `${featureName} isn’t active right now`}
+              {t('api_not_active_title', { feature: featureName })}
             </h3>
             <p className="text-xs text-amber-800 dark:text-amber-200 mt-0.5 leading-relaxed">
-              {isVi
-                ? 'Tính năng Google này hiện chưa bật — bài tập và ghi chú đã lưu của bạn vẫn an toàn. Hãy cho phép popup hoặc thử lại sau.'
-                : 'This Google feature isn’t active right now — your saved schoolwork is safe. Allow popups or try signing in again later.'}
+              {t('api_banner_desc')}
             </p>
           </div>
         </div>
@@ -59,7 +54,7 @@ export const ApiActivationBanner: React.FC<ApiActivationBannerProps> = ({
             className="px-3.5 py-2 bg-white dark:bg-[#252422] hover:bg-[#FAF9F5] dark:hover:bg-[#2C2A26] text-[#141413] dark:text-[#FAF9F5] border border-[#DFDACB] dark:border-[#2C2B27] text-xs font-bold rounded-xl inline-flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer min-h-[40px]"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isRetrying ? 'animate-spin text-[#D97757]' : ''}`} />
-            <span>{isVi ? 'Thử lại' : 'Try again'}</span>
+            <span>{t('common_retry')}</span>
           </button>
         </div>
       </div>

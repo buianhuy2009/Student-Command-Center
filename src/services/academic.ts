@@ -1,4 +1,5 @@
 import type { Assignment, CalendarEvent, CourseGrade, ExamPlan, FocusBlockProposal, SyllabusParsedResult, TeacherCard, EmailMessage } from '../types';
+import { t } from './i18n';
 
 /* ---------- Grade Forecaster v2 ---------- */
 
@@ -139,13 +140,13 @@ export function buildExamPlan(examName: string, course: string, examDateISO: str
       day7: minus(7),
       day2: minus(2),
       nightBefore: [
-        'Pack bag, ID, calculator, pens',
-        'Review 1-page formula sheet only — no new topics',
-        'Sleep 7–8h: all-nighter drops recall ~30%',
-        `Light pass over: ${topics.slice(0, 5).join(', ') || 'key topics'}`,
+        t('acad_exam_nb_1'),
+        t('acad_exam_nb_2'),
+        t('acad_exam_nb_3'),
+        t('acad_exam_nb_4', { topics: topics.slice(0, 5).join(', ') || t('acad_exam_key_topics') }),
       ],
     },
-    formulaSheet: topics.map((t) => `${t}: definition → formula → 1 worked example`),
+    formulaSheet: topics.map((topic) => t('acad_formula_entry', { topic })),
   };
 }
 
@@ -178,8 +179,16 @@ export function buildTeacherCards(emails: EmailMessage[]): TeacherCard[] {
 
 export function draftFollowUpEmail(teacher: TeacherCard, studentName: string, context: string): { subject: string; body: string } {
   return {
-    subject: `Follow-up: ${teacher.lastSubject ?? 'question'} — ${teacher.course ?? 'class'}`,
-    body: `Dear ${teacher.name},\n\nI hope you are well. I'm following up on "${teacher.lastSubject ?? 'my previous email'}". ${context}\n\nThank you for your time.\n\nBest regards,\n${studentName}`,
+    subject: t('acad_email_subject', {
+      subject: teacher.lastSubject ?? t('acad_email_default_subject'),
+      course: teacher.course ?? t('acad_email_default_course'),
+    }),
+    body: t('acad_email_body', {
+      name: teacher.name,
+      prevSubject: teacher.lastSubject ?? t('acad_email_prev_default'),
+      context,
+      studentName,
+    }),
   };
 }
 
@@ -189,11 +198,11 @@ export interface DeployJobStep { id: string; label: string; status: 'pending' | 
 
 export function planDeploySteps(parsed: SyllabusParsedResult): DeployJobStep[] {
   return [
-    { id: 'milestones', label: `Create ${parsed.exams.length} exam milestones + ${parsed.keyAssignments.length} assignment rows`, status: 'pending' },
-    { id: 'sheets', label: 'Add rows to tracking Sheet', status: 'pending' },
-    { id: 'deck', label: `Build SRS deck for ${parsed.courseName}`, status: 'pending' },
-    { id: 'gantt', label: 'Add to deadline Gantt', status: 'pending' },
-    { id: 'focus', label: 'Propose first week of focus blocks', status: 'pending' },
+    { id: 'milestones', label: t('acad_step_milestones', { exams: parsed.exams.length, assignments: parsed.keyAssignments.length }), status: 'pending' },
+    { id: 'sheets', label: t('acad_step_sheets'), status: 'pending' },
+    { id: 'deck', label: t('acad_step_deck', { course: parsed.courseName }), status: 'pending' },
+    { id: 'gantt', label: t('acad_step_tracker'), status: 'pending' },
+    { id: 'focus', label: t('acad_step_focus'), status: 'pending' },
   ];
 }
 
@@ -208,10 +217,16 @@ export function deploySemesterToArtifacts(parsed: SyllabusParsedResult): {
     ...parsed.keyAssignments.map((a) => ({ title: a.title, date: a.dueDate, type: 'assignment' as const })),
   ];
   const sheetRows = parsed.keyAssignments.map((a) => ({ title: a.title, dueDate: a.dueDate, weight: a.weightPercent }));
-  const deckTitle = `${parsed.courseName} — Key Terms`;
+  const deckTitle = t('acad_deck_title', { course: parsed.courseName });
   const deckCards = [
-    ...parsed.exams.flatMap((e) => (e.topics ?? []).map((t) => ({ front: `Define: ${t} (${e.examName})`, back: `See syllabus / lecture notes for ${t}` }))),
-    ...parsed.keyAssignments.map((a) => ({ front: `Deliverable: ${a.title}`, back: `Due ${a.dueDate}${a.weightPercent ? ` — ${a.weightPercent}%` : ''}` })),
+    ...parsed.exams.flatMap((e) => (e.topics ?? []).map((topic) => ({
+      front: t('acad_card_define', { topic, exam: e.examName }),
+      back: t('acad_card_define_back', { topic }),
+    }))),
+    ...parsed.keyAssignments.map((a) => ({
+      front: t('acad_card_assignment', { title: a.title }),
+      back: `${t('acad_card_due', { dueDate: a.dueDate })}${a.weightPercent ? ` — ${a.weightPercent}%` : ''}`,
+    })),
   ];
   return { events, sheetRows, deckTitle, deckCards };
 }
@@ -224,7 +239,7 @@ export function normalizeCanvasRubric(raw: any): LmsRubricCriterion[] {
   const list = Array.isArray(raw) ? raw : raw?.rubric ?? raw?.criteria ?? [];
   return list.map((c: any, i: number) => ({
     id: String(c.id ?? `criterion-${i}`),
-    description: String(c.description ?? c.criterion ?? `Criterion ${i + 1}`),
+    description: String(c.description ?? c.criterion ?? t('acad_rubric_criterion', { n: i + 1 })),
     points: Number(c.points ?? c.maxPoints ?? 0),
     ratings: Array.isArray(c.ratings) ? c.ratings.map((r: any) => ({ description: String(r.description ?? ''), points: Number(r.points ?? 0) })) : undefined,
   }));

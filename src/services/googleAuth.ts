@@ -24,6 +24,7 @@ import {
   CORE_WORKSPACE_SCOPES,
   WORKSPACE_SCOPES,
 } from './firebase';
+import { t } from './i18n';
 
 export type GoogleFeature = 'calendar' | 'gmail' | 'drive' | 'sheets' | 'classroom';
 
@@ -126,7 +127,7 @@ function loadGisScript(): Promise<void> {
             resolve();
           } else if (tries > 50) {
             clearInterval(iv);
-            reject(new Error('Could not open the Google sign-in window. Check your connection or ad-blocker, then try again.'));
+            reject(new Error(t('gauth_window_open_failed')));
           }
         }, 100);
         return;
@@ -136,7 +137,7 @@ function loadGisScript(): Promise<void> {
       s.async = true;
       s.defer = true;
       s.onload = () => resolve();
-      s.onerror = () => reject(new Error('Could not open the Google sign-in window. Check your connection or ad-blocker, then try again.'));
+      s.onerror = () => reject(new Error(t('gauth_window_open_failed')));
       document.head.appendChild(s);
     } catch (e) {
       reject(e);
@@ -689,15 +690,16 @@ async function runGisCodeExchange(params: {
         callback: (resp: any) => {
           if (typeof resp?.scope === 'string') codeCallbackScope = resp.scope;
           if (resp?.code) resolve(resp.code);
-          else reject(new Error(resp?.error || 'Google permission window was closed.'));
+          else if (resp?.error) reject(new Error(resp.error));
+          else reject(Object.assign(new Error(t('gauth_popup_closed')), { dismissed: true }));
         },
         error_callback: (err: any) => {
           const type = String(err?.type || '');
           if (type === 'popup_failed_to_open') {
-            reject(new Error('Your browser blocked the Google popup window. Please allow popups for this site and try again.'));
+            reject(new Error(t('gauth_popup_blocked')));
             return;
           }
-          reject(new Error(err?.message || type || 'Google permission could not be completed.'));
+          reject(new Error(err?.message || type || t('gauth_permission_failed')));
         },
       };
       if (params.prompt) config.prompt = params.prompt;
@@ -710,7 +712,7 @@ async function runGisCodeExchange(params: {
   }).catch((e: any) => {
     const msg = String(e?.message || e || '');
     // Dismissals are not errors — stay silent and keep the current session.
-    if (/dismiss|closed|popup_closed|cancel/i.test(msg)) return null as unknown as string;
+    if ((e as any)?.dismissed || /dismiss|closed|popup_closed|cancel/i.test(msg)) return null as unknown as string;
     throw e;
   });
   if (!code) return null;
@@ -727,7 +729,7 @@ async function runGisCodeExchange(params: {
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok || !data?.access_token) {
-    throw new Error(data?.error || 'Could not complete Google connection.');
+    throw new Error(data?.error || t('gauth_connect_failed'));
   }
 
   const responseScopes = normalizeScopes(data.scopes || data.scope || codeCallbackScope);

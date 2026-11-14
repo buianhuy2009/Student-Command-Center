@@ -1,5 +1,6 @@
 import { CanvasAssignment, ApiEnablementInfo, EmailMessage } from '../types';
 import { parseGoogleApiResponseError } from './googleWorkspace';
+import { formatDate, t } from './i18n';
 
 export interface ClassroomCourse {
   id: string;
@@ -64,7 +65,7 @@ export async function fetchClassroomCourses(token: string): Promise<ClassroomCou
     }
 
     if (res.status === 401) {
-      throw new Error('Your Google Classroom connection expired. Please reconnect Google Classroom.');
+      throw new Error(t('gclass_expired'));
     }
 
     if (!res.ok) {
@@ -193,8 +194,8 @@ export async function fetchRecentClassroomAnnouncements(token: string, days = 21
             id: `gca-${a.id}`,
             sender: course.name,
             senderEmail: 'no-reply@classroom.google.com',
-            subject: `Thông báo · ${course.name}`,
-            date: when ? new Date(when).toLocaleDateString() : '',
+            subject: t('gclass_announcement_meta', { course: course.name }),
+            date: when ? formatDate(when) : '',
             dateISO: when || undefined,
             snippet: a.text.slice(0, 200),
             body: a.text.slice(0, 6000),

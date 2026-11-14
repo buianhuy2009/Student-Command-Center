@@ -26,7 +26,7 @@ import confetti from 'canvas-confetti';
 import { Assignment, PriorityLevel, AssignmentStatus, ApiEnablementInfo } from '../types';
 import { ApiActivationBanner } from './ApiActivationBanner';
 import { estimateAssignmentEffort, EffortEstimate } from '../services/gemini';
-import { t, useLang } from '../services/i18n';
+import { t as i18nT, useT } from '../services/i18n';
 import { WhyIsThisHardModal } from './WhyIsThisHardModal';
 import { DueTrustBadge } from './DueTrustBadge';
 
@@ -53,7 +53,11 @@ interface AssignmentTrackerTabProps {
 
 type UrgencyState = 'overdue' | 'today' | 'tomorrow' | null;
 
-export function getUrgencyInfo(dueDateStr?: string, isDone?: boolean) {
+export function getUrgencyInfo(
+  dueDateStr?: string,
+  isDone?: boolean,
+  translate: typeof i18nT = i18nT,
+) {
   if (!dueDateStr || isDone) return null;
   let due: Date;
   const m = /^(\d{4})-(\d{1,2})-(\d{1,2})/.exec(dueDateStr.trim());
@@ -69,13 +73,13 @@ export function getUrgencyInfo(dueDateStr?: string, isDone?: boolean) {
   dueDay.setHours(0, 0, 0, 0);
   const diff = Math.round((dueDay.getTime() - today.getTime()) / 86400000);
   if (diff < 0) {
-    return { state: 'overdue' as const, label: URGENCY_LABEL.overdue, chip: URGENCY_CHIP.overdue, tint: URGENCY_TINT.overdue };
+    return { state: 'overdue' as const, label: translate('overdue'), chip: URGENCY_CHIP.overdue, tint: URGENCY_TINT.overdue };
   }
   if (diff === 0) {
-    return { state: 'today' as const, label: URGENCY_LABEL.today, chip: URGENCY_CHIP.today, tint: URGENCY_TINT.today };
+    return { state: 'today' as const, label: translate('due_today'), chip: URGENCY_CHIP.today, tint: URGENCY_TINT.today };
   }
   if (diff === 1) {
-    return { state: 'tomorrow' as const, label: URGENCY_LABEL.tomorrow, chip: URGENCY_CHIP.tomorrow, tint: URGENCY_TINT.tomorrow };
+    return { state: 'tomorrow' as const, label: translate('tracker_urg_tomorrow'), chip: URGENCY_CHIP.tomorrow, tint: URGENCY_TINT.tomorrow };
   }
   return null;
 }
@@ -134,7 +138,11 @@ export const AssignmentTrackerTab: React.FC<AssignmentTrackerTabProps> = ({
   const [showAiAdd, setShowAiAdd] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState<'table' | 'kanban'>('table');
-  useLang();
+  const { t } = useT();
+  const displayStatus = (s: AssignmentStatus) =>
+    s === 'Done' ? t('done') : s === 'In Progress' ? t('tracker_status_in_progress') : t('tracker_status_not_started');
+  const displayPriority = (p: PriorityLevel) =>
+    p === 'High' ? t('tracker_priority_high') : p === 'Low' ? t('tracker_priority_low') : t('tracker_priority_med_short');
 
   // Selected row for Slide-Over Inspector Sheet
   const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
@@ -159,7 +167,7 @@ export const AssignmentTrackerTab: React.FC<AssignmentTrackerTabProps> = ({
       setSortByAIFocus(true);
     } catch (err: any) {
       console.error('Error running AI estimates:', err);
-      setEstimateError(err?.message || 'Could not estimate assignment effort. Configure Gemini or Groq in Settings and try again.');
+      setEstimateError(err?.message || t('tracker_est_err'));
     } finally {
       setIsEstimating(false);
     }
@@ -303,7 +311,7 @@ export const AssignmentTrackerTab: React.FC<AssignmentTrackerTabProps> = ({
       const str = value ?? '';
       return /["\n\r,]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
     };
-    const header = ['Assignment Name', 'Subject', 'Due Date', 'Status', 'Priority', 'Notes'];
+    const header = [t('tracker_th_name'), t('subject'), t('due_date'), t('status'), t('priority'), t('notes')];
     const lines = filteredAssignments.map((a) =>
       [
         a.assignmentName ?? '',
@@ -370,7 +378,7 @@ export const AssignmentTrackerTab: React.FC<AssignmentTrackerTabProps> = ({
             <span>{estimateError}</span>
           </div>
           <button onClick={() => setEstimateError(null)} className="px-2 py-0.5 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-900/50 font-semibold cursor-pointer">
-            Dismiss
+            {t('common_dismiss')}
           </button>
         </div>
       )}
@@ -497,8 +505,8 @@ export const AssignmentTrackerTab: React.FC<AssignmentTrackerTabProps> = ({
             className="px-2.5 py-1.5 text-xs bg-[#E8E6DC] dark:bg-[#1F1E1B] border border-[#E8E6DC] dark:border-[#2C2B27] rounded-xl font-semibold cursor-pointer outline-none"
           >
             <option value="ALL">{t('tracker_all_status')}</option>
-            <option value="Not Started">Not Started</option>
-            <option value="In Progress">In Progress</option>
+            <option value="Not Started">{t('tracker_status_not_started')}</option>
+            <option value="In Progress">{t('tracker_status_in_progress')}</option>
             <option value="Done">{t('done')}</option>
           </select>
           <select
@@ -507,9 +515,9 @@ export const AssignmentTrackerTab: React.FC<AssignmentTrackerTabProps> = ({
             className="px-2.5 py-1.5 text-xs bg-[#E8E6DC] dark:bg-[#1F1E1B] border border-[#E8E6DC] dark:border-[#2C2B27] rounded-xl font-semibold cursor-pointer outline-none"
           >
             <option value="ALL">{t('tracker_all_priority')}</option>
-            <option value="High">High</option>
-            <option value="Med">Med</option>
-            <option value="Low">Low</option>
+            <option value="High">{t('tracker_priority_high')}</option>
+            <option value="Med">{t('tracker_priority_med_short')}</option>
+            <option value="Low">{t('tracker_priority_low')}</option>
           </select>
           <button
             onClick={handleExportCsv}
@@ -630,7 +638,7 @@ export const AssignmentTrackerTab: React.FC<AssignmentTrackerTabProps> = ({
                                   : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
                               }`}
                             >
-                              {task.priority}
+                              {displayPriority(task.priority)}
                             </span>
                           </div>
 
@@ -733,7 +741,7 @@ export const AssignmentTrackerTab: React.FC<AssignmentTrackerTabProps> = ({
                   <div key={a.id} onClick={()=>setSelectedAssignment(a)} className={`p-3 rounded-2xl border bg-[#E8E6DC] dark:bg-[#1F1E1B] border-[#E8E6DC] dark:border-[#2C2B27] flex flex-col gap-1.5 ${isDone?'opacity-60':''} ${urgency ? URGENCY_TINT[urgency] : ''}`}>
                     <div className="flex items-center justify-between gap-2">
                       <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-900 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 truncate">{a.subject}</span>
-                      <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${a.priority==='High'?'bg-rose-50 text-rose-700 dark:bg-rose-950 dark:text-rose-300 border border-rose-200 dark:border-rose-800':'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'}`}>{a.priority}</span>
+                      <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${a.priority==='High'?'bg-rose-50 text-rose-700 dark:bg-rose-950 dark:text-rose-300 border border-rose-200 dark:border-rose-800':'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'}`}>{displayPriority(a.priority)}</span>
                     </div>
                     <div className={`text-xs font-bold truncate ${isDone?'line-through text-[#6B6860] dark:text-[#B5B2A8]':''}`}>{a.assignmentName}</div>
                     <div className="flex items-center justify-between text-[11px] text-[#6B6860] dark:text-[#B5B2A8]">
@@ -746,7 +754,7 @@ export const AssignmentTrackerTab: React.FC<AssignmentTrackerTabProps> = ({
                           </span>
                         )}
                       </span>
-                      <span className="text-[10px]">{a.status}</span>
+                      <span className="text-[10px]">{displayStatus(a.status)}</span>
                     </div>
                   </div>
                 );
@@ -783,6 +791,7 @@ export const AssignmentTrackerTab: React.FC<AssignmentTrackerTabProps> = ({
                         <td className="py-1.5 px-3 text-center" onClick={(e) => e.stopPropagation()}>
                           <button
                             onClick={() => handleStatusClick(assignment)}
+                            aria-label={t('tracker_toggle_status_aria')}
                             className="text-[#8C897F] dark:text-[#B5B2A8] hover:text-[#C96442] dark:hover:text-[#E59A7C] transition-colors"
                           >
                             {isDone ? (
@@ -834,7 +843,7 @@ export const AssignmentTrackerTab: React.FC<AssignmentTrackerTabProps> = ({
                               ? 'bg-rose-50 text-rose-700 dark:bg-rose-950 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
                               : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
                           }`}>
-                            {assignment.priority}
+                            {displayPriority(assignment.priority)}
                           </span>
                         </td>
 
@@ -886,7 +895,7 @@ export const AssignmentTrackerTab: React.FC<AssignmentTrackerTabProps> = ({
               <div className="space-y-1 text-[#8C897F] dark:text-[#B5B2A8] text-[11px]">
                 <div className="flex items-center justify-between">
                   <span>{t('status')}:</span>
-                  <span className="font-semibold text-[#141413] dark:text-[#F5F4ED]">{selectedAssignment.status}</span>
+                  <span className="font-semibold text-[#141413] dark:text-[#F5F4ED]">{displayStatus(selectedAssignment.status)}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span>{t('due_date')}:</span>
@@ -894,7 +903,7 @@ export const AssignmentTrackerTab: React.FC<AssignmentTrackerTabProps> = ({
                 </div>
                 <div className="flex items-center justify-between">
                   <span>{t('priority')}:</span>
-                  <span className="font-semibold text-[#141413] dark:text-[#F5F4ED]">{selectedAssignment.priority}</span>
+                  <span className="font-semibold text-[#141413] dark:text-[#F5F4ED]">{displayPriority(selectedAssignment.priority)}</span>
                 </div>
               </div>
             </div>
@@ -1052,9 +1061,9 @@ export const AssignmentTrackerTab: React.FC<AssignmentTrackerTabProps> = ({
                   onChange={(e) => setNewPriority(e.target.value as PriorityLevel)}
                   className="w-full px-3 py-2 bg-[#E8E6DC] dark:bg-[#1F1E1B] border border-[#E8E6DC] dark:border-[#2C2B27] rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-[#C96442]"
                 >
-                  <option value="High">High</option>
-                  <option value="Med">Medium</option>
-                  <option value="Low">Low</option>
+                  <option value="High">{t('tracker_priority_high')}</option>
+                  <option value="Med">{t('tracker_priority_med')}</option>
+                  <option value="Low">{t('tracker_priority_low')}</option>
                 </select>
               </div>
 

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { t } from '../services/i18n';
 import {
   NasaApod,
   NASA_APOD_ENABLED_KEY,
@@ -57,7 +58,7 @@ export function useNasaApod() {
       setApodCache(data);
       setError(null);
     } else if (!cached?.data?.url) {
-      setError('NASA rate limit reached or offline. Showing a starry fallback — tap Retry.');
+      setError(t('dash_apod_error'));
     }
     setLoading(false);
   }, []);

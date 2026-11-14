@@ -13,7 +13,7 @@ import {
   Save,
 } from 'lucide-react';
 import { searchArxiv, ArxivPaper } from '../../services/publicApis';
-import { t, useLang } from '../../services/i18n';
+import { useT } from '../../services/i18n';
 
 const CATEGORIES = [
   { id: 'all', key: 'arxiv_cat_all' },
@@ -23,10 +23,10 @@ const CATEGORIES = [
   { id: 'q-bio', key: 'arxiv_cat_bio' },
   { id: 'econ', key: 'arxiv_cat_econ' },
   { id: 'stat', key: 'arxiv_cat_stat' },
-];
+] as const;
 
 export const ArxivWorkspace: React.FC = () => {
-  useLang();
+  const { t, formatDate } = useT();
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('all');
   const [papers, setPapers] = useState<ArxivPaper[]>([]);
@@ -51,7 +51,7 @@ export const ArxivWorkspace: React.FC = () => {
       }
     } catch (err) {
       console.error('arXiv search failed:', err);
-      setError('Search failed. Check your connection and try again.');
+      setError(t('arxiv_search_failed'));
     } finally {
       setIsLoading(false);
     }
@@ -74,7 +74,7 @@ export const ArxivWorkspace: React.FC = () => {
       const citeKey = `arxiv${year}${paper.id.replace(/[^a-zA-Z0-9]/g, '').slice(-12)}`;
       const bibtex = `@article{${citeKey},\n  title = {${paper.title}},\n  author = {${authors}},\n  year = {${year}},\n  url = {${paper.pdfUrl}}\n}`;
       const content = `# ${paper.title}\n\n**Authors:** ${authors}\n**Category:** ${paper.primaryCategory} • **Published:** ${paper.published}\n**arXiv:** ${paper.arxivUrl}\n**PDF:** ${paper.pdfUrl}\n\n## Abstract\n${paper.summary}\n\n## Citation (BibTeX)\n\`\`\`bibtex\n${bibtex}\n\`\`\`\n`;
-      const newNote = { id: `note-${Date.now()}`, title: `arXiv: ${paper.title.slice(0, 60)}`, subject: paper.primaryCategory || 'Research', content, updatedAt: new Date().toLocaleDateString() };
+      const newNote = { id: `note-${Date.now()}`, title: `arXiv: ${paper.title.slice(0, 60)}`, subject: paper.primaryCategory || 'Research', content, updatedAt: formatDate(new Date()) };
       localStorage.setItem('scc_markdown_notes_v1', JSON.stringify([newNote, ...notes]));
       setSavedToNotesId(paper.id);
       setTimeout(() => setSavedToNotesId(null), 2000);
@@ -149,9 +149,9 @@ export const ArxivWorkspace: React.FC = () => {
           ) : error ? (
             <div className="py-20 text-center text-xs space-y-3">
               <p className="font-bold text-[#141413] dark:text-[#FAF9F5]">{error}</p>
-              <p className="text-[#8C897F]">Your search for “{query}” was kept — retry when ready.</p>
+              <p className="text-[#8C897F]">{t('arxiv_kept_query', { query })}</p>
               <button onClick={() => handleSearch()} className="px-4 py-2 bg-[#D97757] hover:bg-[#C86646] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer">
-                Retry
+                {t('retry')}
               </button>
             </div>
           ) : papers.length === 0 ? (
@@ -161,7 +161,7 @@ export const ArxivWorkspace: React.FC = () => {
             </div>
           ) : (
             <>
-              <p className="text-[11px] text-[#8C897F] px-1">{papers.length} results</p>
+              <p className="text-[11px] text-[#8C897F] px-1">{t('arxiv_results_count', { count: papers.length })}</p>
             {papers.map((paper) => {
               const isSelected = selectedPaper?.id === paper.id;
               return (

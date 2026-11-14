@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { ExternalLink, Maximize2, Minimize2, RefreshCw } from 'lucide-react';
 import { IframeErrorBoundary } from '../IframeErrorBoundary';
-import { t, useLang } from '../../services/i18n';
+import { useT } from '../../services/i18n';
 
 interface DesmosWorkspaceProps {
   mode?: 'graphing' | 'scientific' | 'geometry' | '3d';
 }
 
 export const DesmosWorkspace: React.FC<DesmosWorkspaceProps> = ({ mode = 'graphing' }) => {
-  useLang();
+  const { t } = useT();
   const [reloadKey, setReloadKey] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -23,12 +23,12 @@ export const DesmosWorkspace: React.FC<DesmosWorkspaceProps> = ({ mode = 'graphi
 
   const title =
     mode === 'scientific'
-      ? 'Desmos Scientific Calculator'
+      ? t('desm_title_scientific')
       : mode === 'geometry'
-      ? 'Desmos Geometry Tool'
+      ? t('desm_title_geometry')
       : mode === '3d'
-      ? 'Desmos 3D Graphing'
-      : 'Desmos 2D Graphing Calculator';
+      ? t('desm_title_3d')
+      : t('desm_title_graphing');
 
   return (
     <div className={`flex flex-col h-full w-full select-none ${isFullscreen ? 'fixed inset-0 z-50 bg-[#FAF9F5] dark:bg-[#141413] p-4' : ''}`}>

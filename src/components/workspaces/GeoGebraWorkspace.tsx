@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { AlertCircle, BarChart3, Box, Calculator, ExternalLink, Loader2, Maximize2, Minimize2, RefreshCw, Shapes, Sigma } from 'lucide-react';
-import { t, useLang } from '../../services/i18n';
+import { t, useT } from '../../services/i18n';
 
 type GeoTab = 'graphing' | 'geometry' | '3d' | 'cas' | 'probability';
 
@@ -84,13 +84,13 @@ function loadDeployGgb(): Promise<void> {
       target.removeEventListener('load', onLoad);
       target.removeEventListener('error', onError);
       if (window.GGBApplet) resolve();
-      else reject(new Error('GeoGebra applet library unavailable'));
+      else reject(new Error(t('geo_applet_unavailable')));
     };
     const onError = () => {
       target.removeEventListener('load', onLoad);
       target.removeEventListener('error', onError);
       target.dataset.ggbFailed = '1';
-      reject(new Error('Failed to load GeoGebra applet library'));
+      reject(new Error(t('geo_applet_failed')));
     };
     target.addEventListener('load', onLoad);
     target.addEventListener('error', onError);
@@ -104,7 +104,7 @@ function loadDeployGgb(): Promise<void> {
 type EmbedPhase = 'applet-loading' | 'applet-ready' | 'iframe' | 'error';
 
 export const GeoGebraWorkspace: React.FC = () => {
-  useLang();
+  const { t } = useT();
   const [reloadKey, setReloadKey] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [activeTab, setActiveTab] = useState<GeoTab>('graphing');
@@ -252,6 +252,7 @@ export const GeoGebraWorkspace: React.FC = () => {
           <button
             onClick={() => setIsFullscreen(!isFullscreen)}
             className="p-1.5 rounded-lg bg-white dark:bg-[#1A1917] border border-[#DFDACB] dark:border-[#2C2B27] hover:border-[#D97757] text-[#5C5A54] dark:text-[#B5B2A8] transition-colors cursor-pointer"
+            title={isFullscreen ? t('desm_exit') : t('desm_expand')}
           >
             {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
           </button>
@@ -275,7 +276,7 @@ export const GeoGebraWorkspace: React.FC = () => {
             {phase === 'applet-loading' && (
               <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-white dark:bg-[#1A1917]">
                 <Loader2 className="w-6 h-6 text-[#D97757] animate-spin" />
-                <p className="text-xs text-[#8C897F] font-medium">Loading GeoGebra {GEO_LABELS[activeTab]}...</p>
+                <p className="text-xs text-[#8C897F] font-medium">{t('geo_loading', { tool: GEO_LABELS[activeTab] })}</p>
               </div>
             )}
             <div id={APPLET_CONTAINER_ID} ref={containerRef} className="w-full h-full min-h-[550px]" />
@@ -287,7 +288,7 @@ export const GeoGebraWorkspace: React.FC = () => {
             {!iframeLoaded && (
               <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-white dark:bg-[#1A1917]">
                 <Loader2 className="w-6 h-6 text-[#D97757] animate-spin" />
-                <p className="text-xs text-[#8C897F] font-medium">Loading GeoGebra {GEO_LABELS[activeTab]}...</p>
+                <p className="text-xs text-[#8C897F] font-medium">{t('geo_loading', { tool: GEO_LABELS[activeTab] })}</p>
               </div>
             )}
             <iframe
@@ -305,10 +306,10 @@ export const GeoGebraWorkspace: React.FC = () => {
           <div className="flex flex-col items-center justify-center p-6 text-center w-full h-full min-h-[550px] bg-[#FAF9F5] dark:bg-[#1F1E1B]">
             <AlertCircle className="w-10 h-10 text-amber-500 mb-2" />
             <h4 className="text-sm font-bold text-[#141413] dark:text-[#FAF9F5]">
-              GeoGebra could not be loaded
+              {t('geo_load_error_title')}
             </h4>
             <p className="text-xs text-[#8C897F] max-w-sm mt-1">
-              Check your connection or school firewall, then try again.
+              {t('geo_load_error_sub')}
             </p>
             <div className="mt-4 flex items-center gap-2">
               <button

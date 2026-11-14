@@ -27,7 +27,7 @@ import DOMPurify from 'dompurify';
 import { CanvasAssignment, CanvasSettings } from '../types';
 import { loadCompletedCanvasIds, saveCompletedCanvasIds, resolveCanvasUrl, toMobileDeepLink, normalizeCanvasDomain } from '../services/canvas';
 import { extractSubtasksFromCanvas, SubtaskResult, calculateGradePrediction } from '../services/gemini';
-import { t, useLang } from '../services/i18n';
+import { useT } from '../services/i18n';
 import { WhyIsThisHardModal } from './WhyIsThisHardModal';
 
 DOMPurify.addHook('afterSanitizeAttributes', (node) => {
@@ -38,7 +38,7 @@ const sanitizeAssignmentDescription = (html: string) =>
   DOMPurify.sanitize(html, { ALLOWED_TAGS, ALLOWED_ATTR: ['href', 'title', 'target'] });
 
 // Local-midnight day-diff relative label for due dates (plain text only, XSS-safe).
-const getRelativeDueLabel = (dueAt?: string | null): string | null => {
+const getRelativeDueLabel = (dueAt: string | null | undefined, t: ReturnType<typeof useT>['t']): string | null => {
   if (!dueAt) return null;
   const d = new Date(dueAt);
   if (Number.isNaN(d.getTime())) return null;
@@ -46,11 +46,11 @@ const getRelativeDueLabel = (dueAt?: string | null): string | null => {
   const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const startDue = new Date(d.getFullYear(), d.getMonth(), d.getDate());
   const diff = Math.round((startDue.getTime() - startToday.getTime()) / 86400000);
-  if (diff === 0) return 'today';
-  if (diff === 1) return 'tomorrow';
-  if (diff > 1) return `in ${diff}d`;
-  if (diff === -1) return 'overdue';
-  return `overdue ${Math.abs(diff)}d`;
+  if (diff === 0) return t('today').toLowerCase();
+  if (diff === 1) return t('canvas_rel_tomorrow');
+  if (diff > 1) return t('canvas_rel_in_days', { days: diff });
+  if (diff === -1) return t('overdue').toLowerCase();
+  return t('canvas_rel_overdue_days', { days: Math.abs(diff) });
 };
 
 interface CanvasSyncTabProps {
@@ -130,7 +130,7 @@ export const CanvasSyncTab: React.FC<CanvasSyncTabProps> = ({
   const [gradeCurrent, setGradeCurrent] = useState(84);
   const [gradeDesired, setGradeDesired] = useState(90);
   const [gradeFinalWeight, setGradeFinalWeight] = useState(30);
-  useLang();
+  const { t, formatDate, formatTime } = useT();
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -145,8 +145,8 @@ export const CanvasSyncTab: React.FC<CanvasSyncTabProps> = ({
     if (!trimmedFeed && !trimmedToken) {
       setSettingsError(
         isCustomDomain
-          ? 'Canvas URL saved — now add your access token to enable live sync (Canvas → Account → Settings → New Access Token).'
-          : 'Paste either your Calendar Feed link or your Canvas URL + access token to connect.'
+          ? t('canvas_err_need_token')
+          : t('canvas_err_need_creds')
       );
       // Persist a custom URL so typed progress isn't lost, but never fire a
       // fetch with known-incomplete credentials — it can only fail confusingly.
@@ -164,7 +164,7 @@ export const CanvasSyncTab: React.FC<CanvasSyncTabProps> = ({
       return;
     }
     if (!trimmedFeed && trimmedToken && !rawDomain) {
-      setSettingsError('Access token needs your Canvas school URL too (e.g. https://4015.instructure.com).');
+      setSettingsError(t('canvas_err_need_url'));
       return;
     }
     setIsSaving(true);
@@ -203,7 +203,7 @@ export const CanvasSyncTab: React.FC<CanvasSyncTabProps> = ({
       setSubtaskData((prev) => ({ ...prev, [assignment.id]: result }));
     } catch (err: any) {
       console.error('Error extracting subtasks:', err);
-      setActionError(err?.message || 'Could not break down Canvas assignment with AI. Check your AI key in Settings.');
+      setActionError(err?.message || t('canvas_subtask_ai_err'));
     } finally {
       setExtractingIds((prev) => ({ ...prev, [assignment.id]: false }));
     }
@@ -230,7 +230,7 @@ export const CanvasSyncTab: React.FC<CanvasSyncTabProps> = ({
       await onSubmitAssignment(assignment, selectedFileId);
       setSelectedFileId('');
     } catch (err: any) {
-      setActionError(err?.message || 'Submit to Canvas failed. Check your connection, then retry.');
+      setActionError(err?.message || t('canvas_submit_err'));
     } finally {
       setIsSubmittingDrive(false);
     }
@@ -242,7 +242,7 @@ export const CanvasSyncTab: React.FC<CanvasSyncTabProps> = ({
     try {
       await onSyncAllPending();
     } catch (err: any) {
-      setActionError(err?.message || 'Sync-all failed. Check your connection, then retry.');
+      setActionError(err?.message || t('canvas_sync_all_err'));
     } finally {
       setIsSyncingAll(false);
     }
@@ -293,14 +293,14 @@ export const CanvasSyncTab: React.FC<CanvasSyncTabProps> = ({
             <AlertTriangle className="w-5 h-5 text-[#C96442] shrink-0 mt-0.5" />
             <div className="flex-1 min-w-0">
               <h4 className="text-xs font-bold text-[#141413] dark:text-[#F5F4ED]">
-                {isHostNotAllowlisted ? 'School Canvas Domain Not Allowlisted' : t('canvas_sync_failed')}
+                {isHostNotAllowlisted ? t('canvas_host_not_allowed_t') : t('canvas_sync_failed')}
               </h4>
               <p className="text-xs text-[#5E5D59] dark:text-[#B5B2A8] mt-0.5 break-words">{errorMessage}</p>
               {isHostNotAllowlisted ? (
                 <div className="mt-2 p-2.5 rounded-xl bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#E8E6DC] dark:border-[#3A3832] text-[11px] text-[#4A4945] dark:text-[#C5C2B8] space-y-1">
-                  <p className="font-semibold text-[#141413] dark:text-[#F5F4ED]">How to connect a custom or self-hosted Canvas school URL:</p>
-                  <p>1. <strong>Recommended (instant):</strong> Open Connection Settings and switch to your school&apos;s <strong>Canvas Calendar Feed (.ics URL)</strong> from Canvas Calendar &rarr; Calendar Feed.</p>
-                  <p>2. <strong>REST API Token:</strong> For live REST API proxying, your deployment admin must add your school hostname to <code className="px-1 py-0.5 bg-black/5 dark:bg-white/10 rounded font-mono">CANVAS_ALLOWED_HOSTS</code> on the server.</p>
+                  <p className="font-semibold text-[#141413] dark:text-[#F5F4ED]">{t('canvas_host_not_allowed_intro')}</p>
+                  <p>{t('canvas_host_not_allowed_s1')}</p>
+                  <p>{t('canvas_host_not_allowed_s2')}</p>
                 </div>
               ) : (
                 <p className="text-[11px] text-[#5E5D59] dark:text-[#B5B2A8] mt-1">{t('canvas_kept_below')}</p>
@@ -312,7 +312,7 @@ export const CanvasSyncTab: React.FC<CanvasSyncTabProps> = ({
                   onClick={() => setShowSettingsDrawer(true)}
                   className="px-3 py-2 bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#3A3832] hover:border-[#C96442] text-[#141413] dark:text-[#F5F4ED] rounded-xl text-xs font-bold min-h-[44px] inline-flex items-center gap-1.5 cursor-pointer"
                 >
-                  <Sliders className="w-3.5 h-3.5" /> Connection Settings
+                  <Sliders className="w-3.5 h-3.5" /> {t('canvas_btn_conn_settings')}
                 </button>
               )}
               <button
@@ -333,7 +333,7 @@ export const CanvasSyncTab: React.FC<CanvasSyncTabProps> = ({
           <button
             onClick={() => setActionError(null)}
             className="text-amber-700 dark:text-amber-300 hover:opacity-70 shrink-0"
-            aria-label="Dismiss"
+            aria-label={t('common_dismiss')}
           >
             <X className="w-4 h-4" />
           </button>
@@ -426,7 +426,7 @@ export const CanvasSyncTab: React.FC<CanvasSyncTabProps> = ({
               className="px-3 py-1.5 bg-[#C96442] hover:bg-[#A94E33] disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer whitespace-nowrap shadow-xs shadow-[#C96442]/20"
             >
               <CheckSquare className="w-3.5 h-3.5" />
-              <span>Sync ({pendingSyncAssignments.length})</span>
+              <span>{t('canvas_sync_count', { count: pendingSyncAssignments.length })}</span>
             </button>
           )}
 
@@ -434,7 +434,7 @@ export const CanvasSyncTab: React.FC<CanvasSyncTabProps> = ({
           <button
             onClick={() => setShowSettingsDrawer(!showSettingsDrawer)}
             className="p-1.5 bg-[#E8E6DC] dark:bg-[#1F1E1B] border border-[#E8E6DC] dark:border-[#2C2B27] hover:border-[#C96442] text-[#5C5A54] dark:text-[#B5B2A8] rounded-xl transition-colors cursor-pointer"
-            title="Canvas LMS Connection Settings"
+            title={t('canvas_settings_title')}
           >
             <SlidersHorizontal className="w-4 h-4" />
           </button>
@@ -462,55 +462,53 @@ export const CanvasSyncTab: React.FC<CanvasSyncTabProps> = ({
           <form onSubmit={handleSave} className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
             <div className="sm:col-span-2">
               <label className="block font-bold text-[#141413] dark:text-[#F5F4ED] mb-1">
-                Canvas School URL <span className="text-rose-500">*</span>
-                <span className="ml-1 font-normal text-[#8C897F]">— required with Access Token</span>
+                {t('canvas_url_label')} <span className="text-rose-500">*</span>
+                <span className="ml-1 font-normal text-[#8C897F]">{t('canvas_url_req')}</span>
               </label>
               <input
                 type="text"
                 value={apiDomain}
                 onChange={(e) => setApiDomain(e.target.value)}
                 onBlur={() => setApiDomain((v) => (v.trim() ? normalizeCanvasDomain(v) : v))}
-                placeholder="https://4015.instructure.com"
+                placeholder={t('canvas_url_ph')}
                 inputMode="url"
                 className="w-full px-3 py-2 bg-[#E8E6DC] dark:bg-[#1F1E1B] border border-[#E8E6DC] dark:border-[#2C2B27] rounded-xl font-mono text-[11px] focus:outline-none focus:ring-1 focus:ring-[#C96442]"
               />
               <p className="mt-1 text-[11px] text-[#8C897F] leading-snug">
-                Paste your school's Canvas link — even a login URL works
-                (e.g. <span className="font-mono">https://4015.instructure.com/login/</span>).
-                We trim it to the base <span className="font-mono">https://…</span> school web address.
+                {t('canvas_url_hint')}
               </p>
             </div>
 
             <div>
               <label className="block font-bold text-[#141413] dark:text-[#F5F4ED] mb-1">
-                Canvas Access Token <span className="text-rose-500">*</span>
-                <span className="ml-1 font-normal text-[#8C897F]">— required with URL</span>
+                {t('canvas_token_label')} <span className="text-rose-500">*</span>
+                <span className="ml-1 font-normal text-[#8C897F]">{t('canvas_token_req')}</span>
               </label>
               <input
                 type="password"
                 value={apiToken}
                 onChange={(e) => setApiToken(e.target.value)}
-                placeholder="Canvas -> Account -> Settings -> New Access Token"
+                placeholder={t('canvas_token_ph')}
                 className="w-full px-3 py-2 bg-[#E8E6DC] dark:bg-[#1F1E1B] border border-[#E8E6DC] dark:border-[#2C2B27] rounded-xl font-mono text-[11px] focus:outline-none focus:ring-1 focus:ring-[#C96442]"
               />
               <p className="mt-1 text-[11px] text-[#8C897F] leading-snug">
-                Live assignment &amp; grade sync needs <span className="font-semibold">both</span> the URL above and this token.
+                {t('canvas_token_hint_1')}
               </p>
               <p className="mt-1 text-[11px] text-[#8C897F] leading-snug">
-                Saved only in this browser for your signed-in account — it survives sign-out and reload, and is never shared with other accounts on this device. Treat it like a password.
+                {t('canvas_token_hint_2')}
               </p>
             </div>
 
             <div>
               <label className="block font-bold text-[#141413] dark:text-[#F5F4ED] mb-1">
-                Canvas Calendar Feed (.ics URL)
-                <span className="ml-1 font-normal text-[#8C897F]">— alternative / extra source</span>
+                {t('canvas_feed_label')}
+                <span className="ml-1 font-normal text-[#8C897F]">{t('canvas_feed_opt')}</span>
               </label>
               <input
                 type="text"
                 value={feedUrl}
                 onChange={(e) => setFeedUrl(e.target.value)}
-                placeholder="https://canvas.instructure.com/feeds/calendars/..."
+                placeholder={t('canvas_feed_ph')}
                 className="w-full px-3 py-2 bg-[#E8E6DC] dark:bg-[#1F1E1B] border border-[#E8E6DC] dark:border-[#2C2B27] rounded-xl font-mono text-[11px] focus:outline-none focus:ring-1 focus:ring-[#C96442]"
               />
             </div>
@@ -527,7 +525,7 @@ export const CanvasSyncTab: React.FC<CanvasSyncTabProps> = ({
                 disabled={isSaving}
                 className="px-4 py-2 bg-[#C96442] hover:bg-[#A94E33] text-white font-bold rounded-xl text-xs cursor-pointer shadow-xs transition-colors"
               >
-                {isSaving ? 'Saving & Syncing...' : 'Save & Sync Canvas'}
+                {isSaving ? t('canvas_saving_syncing') : t('canvas_save_sync')}
               </button>
             </div>
           </form>
@@ -538,19 +536,23 @@ export const CanvasSyncTab: React.FC<CanvasSyncTabProps> = ({
       <details className="bg-white dark:bg-[#1A1917] rounded-2xl border border-[#E8E6DC] dark:border-[#2C2B27] p-4 shadow-xs group">
         <summary className="list-none flex items-center justify-between cursor-pointer text-xs font-bold">{t('grade_predictor')} <span className="px-2 py-0.5 rounded-full bg-[#E8E6DC] dark:bg-[#252422] border border-[#E8E6DC] dark:border-[#2C2B27] text-[10px]">{t('expand')}</span></summary>
         <div className="mt-3">
-        <h4 className="text-xs font-bold text-[#141413] dark:text-[#F5F4ED] flex items-center gap-1.5"><Sliders className="w-3.5 h-3.5 text-[#C96442]" strokeWidth={1.75} /> Grade Predictor — What-if Final Exam</h4>
+        <h4 className="text-xs font-bold text-[#141413] dark:text-[#F5F4ED] flex items-center gap-1.5"><Sliders className="w-3.5 h-3.5 text-[#C96442]" strokeWidth={1.75} /> {t('grade_predictor')}</h4>
         <div className="mt-3 grid grid-cols-3 gap-3 text-xs">
-          <label className="space-y-1"><span className="text-[11px] font-bold text-[#6B6860]">Current %</span><input type="number" value={gradeCurrent} onChange={e=>setGradeCurrent(parseInt(e.target.value)||0)} className="w-full px-2 py-1.5 bg-[#E8E6DC] dark:bg-[#1F1E1B] border border-[#E8E6DC] dark:border-[#2C2B27] rounded-lg text-sm font-mono" /></label>
-          <label className="space-y-1"><span className="text-[11px] font-bold text-[#6B6860]">Desired %</span><input type="number" value={gradeDesired} onChange={e=>setGradeDesired(parseInt(e.target.value)||0)} className="w-full px-2 py-1.5 bg-[#E8E6DC] dark:bg-[#1F1E1B] border border-[#E8E6DC] dark:border-[#2C2B27] rounded-lg text-sm font-mono" /></label>
-          <label className="space-y-1"><span className="text-[11px] font-bold text-[#6B6860]">Final weight %</span><input type="range" min={10} max={50} value={gradeFinalWeight} onChange={e=>setGradeFinalWeight(parseInt(e.target.value))} className="w-full accent-[#C96442]" /><span className="text-[11px] font-mono">{gradeFinalWeight}%</span></label>
+          <label className="space-y-1"><span className="text-[11px] font-bold text-[#6B6860]">{t('canvas_grade_current')}</span><input type="number" value={gradeCurrent} onChange={e=>setGradeCurrent(parseInt(e.target.value)||0)} className="w-full px-2 py-1.5 bg-[#E8E6DC] dark:bg-[#1F1E1B] border border-[#E8E6DC] dark:border-[#2C2B27] rounded-lg text-sm font-mono" /></label>
+          <label className="space-y-1"><span className="text-[11px] font-bold text-[#6B6860]">{t('canvas_grade_desired')}</span><input type="number" value={gradeDesired} onChange={e=>setGradeDesired(parseInt(e.target.value)||0)} className="w-full px-2 py-1.5 bg-[#E8E6DC] dark:bg-[#1F1E1B] border border-[#E8E6DC] dark:border-[#2C2B27] rounded-lg text-sm font-mono" /></label>
+          <label className="space-y-1"><span className="text-[11px] font-bold text-[#6B6860]">{t('canvas_grade_weight')}</span><input type="range" min={10} max={50} value={gradeFinalWeight} onChange={e=>setGradeFinalWeight(parseInt(e.target.value))} className="w-full accent-[#C96442]" /><span className="text-[11px] font-mono">{gradeFinalWeight}%</span></label>
         </div>
         {(() => {
           const r = calculateGradePrediction({ currentGrade: gradeCurrent, desiredGrade: gradeDesired, finalExamWeight: gradeFinalWeight });
+          const statusLabel = r.status === 'Guaranteed' ? t('canvas_grade_status_guaranteed')
+            : r.status === 'Achievable' ? t('canvas_grade_status_achievable')
+            : r.status === 'Challenging' ? t('canvas_grade_status_challenging')
+            : t('canvas_grade_status_unlikely');
           return (
             <div className="mt-3 p-3 rounded-xl bg-[#E8E6DC] dark:bg-[#1F1E1B] border border-[#E8E6DC] dark:border-[#2C2B27] text-xs space-y-1">
-              <div className="flex items-center justify-between"><span className="font-bold">Need on final: <span className="text-[#C96442]">{r.requiredFinalScore}%</span></span><span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${r.status==='Guaranteed'?'bg-emerald-100 text-emerald-700': r.status==='Achievable'?'bg-blue-100 text-blue-700': r.status==='Challenging'?'bg-amber-100 text-amber-700':'bg-rose-100 text-rose-700'}`}>{r.status}</span></div>
+              <div className="flex items-center justify-between"><span className="font-bold">{t('canvas_grade_need')} <span className="text-[#C96442]">{r.requiredFinalScore}%</span></span><span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${r.status==='Guaranteed'?'bg-emerald-100 text-emerald-700': r.status==='Achievable'?'bg-blue-100 text-blue-700': r.status==='Challenging'?'bg-amber-100 text-amber-700':'bg-rose-100 text-rose-700'}`}>{statusLabel}</span></div>
               <p className="text-[11px] text-[#6B6860]">{r.feedback}</p>
-              <p className="text-[11px] text-[#6B6860] italic">Weighted GPA: Canvas grades auto-imported → GPA calculation uses same formula.</p>
+              <p className="text-[11px] text-[#6B6860] italic">{t('canvas_grade_note')}</p>
             </div>
           );
         })()}
@@ -562,7 +564,7 @@ export const CanvasSyncTab: React.FC<CanvasSyncTabProps> = ({
         {isLoading ? (
           <div className="p-16 text-center text-[#8C897F] flex flex-col items-center justify-center gap-2">
             <RefreshCw className="w-6 h-6 animate-spin text-[#C96442]" />
-            <span className="text-xs font-semibold">Syncing live Canvas assignments...</span>
+            <span className="text-xs font-semibold">{t('canvas_syncing_live')}</span>
           </div>
         ) : filteredAssignments.length === 0 ? (
           <div className="p-16 text-center text-[#8C897F] space-y-2">
@@ -587,12 +589,12 @@ export const CanvasSyncTab: React.FC<CanvasSyncTabProps> = ({
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-[#E8E6DC]/80 dark:border-[#2C2B27]/80 bg-[#E8E6DC] dark:bg-[#1F1E1B] text-[10px] font-bold uppercase tracking-wider text-[#8C897F]">
-                  <th className="py-2.5 px-3 w-10 text-center">Done</th>
-                  <th className="py-2.5 px-3 w-36">Course</th>
-                  <th className="py-2.5 px-3">Assignment Title</th>
-                  <th className="py-2.5 px-3 w-40">Due Date</th>
-                  <th className="py-2.5 px-3 w-28 text-center">Status</th>
-                  <th className="py-2.5 px-3 w-24 text-right">Actions</th>
+                  <th className="py-2.5 px-3 w-10 text-center">{t('done')}</th>
+                  <th className="py-2.5 px-3 w-36">{t('canvas_th_course')}</th>
+                  <th className="py-2.5 px-3">{t('canvas_th_title')}</th>
+                  <th className="py-2.5 px-3 w-40">{t('due_date')}</th>
+                  <th className="py-2.5 px-3 w-28 text-center">{t('status')}</th>
+                  <th className="py-2.5 px-3 w-24 text-right">{t('actions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E8E6DC]/40 dark:divide-[#2C2B27]/40 text-xs font-medium">
@@ -603,7 +605,7 @@ export const CanvasSyncTab: React.FC<CanvasSyncTabProps> = ({
                     assignment.dueAt &&
                     new Date(assignment.dueAt).getTime() - Date.now() < 86400000 * 3 &&
                     new Date(assignment.dueAt).getTime() > Date.now();
-                  const relativeDueLabel = getRelativeDueLabel(assignment.dueAt);
+                  const relativeDueLabel = getRelativeDueLabel(assignment.dueAt, t);
 
                   return (
                     <tr
@@ -638,7 +640,7 @@ export const CanvasSyncTab: React.FC<CanvasSyncTabProps> = ({
                           </span>
                           {assignment.pointsPossible !== undefined && (
                             <span className="text-[10px] text-[#8C897F] font-mono shrink-0">
-                              ({assignment.pointsPossible} pts)
+                              ({t('canvas_pts', { pts: assignment.pointsPossible })})
                             </span>
                           )}
                         </div>
@@ -647,7 +649,7 @@ export const CanvasSyncTab: React.FC<CanvasSyncTabProps> = ({
                       {/* Due Date */}
                       <td className="py-1.5 px-3 whitespace-nowrap text-[11px]">
                         <span className={isDueSoon ? 'text-rose-600 dark:text-rose-400 font-bold' : 'text-[#8C897F]'}>
-                          {assignment.dueAt ? new Date(assignment.dueAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'No Due Date'}
+                          {assignment.dueAt ? formatDate(assignment.dueAt, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : t('gmail_no_due')}
                         </span>
                         {relativeDueLabel && (
                           <span className="ml-1 text-[#8C897F]">· {relativeDueLabel}</span>
@@ -658,11 +660,11 @@ export const CanvasSyncTab: React.FC<CanvasSyncTabProps> = ({
                       <td className="py-1.5 px-3 text-center">
                         {assignment.isSynced ? (
                           <span className="px-2 py-0.5 text-[9px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 rounded border border-emerald-200 dark:border-emerald-800">
-                            Synced
+                            {t('canvas_status_synced')}
                           </span>
                         ) : (
                           <span className="px-2 py-0.5 text-[9px] font-bold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 rounded">
-                            Pending
+                            {t('canvas_status_pending')}
                           </span>
                         )}
                       </td>
@@ -673,7 +675,7 @@ export const CanvasSyncTab: React.FC<CanvasSyncTabProps> = ({
                           <button
                             onClick={() => setSelectedAssignment(assignment)}
                             className="p-1 text-[#8C897F] hover:text-[#C96442] rounded-lg hover:bg-[#E8E6DC] dark:hover:bg-[#252422]"
-                            title="Inspect Details"
+                            title={t('view')}
                           >
                             <ChevronRight className="w-4 h-4" />
                           </button>
@@ -698,7 +700,7 @@ export const CanvasSyncTab: React.FC<CanvasSyncTabProps> = ({
               <span className="px-2 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-300 rounded-md">
                 {selectedAssignment.courseName}
               </span>
-              <span className="text-xs font-bold text-[#141413] dark:text-[#F5F4ED]">Inspector</span>
+              <span className="text-xs font-bold text-[#141413] dark:text-[#F5F4ED]">{t('view')}</span>
             </div>
 
             <button
@@ -719,18 +721,18 @@ export const CanvasSyncTab: React.FC<CanvasSyncTabProps> = ({
               </h3>
               <div className="space-y-1 text-[#8C897F] text-[11px]">
                 <div className="flex items-center justify-between">
-                  <span>Due Date:</span>
+                  <span>{t('due_date')}:</span>
                   <span className="font-semibold text-[#141413] dark:text-[#F5F4ED]">
-                    {selectedAssignment.dueAt ? new Date(selectedAssignment.dueAt).toLocaleString() : 'None'}
-                    {getRelativeDueLabel(selectedAssignment.dueAt) && (
-                      <span className="ml-1 font-normal text-[#8C897F]">· {getRelativeDueLabel(selectedAssignment.dueAt)}</span>
+                    {selectedAssignment.dueAt ? `${formatDate(selectedAssignment.dueAt)} ${formatTime(selectedAssignment.dueAt)}` : t('gmail_no_due')}
+                    {getRelativeDueLabel(selectedAssignment.dueAt, t) && (
+                      <span className="ml-1 font-normal text-[#8C897F]">· {getRelativeDueLabel(selectedAssignment.dueAt, t)}</span>
                     )}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span>Points Possible:</span>
+                  <span>{t('canvas_points_possible')}</span>
                   <span className="font-semibold text-[#141413] dark:text-[#F5F4ED]">
-                    {selectedAssignment.pointsPossible ?? 'Unspecified'}
+                    {selectedAssignment.pointsPossible ?? t('canvas_unspecified')}
                   </span>
                 </div>
               </div>
@@ -741,7 +743,7 @@ export const CanvasSyncTab: React.FC<CanvasSyncTabProps> = ({
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5 font-bold text-[#141413] dark:text-[#F5F4ED]">
                   <Sparkles className="w-3.5 h-3.5 text-[#C96442]" />
-                  <span>AI Sub-task Extractor</span>
+                  <span>{t('canvas_subtasks_title')}</span>
                 </div>
 
                 {!subtaskData[selectedAssignment.id] && (
@@ -751,7 +753,7 @@ export const CanvasSyncTab: React.FC<CanvasSyncTabProps> = ({
                     className="px-2.5 py-1 bg-[#C96442] hover:bg-[#A94E33] text-white font-bold rounded-lg text-[10px] cursor-pointer flex items-center gap-1"
                   >
                     <Sparkles className={`w-3 h-3 ${extractingIds[selectedAssignment.id] ? 'animate-spin' : ''}`} />
-                    <span>{extractingIds[selectedAssignment.id] ? 'Extracting...' : 'Deconstruct'}</span>
+                    <span>{extractingIds[selectedAssignment.id] ? t('canvas_extracting') : t('canvas_deconstruct')}</span>
                   </button>
                 )}
               </div>
@@ -759,7 +761,7 @@ export const CanvasSyncTab: React.FC<CanvasSyncTabProps> = ({
               {subtaskData[selectedAssignment.id] && (
                 <div className="space-y-2 pt-1 animate-in fade-in">
                   <div className="text-[10px] text-[#8C897F]">
-                    Difficulty: {subtaskData[selectedAssignment.id].difficulty} (Est. {subtaskData[selectedAssignment.id].totalEstimatedMinutes}m)
+                    {t('canvas_difficulty', { difficulty: subtaskData[selectedAssignment.id].difficulty, minutes: subtaskData[selectedAssignment.id].totalEstimatedMinutes })}
                   </div>
                   <div className="space-y-1.5">
                     {subtaskData[selectedAssignment.id].subtasks.map((st, idx) => {
@@ -793,7 +795,7 @@ export const CanvasSyncTab: React.FC<CanvasSyncTabProps> = ({
               <div className="p-4 bg-[#E8E6DC] dark:bg-[#1F1E1B] rounded-2xl border border-[#E8E6DC] dark:border-[#2C2B27] space-y-3">
                 <div className="flex items-center gap-1.5 font-bold text-[#141413] dark:text-[#F5F4ED]">
                   <UploadCloud className="w-3.5 h-3.5 text-blue-500" />
-                  <span>Submit from Google Drive</span>
+                  <span>{t('canvas_submit_drive_title')}</span>
                 </div>
 
                 {recentFiles.length > 0 ? (
@@ -803,7 +805,7 @@ export const CanvasSyncTab: React.FC<CanvasSyncTabProps> = ({
                       onChange={(e) => setSelectedFileId(e.target.value)}
                       className="w-full p-2 bg-white dark:bg-[#252422] border border-[#E8E6DC] dark:border-[#2C2B27] rounded-xl text-[11px] outline-none"
                     >
-                      <option value="">Select a Drive file to attach...</option>
+                      <option value="">{t('canvas_pick_drive_file')}</option>
                       {recentFiles.map((f) => (
                         <option key={f.id} value={f.id}>
                           {f.name}
@@ -816,25 +818,25 @@ export const CanvasSyncTab: React.FC<CanvasSyncTabProps> = ({
                       disabled={isSubmittingDrive || !selectedFileId}
                       className="w-full py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold rounded-xl text-xs cursor-pointer transition-colors"
                     >
-                      {isSubmittingDrive ? 'Submitting...' : 'Submit to Canvas'}
+                      {isSubmittingDrive ? t('canvas_submitting') : t('canvas_submit_btn')}
                     </button>
                   </div>
                 ) : !isGoogleConnected && onConnectGoogle ? (
                   <div className="space-y-2">
                     <p className="text-[10px] text-[#8C897F]">
-                      Connect Google Drive to pick documents you created in StudentOS and submit them here.
+                      {t('canvas_connect_drive_hint')}
                     </p>
                     <button
                       type="button"
                       onClick={onConnectGoogle}
                       className="px-3 py-1.5 bg-[#C96442] hover:bg-[#A94E33] text-white font-bold rounded-xl text-xs cursor-pointer transition-colors"
                     >
-                      Connect Google Drive
+                      {t('canvas_connect_drive_btn')}
                     </button>
                   </div>
                 ) : (
                   <p className="text-[10px] text-[#8C897F]">
-                    No StudentOS Google Drive files yet. Create or open a Google Doc first to attach it here.
+                    {t('canvas_no_drive_files')}
                   </p>
                 )}
               </div>
@@ -844,7 +846,7 @@ export const CanvasSyncTab: React.FC<CanvasSyncTabProps> = ({
             {selectedAssignment.description && (
               <div>
                 <span className="font-bold text-[#141413] dark:text-[#F5F4ED] block mb-1">
-                  Assignment Instructions
+                  {t('canvas_instructions')}
                 </span>
                 <div
                   className="p-3 bg-[#E8E6DC] dark:bg-[#1F1E1B] rounded-xl border border-[#E8E6DC] dark:border-[#2C2B27] text-[11px] text-[#5C5A54] dark:text-[#B5B2A8] max-h-48 overflow-y-auto leading-relaxed prose dark:prose-invert prose-xs"
@@ -860,17 +862,17 @@ export const CanvasSyncTab: React.FC<CanvasSyncTabProps> = ({
               <button
                 onClick={() => setWhyIsThisHardCanvasAssignment(selectedAssignment)}
                 className="px-3 py-1.5 bg-[#E8E6DC] dark:bg-[#252422] border border-[#E8E6DC] dark:border-[#2C2B27] hover:border-[#C96442] text-[#141413] dark:text-[#F5F4ED] rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5"
-                title="AI Cognitive Deconstruction"
+                title={t('tracker_cog_title')}
               >
                 <Brain className="w-3.5 h-3.5 text-[#C96442]" />
-                <span>Why Is This Hard?</span>
+                <span>{t('tracker_why_hard')}</span>
               </button>
 
               <button
                 onClick={() => onSyncToSheet(selectedAssignment)}
                 className="px-3 py-1.5 bg-white dark:bg-[#252422] border border-[#E8E6DC] dark:border-[#2C2B27] hover:border-[#C96442] text-[#141413] dark:text-[#F5F4ED] rounded-xl text-xs font-bold transition-colors cursor-pointer"
               >
-                Sync to Sheet
+                {t('canvas_sync_to_sheet')}
               </button>
             </div>
 
@@ -886,7 +888,7 @@ export const CanvasSyncTab: React.FC<CanvasSyncTabProps> = ({
               rel="noreferrer"
               className="px-3 py-1.5 bg-[#C96442] hover:bg-[#A94E33] text-white rounded-xl text-xs font-bold flex items-center gap-1 transition-colors"
             >
-              <span>Open in Canvas</span>
+              <span>{t('canvas_open_in_canvas')}</span>
               <ExternalLink className="w-3 h-3" />
             </a>
           </div>

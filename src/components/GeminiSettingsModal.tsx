@@ -29,6 +29,7 @@ import {
   getGeminiQuotaStatus,
 } from '../services/gemini';
 import { vaultSet, vaultGet, vaultExists, vaultClear } from '../services/vault';
+import { useT } from '../services/i18n';
 
 interface GeminiSettingsModalProps {
   isOpen: boolean;
@@ -60,6 +61,7 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
   // Optional expiration metadata (stored separately from key values)
   const [geminiExpiry, setGeminiExpiry] = useState('');
   const [groqExpiry, setGroqExpiry] = useState('');
+  const { t } = useT();
 
   const quota = getGeminiQuotaStatus();
   useEffect(() => {
@@ -69,7 +71,7 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
       setApiKey(saved);
       setGroqKey(savedGroq);
       setTestStatus(saved ? 'success' : 'idle');
-      setStatusMessage(saved ? 'API Key configured. Plaintext warning: key visible to site scripts — use Vault PIN or sessionStorage for better security.' : '');
+      setStatusMessage(saved ? t('ai_key_plaintext_warn') : '');
       setGroqTestStatus('idle');
       setGroqStatusMessage('');
       setEditingGemini(false);
@@ -80,7 +82,7 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
         setSessionOnly(!!sessionStorage.getItem('scc_gemini_api_key_session'));
       } catch { setSessionOnly(false); }
     }
-  }, [isOpen]);
+  }, [isOpen, t]);
 
   if (!isOpen) return null;
 
@@ -91,7 +93,7 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
     setClientGeminiApiKey(apiKey, { sessionOnly });
     if (apiKey.trim() && editingGemini) setEditingGemini(false);
     setTestStatus('idle');
-    setStatusMessage(apiKey.trim() ? 'Key saved locally.' : 'API Key removed.');
+    setStatusMessage(apiKey.trim() ? t('ai_key_gemini_saved') : t('ai_key_gemini_cleared'));
     setTimeout(() => {
       onClose();
     }, 400);
@@ -101,51 +103,55 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
     setClientGroqApiKey(groqKey);
     if (groqKey.trim() && editingGroq) setEditingGroq(false);
     setGroqTestStatus('idle');
-    setGroqStatusMessage(groqKey.trim() ? 'Groq key saved locally.' : 'Groq key removed.');
+    setGroqStatusMessage(groqKey.trim() ? t('ai_key_groq_saved') : t('ai_key_groq_cleared'));
   };
 
   const handleTest = async () => {
     if (!apiKey.trim()) {
       setTestStatus('failed');
-      setStatusMessage('Please enter an API key first.');
+      setStatusMessage(t('ai_key_gemini_enter_first'));
       return;
     }
 
     setIsTesting(true);
     setTestStatus('idle');
-    setStatusMessage('Testing connection to Gemini 2.5 Flash (fallback 2.0 Flash)...');
+    setStatusMessage(t('ai_key_gemini_testing'));
 
     const result = await testGeminiApiKeyDetailed(apiKey);
     setIsTesting(false);
     if (result.ok) {
       setTestStatus('success');
-      setStatusMessage(`Connection verified${result.model ? ` via ${result.model}` : ''}! Ready for deep multimodal & schema inference.`);
+      setStatusMessage(
+        result.model
+          ? t('ai_key_gemini_verified_model', { model: result.model })
+          : t('ai_key_gemini_verified')
+      );
       setClientGeminiApiKey(apiKey, { sessionOnly });
     } else {
       setTestStatus('failed');
       // Surface the REAL provider error text — never silent fail.
-      setStatusMessage(result.error || 'Connection failed. Please check your API key.');
+      setStatusMessage(result.error || t('ai_key_gemini_failed'));
     }
   };
 
   const handleTestGroq = async () => {
     if (!groqKey.trim()) {
       setGroqTestStatus('failed');
-      setGroqStatusMessage('Please enter a Groq API key first.');
+      setGroqStatusMessage(t('ai_key_groq_enter_first'));
       return;
     }
     setIsTestingGroq(true);
     setGroqTestStatus('idle');
-    setGroqStatusMessage('Testing Groq connection...');
+    setGroqStatusMessage(t('ai_key_groq_testing'));
     const result = await testGroqApiKeyDetailed(groqKey);
     setIsTestingGroq(false);
     if (result.ok) {
       setGroqTestStatus('success');
-      setGroqStatusMessage('Groq connection verified!');
+      setGroqStatusMessage(t('ai_key_groq_verified'));
       setClientGroqApiKey(groqKey);
     } else {
       setGroqTestStatus('failed');
-      setGroqStatusMessage(result.error || 'Groq connection failed.');
+      setGroqStatusMessage(result.error || t('ai_key_groq_failed'));
     }
   };
 
@@ -154,7 +160,7 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
     setClientGeminiApiKey('');
     setEditingGemini(false);
     setTestStatus('idle');
-    setStatusMessage('API Key removed.');
+    setStatusMessage(t('ai_key_gemini_cleared'));
   };
 
   const handleClearGroq = () => {
@@ -163,7 +169,14 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
     try { localStorage.removeItem('scc_groq_api_key'); } catch {}
     setEditingGroq(false);
     setGroqTestStatus('idle');
-    setGroqStatusMessage('Groq key removed.');
+    setGroqStatusMessage(t('ai_key_groq_cleared'));
+  };
+
+  const formatExpiryLabel = (s: ReturnType<typeof getExpiryStatus>) => {
+    if (s.state === 'expired') return t('ai_key_expired');
+    if (s.daysLeft === 0) return t('ai_key_expires_today');
+    if (s.daysLeft === 1) return t('ai_key_expires_in_one', { days: 1 });
+    return t('ai_key_expires_in_other', { days: s.daysLeft ?? 0 });
   };
 
   const expiryBadge = (s: ReturnType<typeof getExpiryStatus>) => {
@@ -176,7 +189,7 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
         : 'bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800';
     return (
       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${cls}`}>
-        {s.label}
+        {formatExpiryLabel(s)}
       </span>
     );
   };
@@ -192,16 +205,17 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
             </div>
             <div>
               <h3 className="text-base font-bold text-[#141413] dark:text-[#FAF9F5]">
-                AI Engine &amp; API Key Settings
+                {t('ai_key_title')}
               </h3>
               <p className="text-xs text-[#8C897F]">
-                Dual-Provider Engine: Google Gemini + Groq LLaMA 3.3 70B Fallback
+                {t('ai_key_sub')}
               </p>
             </div>
           </div>
 
           <button
             onClick={onClose}
+            aria-label={t('close')}
             className="p-1.5 text-[#8C897F] hover:bg-[#EFECE2] dark:hover:bg-[#2C2A26] rounded-xl transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
@@ -214,29 +228,36 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
             <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
             <div className="flex-1">
               <span className="font-bold text-[#141413] dark:text-[#FAF9F5] block mb-0.5">
-                Encrypted Vault • PBKDF2 + AES-GCM
+                {t('ai_key_vault_title')}
               </span>
-              {vaultLocked ? 'Vault locked: keys encrypted with your PIN. Enter PIN to decrypt.' : 'Set a PIN to encrypt your Gemini/Groq keys locally. Protects against XSS & extension reads.'}
+              {vaultLocked ? t('ai_key_vault_locked_desc') : t('ai_key_vault_unlocked_desc')}
               <div className="flex items-center gap-2 mt-2">
-                <input type="password" value={vaultPin} onChange={e=>setVaultPin(e.target.value)} placeholder="Vault PIN (min 4 chars)" className="px-2 py-1 text-xs bg-white dark:bg-[#1A1917] border border-[#DFDACB] dark:border-[#2C2B27] rounded-lg w-40" />
+                <input
+                  type="password"
+                  value={vaultPin}
+                  onChange={e=>setVaultPin(e.target.value)}
+                  placeholder={t('ai_key_vault_pin_ph')}
+                  aria-label={t('ai_key_vault_pin_ph')}
+                  className="px-2 py-1 text-xs bg-white dark:bg-[#1A1917] border border-[#DFDACB] dark:border-[#2C2B27] rounded-lg w-40"
+                />
                 {!vaultLocked ? (
                   <button onClick={async()=>{
-                    if(vaultPin.length<4){ setStatusMessage('PIN too short'); setTestStatus('failed'); return; }
+                    if(vaultPin.length<4){ setStatusMessage(t('ai_key_pin_short')); setTestStatus('failed'); return; }
                     await vaultSet(vaultPin, { gemini: apiKey, groq: localStorage.getItem('scc_groq_api_key')||'' });
-                    setVaultLocked(true); setStatusMessage('Vault encrypted & locked. Raw keys removed from localStorage.'); setTestStatus('success');
+                    setVaultLocked(true); setStatusMessage(t('ai_key_vault_locked_msg')); setTestStatus('success');
                     localStorage.removeItem('scc_gemini_api_key'); localStorage.removeItem('scc_groq_api_key');
-                  }} className="px-2 py-1 text-xs font-bold bg-emerald-600 text-white rounded-lg">Encrypt & Lock</button>
+                  }} className="px-2 py-1 text-xs font-bold bg-emerald-600 text-white rounded-lg">{t('ai_key_vault_lock_btn')}</button>
                 ) : (
                   <>
                     <button onClick={async()=>{
                       const data = await vaultGet(vaultPin);
-                      if(!data){ setStatusMessage('Wrong PIN or vault corrupt'); setTestStatus('failed'); return; }
+                      if(!data){ setStatusMessage(t('ai_key_vault_wrong_pin')); setTestStatus('failed'); return; }
                       if(data.gemini) { setApiKey(data.gemini); setClientGeminiApiKey(data.gemini); }
                       if(data.groq) try{ localStorage.setItem('scc_groq_api_key', data.groq); }catch{}
                       if(data.groq) setGroqKey(data.groq);
-                      setVaultLocked(false); setStatusMessage('Vault unlocked & keys restored to session.'); setTestStatus('success');
-                    }} className="px-2 py-1 text-xs font-bold bg-[#D97757] text-white rounded-lg">Unlock</button>
-                    <button onClick={()=>{ vaultClear(); setVaultLocked(false); setStatusMessage('Vault cleared.'); setTestStatus('idle'); }} className="px-2 py-1 text-xs text-rose-600 border border-rose-200 rounded-lg">Clear Vault</button>
+                      setVaultLocked(false); setStatusMessage(t('ai_key_vault_unlocked_msg')); setTestStatus('success');
+                    }} className="px-2 py-1 text-xs font-bold bg-[#D97757] text-white rounded-lg">{t('ai_key_vault_unlock_btn')}</button>
+                    <button onClick={()=>{ vaultClear(); setVaultLocked(false); setStatusMessage(t('ai_key_vault_cleared')); setTestStatus('idle'); }} className="px-2 py-1 text-xs text-rose-600 border border-rose-200 rounded-lg">{t('ai_key_vault_clear')}</button>
                   </>
                 )}
               </div>
@@ -245,23 +266,23 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
 
           {/* Key manager: masked list with per-key Edit / Delete + expiry */}
           <div className="p-3.5 bg-[#FAF9F5] dark:bg-[#1F1E1B] rounded-2xl border border-[#DFDACB] dark:border-[#2C2B27] space-y-3">
-            <p className="text-xs font-bold text-[#141413] dark:text-[#FAF9F5]">Configured keys</p>
+            <p className="text-xs font-bold text-[#141413] dark:text-[#FAF9F5]">{t('ai_key_configured_keys')}</p>
 
             {/* Gemini row */}
             <div className="flex items-start justify-between gap-2 text-xs">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-bold">Gemini</span>
+                  <span className="font-bold">{t('ai_key_gemini_name')}</span>
                   {apiKey.trim() ? (
                     <span className="font-mono text-[11px] text-[#6B6860]">{maskApiKey(apiKey)}</span>
                   ) : (
-                    <span className="text-[11px] text-[#8C897F]">Not configured</span>
+                    <span className="text-[11px] text-[#8C897F]">{t('ai_key_not_configured')}</span>
                   )}
                   {expiryBadge(geminiExpiryStatus)}
                 </div>
                 {geminiExpiryStatus.state === 'expired' && (
                   <p className="text-[11px] text-amber-700 dark:text-amber-300 mt-1">
-                    This key is past its expiration date. It will still be used (not blocked), but consider rotating it.
+                    {t('ai_key_expired_warn')}
                   </p>
                 )}
                 {editingGemini ? (
@@ -270,33 +291,33 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
                       type={showKey ? 'text' : 'password'}
                       value={editGeminiValue}
                       onChange={(e) => setEditGeminiValue(e.target.value)}
-                      placeholder="Paste updated Gemini key"
+                      placeholder={t('ai_key_gemini_edit_ph')}
                       className="flex-1 px-2 py-1.5 text-xs font-mono bg-white dark:bg-[#1A1917] border border-[#DFDACB] dark:border-[#2C2B27] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D97757] text-[#141413] dark:text-[#FAF9F5]"
                     />
                     <button
                       onClick={() => {
-                        if (!editGeminiValue.trim()) { setStatusMessage('Paste the updated key first.'); setTestStatus('failed'); return; }
+                        if (!editGeminiValue.trim()) { setStatusMessage(t('ai_key_need_update')); setTestStatus('failed'); return; }
                         setApiKey(editGeminiValue.trim());
                         setClientGeminiApiKey(editGeminiValue.trim(), { sessionOnly });
                         setEditingGemini(false);
                         setTestStatus('idle');
-                        setStatusMessage('Gemini key updated in place.');
+                        setStatusMessage(t('ai_key_gemini_updated'));
                       }}
                       className="px-2 py-1.5 text-[11px] font-bold bg-[#D97757] text-white rounded-lg"
                     >
-                      Save
+                      {t('common_save')}
                     </button>
                     <button
                       onClick={() => setEditingGemini(false)}
                       className="px-2 py-1.5 text-[11px] text-[#5C5A54] dark:text-[#B5B2A8] border border-[#DFDACB] dark:border-[#2C2B27] rounded-lg"
                     >
-                      Cancel
+                      {t('common_cancel')}
                     </button>
                   </div>
                 ) : (
                   <div className="flex items-center gap-2 mt-2 flex-wrap">
                     <label className="text-[11px] text-[#6B6860] flex items-center gap-1">
-                      Expires:
+                      {t('ai_key_expires_label')}
                       <input
                         type="date"
                         value={geminiExpiry}
@@ -309,7 +330,7 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
                         onClick={() => { setGeminiExpiry(''); setGeminiKeyExpiry(null); }}
                         className="text-[11px] text-[#8C897F] hover:underline"
                       >
-                        Clear date
+                        {t('ai_key_clear_date')}
                       </button>
                     )}
                   </div>
@@ -318,14 +339,16 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
               {apiKey.trim() && !editingGemini && (
                 <div className="flex items-center gap-1 shrink-0">
                   <button
-                    title="Edit key in place"
+                    title={t('ai_key_edit_title')}
+                    aria-label={t('ai_key_edit_title')}
                     onClick={() => { setEditGeminiValue(apiKey); setEditingGemini(true); }}
                     className="p-1.5 text-[#6B6860] hover:text-[#D97757] hover:bg-white dark:hover:bg-[#252422] rounded-lg border border-transparent hover:border-[#DFDACB] dark:hover:border-[#2C2B27]"
                   >
                     <Pencil className="w-3.5 h-3.5" />
                   </button>
                   <button
-                    title="Delete Gemini key"
+                    title={t('ai_key_gemini_delete_title')}
+                    aria-label={t('ai_key_gemini_delete_title')}
                     onClick={handleClear}
                     className="p-1.5 text-[#6B6860] hover:text-rose-600 hover:bg-white dark:hover:bg-[#252422] rounded-lg border border-transparent hover:border-rose-200"
                   >
@@ -341,17 +364,17 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
             <div className="flex items-start justify-between gap-2 text-xs">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-bold">Groq</span>
+                  <span className="font-bold">{t('ai_key_groq_name')}</span>
                   {groqKey.trim() ? (
                     <span className="font-mono text-[11px] text-[#6B6860]">{maskApiKey(groqKey)}</span>
                   ) : (
-                    <span className="text-[11px] text-[#8C897F]">Not configured</span>
+                    <span className="text-[11px] text-[#8C897F]">{t('ai_key_not_configured')}</span>
                   )}
                   {expiryBadge(groqExpiryStatus)}
                 </div>
                 {groqExpiryStatus.state === 'expired' && (
                   <p className="text-[11px] text-amber-700 dark:text-amber-300 mt-1">
-                    This key is past its expiration date. It will still be used (not blocked), but consider rotating it.
+                    {t('ai_key_expired_warn')}
                   </p>
                 )}
                 {editingGroq ? (
@@ -360,33 +383,33 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
                       type={showGroqKey ? 'text' : 'password'}
                       value={editGroqValue}
                       onChange={(e) => setEditGroqValue(e.target.value)}
-                      placeholder="Paste updated Groq key"
+                      placeholder={t('ai_key_groq_edit_ph')}
                       className="flex-1 px-2 py-1.5 text-xs font-mono bg-white dark:bg-[#1A1917] border border-[#DFDACB] dark:border-[#2C2B27] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D97757] text-[#141413] dark:text-[#FAF9F5]"
                     />
                     <button
                       onClick={() => {
-                        if (!editGroqValue.trim()) { setGroqStatusMessage('Paste the updated key first.'); setGroqTestStatus('failed'); return; }
+                        if (!editGroqValue.trim()) { setGroqStatusMessage(t('ai_key_need_update')); setGroqTestStatus('failed'); return; }
                         setGroqKey(editGroqValue.trim());
                         setClientGroqApiKey(editGroqValue.trim());
                         setEditingGroq(false);
                         setGroqTestStatus('idle');
-                        setGroqStatusMessage('Groq key updated in place.');
+                        setGroqStatusMessage(t('ai_key_groq_updated'));
                       }}
                       className="px-2 py-1.5 text-[11px] font-bold bg-[#D97757] text-white rounded-lg"
                     >
-                      Save
+                      {t('common_save')}
                     </button>
                     <button
                       onClick={() => setEditingGroq(false)}
                       className="px-2 py-1.5 text-[11px] text-[#5C5A54] dark:text-[#B5B2A8] border border-[#DFDACB] dark:border-[#2C2B27] rounded-lg"
                     >
-                      Cancel
+                      {t('common_cancel')}
                     </button>
                   </div>
                 ) : (
                   <div className="flex items-center gap-2 mt-2 flex-wrap">
                     <label className="text-[11px] text-[#6B6860] flex items-center gap-1">
-                      Expires:
+                      {t('ai_key_expires_label')}
                       <input
                         type="date"
                         value={groqExpiry}
@@ -399,7 +422,7 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
                         onClick={() => { setGroqExpiry(''); setGroqKeyExpiry(null); }}
                         className="text-[11px] text-[#8C897F] hover:underline"
                       >
-                        Clear date
+                        {t('ai_key_clear_date')}
                       </button>
                     )}
                   </div>
@@ -408,14 +431,16 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
               {groqKey.trim() && !editingGroq && (
                 <div className="flex items-center gap-1 shrink-0">
                   <button
-                    title="Edit key in place"
+                    title={t('ai_key_edit_title')}
+                    aria-label={t('ai_key_edit_title')}
                     onClick={() => { setEditGroqValue(groqKey); setEditingGroq(true); }}
                     className="p-1.5 text-[#6B6860] hover:text-[#D97757] hover:bg-white dark:hover:bg-[#252422] rounded-lg border border-transparent hover:border-[#DFDACB] dark:hover:border-[#2C2B27]"
                   >
                     <Pencil className="w-3.5 h-3.5" />
                   </button>
                   <button
-                    title="Delete Groq key"
+                    title={t('ai_key_groq_delete_title')}
+                    aria-label={t('ai_key_groq_delete_title')}
                     onClick={handleClearGroq}
                     className="p-1.5 text-[#6B6860] hover:text-rose-600 hover:bg-white dark:hover:bg-[#252422] rounded-lg border border-transparent hover:border-rose-200"
                   >
@@ -428,7 +453,7 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
 
           <div>
             <label className="block text-xs font-bold text-[#141413] dark:text-[#FAF9F5] mb-1">
-              Google Gemini API Key
+              {t('ai_key_gemini_label')}
             </label>
             <div className="relative">
               <Key className="w-4 h-4 text-[#8C897F] absolute left-3 top-1/2 -translate-y-1/2" />
@@ -441,6 +466,7 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
               />
               <button
                 type="button"
+                aria-label={showKey ? t('ai_key_hide') : t('ai_key_show')}
                 onClick={() => setShowKey(!showKey)}
                 className="p-1.5 text-[#8C897F] hover:text-[#141413] dark:hover:text-[#FAF9F5] absolute right-2.5 top-1/2 -translate-y-1/2"
               >
@@ -451,7 +477,7 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
 
           <div>
             <label className="block text-xs font-bold text-[#141413] dark:text-[#FAF9F5] mb-1">
-              Groq API Key <span className="font-normal text-[#8C897F]">(fallback provider)</span>
+              {t('ai_key_groq_label')} <span className="font-normal text-[#8C897F]">{t('ai_key_groq_fallback_hint')}</span>
             </label>
             <div className="relative">
               <Key className="w-4 h-4 text-[#8C897F] absolute left-3 top-1/2 -translate-y-1/2" />
@@ -464,6 +490,7 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
               />
               <button
                 type="button"
+                aria-label={showGroqKey ? t('ai_key_hide') : t('ai_key_show')}
                 onClick={() => setShowGroqKey(!showGroqKey)}
                 className="p-1.5 text-[#8C897F] hover:text-[#141413] dark:hover:text-[#FAF9F5] absolute right-2.5 top-1/2 -translate-y-1/2"
               >
@@ -477,13 +504,13 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
                 className="px-3 py-1.5 bg-white dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] hover:border-[#D97757] text-[#141413] dark:text-[#FAF9F5] rounded-xl text-[11px] font-bold transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
               >
                 <RefreshCw className={`w-3 h-3 ${isTestingGroq ? 'animate-spin text-[#D97757]' : ''}`} />
-                <span>{isTestingGroq ? 'Verifying...' : 'Test Groq'}</span>
+                <span>{isTestingGroq ? t('ai_key_verifying') : t('ai_key_groq_test_btn')}</span>
               </button>
               <button
                 onClick={handleSaveGroq}
                 className="px-3 py-1.5 bg-white dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] hover:border-[#D97757] text-[#141413] dark:text-[#FAF9F5] rounded-xl text-[11px] font-bold transition-colors cursor-pointer"
               >
-                Save Groq Key
+                {t('ai_key_save_groq_btn')}
               </button>
               {groqKey.trim() && (
                 <button
@@ -491,7 +518,7 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
                   onClick={handleClearGroq}
                   className="text-rose-600 hover:underline font-medium cursor-pointer text-[11px]"
                 >
-                  Remove
+                  {t('ai_key_remove')}
                 </button>
               )}
             </div>
@@ -515,13 +542,13 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
           {/* Daily quota progress bar — surfaced before error (50/day) */}
           <div className="p-3 rounded-xl bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] space-y-1.5">
             <div className="flex items-center justify-between text-xs font-bold">
-              <span>Daily Gemini quota</span>
-              <span className="font-mono text-[11px] text-[#6B6860]">{quota.used} / {quota.limit} used • {quota.remaining} left</span>
+              <span>{t('ai_key_quota_title')}</span>
+              <span className="font-mono text-[11px] text-[#6B6860]">{t('ai_key_quota_stats', { used: quota.used, limit: quota.limit, remaining: quota.remaining })}</span>
             </div>
             <div className="h-2 bg-white dark:bg-[#252422] rounded-full overflow-hidden border border-[#DFDACB] dark:border-[#2C2B27]">
               <div className="h-full bg-[#D97757] transition-all" style={{ width: `${Math.min(100, (quota.used/quota.limit)*100)}%` }} />
             </div>
-            <p className="text-[11px] text-[#6B6860]">Resets midnight UTC. Prevents burn from parallel email summarize.</p>
+            <p className="text-[11px] text-[#6B6860]">{t('ai_key_quota_note')}</p>
           </div>
 
           {/* Test Status Banner */}
@@ -547,7 +574,7 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
               setSessionOnly(e.target.checked);
               if (apiKey.trim()) setClientGeminiApiKey(apiKey, { sessionOnly: e.target.checked });
             }} />
-            <label htmlFor="sessionOnly">Store key in sessionStorage only (cleared on tab close, more secure)</label>
+            <label htmlFor="sessionOnly">{t('ai_key_session_only')}</label>
           </div>
 
           <div className="pt-1 flex items-center justify-between text-xs">
@@ -557,7 +584,7 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
               rel="noreferrer"
               className="text-[#D97757] hover:underline font-semibold flex items-center gap-1"
             >
-              <span>Get a free API key at Google AI Studio</span>
+              <span>{t('ai_key_get_free')}</span>
               <ExternalLink className="w-3 h-3" />
             </a>
 
@@ -567,7 +594,7 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
                 onClick={handleClear}
                 className="text-rose-600 hover:underline font-medium cursor-pointer"
               >
-                Remove Key
+                {t('ai_key_remove_key')}
               </button>
             )}
           </div>
@@ -579,7 +606,7 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
             onClick={onClose}
             className="px-4 py-2 rounded-xl text-xs font-semibold text-[#5C5A54] dark:text-[#B5B2A8] hover:bg-[#EFECE2] dark:hover:bg-[#2C2A26] transition-colors cursor-pointer"
           >
-            Cancel
+            {t('common_cancel')}
           </button>
 
           <button
@@ -588,14 +615,14 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
             className="px-4 py-2 bg-white dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] hover:border-[#D97757] text-[#141413] dark:text-[#FAF9F5] rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isTesting ? 'animate-spin text-[#D97757]' : ''}`} />
-            <span>{isTesting ? 'Verifying...' : 'Test Connection'}</span>
+            <span>{isTesting ? t('ai_key_verifying') : t('ai_key_test_btn')}</span>
           </button>
 
           <button
             onClick={handleSave}
             className="px-5 py-2 bg-[#D97757] hover:bg-[#C86646] text-white rounded-xl text-xs font-bold transition-colors cursor-pointer shadow-xs"
           >
-            Save Key
+            {t('ai_key_save_btn')}
           </button>
         </div>
       </div>

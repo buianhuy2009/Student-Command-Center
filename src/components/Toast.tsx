@@ -1,6 +1,7 @@
 import React from 'react';
 import { CheckCircle2, AlertCircle, Info, X, ExternalLink, Undo2, RefreshCw, Bell } from 'lucide-react';
 import { ToastNotification } from '../types';
+import { useT } from '../services/i18n';
 
 interface ToastProps {
   toasts: ToastNotification[];
@@ -22,6 +23,7 @@ export function groupToasts(toasts: ToastNotification[]): (ToastNotification & {
 }
 
 export const ToastContainer: React.FC<ToastProps & { onUndo?: any; onRetry?: any }> = ({ toasts, onDismiss, onUndo, onRetry }) => {
+  const { t } = useT();
   if (toasts.length === 0) return null;
   const grouped = groupToasts(toasts);
 
@@ -58,7 +60,7 @@ export const ToastContainer: React.FC<ToastProps & { onUndo?: any; onRetry?: any
                     <Bell className="w-3 h-3" />×{toast.count}
                   </span>
                 )}
-                {persistent && <span className="text-[10px] px-1.5 py-0.5 rounded bg-rose-500/20 font-bold">Needs attention</span>}
+                {persistent && <span className="text-[10px] px-1.5 py-0.5 rounded bg-rose-500/20 font-bold">{t('toast_needs_attention')}</span>}
               </h4>
               {toast.message && (
                 <p className="text-xs mt-0.5 opacity-90 leading-relaxed break-words">{toast.message}</p>
@@ -66,7 +68,7 @@ export const ToastContainer: React.FC<ToastProps & { onUndo?: any; onRetry?: any
               <div className="flex flex-wrap items-center gap-2 mt-1.5">
                 {toast.actionUrl && (
                   <a href={toast.actionUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-medium underline hover:opacity-80">
-                    {toast.actionLabel || 'Open Link'}
+                    {toast.actionLabel || t('toast_open_link')}
                     <ExternalLink className="w-3 h-3" />
                   </a>
                 )}
@@ -80,7 +82,7 @@ export const ToastContainer: React.FC<ToastProps & { onUndo?: any; onRetry?: any
                     onClick={() => { if (onRetry) onRetry(toast.id); else if ((toast as any).onRetry) (toast as any).onRetry(); }}
                     className="inline-flex items-center gap-1 text-xs font-bold px-2 py-1 bg-white/10 hover:bg-white/20 rounded-lg min-h-[32px]"
                   >
-                    <RefreshCw className="w-3 h-3" /> {(toast as any).retryLabel || 'Retry'}
+                    <RefreshCw className="w-3 h-3" /> {(toast as any).retryLabel || t('retry')}
                   </button>
                 )}
               </div>
@@ -94,7 +96,7 @@ export const ToastContainer: React.FC<ToastProps & { onUndo?: any; onRetry?: any
             <button
               onClick={() => onDismiss(toast.id)}
               className="p-2 rounded-md opacity-70 hover:opacity-100 hover:bg-white/10 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
-              aria-label="Dismiss notification"
+              aria-label={t('toast_dismiss_aria')}
             >
               <X className="w-4 h-4" />
             </button>

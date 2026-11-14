@@ -20,7 +20,7 @@ import {
   Bot,
 } from 'lucide-react';
 import { GoogleIcon } from './GoogleIcon';
-import { t, useLang, getLang } from '../services/i18n';
+import { useT } from '../services/i18n';
 import { LanguageToggle } from './LanguageToggle';
 
 interface LandingPageProps {
@@ -33,10 +33,10 @@ interface LandingPageProps {
 
 // Honest product cards — real capabilities from the codebase, NOT user testimonials.
 const WHY_CARDS = [
-  { icon: Star, titleKey: 'landing_why_oss_t', descKey: 'landing_why_oss_d', uni: 'GitHub — MIT Licensed', avatar: '★' },
-  { icon: WifiOff, titleKey: 'landing_why_offline_t', descKey: 'landing_why_offline_d', uni: 'Saved Locally Offline', avatar: '◆' },
-  { icon: Bot, titleKey: 'landing_why_ai_t', descKey: 'landing_why_ai_d', uni: 'Smart AI Study Coach', avatar: '✦' },
-];
+  { icon: Star, titleKey: 'landing_why_oss_t', descKey: 'landing_why_oss_d', uniKey: 'landing_why_oss_sub', avatar: '★' },
+  { icon: WifiOff, titleKey: 'landing_why_offline_t', descKey: 'landing_why_offline_d', uniKey: 'landing_why_offline_sub', avatar: '◆' },
+  { icon: Bot, titleKey: 'landing_why_ai_t', descKey: 'landing_why_ai_d', uniKey: 'landing_why_ai_sub', avatar: '✦' },
+] as const;
 
 export const LandingPage: React.FC<LandingPageProps> = ({
   onSignIn,
@@ -47,7 +47,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 }) => {
   const [demoOpen, setDemoOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
-  useLang();
+  const { t } = useT();
 
   // Scroll reveal: fade/slide sections and stagger grids in once via IntersectionObserver.
   // Elements below the fold start hidden (.reveal/.reveal-stagger) and get .is-visible
@@ -85,13 +85,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </div>
             <div>
               <span className="text-base sm:text-lg font-extrabold tracking-tight text-[#141413] dark:text-[#F5F4ED]">
-                Student Command Center
+                {t('landing_brand_name')}
               </span>
             </div>
           </div>
 
           {/* Section nav — anchor links to real page sections */}
-          <nav aria-label="Sections" className="hidden md:flex items-center gap-1 text-xs font-semibold text-[#5E5D59] dark:text-[#B5B2A8]">
+          <nav aria-label={t('landing_nav_sections_aria')} className="hidden md:flex items-center gap-1 text-xs font-semibold text-[#5E5D59] dark:text-[#B5B2A8]">
             <a href="#features" className="px-2.5 py-1.5 rounded-lg hover:bg-[#E8E6DC] dark:hover:bg-[#1F1E1B] hover:text-[#141413] dark:hover:text-[#F5F4ED]">{t('landing_nav_features')}</a>
             <a href="#how" className="px-2.5 py-1.5 rounded-lg hover:bg-[#E8E6DC] dark:hover:bg-[#1F1E1B] hover:text-[#141413] dark:hover:text-[#F5F4ED]">{t('landing_nav_how')}</a>
             <a href="#faq" className="px-2.5 py-1.5 rounded-lg hover:bg-[#E8E6DC] dark:hover:bg-[#1F1E1B] hover:text-[#141413] dark:hover:text-[#F5F4ED]">{t('landing_nav_faq')}</a>
@@ -99,14 +99,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </nav>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            <a href="https://github.com/buianhuy2009/Sutdent-Command-Center" target="_blank" rel="noreferrer" className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-[#E8E6DC] dark:border-[#2C2B27] hover:border-[#C96442] text-xs font-semibold" title="Star on GitHub">
+            <a href="https://github.com/buianhuy2009/Sutdent-Command-Center" target="_blank" rel="noreferrer" className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-[#E8E6DC] dark:border-[#2C2B27] hover:border-[#C96442] text-xs font-semibold" title={t('landing_star_github')}>
               <span>★</span> GitHub
             </a>
             <LanguageToggle compact className="hidden sm:inline-flex" />
             <button
               onClick={() => setDarkMode(!darkMode)}
               className="p-2 rounded-xl text-[#5C5A54] dark:text-[#B5B2A8] hover:bg-[#E8E6DC] dark:hover:bg-[#1F1E1B] transition-colors cursor-pointer"
-              title="Toggle Dark / Light Theme"
+              title={t('landing_toggle_theme')}
+              aria-label={t('landing_toggle_theme')}
             >
               {darkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-[#C96442]" />}
             </button>
@@ -179,9 +180,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </div>
 
             <p className="mt-3 max-w-lg mx-auto px-4 sm:px-0 text-center text-xs leading-relaxed text-[#5E5D59] dark:text-[#B5B2A8]">
-              {getLang() === 'vi'
-                ? 'Đăng nhập bằng Google chỉ dùng tên và email của bạn. Lịch học, Gmail, Drive, Docs và Classroom chỉ xin quyền khi bạn bấm dùng lần đầu.'
-                : 'Signing in with Google only uses your name and email. Calendar, Gmail, Drive, Docs, and Classroom only ask permission when you first open them.'}
+              {t('landing_incremental_note')}
             </p>
 
             {/* Social-proof stats strip */}
@@ -202,39 +201,39 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
             {/* LCP hero image */}
             <div className="mt-8 max-w-3xl mx-auto">
-              <img src="/screenshot-dashboard.png" alt="Student Command Center dashboard — Canvas + Workspace unified" width={1280} height={720} fetchPriority="high" loading="eager" decoding="async" className="w-full rounded-2xl border border-[#E8E6DC] dark:border-[#2C2B27] shadow-xl transition-transform duration-500 hover:scale-[1.01] hover:shadow-2xl" onError={(e)=>{ (e.currentTarget as HTMLImageElement).style.display='none'; }} />
+              <img src="/screenshot-dashboard.png" alt={t('landing_hero_img_alt')} width={1280} height={720} fetchPriority="high" loading="eager" decoding="async" className="w-full rounded-2xl border border-[#E8E6DC] dark:border-[#2C2B27] shadow-xl transition-transform duration-500 hover:scale-[1.01] hover:shadow-2xl" onError={(e)=>{ (e.currentTarget as HTMLImageElement).style.display='none'; }} />
             </div>
 
             {/* Trust Badges */}
             <div className="mt-8 grid grid-cols-3 gap-2 sm:gap-6 text-[11px] sm:text-xs text-[#5E5D59] dark:text-[#B5B2A8] max-w-xl mx-auto px-4 sm:px-0">
               <div className="flex min-w-0 flex-wrap items-center justify-center gap-1.5 text-center">
                 <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-500" />
-                <span className="min-w-0 truncate">Free &amp; OSS</span>
+                <span className="min-w-0 truncate">{t('landing_trust_oss')}</span>
               </div>
               <div className="flex min-w-0 flex-wrap items-center justify-center gap-1.5 text-center">
                 <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-500" />
-                <span className="min-w-0 truncate">Canvas Feed</span>
+                <span className="min-w-0 truncate">{t('landing_trust_canvas')}</span>
               </div>
               <div className="flex min-w-0 flex-wrap items-center justify-center gap-1.5 text-center">
                 <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-500" />
-                <span className="min-w-0 truncate">Google Tools</span>
+                <span className="min-w-0 truncate">{t('landing_trust_google')}</span>
               </div>
             </div>
 
             {/* Trusted integrations */}
             <div className="mt-10 flex flex-wrap items-center justify-center gap-3 sm:gap-6 opacity-60 px-4 sm:px-0">
-              <span className="text-[11px] font-bold tracking-widest uppercase text-[#5E5D59] shrink-0">Works with your tools</span>
+              <span className="text-[11px] font-bold tracking-widest uppercase text-[#5E5D59] shrink-0">{t('landing_works_with')}</span>
               <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 max-w-full text-xs font-bold text-[#5E5D59]">
-                <span className="max-w-full truncate px-3 py-1.5 bg-white dark:bg-[#1A1917] border border-[#E8E6DC] dark:border-[#2C2B27] rounded-xl shrink-0">Canvas LMS</span>
-                <span className="max-w-full truncate px-3 py-1.5 bg-white dark:bg-[#1A1917] border border-[#E8E6DC] dark:border-[#2C2B27] rounded-xl inline-flex min-w-0 items-center gap-1.5 shrink-0"><GoogleIcon className="w-3.5 h-3.5 shrink-0" /><span className="truncate">Google Tools</span></span>
-                <span className="max-w-full truncate px-3 py-1.5 bg-white dark:bg-[#1A1917] border border-[#E8E6DC] dark:border-[#2C2B27] rounded-xl shrink-0">Works Offline</span>
+                <span className="max-w-full truncate px-3 py-1.5 bg-white dark:bg-[#1A1917] border border-[#E8E6DC] dark:border-[#2C2B27] rounded-xl shrink-0">{t('landing_tool_canvas')}</span>
+                <span className="max-w-full truncate px-3 py-1.5 bg-white dark:bg-[#1A1917] border border-[#E8E6DC] dark:border-[#2C2B27] rounded-xl inline-flex min-w-0 items-center gap-1.5 shrink-0"><GoogleIcon className="w-3.5 h-3.5 shrink-0" /><span className="truncate">{t('landing_tool_google')}</span></span>
+                <span className="max-w-full truncate px-3 py-1.5 bg-white dark:bg-[#1A1917] border border-[#E8E6DC] dark:border-[#2C2B27] rounded-xl shrink-0">{t('landing_tool_offline')}</span>
               </div>
             </div>
           </div>
         </section>
 
         {/* Integrations at a glance */}
-        <section aria-label="Integrations at a glance" className="border-t border-[#E8E6DC] dark:border-[#2C2B27] bg-white/60 dark:bg-[#1A1917]/40">
+        <section aria-label={t('landing_integrations_aria')} className="border-t border-[#E8E6DC] dark:border-[#2C2B27] bg-white/60 dark:bg-[#1A1917]/40">
           <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 text-center max-w-full reveal">
             <p className="text-[11px] font-bold tracking-widest uppercase text-[#5E5D59] dark:text-[#B5B2A8]">{t('landing_strip_title')}</p>
             <dl className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-4 text-left reveal-stagger">
@@ -255,7 +254,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         </section>
 
         {/* Why — honest product facts, not testimonials */}
-        <section aria-label="Why StudentOS" className="py-10 bg-[#E8E6DC]/40 dark:bg-[#1A1917]/60 border-b border-[#E8E6DC] dark:border-[#2C2B27]">
+        <section aria-label={t('landing_why_aria')} className="py-10 bg-[#E8E6DC]/40 dark:bg-[#1A1917]/60 border-b border-[#E8E6DC] dark:border-[#2C2B27]">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 reveal">
             <h2 className="text-center text-2xl sm:text-3xl font-extrabold tracking-tight mb-8">{t('landing_why_title')}</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 reveal-stagger">
@@ -267,7 +266,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                     <p className="text-xs leading-relaxed text-[#141413] dark:text-[#F5F4ED]">{t(c.descKey)}</p>
                     <div className="flex items-center gap-2 pt-2 border-t border-[#E8E6DC]/40">
                       <div className="w-7 h-7 rounded-full bg-[#C96442] text-white flex items-center justify-center text-xs font-bold">{c.avatar}</div>
-                      <div><div className="text-xs font-bold">{t(c.titleKey)}</div><div className="text-[10px] text-[#5E5D59]">{c.uni}</div></div>
+                      <div><div className="text-xs font-bold">{t(c.titleKey)}</div><div className="text-[10px] text-[#5E5D59]">{t(c.uniKey)}</div></div>
                     </div>
                   </div>
                 );
@@ -297,11 +296,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   </div>
                   <h3 className="text-base font-bold text-[#141413] dark:text-[#F5F4ED]">{t('landing_card_canvas_t')}</h3>
                   <p className="text-xs text-[#5E5D59] dark:text-[#B5B2A8] mt-2 leading-relaxed">
-                    Filter assignments into <strong>Unfinished</strong> and <strong>Finished</strong> views, filter by course subject, and jump directly to quizzes with one-click Canvas redirect buttons.
+                    {t('landing_feat_canvas_d')}
                   </p>
                 </div>
                 <div className="mt-4 pt-3 border-t border-[#E8E6DC] dark:border-[#2C2B27] text-[11px] font-semibold text-[#C96442] flex items-center gap-1">
-                  <span>Zero Manual Data Entry</span>
+                  <span>{t('landing_feat_canvas_foot')}</span>
                   <ArrowRight className="w-3 h-3" />
                 </div>
               </div>
@@ -312,13 +311,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   <div className="w-12 h-12 rounded-xl bg-[#C96442]/15 text-[#C96442] flex items-center justify-center mb-4">
                     <Sparkles className="w-6 h-6" strokeWidth={1.75} />
                   </div>
-                  <h3 className="text-base font-bold text-[#141413] dark:text-[#F5F4ED]">AI Study Coach (Gemini 2.0 Flash)</h3>
+                  <h3 className="text-base font-bold text-[#141413] dark:text-[#F5F4ED]">{t('landing_feat_coach_t')}</h3>
                   <p className="text-xs text-[#5E5D59] dark:text-[#B5B2A8] mt-2 leading-relaxed">
-                    Ask questions, plan 45-minute focus blocks, break down complex essays, and get personalized study recommendations aware of your real assignments and schedule.
+                    {t('landing_feat_coach_d')}
                   </p>
                 </div>
                 <div className="mt-4 pt-3 border-t border-[#E8E6DC] dark:border-[#2C2B27] text-[11px] font-semibold text-[#C96442] flex items-center gap-1">
-                  <span>Powered by Gemini 2.0 Flash</span>
+                  <span>{t('landing_feat_coach_foot')}</span>
                   <ArrowRight className="w-3 h-3" />
                 </div>
               </div>
@@ -329,13 +328,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   <div className="w-12 h-12 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-4">
                     <Mail className="w-6 h-6" strokeWidth={1.75} />
                   </div>
-                  <h3 className="text-base font-bold text-[#141413] dark:text-[#F5F4ED]">Gmail Scanner &amp; Spam Filter</h3>
+                  <h3 className="text-base font-bold text-[#141413] dark:text-[#F5F4ED]">{t('landing_feat_gmail_t')}</h3>
                   <p className="text-xs text-[#5E5D59] dark:text-[#B5B2A8] mt-2 leading-relaxed">
-                    Intelligently categorizes teacher emails, isolates exam alerts, and filters out shopping &amp; newsletter spam with bilingual (EN/VI) support and one-click quick draft replies.
+                    {t('landing_feat_gmail_d')}
                   </p>
                 </div>
                 <div className="mt-4 pt-3 border-t border-[#E8E6DC] dark:border-[#2C2B27] text-[11px] font-semibold text-[#C96442] flex items-center gap-1">
-                  <span>Smart Spam Shield</span>
+                  <span>{t('landing_feat_gmail_foot')}</span>
                   <ArrowRight className="w-3 h-3" />
                 </div>
               </div>
@@ -346,13 +345,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   <div className="w-12 h-12 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-4">
                     <CheckSquare className="w-6 h-6" strokeWidth={1.75} />
                   </div>
-                  <h3 className="text-base font-bold text-[#141413] dark:text-[#F5F4ED]">Master Assignment Tracker</h3>
+                  <h3 className="text-base font-bold text-[#141413] dark:text-[#F5F4ED]">{t('landing_feat_tracker_t')}</h3>
                   <p className="text-xs text-[#5E5D59] dark:text-[#B5B2A8] mt-2 leading-relaxed">
-                    Add tasks with natural language &quot;Smart Add&quot; (e.g. <em>&apos;Physics lab due next Friday&apos;</em>), track priority matrices, and sync two-way with Google Sheets.
+                    {t('landing_feat_tracker_d')}
                   </p>
                 </div>
                 <div className="mt-4 pt-3 border-t border-[#E8E6DC] dark:border-[#2C2B27] text-[11px] font-semibold text-[#C96442] flex items-center gap-1">
-                  <span>Google Sheets Integration</span>
+                  <span>{t('landing_feat_tracker_foot')}</span>
                   <ArrowRight className="w-3 h-3" />
                 </div>
               </div>
@@ -363,13 +362,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   <div className="w-12 h-12 rounded-xl bg-[#C96442]/15 text-[#C96442] flex items-center justify-center mb-4">
                     <FileText className="w-6 h-6" strokeWidth={1.75} />
                   </div>
-                  <h3 className="text-base font-bold text-[#141413] dark:text-[#F5F4ED]">Drive File Categorizer</h3>
+                  <h3 className="text-base font-bold text-[#141413] dark:text-[#F5F4ED]">{t('landing_feat_drive_t')}</h3>
                   <p className="text-xs text-[#5E5D59] dark:text-[#B5B2A8] mt-2 leading-relaxed">
-                    Automatically sorts school files into Google Docs, Sheets, Slides, and PDFs with quick-search so you never lose lecture slides or homework sheets.
+                    {t('landing_feat_drive_d')}
                   </p>
                 </div>
                 <div className="mt-4 pt-3 border-t border-[#E8E6DC] dark:border-[#2C2B27] text-[11px] font-semibold text-[#C96442] flex items-center gap-1">
-                  <span>Categorized Files</span>
+                  <span>{t('landing_feat_drive_foot')}</span>
                   <ArrowRight className="w-3 h-3" />
                 </div>
               </div>
@@ -380,13 +379,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   <div className="w-12 h-12 rounded-xl bg-[#C96442]/15 text-[#C96442] flex items-center justify-center mb-4">
                     <Zap className="w-6 h-6" strokeWidth={1.75} />
                   </div>
-                  <h3 className="text-base font-bold text-[#141413] dark:text-[#F5F4ED]">Doc Starter Studio</h3>
+                  <h3 className="text-base font-bold text-[#141413] dark:text-[#F5F4ED]">{t('landing_feat_docs_t')}</h3>
                   <p className="text-xs text-[#5E5D59] dark:text-[#B5B2A8] mt-2 leading-relaxed">
-                    Generate professionally formatted MLA 9th or APA 7th edition Google Docs directly in your Google Drive with customizable action milestones.
+                    {t('landing_feat_docs_d')}
                   </p>
                 </div>
                 <div className="mt-4 pt-3 border-t border-[#E8E6DC] dark:border-[#2C2B27] text-[11px] font-semibold text-[#C96442] flex items-center gap-1">
-                  <span>MLA &amp; APA Formatted</span>
+                  <span>{t('landing_feat_docs_foot')}</span>
                   <ArrowRight className="w-3 h-3" />
                 </div>
               </div>
@@ -421,13 +420,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <h2 className="text-lg font-extrabold text-center">{t('landing_compare_title')}</h2>
             <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
               <table className="w-full text-xs border-collapse">
-                <thead className="sticky top-0 z-10"><tr className="bg-[#E8E6DC] dark:bg-[#1F1E1B] text-left"><th className="p-2 border bg-[#E8E6DC] dark:bg-[#1F1E1B]">Feature</th><th className="p-2 border bg-[#E8E6DC] dark:bg-[#1F1E1B]">StudentOS</th><th className="p-2 border bg-[#E8E6DC] dark:bg-[#1F1E1B]">Notion</th><th className="p-2 border bg-[#E8E6DC] dark:bg-[#1F1E1B]">Canvas</th><th className="p-2 border bg-[#E8E6DC] dark:bg-[#1F1E1B]">Motion</th></tr></thead>
+                <thead className="sticky top-0 z-10"><tr className="bg-[#E8E6DC] dark:bg-[#1F1E1B] text-left"><th className="p-2 border bg-[#E8E6DC] dark:bg-[#1F1E1B]">{t('landing_cmp_col_feature')}</th><th className="p-2 border bg-[#E8E6DC] dark:bg-[#1F1E1B]">StudentOS</th><th className="p-2 border bg-[#E8E6DC] dark:bg-[#1F1E1B]">Notion</th><th className="p-2 border bg-[#E8E6DC] dark:bg-[#1F1E1B]">Canvas</th><th className="p-2 border bg-[#E8E6DC] dark:bg-[#1F1E1B]">Motion</th></tr></thead>
                 <tbody className="bg-white dark:bg-[#1A1917]">
-                  <tr><td className="p-2 border font-semibold">Canvas LMS sync</td><td className="p-2 border text-emerald-600">✓ Automatic class &amp; due date sync</td><td className="p-2 border">—</td><td className="p-2 border">Native only</td><td className="p-2 border">—</td></tr>
-                  <tr><td className="p-2 border font-semibold">Gmail homework finder</td><td className="p-2 border text-emerald-600">✓ Bilingual EN/VI</td><td className="p-2 border">—</td><td className="p-2 border">—</td><td className="p-2 border">—</td></tr>
-                  <tr><td className="p-2 border font-semibold">Google Sheets tracker</td><td className="p-2 border text-emerald-600">✓ Master tracker</td><td className="p-2 border">Manual</td><td className="p-2 border">—</td><td className="p-2 border">—</td></tr>
-                  <tr><td className="p-2 border font-semibold">Offline access</td><td className="p-2 border text-emerald-600">✓ Works without internet</td><td className="p-2 border">Partial</td><td className="p-2 border">—</td><td className="p-2 border">—</td></tr>
-                  <tr><td className="p-2 border font-semibold">Price</td><td className="p-2 border font-bold">Free &amp; OSS</td><td className="p-2 border">Freemium</td><td className="p-2 border">Institution</td><td className="p-2 border">$19/mo</td></tr>
+                  <tr><td className="p-2 border font-semibold">{t('landing_cmp_r1_f')}</td><td className="p-2 border text-emerald-600">{t('landing_cmp_r1_s')}</td><td className="p-2 border">—</td><td className="p-2 border">{t('landing_cmp_r1_c')}</td><td className="p-2 border">—</td></tr>
+                  <tr><td className="p-2 border font-semibold">{t('landing_cmp_r2_f')}</td><td className="p-2 border text-emerald-600">{t('landing_cmp_r2_s')}</td><td className="p-2 border">—</td><td className="p-2 border">—</td><td className="p-2 border">—</td></tr>
+                  <tr><td className="p-2 border font-semibold">{t('landing_cmp_r3_f')}</td><td className="p-2 border text-emerald-600">{t('landing_cmp_r3_s')}</td><td className="p-2 border">{t('landing_cmp_r3_n')}</td><td className="p-2 border">—</td><td className="p-2 border">—</td></tr>
+                  <tr><td className="p-2 border font-semibold">{t('landing_cmp_r4_f')}</td><td className="p-2 border text-emerald-600">{t('landing_cmp_r4_s')}</td><td className="p-2 border">{t('landing_cmp_r4_n')}</td><td className="p-2 border">—</td><td className="p-2 border">—</td></tr>
+                  <tr><td className="p-2 border font-semibold">{t('landing_cmp_r5_f')}</td><td className="p-2 border font-bold">{t('landing_cmp_r5_s')}</td><td className="p-2 border">{t('landing_cmp_r5_n')}</td><td className="p-2 border">{t('landing_cmp_r5_c')}</td><td className="p-2 border">{t('landing_cmp_r5_m')}</td></tr>
                 </tbody>
               </table>
             </div>
@@ -448,30 +447,28 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center space-y-3 reveal">
             <h3 className="text-sm font-bold text-[#141413] dark:text-[#F5F4ED] flex items-center justify-center gap-2"><ShieldCheck className="w-4 h-4 text-[#C96442]" /> {t('landing_privacy_title')}</h3>
             <p className="text-xs text-[#5E5D59] dark:text-[#B5B2A8] leading-relaxed">
-              {getLang() === 'vi'
-                ? 'Đăng nhập bằng Google chỉ dùng tên và email của bạn. Các công cụ như Lịch, Gmail, Drive, Trang tính và Classroom chỉ xin quyền đúng lúc bạn bấm bật lần đầu — bạn luôn thấy rõ quyền gì và gỡ bất cứ lúc nào trong Tài khoản Google.'
-                : 'Signing in with Google only uses your name and email. Tools like Calendar, Gmail, Drive, Sheets, and Classroom ask permission only when you first open them. Every assignment found waits for your confirmation, and you can disconnect anytime in your Google Account.'}
+              {t('landing_priv_intro')}
             </p>
             <div className="overflow-x-auto text-left">
               <table className="w-full text-[11px] border-collapse mt-2">
                 <thead>
                   <tr className="bg-[#E8E6DC] dark:bg-[#1F1E1B]">
-                    <th className="p-1.5 border">{getLang() === 'vi' ? 'Công cụ Google' : 'Google tool'}</th>
-                    <th className="p-1.5 border">{getLang() === 'vi' ? 'Xin quyền khi nào & để làm gì' : 'Asked when used & purpose'}</th>
-                    <th className="p-1.5 border">{getLang() === 'vi' ? 'Gửi cho AI?' : 'Sent to AI?'}</th>
+                    <th className="p-1.5 border">{t('landing_priv_col_tool')}</th>
+                    <th className="p-1.5 border">{t('landing_priv_col_why')}</th>
+                    <th className="p-1.5 border">{t('landing_priv_col_ai')}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {[
-                    ['classroom', getLang() === 'vi' ? 'Google Classroom' : 'Google Classroom', 'Tên lớp, bài tập, hạn nộp và thông báo thầy cô', 'Course names, assignments, due dates & teacher announcements', 'Chỉ nội dung thông báo để tìm bài tập ẩn', 'Only announcement text to find hidden homework'],
-                    ['calendar', getLang() === 'vi' ? 'Lịch Google' : 'Google Calendar', 'Xem giờ học và thêm buổi học khi bạn bấm', 'See busy hours and add study blocks when you tap', 'Không', 'No'],
-                    ['drive_sheets', getLang() === 'vi' ? 'Google Drive, Docs & Sheets' : 'Google Drive, Docs & Sheets', 'Chỉ mở và lưu bài tập hoặc bảng theo dõi bạn tạo trong StudentOS', 'Only files and spreadsheets you create or pick in StudentOS', 'Không', 'No'],
-                    ['gmail', 'Gmail (chỉ đọc)', 'Chỉ khi bạn bật quét thư: tìm thông báo bài tập & lịch thi (không xóa hay tự gửi thư)', 'Only when you turn on inbox scan: spot homework & exam notices (read-only)', 'Chỉ thư chưa chắc chắn (người gửi, tiêu đề, tối đa 1.500 ký tự)', 'Only sender, subject & short snippet (≤1,500 chars) to check if it is homework'],
-                  ].map(([id, toolName, vi, en, aiVi, aiEn]) => (
+                  {([
+                    ['classroom', 'landing_priv_t_classroom', 'landing_priv_w_classroom', 'landing_priv_a_classroom'],
+                    ['calendar', 'landing_priv_t_calendar', 'landing_priv_w_calendar', 'landing_priv_a_calendar'],
+                    ['drive_sheets', 'landing_priv_t_drive', 'landing_priv_w_drive', 'landing_priv_a_drive'],
+                    ['gmail', 'landing_priv_t_gmail', 'landing_priv_w_gmail', 'landing_priv_a_gmail'],
+                  ] as const).map(([id, toolKey, whyKey, aiKey]) => (
                     <tr key={id}>
-                      <td className="p-1.5 border font-semibold">{toolName}</td>
-                      <td className="p-1.5 border">{getLang() === 'vi' ? vi : en}</td>
-                      <td className="p-1.5 border">{getLang() === 'vi' ? aiVi : aiEn}</td>
+                      <td className="p-1.5 border font-semibold">{t(toolKey)}</td>
+                      <td className="p-1.5 border">{t(whyKey)}</td>
+                      <td className="p-1.5 border">{t(aiKey)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -479,11 +476,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </div>
             <div className="flex flex-wrap items-center justify-center gap-3 pt-1">
               <button type="button" onClick={() => window.dispatchEvent(new CustomEvent('scc-open-privacy'))} className="text-xs font-bold text-[#C96442] underline cursor-pointer">
-                {getLang() === 'vi' ? 'Xem đầy đủ: dữ liệu nào gửi cho AI, lưu ở đâu, dành cho phụ huynh' : 'Full details: what goes to the AI, where data lives, for parents'}
+                {t('landing_priv_full_link')}
               </button>
               <span className="text-xs text-[#5E5D59]">•</span>
               <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-[#C96442] underline">
-                {getLang() === 'vi' ? 'Điều khoản dịch vụ' : 'Terms of Service'}
+                {t('landing_terms_link')}
               </a>
             </div>
           </div>
@@ -520,21 +517,21 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={()=>setDemoOpen(false)}>
           <div className="bg-white dark:bg-[#1A1917] rounded-3xl max-w-2xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto" onClick={e=>e.stopPropagation()}>
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-bold flex items-center gap-2"><Play className="w-5 h-5 text-[#C96442]" /> 60s Demo — Student Command Center</h3>
-              <button onClick={()=>setDemoOpen(false)} className="p-2 hover:bg-[#E8E6DC] dark:hover:bg-[#252422] rounded-xl"><X className="w-4 h-4" /></button>
+              <h3 className="text-lg font-bold flex items-center gap-2"><Play className="w-5 h-5 text-[#C96442]" /> {t('landing_demo_title')}</h3>
+              <button onClick={()=>setDemoOpen(false)} aria-label={t('common_close')} className="p-2 hover:bg-[#E8E6DC] dark:hover:bg-[#252422] rounded-xl"><X className="w-4 h-4" /></button>
             </div>
             <div className="aspect-video bg-black rounded-2xl overflow-hidden border border-[#E8E6DC] dark:border-[#2C2B27] relative">
               <video src="/demo.mp4" poster="/screenshot-dashboard.png" controls autoPlay muted playsInline className="w-full h-full object-cover" onError={(e)=>{ (e.currentTarget as HTMLVideoElement).style.display='none'; const fb=document.getElementById('demo-fallback'); if(fb) fb.style.display='flex'; }}>
-                Your browser does not support video.
+                {t('landing_demo_unsupported')}
               </video>
               <div id="demo-fallback" style={{display:'none'}} className="absolute inset-0 flex-col items-center justify-center text-center p-6 space-y-3 bg-[#E8E6DC] dark:bg-[#1F1E1B]">
                 <div className="w-14 h-14 rounded-2xl bg-[#C96442] text-white flex items-center justify-center"><Play className="w-6 h-6" /></div>
                 <p className="text-sm font-bold">{t('demo_video_missing')}</p>
-                <p className="text-xs text-[#5E5D59] max-w-md">Connect Canvas, track Google deadlines, and let the AI Study Coach plan your day — all in one student hub.</p>
+                <p className="text-xs text-[#5E5D59] max-w-md">{t('landing_demo_fallback_desc')}</p>
                 <button onClick={onExploreDemo} className="mt-2 px-4 py-2 bg-[#C96442] hover:bg-[#A94E33] text-white rounded-xl text-xs font-bold">{t('landing_explore')}</button>
               </div>
             </div>
-            <div className="text-[11px] text-[#5E5D59]">Try the interactive demo anytime to explore every tool without connecting an account.</div>
+            <div className="text-[11px] text-[#5E5D59]">{t('landing_demo_note')}</div>
           </div>
         </div>
       )}
@@ -545,14 +542,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
               <GraduationCap className="w-4 h-4 text-[#C96442]" aria-hidden="true" />
-              <span className="font-semibold text-[#141413] dark:text-[#F5F4ED]">Student Command Center</span>
-              <span>• Open Source Academic Hub</span>
+              <span className="font-semibold text-[#141413] dark:text-[#F5F4ED]">{t('landing_brand_name')}</span>
+              <span>{t('landing_footer_tagline')}</span>
             </div>
 
             <div className="flex items-center gap-4">
-              <a href="/privacy" target="_blank" rel="noopener noreferrer" className="hover:text-[#C96442] font-medium">Privacy Policy</a>
-              <a href="/terms" target="_blank" rel="noopener noreferrer" className="hover:text-[#C96442] font-medium">Terms</a>
-              <a href="mailto:buianhuy2009@gmail.com" className="hover:text-[#C96442] font-medium">Contact</a>
+              <a href="/privacy" target="_blank" rel="noopener noreferrer" className="hover:text-[#C96442] font-medium">{t('landing_footer_privacy')}</a>
+              <a href="/terms" target="_blank" rel="noopener noreferrer" className="hover:text-[#C96442] font-medium">{t('landing_footer_terms')}</a>
+              <a href="mailto:buianhuy2009@gmail.com" className="hover:text-[#C96442] font-medium">{t('landing_footer_contact')}</a>
               <button
                 onClick={onExploreDemo}
                 className="hover:text-[#C96442] font-medium cursor-pointer"
@@ -572,7 +569,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </div>
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-[#E8E6DC] dark:border-[#2C2B27] pt-4">
             <div className="text-[11px] text-center sm:text-left text-[#5E5D59]">
-              © 2026 Student Command Center — MIT Licensed. <a href="/privacy" target="_blank" rel="noopener noreferrer" className="underline hover:text-[#C96442]">Privacy Policy</a> • <a href="/terms" target="_blank" rel="noopener noreferrer" className="underline hover:text-[#C96442]">Terms</a> • <a href="#pricing" className="underline">Pricing</a> • <a href="#faq" className="underline">FAQ</a> • <a href="#comparison" className="underline">Comparison</a>
+              {t('landing_footer_copyright')} <a href="/privacy" target="_blank" rel="noopener noreferrer" className="underline hover:text-[#C96442]">{t('landing_footer_privacy')}</a> • <a href="/terms" target="_blank" rel="noopener noreferrer" className="underline hover:text-[#C96442]">{t('landing_footer_terms')}</a> • <a href="#pricing" className="underline">{t('landing_footer_pricing')}</a> • <a href="#faq" className="underline">{t('landing_nav_faq')}</a> • <a href="#comparison" className="underline">{t('landing_footer_comparison')}</a>
             </div>
             <LanguageToggle />
           </div>

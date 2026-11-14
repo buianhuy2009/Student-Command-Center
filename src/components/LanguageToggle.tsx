@@ -1,14 +1,14 @@
 import React from 'react';
-import { useLang, LANG_OPTIONS } from '../services/i18n';
+import { useT, LANG_OPTIONS } from '../services/i18n';
 
 export const LanguageToggle: React.FC<{ compact?: boolean; className?: string }> = ({ compact, className }) => {
-  const [lang, setLang] = useLang();
+  const { lang, setLang, t } = useT();
   return (
     <div
       className={`inline-flex items-center p-0.5 rounded-xl border border-[#E8E6DC] dark:border-[#4F4A3E] bg-white dark:bg-[#262624] ${className ?? ''}`}
       role="group"
-      aria-label="Language / Ngôn ngữ"
-      title="Language / Ngôn ngữ"
+      aria-label={t('language_title')}
+      title={t('language_title')}
     >
       {LANG_OPTIONS.map((o) => {
         const active = lang === o.id;

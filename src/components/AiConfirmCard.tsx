@@ -1,9 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Sparkles, ExternalLink, TriangleAlert, Info, Check, X, Clock } from 'lucide-react';
 import type { PriorityLevel } from '../types';
-import { getLang, useLang } from '../services/i18n';
-
-const L = (vi: string, en: string) => (getLang() === 'vi' ? vi : en);
+import { useT } from '../services/i18n';
 
 /** What the AI thinks it found — nothing is saved until the student answers. */
 export interface AiDraft {
@@ -35,34 +33,29 @@ interface Props {
   onClose: () => void;
 }
 
-const PRIORITY_VI: Record<PriorityLevel, [string, string]> = {
-  High: ['cao', 'high'],
-  Med: ['trung bình', 'medium'],
-  Low: ['thấp', 'low'],
+const PRIORITY_KEYS: Record<PriorityLevel, string> = {
+  High: 'confirm_prio_high',
+  Med: 'confirm_prio_med',
+  Low: 'confirm_prio_low',
 };
 
-function weekdayOf(iso: string): string {
+function parseIsoLocalDate(iso: string): Date | null {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
-  if (!m) return '';
-  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
-  const vi = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'][d.getDay()];
-  const en = d.toLocaleDateString('en-US', { weekday: 'short' });
-  return L(vi, en);
-}
-
-function shortDate(iso: string): string {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
-  if (!m) return '';
-  return L(`${Number(m[3])}/${Number(m[2])}`, `${m[2]}/${m[3]}`);
+  if (!m) return null;
+  return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
 }
 
 export const AiConfirmCard: React.FC<Props> = ({ draft, onSave, onReject, onClose }) => {
-  useLang();
+  const { t, formatDate } = useT();
   const [name, setName] = useState(draft.assignmentName);
   const [subject, setSubject] = useState(draft.subject);
   const [due, setDue] = useState(draft.dueDate);
   const [priority, setPriority] = useState<PriorityLevel>(draft.priority);
   const [saving, setSaving] = useState(false);
+
+  const parsedDue = due ? parseIsoLocalDate(due) : null;
+  const dueShort = parsedDue ? formatDate(parsedDue, { day: 'numeric', month: 'numeric' }) : '';
+  const dueWeekday = parsedDue ? t(`confirm_weekday_${parsedDue.getDay()}`) : '';
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -91,7 +84,7 @@ export const AiConfirmCard: React.FC<Props> = ({ draft, onSave, onReject, onClos
       className="fixed inset-0 z-[90] flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4"
       role="dialog"
       aria-modal="true"
-      aria-label={L('Xác nhận bài tập AI tìm thấy', 'Confirm the assignment the AI found')}
+      aria-label={t('confirm_dialog_aria')}
       onClick={onClose}
     >
       <div
@@ -101,55 +94,50 @@ export const AiConfirmCard: React.FC<Props> = ({ draft, onSave, onReject, onClos
         <div className="flex items-start justify-between gap-3">
           <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-[#D97757]">
             <Sparkles className="h-4 w-4" aria-hidden="true" />
-            {draft.aiFailed ? L('AI đang lỗi — bạn tự điền giúp nhé', 'AI is unavailable — please fill this in') : L('AI hiểu là', 'The AI understood')}
+            {draft.aiFailed ? t('confirm_ai_failed') : t('confirm_ai_understood')}
           </p>
-          <button type="button" onClick={onClose} aria-label={L('Đóng', 'Close')} className="rounded-lg p-1 text-[#6B6860] hover:text-[#D97757] dark:text-[#A8A49A]">
+          <button type="button" onClick={onClose} aria-label={t('common_close')} className="rounded-lg p-1 text-[#6B6860] hover:text-[#D97757] dark:text-[#A8A49A]">
             <X className="h-4 w-4" />
           </button>
         </div>
 
         {/* The one sentence the judges asked for */}
         <p className="mt-2 text-base font-semibold leading-relaxed text-[#1A1917] dark:text-[#F5F2EA]">
-          {L('môn', 'subject')} <strong className="text-[#D97757]">{subject || '?'}</strong>
+          {t('gmail_subj_label')} <strong className="text-[#D97757]">{subject || '?'}</strong>
           {' – '}
           {due ? (
             <>
-              {L('hạn', 'due')} <strong className="text-[#D97757]">{shortDate(due)} ({weekdayOf(due)})</strong>
+              {t('gmail_due_label')} <strong className="text-[#D97757]">{dueShort} ({dueWeekday})</strong>
             </>
           ) : (
-            <strong className="text-amber-700 dark:text-amber-300">{L('chưa rõ hạn', 'no due date')}</strong>
+            <strong className="text-amber-700 dark:text-amber-300">{t('gmail_no_due_lower')}</strong>
           )}
           {' – '}
-          {L('ưu tiên', 'priority')} <strong className="text-[#D97757]">{L(PRIORITY_VI[priority][0], PRIORITY_VI[priority][1])}</strong>.{' '}
-          {L('Đúng chưa?', 'Is that right?')}
+          {t('gmail_priority_label')} <strong className="text-[#D97757]">{t(PRIORITY_KEYS[priority])}</strong>.{' '}
+          {t('confirm_question_end')}
         </p>
         <p className="mt-1 text-sm text-[#3A3835] dark:text-[#D6D2C7]">“{name}”</p>
 
         {noDate && (
           <div role="alert" className="mt-3 flex items-start gap-2 rounded-2xl border border-amber-300 bg-amber-50 p-3 text-xs leading-relaxed text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
             <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-            <span>
-              {L(
-                'AI không đọc được ngày nộp. Bạn chọn ngày giúp nhé — AI sẽ không tự đặt hạn. Chưa biết thì cứ lưu là "chưa có hạn".',
-                'The AI could not find a due date. Pick one — the AI never invents a deadline. Not sure yet? Save it as "no due date".',
-              )}
-            </span>
+            <span>{t('confirm_no_date_warn')}</span>
           </div>
         )}
         {!noDate && draft.dueConfidence === 'relative' && (
           <div className="mt-3 flex items-start gap-2 rounded-2xl border border-sky-200 bg-sky-50 p-3 text-xs leading-relaxed text-sky-800 dark:border-sky-900 dark:bg-sky-950/40 dark:text-sky-200">
             <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-            <span>{L('AI tự tính ngày từ chữ trong thư (ví dụ "thứ 6 tuần này") — bạn kiểm tra lại nhé.', 'The AI worked the date out from words like "this Friday" — please double-check.')}</span>
+            <span>{t('confirm_relative_hint')}</span>
           </div>
         )}
         {draft.evidence && (
           <p className="mt-3 rounded-2xl bg-[#FAF9F5] p-3 text-xs leading-relaxed text-[#3A3835] dark:bg-[#1F1E1B] dark:text-[#D6D2C7]">
-            <span className="font-bold">{L('AI đọc thấy:', 'The AI read:')}</span> “{draft.evidence}”
+            <span className="font-bold">{t('gmail_ai_read_label')}</span> “{draft.evidence}”
           </p>
         )}
 
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-[#6B6860] dark:text-[#A8A49A]">
-          <span className="min-w-0 truncate">{L('Nguồn:', 'Source:')} {draft.sourceLabel}</span>
+          <span className="min-w-0 truncate">{t('confirm_source_prefix')} {draft.sourceLabel}</span>
           {draft.sourceUrl && (
             <a
               href={draft.sourceUrl}
@@ -158,7 +146,7 @@ export const AiConfirmCard: React.FC<Props> = ({ draft, onSave, onReject, onClos
               className="inline-flex min-h-[36px] items-center gap-1 rounded-lg border border-[#DFDACB] px-2.5 py-1 font-bold text-[#3A3835] hover:border-[#D97757] hover:text-[#D97757] dark:border-[#2C2B27] dark:text-[#D6D2C7]"
             >
               <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
-              {draft.origin === 'classroom' ? L('Mở bài gốc', 'Open original post') : L('Mở thư gốc', 'Open original email')}
+              {draft.origin === 'classroom' ? t('gmail_open_post') : t('gmail_open_email')}
             </a>
           )}
         </div>
@@ -166,19 +154,19 @@ export const AiConfirmCard: React.FC<Props> = ({ draft, onSave, onReject, onClos
         {/* Always-editable fields: fixing is one tap, not a separate mode */}
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <label className="text-xs font-bold text-[#6B6860] dark:text-[#A8A49A] sm:col-span-2">
-            {L('Tên bài', 'Task')}
+            {t('confirm_task_label')}
             <input className={`${fieldCls} mt-1`} value={name} onChange={(e) => setName(e.target.value)} />
           </label>
           <label className="text-xs font-bold text-[#6B6860] dark:text-[#A8A49A]">
-            {L('Môn', 'Subject')}
+            {t('confirm_subject_label')}
             <input className={`${fieldCls} mt-1`} value={subject} onChange={(e) => setSubject(e.target.value)} />
           </label>
           <label className="text-xs font-bold text-[#6B6860] dark:text-[#A8A49A]">
-            {L('Hạn nộp', 'Due date')}
+            {t('due_date')}
             <input type="date" className={`${fieldCls} mt-1`} value={due} onChange={(e) => setDue(e.target.value)} />
           </label>
           <div className="text-xs font-bold text-[#6B6860] dark:text-[#A8A49A] sm:col-span-2">
-            {L('Ưu tiên', 'Priority')}
+            {t('priority')}
             <div className="mt-1 grid grid-cols-3 gap-2" role="radiogroup">
               {(['High', 'Med', 'Low'] as PriorityLevel[]).map((p) => (
                 <button
@@ -193,14 +181,14 @@ export const AiConfirmCard: React.FC<Props> = ({ draft, onSave, onReject, onClos
                       : 'border-[#DFDACB] text-[#3A3835] hover:border-[#D97757] dark:border-[#2C2B27] dark:text-[#D6D2C7]'
                   }`}
                 >
-                  {L(PRIORITY_VI[p][0], PRIORITY_VI[p][1])}
+                  {t(PRIORITY_KEYS[p])}
                 </button>
               ))}
             </div>
           </div>
           {due && (
             <button type="button" onClick={() => setDue('')} className="justify-self-start text-[11px] font-semibold text-[#6B6860] underline dark:text-[#A8A49A]">
-              {L('Xoá ngày (chưa có hạn)', 'Clear date (no due date)')}
+              {t('confirm_clear_date')}
             </button>
           )}
         </div>
@@ -213,7 +201,7 @@ export const AiConfirmCard: React.FC<Props> = ({ draft, onSave, onReject, onClos
             className="inline-flex min-h-[44px] flex-1 items-center justify-center gap-1.5 rounded-xl bg-[#D97757] px-4 text-sm font-bold text-white hover:bg-[#C86646] disabled:opacity-60"
           >
             <Check className="h-4 w-4" aria-hidden="true" />
-            {!due ? L('Lưu — chưa có hạn', 'Save — no due date') : edited ? L('Lưu bản đã sửa', 'Save my changes') : L('Đúng rồi, lưu', 'Yes, save it')}
+            {!due ? t('confirm_save_no_date') : edited ? t('confirm_save_edited') : t('confirm_save_ok')}
           </button>
           {due && !edited && !draft.aiFailed && (
             <button
@@ -223,7 +211,7 @@ export const AiConfirmCard: React.FC<Props> = ({ draft, onSave, onReject, onClos
               className="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl border border-[#DFDACB] px-4 text-sm font-bold text-[#3A3835] hover:border-[#D97757] dark:border-[#2C2B27] dark:text-[#D6D2C7]"
             >
               <Clock className="h-4 w-4" aria-hidden="true" />
-              {L('Lưu, xem lại sau', 'Save, check later')}
+              {t('confirm_save_later')}
             </button>
           )}
           <button
@@ -232,12 +220,12 @@ export const AiConfirmCard: React.FC<Props> = ({ draft, onSave, onReject, onClos
             onClick={draft.origin === 'text' ? onClose : onReject}
             className="inline-flex min-h-[44px] items-center justify-center rounded-xl px-4 text-sm font-bold text-[#6B6860] hover:text-rose-600 dark:text-[#A8A49A]"
           >
-            {draft.origin === 'text' ? L('Huỷ', 'Cancel') : L('Không phải bài tập', 'Not an assignment')}
+            {draft.origin === 'text' ? t('common_cancel') : t('confirm_not_assignment')}
           </button>
         </div>
         {due && !edited && !draft.aiFailed && (
           <p className="mt-2 text-[11px] leading-relaxed text-[#6B6860] dark:text-[#A8A49A]">
-            {L('"Xem lại sau" vẫn lưu bài, nhưng hạn được đánh dấu "chưa xác nhận" ở mọi nơi cho tới khi bạn kiểm tra.', '"Check later" saves it, but the date stays marked "unconfirmed" everywhere until you check it.')}
+            {t('confirm_check_later_note')}
           </p>
         )}
       </div>

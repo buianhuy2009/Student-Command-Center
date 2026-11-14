@@ -13,6 +13,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { useBadgeCounts } from './hooks/useBadgeCounts';
 import { useDebouncedCallback } from './hooks/useDebouncedCallback';
 import { initTheme, setTheme, syncDarkToTheme } from './services/theme';
+import { useT } from './services/i18n';
 // Chunk-resilient lazy(): after a fresh deploy the service worker can serve a
 // stale index.html that references rotated chunk filenames → dynamic import()
 // rejects → React throws during render → full-app error fallback. Retry once
@@ -188,23 +189,23 @@ const KEPT_APP_TABS: ReadonlySet<string> = new Set<AppTab>([
   'pomodoro',
 ]);
 
-const TAB_LABELS: Record<AppTab, string> = {
-  dashboard: 'Academic Dashboard',
-  canvas: 'Canvas LMS',
-  classroom: 'Google Classroom',
-  gmail: 'Gmail AI Scanner',
-  drive: 'Google Drive',
-  radar: 'Daily Schedule & AI Planner',
-  tracker: 'Assignment Tracker',
-  'notes-markdown': 'Markdown Notes & Docs',
-  flashcards: 'Flashcards (SM-2)',
-  excalidraw: 'Excalidraw Whiteboard',
-  geogebra: 'GeoGebra Math Suite',
-  'desmos-graphing': 'Desmos Graphing',
-  phet: 'PhET Simulations',
-  arxiv: 'arXiv Research Papers',
-  'open-library': 'Open Library & Textbooks',
-  pomodoro: 'Focus Station',
+const TAB_LABEL_KEYS: Record<AppTab, string> = {
+  dashboard: 'app_tab_dashboard',
+  canvas: 'app_tab_canvas',
+  classroom: 'app_tab_classroom',
+  gmail: 'app_tab_gmail',
+  drive: 'app_tab_drive',
+  radar: 'app_tab_radar',
+  tracker: 'app_tab_tracker',
+  'notes-markdown': 'app_tab_notes',
+  flashcards: 'app_tab_flashcards',
+  excalidraw: 'app_tab_excalidraw',
+  geogebra: 'app_tab_geogebra',
+  'desmos-graphing': 'app_tab_desmos',
+  phet: 'app_tab_phet',
+  arxiv: 'app_tab_arxiv',
+  'open-library': 'app_tab_library',
+  pomodoro: 'app_tab_pomodoro',
 };
 
 function normalizeAppTab(raw: string): AppTab {
@@ -296,6 +297,7 @@ function saveRawEmails(list: EmailMessage[]) {
 }
 
 export default function App() {
+  const { t, formatDate } = useT();
   // Theme — single source of truth is src/services/theme.ts (owns DOM + storage).
   // `darkMode` state is a MIRROR for UI highlights only. Nothing writes the theme
   // on mount, so a stored dark choice can never be clobbered back to light.
@@ -445,9 +447,9 @@ export default function App() {
 
   // Dynamic title for SEO per workspace — MUST be after activeTab declaration to avoid TDZ
   useEffect(() => {
-    const label = TAB_LABELS[activeTab] || 'Dashboard';
-    document.title = `StudentOS — ${label} | Canvas + Workspace Academic OS`;
-  }, [activeTab]);
+    const label = t(TAB_LABEL_KEYS[activeTab] || 'app_tab_dashboard');
+    document.title = t('app_doc_title', { label });
+  }, [activeTab, t]);
 
   useEffect(() => {
     try {
@@ -496,8 +498,8 @@ export default function App() {
     } catch {}
     addToast({
       type: 'success',
-      title: 'Daily Intention Set',
-      message: `Locked in ${targetHours}h deep work target for today.`,
+      title: t('app_toast_intention_title'),
+      message: t('app_toast_intention_msg', { hours: targetHours }),
     });
   };
 
@@ -820,8 +822,11 @@ export default function App() {
               list.push({
                 id: `urgent-due-${c.id}`,
                 tier: 'urgent',
-                title: `Deadline: ${c.name || 'Assignment'} is due soon!`,
-                description: `Subject: ${c.courseName || 'Course'} • Due in ${Math.round(diff / 3600000)} hours.`,
+                title: t('app_notif_due_title', { name: c.name || t('app_notif_assignment_fallback') }),
+                description: t('app_notif_due_desc', {
+                  subject: c.courseName || t('app_notif_course_fallback'),
+                  hours: Math.round(diff / 3600000),
+                }),
                 link: c.htmlUrl || '#',
                 source: 'Canvas',
               });
@@ -840,8 +845,8 @@ export default function App() {
           list.push({
             id: `urgent-grade-${c.id}`,
             tier: 'urgent',
-            title: `Grade Posted: ${c.name || 'Assignment'}`,
-            description: `Score details parsed. Click to open and read feedback directly in your Google Doc.`,
+            title: t('app_notif_grade_title', { name: c.name || t('app_notif_assignment_fallback') }),
+            description: t('app_notif_grade_desc'),
             link: matchingSheet.docUrl,
             source: 'Google Doc',
           });
@@ -854,8 +859,8 @@ export default function App() {
       list.push({
         id: `update-announcement-${c.id}`,
         tier: 'updates',
-        title: `Announcement: ${c.name || 'Course Update'}`,
-        description: `Course post published in ${c.courseName || 'Canvas'}.`,
+        title: t('app_notif_announce_title', { name: c.name || t('app_notif_announce_fallback') }),
+        description: t('app_notif_announce_desc', { course: c.courseName || 'Canvas' }),
         link: c.htmlUrl || '#',
         source: 'Canvas',
       });
@@ -867,8 +872,8 @@ export default function App() {
       list.push({
         id: `update-file-${f.id}`,
         tier: 'updates',
-        title: `Updated File: ${f.name || 'Drive File'}`,
-        description: `Modified recently in your Google Drive.`,
+        title: t('app_notif_file_title', { name: f.name || t('app_notif_file_fallback') }),
+        description: t('app_notif_file_desc'),
         link: f.webViewLink || '#',
         source: 'Google Drive',
       });
@@ -879,15 +884,15 @@ export default function App() {
       list.push({
         id: 'activity-discussion-demo',
         tier: 'activity',
-        title: '[Demo] Discussion Reply: Peer feedback in AP Chemistry Group',
-        description: 'Minh Nguyen replied to your comment on Lab 3 topic.',
+        title: t('app_notif_demo_title'),
+        description: t('app_notif_demo_desc'),
         link: '#',
         source: 'Canvas',
       });
     }
 
     return list;
-  }, [canvasAssignments, recentFiles, assignments, isDemoMode]);
+  }, [canvasAssignments, recentFiles, assignments, isDemoMode, t]);
 
   // Modals & Panels
   const [quickDraftModalOpen, setQuickDraftModalOpen] = useState(false);
@@ -942,7 +947,7 @@ export default function App() {
       const params = new URLSearchParams(window.location.search);
       if (params.get('demo') === '1') {
         setIsDemoMode(true);
-        addToast({ type: 'info', title: 'Demo Mode enabled', message: 'Exploring with sample Canvas + emails + files' });
+        addToast({ type: 'info', title: t('app_toast_demo_title'), message: t('app_toast_demo_msg') });
         window.history.replaceState({}, '', window.location.pathname);
       }
       if (params.get('share-target') === '1') {
@@ -955,15 +960,15 @@ export default function App() {
           try { localStorage.setItem('scc_shared_file_url', url || text); } catch {}
           setTimeout(() => {
             handleTabTransition('drive');
-            addToast({ type: 'info', title: 'Shared file saved', message: isPdf ? 'Opened Google Drive for PDF access' : 'Image shared' });
+            addToast({ type: 'info', title: t('app_toast_share_file_title'), message: isPdf ? t('app_toast_share_pdf_msg') : t('app_toast_share_img_msg') });
           }, 500);
         } else {
-          const name = title || text.slice(0, 80) || url || 'Shared note';
+          const name = title || text.slice(0, 80) || url || t('app_share_note_fallback');
           const assignmentName = name.slice(0, 120);
           const notes = [text, url].filter(Boolean).join('\n');
           setTimeout(() => {
-            setAssignments(prev => [...prev, { id: `share-${Date.now()}`, assignmentName, subject: 'General', dueDate: new Date(Date.now()+86400000*3).toISOString().split('T')[0], priority: 'Med', status: 'Not Started', source: 'Manual', notes }]);
-            addToast({ type: 'success', title: 'Shared content saved', message: `Created task from share: "${assignmentName}"` });
+            setAssignments(prev => [...prev, { id: `share-${Date.now()}`, assignmentName, subject: t('app_subject_general'), dueDate: new Date(Date.now()+86400000*3).toISOString().split('T')[0], priority: 'Med', status: 'Not Started', source: 'Manual', notes }]);
+            addToast({ type: 'success', title: t('app_toast_share_task_title'), message: t('app_toast_share_task_msg', { name: assignmentName }) });
           }, 800);
         }
         window.history.replaceState({}, '', window.location.pathname);
@@ -973,7 +978,7 @@ export default function App() {
         handleTabTransition('drive');
       }
     } catch {}
-  }, [addToast, handleTabTransition]);
+  }, [addToast, handleTabTransition, t]);
 
   // Offline queue retry with exponential backoff via Dexie + navigator.onLine + Background Sync
   useEffect(() => {
@@ -1040,8 +1045,8 @@ export default function App() {
         handleTabTransition('desmos-graphing');
         addToast({
           type: 'success',
-          title: 'Equations Ready',
-          message: `Desmos Graphing opened (${action.payload.expressions.length} expressions prepared)!`,
+          title: t('app_toast_desmos_title'),
+          message: t('app_toast_desmos_msg', { count: action.payload.expressions.length }),
         });
         break;
       }
@@ -1050,31 +1055,32 @@ export default function App() {
         const newEvents: Assignment[] = action.payload.events.map((evt, i) => ({
           id: `milestone-${Date.now()}-${i}`,
           assignmentName: evt.title,
-          subject: 'Academic Milestone',
+          subject: t('app_milestone_subject'),
           dueDate: evt.date,
           status: 'Not Started',
           weight: evt.weight || 10,
           source: 'Manual',
           priority: 'High',
-          notes: `Scheduled by StudentOS Agent (${evt.type})`,
+          notes: t('app_milestone_note', { type: evt.type }),
         }));
         setAssignments((prev) => [...prev, ...newEvents]);
         addToast({
           type: 'success',
-          title: 'Milestones Scheduled',
-          message: `Created ${newEvents.length} calendar study milestones!`,
+          title: t('app_toast_milestones_title'),
+          message: t('app_toast_milestones_msg', { count: newEvents.length }),
         });
         break;
       }
 
       case 'createSRSDeck': {
         const currentDecks = loadSRSDecks();
+        const nowFormatted = formatDate(new Date());
         const newDeck: SRSDeck = {
           id: `deck-${Date.now()}`,
           title: action.payload.deckTitle,
-          subject: action.payload.subject || 'General',
-          createdAt: new Date().toLocaleDateString(),
-          updatedAt: new Date().toLocaleDateString(),
+          subject: action.payload.subject || t('app_subject_general'),
+          createdAt: nowFormatted,
+          updatedAt: nowFormatted,
           cards: action.payload.cards.map((c) =>
             createNewSRSCard({ front: c.front, back: c.back, tags: c.tags })
           ),
@@ -1083,8 +1089,8 @@ export default function App() {
         handleTabTransition('flashcards');
         addToast({
           type: 'success',
-          title: 'SRS Deck Created',
-          message: `Created "${action.payload.deckTitle}" with ${action.payload.cards.length} cards!`,
+          title: t('app_toast_deck_title'),
+          message: t('app_toast_deck_msg', { title: action.payload.deckTitle, count: action.payload.cards.length }),
         });
         break;
       }
@@ -1093,8 +1099,8 @@ export default function App() {
         handleTabTransition('excalidraw');
         addToast({
           type: 'info',
-          title: 'Visual Whiteboard Ready',
-          message: `Opened Excalidraw to sketch "${action.payload.title}"!`,
+          title: t('app_toast_whiteboard_title'),
+          message: t('app_toast_whiteboard_msg', { title: action.payload.title }),
         });
         break;
       }
@@ -1103,22 +1109,27 @@ export default function App() {
       case 'createStudyFlashcardsPreview': {
         const currentDecks = loadSRSDecks();
         const count = action.payload.count || 5;
+        const nowFormatted = formatDate(new Date());
         const newDeck: SRSDeck = {
           id: `deck-${Date.now()}`,
-          title: `Preview: ${action.payload.topic}`,
-          subject: 'General',
-          createdAt: new Date().toLocaleDateString(),
-          updatedAt: new Date().toLocaleDateString(),
+          title: t('app_preview_deck_title', { topic: action.payload.topic }),
+          subject: t('app_subject_general'),
+          createdAt: nowFormatted,
+          updatedAt: nowFormatted,
           cards: Array.from({ length: Math.min(8, Math.max(3, count)) }).map((_, i) =>
-            createNewSRSCard({ front: `${action.payload.topic} — key idea ${i + 1}`, back: `Explain in your own words (edit me).`, tags: ['agent-preview'] })
+            createNewSRSCard({
+              front: t('app_preview_card_front', { topic: action.payload.topic, num: i + 1 }),
+              back: t('app_preview_card_back'),
+              tags: ['agent-preview'],
+            })
           ),
         };
         saveSRSDecks([newDeck, ...currentDecks]);
         handleTabTransition('flashcards');
         addToast({
           type: 'success',
-          title: 'Flashcard Preview Ready',
-          message: `Preview deck for "${action.payload.topic}" — edit before studying!`,
+          title: t('app_toast_preview_title'),
+          message: t('app_toast_preview_msg', { topic: action.payload.topic }),
         });
         break;
       }
@@ -1130,13 +1141,13 @@ export default function App() {
         handleTabTransition('notes-markdown');
         addToast({
           type: 'info',
-          title: 'Outline Drafted',
-          message: `A ${action.payload.minutes || 5}-minute outline for "${action.payload.topic}" is ready to edit!`,
+          title: t('app_toast_outline_title'),
+          message: t('app_toast_outline_msg', { minutes: action.payload.minutes || 5, topic: action.payload.topic }),
         });
         break;
       }
     }
-  }, [handleTabTransition, addToast]);
+  }, [handleTabTransition, addToast, t, formatDate]);
 
   // Save assignments locally whenever state changes
   useEffect(() => {
@@ -1201,7 +1212,7 @@ export default function App() {
           oneLineSummary: 'Extra help session tomorrow at 3:30 PM in Room 204.',
           urgency: 'HIGH',
           category: 'EXAM',
-          categoryLabel: 'Lịch thi / Kiểm tra',
+          categoryLabel: t('app_demo_cat_exam'),
           isSpam: false,
           language: 'en',
           rawEmail: {
@@ -1222,7 +1233,7 @@ export default function App() {
           oneLineSummary: 'Updated rubric uploaded to Canvas. Due date unchanged.',
           urgency: 'MEDIUM',
           category: 'ASSIGNMENT',
-          categoryLabel: 'Bài tập & Hạn nộp',
+          categoryLabel: t('app_demo_cat_assign'),
           isSpam: false,
           language: 'en',
           rawEmail: {
@@ -1243,7 +1254,7 @@ export default function App() {
           oneLineSummary: 'Limited time coupon discounts on supplies.',
           urgency: 'INFO',
           category: 'SPAM',
-          categoryLabel: 'Thư rác / Quảng cáo',
+          categoryLabel: t('app_demo_cat_spam'),
           isSpam: true,
           spamReason: 'Commercial e-commerce promotion',
           language: 'en',
@@ -1265,7 +1276,7 @@ export default function App() {
           oneLineSummary: 'Music playlist digest newsletter.',
           urgency: 'INFO',
           category: 'SPAM',
-          categoryLabel: 'Thư rác / Quảng cáo',
+          categoryLabel: t('app_demo_cat_spam'),
           isSpam: true,
           spamReason: 'Marketing subscription newsletter',
           language: 'en',
@@ -1427,7 +1438,7 @@ export default function App() {
         // Grant revoked or unusable — stop quietly, keep cached events.
         await clearGoogleGrant();
         setGoogleToken(null);
-        setCalendarError('Google disconnected. Reconnect to resume Calendar sync — your events are kept.');
+        setCalendarError(t('app_err_cal_disconnected'));
       } else {
         if (err?.isServiceDisabled) {
           setCalendarApiInfo({
@@ -1439,19 +1450,19 @@ export default function App() {
         } else {
           setCalendarApiInfo(null);
         }
-        setCalendarError(err.message || 'Could not fetch live Calendar events.');
+        setCalendarError(err.message || t('app_err_cal_fetch'));
         if (!isSilent) {
           addToast({
             type: 'warning',
-            title: err?.isServiceDisabled ? 'Google Calendar Unavailable' : 'Google Calendar Sync',
-            message: err.message || 'Could not load your Google Calendar schedule right now.',
+            title: err?.isServiceDisabled ? t('app_toast_cal_unavail') : t('app_toast_cal_sync'),
+            message: err.message || t('app_toast_cal_msg'),
           });
         }
       }
     } finally {
       if (!isSilent) setIsLoadingEvents(false);
     }
-  }, [addToast]);
+  }, [addToast, t]);
 
   // Fetch Academic Emails & Summarize with Gemini (runs ONLY when Gmail permission is granted)
   const loadEmailsAndAlerts = useCallback(async (isSilent = false, forceResort = false, options?: FetchEmailOptions, _retried = false) => {
@@ -1521,7 +1532,7 @@ export default function App() {
               urgency: isPromo || isSocial ? 'INFO' as const : 'MEDIUM' as const,
               category: isPromo ? 'PROMOTION' as const : isSocial ? 'SOCIAL' as const : 'GENERAL' as const,
               isSpam: isPromo,
-              spamReason: isPromo ? 'Sorted by Gmail' : '',
+              spamReason: isPromo ? t('app_gmail_sorted_by') : '',
               gmailLabels: labels,
               detectedAssignment: undefined,
               rawEmail: msg,
@@ -1550,7 +1561,7 @@ export default function App() {
       if (is401) {
         await clearGoogleGrant();
         setGoogleToken(null);
-        setEmailError('Google disconnected. Reconnect to resume Gmail sync — your cached emails are kept.');
+        setEmailError(t('app_err_gmail_disconnected'));
       } else {
         if (err?.isServiceDisabled) {
           setGmailApiInfo({
@@ -1562,19 +1573,19 @@ export default function App() {
         } else {
           setGmailApiInfo(null);
         }
-        setEmailError(err.message || 'Could not check Gmail right now.');
+        setEmailError(err.message || t('app_err_gmail_fetch'));
         if (!isSilent) {
           addToast({
             type: 'warning',
-            title: err?.isServiceDisabled ? 'Gmail Unavailable' : 'Gmail Scanner',
-            message: err.message || 'Could not check your Gmail inbox right now.',
+            title: err?.isServiceDisabled ? t('app_toast_gmail_unavail') : t('app_toast_gmail_sync'),
+            message: err.message || t('app_toast_gmail_msg'),
           });
         }
       }
     } finally {
       if (!isSilent) setIsLoadingEmails(false);
     }
-  }, [addToast]);
+  }, [addToast, t]);
 
   // Fetch Master Sheet Assignments (runs ONLY when Google Sheets permission is granted)
   const loadSheetAssignments = useCallback(async (isSilent = false, _retried = false) => {
@@ -1619,7 +1630,7 @@ export default function App() {
           if (safeItems.length === 0 && manualOnly.length) return safePrev;
           return [...merged, ...manualOnly];
         });
-        if (conflictCount>0) setTimeout(()=> addToast({ type: 'warning', title: 'Resolve conflict', message: `${conflictCount} assignments had concurrent edits — last write wins. Review Tracker.` }), 500);
+        if (conflictCount>0) setTimeout(()=> addToast({ type: 'warning', title: t('app_toast_conflict_title'), message: t('app_toast_conflict_msg', { count: conflictCount }) }), 500);
       } else if (items && items.length === 0) {
         // sheet empty -> do NOT overwrite existing manual tasks
         console.warn('Sheet empty, preserving local assignments');
@@ -1640,7 +1651,7 @@ export default function App() {
         // Grant revoked or unusable — stop quietly, keep cached tasks.
         await clearGoogleGrant();
         setGoogleToken(null);
-        setSheetError('Google disconnected. Reconnect to resume Sheet sync — your tasks are kept.');
+        setSheetError(t('app_err_sheet_disconnected'));
       } else {
         if (err?.isServiceDisabled) {
           setSheetApiInfo({
@@ -1652,19 +1663,19 @@ export default function App() {
         } else {
           setSheetApiInfo(null);
         }
-        setSheetError(err.message || 'Could not sync Master Sheet.');
+        setSheetError(err.message || t('app_err_sheet_fetch'));
         if (!isSilent) {
           addToast({
             type: 'warning',
-            title: err?.isServiceDisabled ? 'Google Sheets Unavailable' : 'Google Sheet Sync',
-            message: err.message || 'Could not sync your Master Google Sheet right now.',
+            title: err?.isServiceDisabled ? t('app_toast_sheet_unavail') : t('app_toast_sheet_sync'),
+            message: err.message || t('app_toast_sheet_msg'),
           });
         }
       }
     } finally {
       if (!isSilent) setIsLoadingAssignments(false);
     }
-  }, [addToast]);
+  }, [addToast, t]);
 
   // Fetch Recent Files (runs ONLY when Google Drive permission is granted)
   const loadRecentFiles = useCallback(async (isSilent = false, _retried = false) => {
@@ -1702,9 +1713,9 @@ export default function App() {
         // Grant revoked or unusable — stop quietly, keep cached files.
         await clearGoogleGrant();
         setGoogleToken(null);
-        setDriveError('Google disconnected. Reconnect to resume Drive sync — your files list is kept.');
+        setDriveError(t('app_err_drive_disconnected'));
       } else {
-        const errMsg = err?.message || 'Could not fetch Google Drive files.';
+        const errMsg = err?.message || t('app_err_drive_fetch');
         if (err?.isServiceDisabled) {
           setDriveApiInfo({
             serviceName: err.serviceName || 'Google Drive API',
@@ -1719,7 +1730,7 @@ export default function App() {
         if (!isSilent) {
           addToast({
             type: 'warning',
-            title: err?.isServiceDisabled ? 'Google Drive Unavailable' : 'Google Drive Sync',
+            title: err?.isServiceDisabled ? t('app_toast_drive_unavail') : t('app_toast_drive_sync'),
             message: errMsg,
           });
         }
@@ -1727,7 +1738,7 @@ export default function App() {
     } finally {
       if (!isSilent) setIsLoadingFiles(false);
     }
-  }, [addToast]);
+  }, [addToast, t]);
 
   // Classroom announcements → same AI reader as Gmail. Re-read only when the post set changes.
   const loadClassroomAnnouncements = useCallback(async (token: string) => {
@@ -1818,14 +1829,14 @@ export default function App() {
       if (is401) {
         await clearGoogleGrant();
         setGoogleToken(null);
-        setClassroomError('Google disconnected. Reconnect to resume Google Classroom sync.');
+        setClassroomError(t('app_err_cls_disconnected'));
       } else {
-        const errMsg = err?.message || 'Could not fetch Google Classroom coursework.';
+        const errMsg = err?.message || t('app_err_cls_fetch');
         setClassroomError(errMsg);
         if (!isSilent) {
           addToast({
             type: 'warning',
-            title: 'Google Classroom Sync',
+            title: t('app_toast_cls_sync'),
             message: errMsg,
           });
         }
@@ -1833,7 +1844,7 @@ export default function App() {
     } finally {
       if (!isSilent) setIsLoadingClassroom(false);
     }
-  }, [addToast]);
+  }, [addToast, t]);
 
   // Fetch Canvas assignments (Zero fake data)
   // NOTE: accepts an optional settings override so Save & Sync in CanvasSyncTab
@@ -1854,9 +1865,7 @@ export default function App() {
       // If user saved a custom URL but no token yet, explain what's missing
       // instead of silently showing an empty tab.
       if (effectiveSettings.apiDomain?.trim() && !apiToken && !feedUrl) {
-        setCanvasError(
-          'Canvas URL saved, but no API token yet — open Settings and add your token (Canvas → Account → Settings → New Access Token), or paste a Calendar Feed URL.'
-        );
+        setCanvasError(t('app_canvas_missing_token_err'));
       } else {
         setCanvasError(null);
       }
@@ -1879,7 +1888,7 @@ export default function App() {
           );
         } catch (e: any) {
           console.warn('Canvas REST API query error:', e);
-          apiError = { message: e?.message || 'Canvas API request failed.', kind: (e as any)?.kind, code: (e as any)?.code };
+          apiError = { message: e?.message || t('app_canvas_api_req_err'), kind: (e as any)?.kind, code: (e as any)?.code };
         }
       }
 
@@ -1889,7 +1898,7 @@ export default function App() {
           feedFetched = await fetchCanvasAssignmentsFromFeed(feedUrl);
         } catch (e: any) {
           console.warn('Canvas Calendar Feed query error:', e);
-          feedError = { message: e?.message || 'Canvas feed request failed.', kind: (e as any)?.kind, code: (e as any)?.code };
+          feedError = { message: e?.message || t('app_canvas_feed_req_err'), kind: (e as any)?.kind, code: (e as any)?.code };
         }
       }
 
@@ -1898,7 +1907,7 @@ export default function App() {
       // Keyed by name + course + due date so same-named work across courses never collapses.
       const mergedMap = new Map<string, CanvasAssignment>();
       const mergeKey = (item: any): string =>
-        [item?.name ?? item?.title ?? 'Canvas Assignment', item?.courseName ?? item?.course ?? '', item?.dueAt ?? item?.dueDate ?? '']
+        [item?.name ?? item?.title ?? t('app_canvas_default_name'), item?.courseName ?? item?.course ?? '', item?.dueAt ?? item?.dueDate ?? '']
           .join('|').toLowerCase().trim();
 
       // Put feed items first
@@ -1943,7 +1952,7 @@ export default function App() {
         if (apiError && !feedError) {
           switch (apiError.kind) {
             case 'auth':
-              errMsg = 'Canvas rejected the API token (401). Regenerate a token at Canvas → Account → Settings → New Access Token, save it here, then retry.';
+              errMsg = t('app_canvas_auth_err');
               break;
             case 'host': {
               // Allowlist blocks carry code + detail from the service: the token
@@ -1951,32 +1960,32 @@ export default function App() {
               const blockedByAllowlist =
                 apiError.code === 'host-not-allowlisted' || /allowlist/i.test(apiError.message || '');
               errMsg = blockedByAllowlist
-                ? `Canvas sync is blocked: ${cleanTail(apiError.message || '')}. Your token is fine — the app server refuses this Canvas host. Fix: redeploy with your host added to CANVAS_ALLOWED_HOSTS, then retry.`
-                : `Canvas host did not answer (${apiError.message}). Check the URL is exactly your school host, then retry.`;
+                ? t('app_canvas_allowlist_err', { detail: cleanTail(apiError.message || '') })
+                : t('app_canvas_host_err', { detail: apiError.message || '' });
               break;
             }
             case 'network':
-              errMsg = 'Could not reach Canvas — network error or timed out after 20s. Check your connection, then retry.';
+              errMsg = t('app_canvas_network_err');
               break;
             case 'backend':
-              errMsg = `Canvas sync is blocked: ${apiError.message}. This is a deployment issue, not your token — the app's /api functions are not serving JSON. Redeploy the latest main, then retry.`;
+              errMsg = t('app_canvas_backend_err', { detail: apiError.message || '' });
               break;
             default: {
               const reason = cleanTail(apiError.message || '');
               errMsg = hasHint(reason)
-                ? `Canvas sync failed: ${reason}.`
-                : `Canvas sync failed: ${reason}. Check your Canvas URL and token, then retry.`;
+                ? t('app_canvas_failed_err', { reason })
+                : t('app_canvas_failed_hint_err', { reason });
               break;
             }
           }
         } else {
           if (feedError?.kind === 'backend') {
-            errMsg = `Canvas sync is blocked: ${feedError.message}. This is a deployment issue, not your feed URL — the app's /api functions are not serving JSON. Redeploy the latest main, then retry.`;
+            errMsg = t('app_canvas_backend_err', { detail: feedError.message || '' });
           } else {
             const combined = cleanTail([apiError?.message, feedError?.message].filter(Boolean).join(' ').trim());
             errMsg = hasHint(combined)
-              ? `Canvas sync failed: ${combined}.`
-              : `Canvas sync failed: ${combined}. Check your Canvas URL and token, then retry.`;
+              ? t('app_canvas_failed_err', { reason: combined })
+              : t('app_canvas_failed_hint_err', { reason: combined });
           }
         }
         setCanvasError(errMsg);
@@ -1985,9 +1994,7 @@ export default function App() {
       // Configured but zero assignments and zero errors (e.g. all sources quietly
       // empty): say so explicitly instead of a misleading "all caught up".
       if (fetched.length === 0 && (isApiConfigured || feedUrl)) {
-        setCanvasError(
-          'Connected, but Canvas returned 0 assignments. If you expect coursework here, re-copy your Calendar Feed link (Canvas → Calendar → Calendar Feed) or regenerate your API token (Canvas → Account → Settings → New Access Token), save, and sync again.'
-        );
+        setCanvasError(t('app_canvas_zero_err'));
         return;
       }
       setCanvasAssignments(crossRef);
@@ -2045,22 +2052,22 @@ export default function App() {
       if (!isSilent) {
         addToast({
           type: 'success',
-          title: 'Canvas LMS Synced Live',
-          message: `Loaded ${crossRef.length} real assignments from your Canvas feed.${
-            updatedSheetCount > 0 ? ` Marked ${updatedSheetCount} completed tasks as Done in Tracker.` : ''
-          }`,
+          title: t('app_toast_canvas_title'),
+          message:
+            t('app_toast_canvas_msg', { count: crossRef.length }) +
+            (updatedSheetCount > 0 ? t('app_toast_canvas_sheet_extra', { count: updatedSheetCount }) : ''),
         });
       }
     } catch (err: any) {
       console.error('Canvas load error:', err);
-      const errMsg = err.message || 'Failed to fetch Canvas feed. Please verify the URL.';
+      const errMsg = err.message || t('app_canvas_catch_err');
       setCanvasError(errMsg);
       // Keep previously loaded assignments so the tab never goes blank on a transient failure.
       // Banner-only (no duplicate toast) per single-channel error policy.
     } finally {
       if (!isSilent) setIsLoadingCanvas(false);
     }
-  }, [addToast]);
+  }, [addToast, t]);
 
   // Comprehensive Auto-Sync Routine — debounced + AbortController + isSyncing guard
   const syncAbortRef = useRef<AbortController | null>(null);
@@ -2120,19 +2127,19 @@ export default function App() {
           await runFullSync(false);
           addToast({
             type: 'success',
-            title: 'Signed in with Google',
-            message: `Signed in as ${resumed.user.displayName || resumed.user.email || 'User'}.`,
+            title: t('app_toast_signed_in_title'),
+            message: t('app_toast_signed_in_msg', { name: resumed.user.displayName || resumed.user.email || t('app_student_fallback') }),
           });
         } else {
           addToast({
             type: 'info',
-            title: 'Signed in with Google',
-            message: `Signed in as ${resumed.user.displayName || resumed.user.email || 'User'}.`,
+            title: t('app_toast_signed_in_title'),
+            message: t('app_toast_signed_in_msg', { name: resumed.user.displayName || resumed.user.email || t('app_student_fallback') }),
           });
         }
       } catch {}
     })();
-  }, [runFullSync, addToast]);
+  }, [runFullSync, addToast, t]);
 
   // Manual Refresh All Data Button
   const handleRefreshAll = useCallback(async () => {
@@ -2143,13 +2150,13 @@ export default function App() {
       await runFullSync(false);
       addToast({
         type: 'info',
-        title: 'Everything Up to Date',
-        message: 'Refreshed Canvas LMS and your connected Google tools.',
+        title: t('app_toast_refresh_title'),
+        message: t('app_toast_refresh_msg'),
       });
     } finally {
       setIsRefreshingAll(false);
     }
-  }, [runFullSync, addToast]);
+  }, [runFullSync, addToast, t]);
 
   // 1. Auto-Sync on App Startup and when User Auth resolves or changes (wait for token hydration first)
   useEffect(() => {
@@ -2237,24 +2244,24 @@ export default function App() {
     } else {
       addToast({
         type: 'error',
-        title: context === 'gmail' ? 'Gmail Connection Failed' : 'Sign In Failed',
+        title: context === 'gmail' ? t('app_toast_gmail_fail_title') : t('app_toast_signin_fail_title'),
         message: `${diagnosis.detail} ${diagnosis.fix}`,
       });
     }
-  }, [addToast]);
+  }, [addToast, t]);
 
   // Popup-hostile browsers: full-page redirect to Google and back (basic sign-in only)
   const handleRedirectSignIn = useCallback(async (requestWorkspace = false) => {
     setIsLoggingIn(true);
     try {
-      addToast({ type: 'info', title: 'Redirecting to Google…', message: 'Sign in with your Google account and you will return right back to StudentOS.' });
+      addToast({ type: 'info', title: t('app_toast_redirect_title'), message: t('app_toast_redirect_msg') });
       await signInWithRedirectFlow({ requestWorkspace });
     } catch (err: any) {
       handleSignInFailure(err, 'workspace');
     } finally {
       setIsLoggingIn(false);
     }
-  }, [addToast, handleSignInFailure]);
+  }, [addToast, handleSignInFailure, t]);
 
   const syncFeatureByKey = useCallback(async (feature: GoogleFeature) => {
     switch (feature) {
@@ -2319,8 +2326,8 @@ export default function App() {
 
       addToast({
         type: 'success',
-        title: 'Signed in with Google',
-        message: `Welcome, ${result.user.displayName || result.user.email || 'Student'}! Calendar, Gmail, Drive, Docs, and Classroom will ask permission only when you open them.`,
+        title: t('app_toast_signed_in_title'),
+        message: t('app_toast_welcome_msg', { name: result.user.displayName || result.user.email || t('app_student_fallback') }),
         duration: 6000,
       });
     } catch (err: any) {
@@ -2341,8 +2348,8 @@ export default function App() {
           if (!signedIn?.user) {
             addToast({
               type: 'info',
-              title: 'Sign-In Cancelled',
-              message: 'Sign in with Google first when you are ready to connect this tool.',
+              title: t('app_toast_signin_cancel_title'),
+              message: t('app_toast_signin_cancel_msg'),
               duration: 4500,
             });
             return;
@@ -2361,8 +2368,8 @@ export default function App() {
         if (!token) {
           addToast({
             type: 'info',
-            title: 'Permission Not Granted',
-            message: 'No problem — StudentOS kept that tool off. You can connect it anytime when you need it.',
+            title: t('app_toast_perm_denied_title'),
+            message: t('app_toast_perm_denied_msg'),
             duration: 5000,
           });
           return;
@@ -2386,16 +2393,16 @@ export default function App() {
         }
 
         const labelMap: Record<GoogleFeature, string> = {
-          calendar: 'Google Calendar',
-          gmail: 'Gmail (Read-Only)',
-          drive: 'Google Drive & Docs',
-          sheets: 'Google Sheets',
-          classroom: 'Google Classroom',
+          calendar: t('app_feature_cal'),
+          gmail: t('app_feature_gmail'),
+          drive: t('app_feature_drive'),
+          sheets: t('app_feature_sheets'),
+          classroom: t('app_feature_cls'),
         };
         addToast({
           type: 'success',
-          title: `${labelMap[feature]} Connected`,
-          message: `Ready for ${activeUser.email || activeUser.displayName || 'your account'}.`,
+          title: t('app_toast_feature_connected', { feature: labelMap[feature] }),
+          message: t('app_toast_feature_ready', { name: activeUser.email || activeUser.displayName || t('app_your_account') }),
         });
       } catch (err: any) {
         handleSignInFailure(err, feature === 'gmail' ? 'gmail' : 'workspace');
@@ -2404,7 +2411,7 @@ export default function App() {
         setIsLoggingIn(false);
       }
     },
-    [user, addToast, handleSignInFailure, syncFeatureByKey]
+    [user, addToast, handleSignInFailure, syncFeatureByKey, t]
   );
 
   const confirmPermissionPrompt = async () => {
@@ -2433,10 +2440,10 @@ export default function App() {
     setMasterSheetUrl(undefined);
     addToast({
       type: 'info',
-      title: 'Google Workspace Disconnected',
-      message: 'Google Workspace token cleared. You can reconnect anytime.',
+      title: t('app_toast_google_disc_title'),
+      message: t('app_toast_google_disc_msg'),
     });
-  }, [addToast, user?.uid]);
+  }, [addToast, user?.uid, t]);
 
   // Logout Handler — sign out but KEEP this account's connection bundle
   // (Canvas settings + Google token vault + offline grant). The next login
@@ -2444,11 +2451,10 @@ export default function App() {
   const handleLogout = async () => {
     setConfirmationModal({
       isOpen: true,
-      title: 'Sign out?',
-      description:
-        'This signs you out. Your Canvas connection and Google Workspace grant stay saved for this account, so signing back in restores everything instantly. Use Disconnect inside the Google tabs to fully forget an account.',
+      title: t('app_signout_title'),
+      description: t('app_signout_desc'),
       isDestructive: false,
-      confirmLabel: 'Sign out',
+      confirmLabel: t('app_signout_confirm'),
       onConfirm: async () => {
         await signOutUser();
         setGoogleToken(null);
@@ -2463,8 +2469,8 @@ export default function App() {
         setMasterSheetUrl(undefined);
         addToast({
           type: 'info',
-          title: 'Signed out',
-          message: 'Connections stay saved for this account — sign back in to restore instantly.',
+          title: t('app_signout_done_title'),
+          message: t('app_signout_done_msg'),
         });
       },
     });
@@ -2484,9 +2490,9 @@ export default function App() {
         setAssignments((prev) => [...prev, added]);
         addToast({
           type: 'success',
-          title: 'Saved to Master Sheet',
-          message: `Added "${fullAssign.assignmentName}" to Google Sheets.`,
-          actionLabel: 'Open Sheet',
+          title: t('app_toast_sheet_saved_title'),
+          message: t('app_toast_added_msg', { name: fullAssign.assignmentName }),
+          actionLabel: t('open_sheet'),
           actionUrl: masterSheetUrl,
         });
       } catch (err: any) {
@@ -2494,16 +2500,16 @@ export default function App() {
         setAssignments((prev) => [...prev, fullAssign]);
         addToast({
           type: 'warning',
-          title: 'Saved Locally',
-          message: 'Could not append to Google Sheet. Saved locally in tracker.',
+          title: t('app_toast_local_saved_title'),
+          message: t('app_toast_local_saved_msg'),
         });
       }
     } else {
       setAssignments((prev) => [...prev, fullAssign]);
       addToast({
         type: 'success',
-        title: 'Assignment Added',
-        message: `Added "${fullAssign.assignmentName}" to Master Tracker.`,
+        title: t('app_toast_added_title'),
+        message: t('app_toast_added_local_msg', { name: fullAssign.assignmentName }),
       });
     }
   };
@@ -2512,6 +2518,12 @@ export default function App() {
   const handleUpdateStatus = async (assignment: Assignment, newStatus: AssignmentStatus) => {
     const updated = { ...assignment, status: newStatus };
     setAssignments((prev) => prev.map((a) => (a.id === assignment.id ? updated : a)));
+    const statusLabel =
+      newStatus === 'Done'
+        ? t('app_status_done')
+        : newStatus === 'In Progress'
+        ? t('app_status_in_progress')
+        : t('app_status_not_started');
 
     const token = hasFeatureAccess('sheets', authUidRef.current)
       ? await ensureFreshGoogleToken()
@@ -2521,8 +2533,8 @@ export default function App() {
         await updateAssignmentInSheet(token, masterSheetId, updated);
         addToast({
           type: 'info',
-          title: 'Status Updated in Sheet',
-          message: `Marked "${assignment.assignmentName}" as ${newStatus}.`,
+          title: t('app_toast_status_sheet_title'),
+          message: t('app_toast_status_msg', { name: assignment.assignmentName, status: statusLabel }),
         });
       } catch (err) {
         console.error('Error updating status in sheet:', err);
@@ -2530,8 +2542,8 @@ export default function App() {
     } else {
       addToast({
         type: 'info',
-        title: 'Status Updated',
-        message: `Marked "${assignment.assignmentName}" as ${newStatus}.`,
+        title: t('app_toast_status_title'),
+        message: t('app_toast_status_msg', { name: assignment.assignmentName, status: statusLabel }),
       });
     }
   };
@@ -2556,24 +2568,24 @@ export default function App() {
         setAssignments(synced);
         addToast({
           type: 'success',
-          title: 'Completed Tasks Cleared',
-          message: 'Cleaned finished assignments from your Master Google Sheet.',
+          title: t('app_toast_cleared_title'),
+          message: t('app_toast_cleared_sheet_msg'),
         });
       } catch (err: any) {
         console.error('Error clearing completed from sheet:', err);
         setAssignments(activeOnly);
         addToast({
           type: 'info',
-          title: 'Cleared Locally',
-          message: 'Removed finished tasks from local view.',
+          title: t('app_toast_cleared_local_title'),
+          message: t('app_toast_cleared_local_msg'),
         });
       }
     } else {
       setAssignments(activeOnly);
       addToast({
         type: 'success',
-        title: 'Completed Tasks Cleared',
-        message: 'Removed finished tasks from Master Tracker.',
+        title: t('app_toast_cleared_title'),
+        message: t('app_toast_cleared_tracker_msg'),
       });
     }
   };
@@ -2627,7 +2639,7 @@ export default function App() {
       aiEvidence: d.evidence || undefined,
     });
     if (d.alertId) dismissReview(d.alertId);
-    const edited = result.assignmentName !== d.assignmentName || result.subject !== (d.subject || 'General') || result.dueDate !== d.dueDate || result.priority !== d.priority;
+    const edited = result.assignmentName !== d.assignmentName || result.subject !== (d.subject || t('app_subject_general')) || result.dueDate !== d.dueDate || result.priority !== d.priority;
     logPilot(dueStatus === 'missing' ? 'ai_no_date' : dueStatus === 'unconfirmed' ? 'ai_later' : edited ? 'ai_edited' : 'ai_confirmed');
     setAiDraft(null);
   };
@@ -2637,7 +2649,7 @@ export default function App() {
     const next = assignments.map((a) => (a.id === target.id ? { ...a, dueStatus: 'confirmed' as const, updatedAt: new Date().toISOString() } : a));
     setAssignments(next);
     logPilot('due_confirmed');
-    addToast({ type: 'success', title: 'Đã xác nhận hạn nộp', message: `${target.assignmentName} · ${target.dueDate}` });
+    addToast({ type: 'success', title: t('app_toast_due_confirmed_title'), message: t('app_toast_due_confirmed_msg', { name: target.assignmentName, due: target.dueDate }) });
     try {
       const token = hasFeatureAccess('sheets', authUidRef.current)
         ? await ensureFreshGoogleToken()
@@ -2653,7 +2665,7 @@ export default function App() {
     if (d?.alertId) dismissReview(d.alertId);
     logPilot('ai_rejected');
     setAiDraft(null);
-    addToast({ type: 'info', title: 'Đã ghi nhận', message: 'Không lưu — thư vẫn còn trong hộp thư nếu bạn cần xem lại.' });
+    addToast({ type: 'info', title: t('app_toast_rejected_title'), message: t('app_toast_rejected_msg') });
   };
 
   // Schedule Study Block in Google Calendar
@@ -2691,9 +2703,9 @@ export default function App() {
 
         addToast({
           type: 'success',
-          title: 'Study Block Scheduled in Google Calendar!',
-          message: `Added focus session: "${eventData.title}"`,
-          actionLabel: 'Open Calendar',
+          title: t('app_toast_study_block_title'),
+          message: t('app_toast_study_block_msg', { title: eventData.title }),
+          actionLabel: t('app_open_calendar'),
           actionUrl: createdEvent.htmlLink || 'https://calendar.google.com',
         });
       } else if (isDemoModeRef.current) {
@@ -2710,8 +2722,8 @@ export default function App() {
         ]);
         addToast({
           type: 'success',
-          title: 'Study Block Added (Demo)',
-          message: `Added "${eventData.title}" to your demo schedule.`,
+          title: t('app_toast_demo_block_title'),
+          message: t('app_toast_demo_block_msg', { title: eventData.title }),
         });
       } else {
         promptConnectFeature('calendar', async () => {
@@ -2731,8 +2743,8 @@ export default function App() {
       }
       addToast({
         type: 'error',
-        title: err?.isServiceDisabled ? 'Google Calendar Unavailable' : 'Could Not Save Study Block',
-        message: err.message || 'Could not add that session to Google Calendar right now.',
+        title: err?.isServiceDisabled ? t('app_toast_cal_unavail') : t('app_toast_study_block_fail_title'),
+        message: err.message || t('app_toast_study_block_fail_msg'),
       });
     } finally {
       setIsScheduling(false);
@@ -2754,8 +2766,8 @@ export default function App() {
       window.open(`https://mail.google.com/mail/?${params.toString()}`, '_blank', 'noopener');
       addToast({
         type: 'success',
-        title: 'Đã mở Gmail',
-        message: `Thư gửi ${to || 'thầy cô'} đã điền sẵn — kiểm tra rồi bấm Gửi trong Gmail.`,
+        title: t('app_toast_gmail_draft_title'),
+        message: t('app_toast_gmail_draft_msg', { to: to || t('app_toast_gmail_draft_to_fallback') }),
       });
     } finally {
       setIsSavingDraft(false);
@@ -2791,7 +2803,7 @@ export default function App() {
       priority: canvasItem.pointsPossible && canvasItem.pointsPossible >= 50 ? 'High' : 'Med',
       status: 'Not Started',
       source: 'Canvas',
-      notes: canvasItem.description || `Canvas Assignment (${canvasItem.pointsPossible || 0} pts)`,
+      notes: canvasItem.description || t('app_canvas_note_pts', { pts: canvasItem.pointsPossible || 0 }),
     });
 
     setCanvasAssignments((prev) =>
@@ -2810,9 +2822,9 @@ export default function App() {
 
     addToast({
       type: 'success',
-      title: 'Canvas Batch Sync Complete',
-      message: `Added ${pending.length} pending Canvas tasks to your Master Google Sheet!`,
-      actionLabel: masterSheetUrl ? 'Open Sheet' : undefined,
+      title: t('app_toast_canvas_batch_title'),
+      message: t('app_toast_canvas_batch_msg', { count: pending.length }),
+      actionLabel: masterSheetUrl ? t('open_sheet') : undefined,
       actionUrl: masterSheetUrl,
     });
   };
@@ -2822,10 +2834,9 @@ export default function App() {
   const handleSubmitAssignment = async (assignment: CanvasAssignment, fileId: string) => {
     setConfirmationModal({
       isOpen: true,
-      title: 'Chia sẻ bài cho thầy cô?',
-      description:
-        'Để thầy cô mở được bài trên Canvas, file sẽ được đặt "Ai có đường liên kết đều xem được". Bạn có thể tắt lại trong Google Drive bất cứ lúc nào. Không đồng ý thì hãy tự chia sẻ file với email của thầy cô.',
-      confirmLabel: 'Đồng ý & nộp bài',
+      title: t('app_confirm_share_title'),
+      description: t('app_confirm_share_desc'),
+      confirmLabel: t('app_confirm_share_btn'),
       isDestructive: false,
       onConfirm: async () => {
         await submitAssignmentWithShare(assignment, fileId);
@@ -2896,15 +2907,15 @@ export default function App() {
 
       addToast({
         type: 'success',
-        title: 'Assignment Submitted!',
-        message: `Successfully shared and submitted "${assignment.name}" to Canvas.`,
+        title: t('app_toast_submitted_title'),
+        message: t('app_toast_submitted_msg', { name: assignment.name }),
       });
     } catch (err: any) {
       console.error('Canvas submit workflow error:', err);
       addToast({
         type: 'error',
-        title: 'Submission Failed',
-        message: err.message || 'Failed to complete Canvas submission.',
+        title: t('app_toast_submit_fail_title'),
+        message: err.message || t('app_toast_submit_fail_msg'),
       });
       throw err;
     }
@@ -3010,13 +3021,17 @@ export default function App() {
   // reducedMotion already handled via CSS prefers-reduced-motion + index.css; MotionConfig not required (motion 12 export issue avoided)
   return (
     <div className="h-screen max-h-screen overflow-hidden bg-[#F8F6F0] dark:bg-[#252320] text-[#2B2621] dark:text-[#F5F4ED] transition-colors duration-300 ease-[cubic-bezier(.22,1,.36,1)] flex flex-col font-sans selection:bg-[#E05D38] selection:text-white">
-      <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:bg-white dark:focus:bg-[#1A1917] focus:border focus:rounded-xl">Skip to content</a>
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:bg-white dark:focus:bg-[#1A1917] focus:border focus:rounded-xl">{t('shell_skip_to_content')}</a>
       {/* Demo Mode Top Alert */}
       {!user && isDemoMode && (
         <div className="bg-gradient-to-r from-indigo-600 to-violet-600 text-white px-4 py-2 text-xs font-semibold flex items-center justify-between shadow-xs z-50 shrink-0">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-amber-300 animate-pulse" />
-            <span>You are viewing in <strong>Live Demo Mode</strong>. Connect Google to sync live Canvas & Google Workspace.</span>
+            <span>
+              {t('app_demo_banner_prefix')}
+              <strong>{t('app_demo_banner_bold')}</strong>
+              {t('app_demo_banner_suffix')}
+            </span>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -3024,13 +3039,13 @@ export default function App() {
               disabled={isLoggingIn}
               className="px-3 py-1 bg-white text-indigo-700 hover:bg-indigo-50 rounded-lg text-xs font-bold transition-colors cursor-pointer"
             >
-              Sign In with Google
+              {t('app_demo_signin_btn')}
             </button>
             <button
               onClick={() => setIsDemoMode(false)}
               className="px-2 py-1 text-indigo-100 hover:text-white text-xs cursor-pointer"
             >
-              Exit Demo
+              {t('app_demo_exit_btn')}
             </button>
           </div>
         </div>
@@ -3039,7 +3054,7 @@ export default function App() {
       <div className="flex-1 flex overflow-hidden h-full">
         {/* Mobile hamburger — visible only <768px */}
         {!zenFocusMode && activeTab !== 'dashboard' && (
-          <button onClick={()=>setMobileNavOpen(v=>!v)} className="md:hidden fixed top-2 left-2 z-40 p-2 rounded-xl bg-white dark:bg-[#1A1917] border border-[#E8E6DC] dark:border-[#2C2B27] shadow-md" aria-label="Toggle navigation" aria-expanded={mobileNavOpen}>
+          <button onClick={()=>setMobileNavOpen(v=>!v)} className="md:hidden fixed top-2 left-2 z-40 p-2 rounded-xl bg-white dark:bg-[#1A1917] border border-[#E8E6DC] dark:border-[#2C2B27] shadow-md" aria-label={t('app_toggle_nav_aria')} aria-expanded={mobileNavOpen}>
             <span className="text-sm font-bold">☰</span>
           </button>
         )}
@@ -3048,7 +3063,7 @@ export default function App() {
           <div className="hidden md:flex shrink-0">
             <Sidebar
               activeTab={activeTab}
-              onSelectTab={(t)=>{ handleTabTransition(t); setMobileNavOpen(false); }}
+              onSelectTab={(tab)=>{ handleTabTransition(tab); setMobileNavOpen(false); }}
               isExpanded={isSidebarExpanded}
               onToggleExpand={toggleSidebar}
               user={user}
@@ -3078,7 +3093,7 @@ export default function App() {
             <div className="w-64 shrink-0 bg-[#F5F4ED] dark:bg-[#1A1917] border-r border-[#E8E6DC] dark:border-[#2C2B27] overflow-y-auto">
               <Sidebar
                 activeTab={activeTab}
-                onSelectTab={(t)=>{ handleTabTransition(t); setMobileNavOpen(false); }}
+                onSelectTab={(tab)=>{ handleTabTransition(tab); setMobileNavOpen(false); }}
                 isExpanded={true}
                 onToggleExpand={()=>setMobileNavOpen(false)}
                 user={user}
@@ -3101,7 +3116,7 @@ export default function App() {
                 }}
               />
             </div>
-            <button className="flex-1 bg-black/40 backdrop-blur-sm" onClick={()=>setMobileNavOpen(false)} aria-label="Close navigation" />
+            <button className="flex-1 bg-black/40 backdrop-blur-sm" onClick={()=>setMobileNavOpen(false)} aria-label={t('app_close_nav_aria')} />
           </div>
         )}
 
@@ -3109,9 +3124,9 @@ export default function App() {
         <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-[#F8F6F0] dark:bg-[#252320]">
           {/* Top Header — simplified & error-guarded */}
           {activeTab !== 'dashboard' && (
-            <ErrorBoundary fallback={<header className="h-12 bg-white dark:bg-[#141413] border-b border-[#E8E6DC] dark:border-[#2C2B27] px-4 sm:px-6 flex items-center justify-between z-20 text-xs font-semibold text-[#5E5D59]"><button onClick={() => window.dispatchEvent(new CustomEvent('scc-navigate', { detail: 'dashboard' }))} className="hover:text-[#C96442]">StudentOS / Dashboard</button></header>}>
+            <ErrorBoundary fallback={<header className="h-12 bg-white dark:bg-[#141413] border-b border-[#E8E6DC] dark:border-[#2C2B27] px-4 sm:px-6 flex items-center justify-between z-20 text-xs font-semibold text-[#5E5D59]"><button onClick={() => window.dispatchEvent(new CustomEvent('scc-navigate', { detail: 'dashboard' }))} className="hover:text-[#C96442]">{t('app_nav_fallback')}</button></header>}>
             <Navbar
-              activeTabLabel={TAB_LABELS[activeTab] || 'Workspace'}
+              activeTabLabel={t(TAB_LABEL_KEYS[activeTab] || 'nav_default_tab')}
               onOpenCommandPalette={() => setCommandPaletteOpen(true)}
               onToggleAiChat={() => setAiChatOpen(!aiChatOpen)}
               notifications={notifications}
@@ -3120,9 +3135,9 @@ export default function App() {
               isGoogleConnected={isGoogleConnected}
               isSyncingGoogle={isRefreshingAll}
               onNotificationClick={(n)=>{
-                if (n.source==='Canvas' || n.title?.includes('Canvas') || n.title?.includes('Deadline')) handleTabTransition('canvas');
+                if (n.source==='Canvas' || n.id.startsWith('urgent-due-')) handleTabTransition('canvas');
                 else if (n.source==='Google Drive') handleTabTransition('drive');
-                else if (n.source==='Gmail' || n.title?.includes('Email')) handleTabTransition('gmail');
+                else if (n.source==='Gmail') handleTabTransition('gmail');
                 else if (n.tier==='urgent') handleTabTransition('tracker');
                 else handleTabTransition('radar');
                 // pulse highlight after nav
@@ -3135,17 +3150,17 @@ export default function App() {
           {/* PWA Install Banner — simplified */}
           {showInstallBtn && !zenFocusMode && activeTab !== 'dashboard' && (
             <div className="mx-4 mt-2 p-3 bg-[#F5F4ED] dark:bg-[#1A1917] border border-[#E8E6DC] dark:border-[#2C2B27] rounded-2xl flex items-center justify-between text-xs shadow-sm">
-              <div className="flex items-center gap-2"><span>📲</span><span className="font-semibold">Install app for offline access</span></div>
+              <div className="flex items-center gap-2"><span>📲</span><span className="font-semibold">{t('app_install_banner_text')}</span></div>
               <div className="flex items-center gap-2">
-                <button onClick={handleInstallPwa} className="px-3 py-1.5 bg-[#C96442] text-white rounded-xl font-bold hover:bg-[#A94E33]">Install</button>
-                <button onClick={handleDismissPwa} className="px-2 py-1 text-[#5E5D59] hover:text-[#141413] dark:hover:text-[#F5F4ED]">Later</button>
+                <button onClick={handleInstallPwa} className="px-3 py-1.5 bg-[#C96442] text-white rounded-xl font-bold hover:bg-[#A94E33]">{t('app_install_btn')}</button>
+                <button onClick={handleDismissPwa} className="px-2 py-1 text-[#5E5D59] hover:text-[#141413] dark:hover:text-[#F5F4ED]">{t('app_install_later')}</button>
               </div>
             </div>
           )}
 
           {/* Main Area: Full-Screen AI Coach View OR Tab Workspaces — lazy + suspense + error boundary */}
           {aiChatOpen ? (
-            <Suspense fallback={<div className="flex-1 flex items-center justify-center p-8"><div className="w-6 h-6 border-2 border-[#C96442] border-t-transparent rounded-full animate-spin" /><span className="ml-2 text-xs text-[#5E5D59]">Loading AI Coach…</span></div>}>
+            <Suspense fallback={<div className="flex-1 flex items-center justify-center p-8"><div className="w-6 h-6 border-2 border-[#C96442] border-t-transparent rounded-full animate-spin" /><span className="ml-2 text-xs text-[#5E5D59]">{t('app_loading_coach')}</span></div>}>
               <StudyAssistantChat
                 isOpen={true}
                 onClose={() => setAiChatOpen(false)}
@@ -3156,9 +3171,9 @@ export default function App() {
               />
             </Suspense>
           ) : (
-            <main id="main-content" className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-6 min-h-0" aria-label="Workspace content">
-              <ErrorBoundary fallback={<div className="p-6 rounded-2xl border border-rose-200 bg-rose-50 text-rose-900 text-sm">Workspace failed to load. Try refreshing or switching tabs.</div>}>
-              <Suspense fallback={<div className="p-8 flex items-center justify-center"><div className="w-6 h-6 border-2 border-[#D97757] border-t-transparent rounded-full animate-spin" /><span className="ml-2 text-xs text-[#8C897F]">Loading workspace…</span></div>}>
+            <main id="main-content" className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-6 min-h-0" aria-label={t('shell_content_aria')}>
+              <ErrorBoundary fallback={<div className="p-6 rounded-2xl border border-rose-200 bg-rose-50 text-rose-900 text-sm">{t('app_workspace_fallback')}</div>}>
+              <Suspense fallback={<div className="p-8 flex items-center justify-center"><div className="w-6 h-6 border-2 border-[#D97757] border-t-transparent rounded-full animate-spin" /><span className="ml-2 text-xs text-[#8C897F]">{t('app_loading_workspace')}</span></div>}>
               <div className="max-w-7xl mx-auto space-y-6 enter">
                 {/* Google Workspace Connection Banner: only when no usable grant
                     exists. Access renews silently via the offline grant, so no
@@ -3638,9 +3653,9 @@ export default function App() {
         onAddAssignments={(newItems: Partial<Assignment>[]) => {
           newItems.forEach((item: Partial<Assignment>) => {
             handleAddAssignment({
-              assignmentName: item.assignmentName || 'Assignment',
-              subject: item.subject || 'General',
-              dueDate: item.dueDate || 'Upcoming',
+              assignmentName: item.assignmentName || t('app_notif_assignment_fallback'),
+              subject: item.subject || t('app_subject_general'),
+              dueDate: item.dueDate || t('app_due_upcoming_fallback'),
               priority: (item.priority as PriorityLevel) || 'Med',
               status: (item.status as AssignmentStatus) || 'Not Started',
               notes: item.notes || '',
@@ -3673,7 +3688,7 @@ export default function App() {
       <StudyCardModal
         isOpen={isStudyCardOpen}
         onClose={() => setIsStudyCardOpen(false)}
-        userName={user?.displayName || 'Student'}
+        userName={user?.displayName || t('app_student_fallback')}
         completedTasksCount={assignments.filter((a) => a.status === 'Done').length}
       />
       )}
@@ -3683,7 +3698,7 @@ export default function App() {
       <MorningCheckInModal
         isOpen={isMorningCheckInOpen}
         onClose={() => setIsMorningCheckInOpen(false)}
-        userName={user?.displayName || 'Student'}
+        userName={user?.displayName || t('app_student_fallback')}
         onSaveIntention={handleSaveMorningIntention}
       />
       )}
@@ -3713,8 +3728,8 @@ export default function App() {
           setZenFocusMode(true);
           addToast({
             type: 'info',
-            title: `${mins}-Minute Focus Session`,
-            message: `Pomodoro timer set to ${mins} minutes — press Start when ready.`,
+            title: t('app_toast_pomo_title', { mins }),
+            message: t('app_toast_pomo_msg', { mins }),
           });
         }}
       />
@@ -3738,13 +3753,13 @@ export default function App() {
       <ToastContainer toasts={toasts} onDismiss={dismissToast} onRetry={(id:string)=>{
         // Expiry toasts reconnect Google; others run their own retry handler
         try {
-          const t = toasts.find((x) => x.id === id) as any;
-          if (t?.reconnectGoogle) {
+          const toastItem = toasts.find((x) => x.id === id) as any;
+          if (toastItem?.reconnectGoogle) {
             dismissToast(id);
             handleGoogleSignIn(false);
             return;
           }
-          if (typeof t?.onRetry === 'function') t.onRetry();
+          if (typeof toastItem?.onRetry === 'function') toastItem.onRetry();
         } catch {}
         dismissToast(id);
       }} onUndo={(id:string)=>{
@@ -3755,7 +3770,7 @@ export default function App() {
             const a = sanitizeAssignments([JSON.parse(raw)])[0];
             if (a) setAssignments(prev=> [...prev, a]);
             localStorage.removeItem('scc_last_deleted_assignment');
-            addToast({ type:'success', title:'Restored', message: a?.assignmentName ?? 'Task' });
+            addToast({ type:'success', title: t('app_toast_restored_title'), message: a?.assignmentName ?? t('app_toast_restored_fallback') });
           }
         } catch {}
         dismissToast(id);

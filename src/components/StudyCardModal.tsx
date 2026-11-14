@@ -4,13 +4,9 @@ import {
   Download,
   Share2,
   Check,
-  Sparkles,
   Trophy,
-  Flame,
-  Clock,
-  BookOpen,
-  Calendar,
 } from 'lucide-react';
+import { useT } from '../services/i18n';
 
 interface StudyCardModalProps {
   isOpen: boolean;
@@ -25,16 +21,20 @@ interface StudyCardModalProps {
 export const StudyCardModal: React.FC<StudyCardModalProps> = ({
   isOpen,
   onClose,
-  userName = 'Student',
+  userName,
   focusMinutes = 320,
   completedTasksCount = 12,
   streakDays = 5,
-  topSubject = 'Computer Science',
+  topSubject,
 }) => {
+  const { t, formatDate } = useT();
   const cardRef = useRef<HTMLDivElement>(null);
   const [copied, setCopied] = useState(false);
 
   if (!isOpen) return null;
+
+  const displayName = userName || t('studycard_default_user');
+  const displaySubject = topSubject || t('studycard_default_subject');
 
   const handleShareLink = async () => {
     const showCopiedFeedback = () => {
@@ -74,7 +74,7 @@ export const StudyCardModal: React.FC<StudyCardModalProps> = ({
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `StudentOS-StudyCard-${userName.replace(/\s+/g, '_')}.svg`;
+    link.download = `StudentOS-StudyCard-${displayName.replace(/\s+/g, '_')}.svg`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -92,13 +92,14 @@ export const StudyCardModal: React.FC<StudyCardModalProps> = ({
               <Trophy className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-xs font-bold text-[#141413] dark:text-[#FAF9F5]">Study Card Generator</h3>
-              <p className="text-[10px] text-[#8C897F]">Shareable academic summary</p>
+              <h3 className="text-xs font-bold text-[#141413] dark:text-[#FAF9F5]">{t('studycard_title')}</h3>
+              <p className="text-[10px] text-[#8C897F]">{t('studycard_sub')}</p>
             </div>
           </div>
 
           <button
             onClick={onClose}
+            aria-label={t('close')}
             className="p-1.5 text-[#8C897F] hover:text-[#141413] dark:hover:text-[#FAF9F5] rounded-lg cursor-pointer"
           >
             <X className="w-4 h-4" />
@@ -129,31 +130,31 @@ export const StudyCardModal: React.FC<StudyCardModalProps> = ({
             
             {/* Header / Brand */}
             <rect x="20" y="20" width="8" height="8" rx="2" fill="url(#accentGrad)" />
-            <text x="36" y="28" fill="#FAF9F5" fontSize="11" fontWeight="bold" fontFamily="sans-serif">STUDENTOS • STUDY REPORT</text>
-            <text x="340" y="28" fill="#8C897F" fontSize="10" fontFamily="sans-serif" textAnchor="end">{new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</text>
+            <text x="36" y="28" fill="#FAF9F5" fontSize="11" fontWeight="bold" fontFamily="sans-serif">{t('studycard_svg_header')}</text>
+            <text x="340" y="28" fill="#8C897F" fontSize="10" fontFamily="sans-serif" textAnchor="end">{formatDate(new Date())}</text>
 
             {/* User Name */}
-            <text x="20" y="65" fill="#FAF9F5" fontSize="18" fontWeight="bold" fontFamily="sans-serif">{userName}</text>
-            <text x="20" y="82" fill="#8C897F" fontSize="10" fontFamily="sans-serif">Focus Domain: {topSubject}</text>
+            <text x="20" y="65" fill="#FAF9F5" fontSize="18" fontWeight="bold" fontFamily="sans-serif">{displayName}</text>
+            <text x="20" y="82" fill="#8C897F" fontSize="10" fontFamily="sans-serif">{t('studycard_focus_domain', { subject: displaySubject })}</text>
 
             {/* Metrics Grid Boxes */}
             {/* Box 1: Focus Minutes */}
             <rect x="20" y="105" width="96" height="60" rx="10" fill="#252422" stroke="#33322E" strokeWidth="1" />
-            <text x="28" y="123" fill="#8C897F" fontSize="9" fontWeight="bold" fontFamily="sans-serif">DEEP WORK</text>
-            <text x="28" y="148" fill="#FAF9F5" fontSize="16" fontWeight="bold" fontFamily="sans-serif">{focusMinutes}m</text>
+            <text x="28" y="123" fill="#8C897F" fontSize="9" fontWeight="bold" fontFamily="sans-serif">{t('studycard_deep_work')}</text>
+            <text x="28" y="148" fill="#FAF9F5" fontSize="16" fontWeight="bold" fontFamily="sans-serif">{t('studycard_minutes_short', { mins: focusMinutes })}</text>
 
             {/* Box 2: Tasks Done */}
             <rect x="132" y="105" width="96" height="60" rx="10" fill="#252422" stroke="#33322E" strokeWidth="1" />
-            <text x="140" y="123" fill="#8C897F" fontSize="9" fontWeight="bold" fontFamily="sans-serif">TASKS DONE</text>
+            <text x="140" y="123" fill="#8C897F" fontSize="9" fontWeight="bold" fontFamily="sans-serif">{t('studycard_tasks_done')}</text>
             <text x="140" y="148" fill="#FAF9F5" fontSize="16" fontWeight="bold" fontFamily="sans-serif">{completedTasksCount}</text>
 
             {/* Box 3: Streak */}
             <rect x="244" y="105" width="96" height="60" rx="10" fill="#252422" stroke="#33322E" strokeWidth="1" />
-            <text x="252" y="123" fill="#8C897F" fontSize="9" fontWeight="bold" fontFamily="sans-serif">DAY STREAK</text>
-            <text x="252" y="148" fill="#D97757" fontSize="16" fontWeight="bold" fontFamily="sans-serif">{streakDays} Days</text>
+            <text x="252" y="123" fill="#8C897F" fontSize="9" fontWeight="bold" fontFamily="sans-serif">{t('studycard_day_streak')}</text>
+            <text x="252" y="148" fill="#D97757" fontSize="16" fontWeight="bold" fontFamily="sans-serif">{t('studycard_days_count', { days: streakDays })}</text>
 
             {/* Card Footer */}
-            <text x="20" y="195" fill="#5C5A54" fontSize="9" fontFamily="sans-serif">Verified In-Browser Student Workspace</text>
+            <text x="20" y="195" fill="#5C5A54" fontSize="9" fontFamily="sans-serif">{t('studycard_footer')}</text>
             <text x="340" y="195" fill="#D97757" fontSize="9" fontWeight="bold" fontFamily="sans-serif" textAnchor="end">student-os.app</text>
           </svg>
         </div>
@@ -165,7 +166,7 @@ export const StudyCardModal: React.FC<StudyCardModalProps> = ({
             className="px-4 py-2.5 bg-[#D97757] hover:bg-[#C86646] text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
           >
             <Download className="w-3.5 h-3.5" />
-            <span>Download Card</span>
+            <span>{t('studycard_download')}</span>
           </button>
 
           <button
@@ -173,7 +174,7 @@ export const StudyCardModal: React.FC<StudyCardModalProps> = ({
             className="px-4 py-2.5 bg-[#FAF9F5] dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] hover:border-[#D97757] text-[#141413] dark:text-[#FAF9F5] rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
           >
             {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Share2 className="w-3.5 h-3.5" />}
-            <span>{copied ? 'Link Copied' : 'Share Workspace'}</span>
+            <span>{copied ? t('studycard_copied') : t('studycard_share')}</span>
           </button>
         </div>
 

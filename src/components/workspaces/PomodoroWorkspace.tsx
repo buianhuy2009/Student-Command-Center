@@ -16,16 +16,16 @@ import {
   FileText,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { ambientAudio, AMBIENT_TRACKS, TrackId } from '../../services/ambientAudio';
+import { ambientAudio, AMBIENT_TRACKS, getAmbientTrackShortLabel, TrackId } from '../../services/ambientAudio';
 import { usePomodoroStore, recordStreakDate } from '../../stores/pomodoroStore';
-import { t, useLang } from '../../services/i18n';
+import { useT } from '../../services/i18n';
 
 export interface PomodoroWorkspaceProps {
   initialMinutes?: number;
 }
 
 export const PomodoroWorkspace: React.FC<PomodoroWorkspaceProps> = ({ initialMinutes }) => {
-  useLang();
+  const { lang, t } = useT();
   // Timer States
   const initialWorkMins = typeof initialMinutes === 'number' && initialMinutes > 0 ? initialMinutes : 25;
   const [mode, setMode] = useState<'work' | 'short' | 'long'>('work');
@@ -52,7 +52,7 @@ export const PomodoroWorkspace: React.FC<PomodoroWorkspaceProps> = ({ initialMin
 
   // Screen-reader live announcement (throttled to minute changes) + title countdown refs
   const originalTitleRef = useRef<string>('');
-  const lastAnnouncedMinuteRef = useRef<number>(-1);
+  const lastAnnouncedKeyRef = useRef<string>('');
   const [liveAnnouncement, setLiveAnnouncement] = useState<string>('');
 
   // Ambient Sound Engine (shared singleton service)
@@ -139,27 +139,32 @@ export const PomodoroWorkspace: React.FC<PomodoroWorkspaceProps> = ({ initialMin
       const s = timeLeftSeconds % 60;
       const mmss = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
       const label = mode === 'work' ? t('focus') : t('pom_break');
-      document.title = `(${mmss}) ${label} • Student Command Center`;
+      document.title = `(${mmss}) ${label} • ${t('pom_doc_brand')}`;
     } else if (document.title !== originalTitleRef.current) {
       document.title = originalTitleRef.current;
     }
-  }, [isRunning, timeLeftSeconds, mode]);
+  }, [isRunning, timeLeftSeconds, mode, lang, t]);
 
-  // Screen-reader announcement: update at most once per minute to avoid spam
+  // Screen-reader announcement: update at most once per minute (or on mode/language change)
   useEffect(() => {
     const minsLeft = Math.ceil(timeLeftSeconds / 60);
-    if (minsLeft !== lastAnnouncedMinuteRef.current) {
-      lastAnnouncedMinuteRef.current = minsLeft;
+    const key = `${minsLeft}:${timeLeftSeconds <= 0 ? 'done' : 'run'}:${mode}:${lang}`;
+    if (key !== lastAnnouncedKeyRef.current) {
+      lastAnnouncedKeyRef.current = key;
       const label = mode === 'work' ? t('focus') : t('pom_break');
       if (timeLeftSeconds <= 0) {
         setLiveAnnouncement(`${label} ${t('pom_finished_suffix')}`);
       } else {
         setLiveAnnouncement(
-          `${t('pom_left_prefix')} ${minsLeft} ${minsLeft === 1 ? t('pom_min_one') : t('pom_mins_other')} ${label}${t('pom_left_suffix')}`
+          t('pom_time_left_announce', {
+            mins: minsLeft,
+            unit: minsLeft === 1 ? t('pom_unit_min_one') : t('pom_unit_min_other'),
+            mode: label,
+          })
         );
       }
     }
-  }, [timeLeftSeconds, mode]);
+  }, [timeLeftSeconds, mode, lang, t]);
   // Onboarding ("Start Pomodoro") reads localStorage `scc_pomo_completed_v1`
   // (see OnboardingChecklist + pomodoroStore). This workspace does not use the
   // store, so mirror its format (integer string) with a minimal try/catch write.
@@ -410,7 +415,7 @@ export const PomodoroWorkspace: React.FC<PomodoroWorkspaceProps> = ({ initialMin
                       : 'bg-[#FAF9F5] dark:bg-[#1F1E1B] border-[#DFDACB] dark:border-[#2C2B27] text-[#5C5A54] dark:text-[#B5B2A8] hover:border-[#D97757]/60'
                   }`}
                 >
-                  {snd.shortLabel}
+                  {getAmbientTrackShortLabel(snd.id)}
                 </button>
               ))}
             </div>
@@ -426,6 +431,7 @@ export const PomodoroWorkspace: React.FC<PomodoroWorkspaceProps> = ({ initialMin
                   step="0.05"
                   value={soundVolume}
                   onChange={(e) => setSoundVolume(parseFloat(e.target.value))}
+                  aria-label={t('pom_volume_aria')}
                   className="w-full accent-[#D97757] cursor-pointer"
                 />
                 <span className="text-[11px] font-mono text-[#8C897F] w-10 text-right">

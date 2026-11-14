@@ -7,6 +7,7 @@ import {
   AlertCircle,
   ShieldCheck,
 } from 'lucide-react';
+import { useT } from '../services/i18n';
 
 interface IframeErrorBoundaryProps {
   title: string;
@@ -26,6 +27,7 @@ export const IframeErrorBoundary: React.FC<IframeErrorBoundaryProps> = ({
   sandbox = 'allow-forms allow-modals allow-popups allow-presentation allow-same-origin allow-scripts',
   allowFullscreen = true,
 }) => {
+  const { t } = useT();
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -67,7 +69,7 @@ export const IframeErrorBoundary: React.FC<IframeErrorBoundaryProps> = ({
           </span>
           <span className="hidden sm:inline-flex items-center gap-1 text-[10px] text-[#8C897F] font-mono px-1.5 py-0.5 rounded bg-white dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27]">
             <ShieldCheck className="w-2.5 h-2.5 text-emerald-600" />
-            Sandbox Active
+            {t('iframe_protected')}
           </span>
         </div>
 
@@ -75,7 +77,7 @@ export const IframeErrorBoundary: React.FC<IframeErrorBoundaryProps> = ({
           <button
             onClick={handleReload}
             className="p-1.5 text-[#5C5A54] dark:text-[#B5B2A8] hover:text-[#D97757] hover:bg-[#EFECE2] dark:hover:bg-[#2C2A26] rounded-lg transition-colors cursor-pointer"
-            title="Reload Frame"
+            title={t('iframe_reload_title')}
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-[#D97757]' : ''}`} />
           </button>
@@ -85,16 +87,16 @@ export const IframeErrorBoundary: React.FC<IframeErrorBoundaryProps> = ({
             target="_blank"
             rel="noreferrer"
             className="px-2.5 py-1 text-[11px] font-semibold text-[#5C5A54] dark:text-[#B5B2A8] hover:text-[#D97757] hover:bg-[#EFECE2] dark:hover:bg-[#2C2A26] rounded-lg transition-colors flex items-center gap-1"
-            title="Open in New Tab"
+            title={t('iframe_open_tab_title')}
           >
-            <span>Open in Tab</span>
+            <span>{t('iframe_open_tab')}</span>
             <ExternalLink className="w-3 h-3" />
           </a>
 
           <button
             onClick={() => setIsFullscreen(!isFullscreen)}
             className="p-1.5 text-[#5C5A54] dark:text-[#B5B2A8] hover:text-[#D97757] hover:bg-[#EFECE2] dark:hover:bg-[#2C2A26] rounded-lg transition-colors cursor-pointer"
-            title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+            title={isFullscreen ? t('desm_exit') : t('iframe_fullscreen')}
           >
             {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
           </button>
@@ -107,7 +109,7 @@ export const IframeErrorBoundary: React.FC<IframeErrorBoundaryProps> = ({
         {isLoading && (
           <div className="absolute inset-0 bg-[#FAF9F5]/90 dark:bg-[#141413]/90 backdrop-blur-xs flex flex-col items-center justify-center gap-2 z-10">
             <RefreshCw className="w-6 h-6 text-[#D97757] animate-spin" />
-            <p className="text-xs text-[#8C897F] font-medium">Connecting to {title}...</p>
+            <p className="text-xs text-[#8C897F] font-medium">{t('iframe_connecting', { title })}</p>
           </div>
         )}
 
@@ -116,10 +118,10 @@ export const IframeErrorBoundary: React.FC<IframeErrorBoundaryProps> = ({
           <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center bg-[#FAF9F5] dark:bg-[#1F1E1B]">
             <AlertCircle className="w-10 h-10 text-amber-500 mb-2" />
             <h4 className="text-sm font-bold text-[#141413] dark:text-[#FAF9F5]">
-              Unable to Display Embedded View
+              {t('iframe_blocked_title')}
             </h4>
             <p className="text-xs text-[#8C897F] max-w-sm mt-1">
-              Your browser or school firewall restricts embedding this service via iframe.
+              {t('iframe_blocked_desc')}
             </p>
             <a
               href={src}
@@ -127,7 +129,7 @@ export const IframeErrorBoundary: React.FC<IframeErrorBoundaryProps> = ({
               rel="noreferrer"
               className="mt-4 px-4 py-2 bg-[#D97757] hover:bg-[#C86646] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs transition-colors"
             >
-              <span>Open {title} in New Tab</span>
+              <span>{t('iframe_open_external', { title })}</span>
               <ExternalLink className="w-3.5 h-3.5" />
             </a>
           </div>

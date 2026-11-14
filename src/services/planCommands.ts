@@ -5,6 +5,8 @@
 /* calls: importable from Node (eval scripts) and vitest alike.        */
 /* ------------------------------------------------------------------ */
 
+import { t, type Lang } from './i18n';
+
 export type Period = 'morning' | 'afternoon' | 'evening';
 
 export interface PlanBlockLite {
@@ -54,6 +56,7 @@ export interface OpsResponse {
 export interface ApplyContext {
   days: string[];
   busy: BusyLite[];
+  lang?: Lang;
 }
 
 export interface ApplyResult {
@@ -78,7 +81,11 @@ export const PERIOD_WINDOWS: Record<Period, [number, number]> = {
   evening: [1140, 1320], // tối 19:00-22:00
 };
 const PERIOD_ORDER: Period[] = ['morning', 'afternoon', 'evening'];
-const PERIOD_VI: Record<Period, string> = { morning: 'sáng', afternoon: 'chiều', evening: 'tối' };
+const PERIOD_KEY: Record<Period, string> = {
+  morning: 'pc_period_morning',
+  afternoon: 'pc_period_afternoon',
+  evening: 'pc_period_evening',
+};
 const ALL_WINDOWS: Array<[number, number]> = PERIOD_ORDER.map((p) => PERIOD_WINDOWS[p]);
 /** Where a displaced session goes when nothing better is known: evenings are the usual self-study time. */
 const RELOCATE_WINDOWS: Array<[number, number]> = [PERIOD_WINDOWS.evening, PERIOD_WINDOWS.afternoon, PERIOD_WINDOWS.morning];
@@ -119,6 +126,12 @@ export function weekdayVi(iso: string): string {
   return d < 0 ? iso : VI_WEEKDAYS[d];
 }
 
+export function weekdayLabel(iso: string, lang: Lang = 'vi'): string {
+  const d = dowOf(iso);
+  if (d < 0) return iso;
+  return lang === 'en' ? EN_WEEKDAYS[d] : VI_WEEKDAYS[d];
+}
+
 const pad2 = (n: number) => `${n}`.padStart(2, '0');
 
 /** Minutes since midnight → "HH:MM" (24h). */
@@ -127,17 +140,17 @@ export function hhmm(min: number): string {
   return `${pad2(Math.floor(m / 60))}:${pad2(m % 60)}`;
 }
 
-/** Vietnamese short label: `Toán · Thứ 3 19:00–20:00`. */
-export function describeBlock(b: PlanBlockLite): string {
-  return `${b.subject} · ${weekdayVi(b.dayISO)} ${hhmm(b.startMin)}–${hhmm(b.endMin)}`;
+/** Localized short label: `Toán · Thứ 3 19:00–20:00` / `Math · Tuesday 19:00–20:00`. */
+export function describeBlock(b: PlanBlockLite, lang: Lang = 'vi'): string {
+  return `${b.subject} · ${weekdayLabel(b.dayISO, lang)} ${hhmm(b.startMin)}–${hhmm(b.endMin)}`;
 }
 
-function slotLabel(dayISO: string, s: number, e: number): string {
-  return `${weekdayVi(dayISO)} ${hhmm(s)}–${hhmm(e)}`;
+function slotLabel(dayISO: string, s: number, e: number, lang: Lang = 'vi'): string {
+  return `${weekdayLabel(dayISO, lang)} ${hhmm(s)}–${hhmm(e)}`;
 }
 
-export function lockedMessage(b: PlanBlockLite): string {
-  return `Buổi "${b.title}" (${weekdayVi(b.dayISO)} ${hhmm(b.startMin)}) đã khoá nên mình giữ nguyên.`;
+export function lockedMessage(b: PlanBlockLite, lang: Lang = 'vi'): string {
+  return t('pc_locked_msg', { title: b.title, day: weekdayLabel(b.dayISO, lang), time: hhmm(b.startMin) }, lang);
 }
 
 const overlaps = (s1: number, e1: number, s2: number, e2: number) => s1 < e2 && s2 < e1;
@@ -230,13 +243,13 @@ function dropClashingBreaks(list: PlanBlockLite[], busy: BusyLite[]): PlanBlockL
 }
 
 /** Keep chat replies short: ≤3 detail lines, else a summary + two examples. */
-function pushSummary(out: string[], summary: string, details: string[]) {
+function pushSummary(out: string[], summary: string, details: string[], lang: Lang = 'vi') {
   if (details.length === 0) return;
   if (details.length <= 3) {
     out.push(...details);
     return;
   }
-  out.push(summary, ...details.slice(0, 2), `…và ${details.length - 2} buổi khác.`);
+  out.push(summary, ...details.slice(0, 2), t('pc_more_sessions', { count: details.length - 2 }, lang));
 }
 
 /* ------------------------------------------------------------------ */
@@ -436,8 +449,12 @@ export function applyOps(blocks: PlanBlockLite[], ops: PlanOp[], ctx: ApplyConte
   const refused: string[] = [];
   const days = ctx?.days || [];
   const busy = ctx?.busy || [];
+  const lang: Lang = ctx?.lang ?? 'vi';
   const daySet = new Set(days);
   let seq = 0;
+  const periodLabel = (p: Period) => t(PERIOD_KEY[p], undefined, lang);
+  const whereLabel = (dayISO: string, p?: Period) =>
+    p ? `${periodLabel(p)} ${weekdayLabel(dayISO, lang)}` : weekdayLabel(dayISO, lang);
 
   const byId = (id: string) => work.find((b) => b.id === id);
   const newId = (prefix: string) => {
@@ -494,10 +511,10 @@ export function applyOps(blocks: PlanBlockLite[], ops: PlanOp[], ctx: ApplyConte
     const longOnes = work.filter((b) => isSession(b) && b.endMin - b.startMin > max);
     for (const b of longOnes) {
       if (b.locked) {
-        refused.push(lockedMessage(b));
+        refused.push(lockedMessage(b, lang));
         continue;
       }
-      const before = describeBlock(b);
+      const before = describeBlock(b, lang);
       const total = b.endMin - b.startMin;
       // Split evenly (60 → 30+30, 75 → 40+35) instead of leaving a 15-minute stub.
       const n = Math.ceil(total / max);
@@ -541,20 +558,20 @@ export function applyOps(blocks: PlanBlockLite[], ops: PlanOp[], ctx: ApplyConte
           endMin: slot[1] + piece,
           locked: false,
           manual: false,
-          reason: `Phần tiếp theo của "${b.title}" (mỗi buổi tối đa ${max} phút).`,
+          reason: t('pc_cap_reason', { title: b.title, max }, lang),
         };
         work.push(nb);
-        parts.push(slotLabel(nb.dayISO, nb.startMin, nb.endMin));
+        parts.push(slotLabel(nb.dayISO, nb.startMin, nb.endMin, lang));
         remainder -= piece;
         cursor = slot[0] === b.dayISO ? nb.endMin + STEP : cursor;
       }
       changed += 1;
       const tail = parts.length
-        ? `; phần còn lại: ${parts.join(', ')}`
+        ? t('pc_cap_tail_parts', { parts: parts.join(', ') }, lang)
         : remainder >= MIN_SESSION
-          ? ` (không còn chỗ trống cho ${remainder} phút còn lại)`
+          ? t('pc_cap_tail_none', { mins: remainder }, lang)
           : '';
-      lines.push(`Rút ${before} còn ${pieces[0]} phút${tail}.`);
+      lines.push(t('pc_cap_line', { before, mins: pieces[0], tail }, lang));
     }
     return { lines, changed };
   };
@@ -573,16 +590,16 @@ export function applyOps(blocks: PlanBlockLite[], ops: PlanOp[], ctx: ApplyConte
       case 'move': {
         const b = byId(op.blockId);
         if (!b || !isSession(b)) {
-          refused.push('Mình không tìm thấy buổi học cần dời.');
+          refused.push(t('pc_move_not_found', undefined, lang));
           break;
         }
         if (b.locked) {
-          refused.push(lockedMessage(b));
+          refused.push(lockedMessage(b, lang));
           break;
         }
         const day = op.toDayISO || b.dayISO;
         if (!daySet.has(day)) {
-          refused.push(`Ngày ${day} nằm ngoài tuần đang xếp nên mình chưa dời "${b.title}".`);
+          refused.push(t('pc_move_out_of_week', { day, title: b.title }, lang));
           break;
         }
         const dur0 = b.endMin - b.startMin;
@@ -608,21 +625,21 @@ export function applyOps(blocks: PlanBlockLite[], ops: PlanOp[], ctx: ApplyConte
             ? b.startMin
             : findSlot(work, busy, day, dur, windowsFor(b.startMin), ignore);
         } else {
-          refused.push(`Mình chưa rõ muốn dời "${b.title}" đi đâu.`);
+          refused.push(t('pc_move_unclear', { title: b.title }, lang));
           break;
         }
         if (start === null) {
-          const where = op.period ? `${PERIOD_VI[op.period]} ${weekdayVi(day)}` : weekdayVi(day);
-          refused.push(`Không còn chỗ trống ${where} cho "${b.title}" nên mình giữ nguyên ${describeBlock(b)}.`);
+          const where = whereLabel(day, op.period);
+          refused.push(t('pc_move_no_slot', { where, title: b.title, block: describeBlock(b, lang) }, lang));
           break;
         }
         if (start === b.startMin && day === b.dayISO && start + dur === b.endMin) {
-          applied.push(`"${b.title}" đã ở ${slotLabel(day, start, start + dur)} rồi.`);
+          applied.push(t('pc_move_already', { title: b.title, slot: slotLabel(day, start, start + dur, lang) }, lang));
           break;
         }
-        const before = describeBlock(b);
+        const before = describeBlock(b, lang);
         relocate(b, day, start, start + dur);
-        applied.push(`Đã dời ${before} → ${slotLabel(day, start, start + dur)}.`);
+        applied.push(t('pc_move_done', { before, slot: slotLabel(day, start, start + dur, lang) }, lang));
         break;
       }
 
@@ -630,12 +647,12 @@ export function applyOps(blocks: PlanBlockLite[], ops: PlanOp[], ctx: ApplyConte
         const a = byId(op.a);
         const c = byId(op.b);
         if (!a || !c || !isSession(a) || !isSession(c)) {
-          refused.push('Mình không tìm thấy đủ hai buổi để đổi chỗ.');
+          refused.push(t('pc_swap_not_found', undefined, lang));
           break;
         }
         if (a.locked || c.locked) {
-          if (a.locked) refused.push(lockedMessage(a));
-          if (c.locked) refused.push(lockedMessage(c));
+          if (a.locked) refused.push(lockedMessage(a, lang));
+          if (c.locked) refused.push(lockedMessage(c, lang));
           break;
         }
         const da = a.endMin - a.startMin;
@@ -655,51 +672,51 @@ export function applyOps(blocks: PlanBlockLite[], ops: PlanOp[], ctx: ApplyConte
         }
         const ignore = new Set([a.id, c.id]);
         if (!isFree(work, busy, aNew[0], aNew[1], aNew[1] + da, ignore) || !isFree(work, busy, cNew[0], cNew[1], cNew[1] + dc, ignore)) {
-          refused.push(`Đổi chỗ ${describeBlock(a)} và ${describeBlock(c)} sẽ bị trùng lịch nên mình giữ nguyên.`);
+          refused.push(t('pc_swap_conflict', { a: describeBlock(a, lang), b: describeBlock(c, lang) }, lang));
           break;
         }
-        const la = describeBlock(a);
-        const lc = describeBlock(c);
+        const la = describeBlock(a, lang);
+        const lc = describeBlock(c, lang);
         relocate(a, aNew[0], aNew[1], aNew[1] + da);
         relocate(c, cNew[0], cNew[1], cNew[1] + dc);
-        applied.push(`Đã đổi chỗ ${la} ⇄ ${lc}.`);
+        applied.push(t('pc_swap_done', { a: la, b: lc }, lang));
         break;
       }
 
       case 'clear_day': {
         if (!daySet.has(op.dayISO)) {
-          refused.push(`Ngày ${op.dayISO} nằm ngoài tuần đang xếp.`);
+          refused.push(t('pc_day_out_of_week', { day: op.dayISO }, lang));
           break;
         }
         const win: [number, number] = op.period ? PERIOD_WINDOWS[op.period] : [0, 1440];
-        const where = op.period ? `${PERIOD_VI[op.period]} ${weekdayVi(op.dayISO)}` : weekdayVi(op.dayISO);
+        const where = whereLabel(op.dayISO, op.period);
         const inWindow = (b: PlanBlockLite) => b.dayISO === op.dayISO && overlaps(b.startMin, b.endMin, win[0], win[1]);
         // Breathers in the cleared span simply go.
         work = work.filter((b) => !(b.kind === 'break' && !b.locked && inWindow(b)));
         const targets = work.filter((b) => isSession(b) && inWindow(b));
         if (targets.length === 0) {
-          applied.push(`${where[0].toUpperCase()}${where.slice(1)} vốn đã trống — không cần dời gì.`);
+          applied.push(t('pc_clear_already', { where: `${where[0].toUpperCase()}${where.slice(1)}` }, lang));
           break;
         }
         const avoid = (d: string, s: number, e: number) => (d === op.dayISO && overlaps(s, e, win[0], win[1])) || inCleared(d, s, e);
         const details: string[] = [];
         for (const b of targets) {
           if (b.locked) {
-            refused.push(lockedMessage(b));
+            refused.push(lockedMessage(b, lang));
             continue;
           }
           const slot = relocateAnywhere(b, RELOCATE_WINDOWS, { avoid, sameDayFirst: !!op.period });
           if (!slot) {
-            refused.push(`Không còn chỗ trống trong tuần cho "${b.title}" — buổi này vẫn ở ${describeBlock(b)}.`);
+            refused.push(t('pc_clear_no_slot', { title: b.title, block: describeBlock(b, lang) }, lang));
             continue;
           }
-          const before = describeBlock(b);
+          const before = describeBlock(b, lang);
           relocate(b, slot[0], slot[1], slot[1] + (b.endMin - b.startMin));
-          details.push(`Dời ${before} → ${slotLabel(b.dayISO, b.startMin, b.endMin)}.`);
+          details.push(t('pc_moved_arrow', { before, slot: slotLabel(b.dayISO, b.startMin, b.endMin, lang) }, lang));
         }
         if (details.length > 0) {
-          applied.push(`Đã để trống ${where}.`);
-          pushSummary(applied, `Đã dời ${details.length} buổi sang chỗ trống khác:`, details);
+          applied.push(t('pc_clear_done', { where }, lang));
+          pushSummary(applied, t('pc_clear_summary', { count: details.length }, lang), details, lang);
         }
         break;
       }
@@ -707,22 +724,22 @@ export function applyOps(blocks: PlanBlockLite[], ops: PlanOp[], ctx: ApplyConte
       case 'remove': {
         const b = byId(op.blockId);
         if (!b) {
-          refused.push('Mình không tìm thấy buổi học cần bỏ.');
+          refused.push(t('pc_remove_not_found', undefined, lang));
           break;
         }
         if (b.locked) {
-          refused.push(lockedMessage(b));
+          refused.push(lockedMessage(b, lang));
           break;
         }
         dropPairedBreak(b);
         work = work.filter((x) => x.id !== b.id);
-        applied.push(`Đã bỏ ${describeBlock(b)}.`);
+        applied.push(t('pc_remove_done', { block: describeBlock(b, lang) }, lang));
         break;
       }
 
       case 'add': {
         if (!daySet.has(op.dayISO)) {
-          refused.push(`Ngày ${op.dayISO} nằm ngoài tuần đang xếp.`);
+          refused.push(t('pc_day_out_of_week', { day: op.dayISO }, lang));
           break;
         }
         const dur = clamp(op.endMin - op.startMin, MIN_SESSION, MAX_SESSION);
@@ -739,7 +756,7 @@ export function applyOps(blocks: PlanBlockLite[], ops: PlanOp[], ctx: ApplyConte
           if (start === null) start = findSlot(work, busy, op.dayISO, dur, RELOCATE_WINDOWS, new Set());
         }
         if (start === null) {
-          refused.push(`Không còn chỗ trống ${weekdayVi(op.dayISO)} để thêm buổi ${op.subject}.`);
+          refused.push(t('pc_add_no_slot', { day: weekdayLabel(op.dayISO, lang), subject: op.subject }, lang));
           break;
         }
         const nb: PlanBlockLite = {
@@ -749,11 +766,11 @@ export function applyOps(blocks: PlanBlockLite[], ops: PlanOp[], ctx: ApplyConte
           dayISO: op.dayISO,
           startMin: start,
           endMin: start + dur,
-          reason: 'Bạn yêu cầu thêm buổi này.',
+          reason: t('pc_add_reason', undefined, lang),
           kind: 'study',
         };
         work.push(nb);
-        applied.push(`Đã thêm ${describeBlock(nb)}.`);
+        applied.push(t('pc_add_done', { block: describeBlock(nb, lang) }, lang));
         break;
       }
 
@@ -761,8 +778,8 @@ export function applyOps(blocks: PlanBlockLite[], ops: PlanOp[], ctx: ApplyConte
         const max = clamp(Math.round(op.maxMinutes), MIN_SESSION, MAX_SESSION);
         const refusedBefore = refused.length;
         const { lines, changed } = capSessions(max);
-        pushSummary(applied, `Đã rút ${changed} buổi còn tối đa ${max} phút:`, lines);
-        if (changed === 0 && refused.length === refusedBefore) applied.push(`Mọi buổi đều không dài quá ${max} phút rồi.`);
+        pushSummary(applied, t('pc_cap_summary', { count: changed, max }, lang), lines, lang);
+        if (changed === 0 && refused.length === refusedBefore) applied.push(t('pc_cap_already', { max }, lang));
         break;
       }
 
@@ -770,52 +787,52 @@ export function applyOps(blocks: PlanBlockLite[], ops: PlanOp[], ctx: ApplyConte
         const limit = clamp(Math.round(op.minute), 60, 1440);
         const late = work.filter((b) => isSession(b) && b.endMin > limit);
         if (late.length === 0) {
-          applied.push(`Không có buổi nào kết thúc sau ${hhmm(limit)}.`);
+          applied.push(t('pc_latest_already', { time: hhmm(limit) }, lang));
           break;
         }
         const details: string[] = [];
         for (const b of late) {
           if (b.locked) {
-            refused.push(lockedMessage(b));
+            refused.push(lockedMessage(b, lang));
             continue;
           }
           const slot = relocateAnywhere(b, RELOCATE_WINDOWS, { maxEnd: limit, sameDayFirst: true });
           if (!slot) {
-            refused.push(`Không còn chỗ trống trước ${hhmm(limit)} cho "${b.title}" — vẫn giữ ${describeBlock(b)}.`);
+            refused.push(t('pc_latest_no_slot', { time: hhmm(limit), title: b.title, block: describeBlock(b, lang) }, lang));
             continue;
           }
-          const before = describeBlock(b);
+          const before = describeBlock(b, lang);
           relocate(b, slot[0], slot[1], slot[1] + (b.endMin - b.startMin));
-          details.push(`Dời ${before} → ${slotLabel(b.dayISO, b.startMin, b.endMin)}.`);
+          details.push(t('pc_moved_arrow', { before, slot: slotLabel(b.dayISO, b.startMin, b.endMin, lang) }, lang));
         }
-        if (details.length) applied.push(`Mọi buổi giờ xong trước ${hhmm(limit)}.`);
-        pushSummary(applied, `Đã dời ${details.length} buổi:`, details);
+        if (details.length) applied.push(t('pc_latest_done', { time: hhmm(limit) }, lang));
+        pushSummary(applied, t('pc_moved_summary', { count: details.length }, lang), details, lang);
         break;
       }
 
       case 'no_mornings': {
         const targets = work.filter((b) => isSession(b) && b.startMin < 720);
         if (targets.length === 0) {
-          applied.push('Không có buổi sáng nào cần dời.');
+          applied.push(t('pc_no_mornings_none', undefined, lang));
           break;
         }
         const details: string[] = [];
         for (const b of targets) {
           if (b.locked) {
-            refused.push(lockedMessage(b));
+            refused.push(lockedMessage(b, lang));
             continue;
           }
           const slot = relocateAnywhere(b, [PERIOD_WINDOWS.afternoon, PERIOD_WINDOWS.evening], { sameDayFirst: true });
           if (!slot) {
-            refused.push(`Không còn chỗ chiều/tối cho "${b.title}" — vẫn giữ ${describeBlock(b)}.`);
+            refused.push(t('pc_no_mornings_no_slot', { title: b.title, block: describeBlock(b, lang) }, lang));
             continue;
           }
-          const before = describeBlock(b);
+          const before = describeBlock(b, lang);
           relocate(b, slot[0], slot[1], slot[1] + (b.endMin - b.startMin));
-          details.push(`Dời ${before} → ${slotLabel(b.dayISO, b.startMin, b.endMin)}.`);
+          details.push(t('pc_moved_arrow', { before, slot: slotLabel(b.dayISO, b.startMin, b.endMin, lang) }, lang));
         }
-        if (details.length) applied.push('Không còn buổi học nào vào buổi sáng.');
-        pushSummary(applied, `Đã dời ${details.length} buổi sáng sang chiều/tối:`, details);
+        if (details.length) applied.push(t('pc_no_mornings_done', undefined, lang));
+        pushSummary(applied, t('pc_no_mornings_summary', { count: details.length }, lang), details, lang);
         break;
       }
 
@@ -827,12 +844,12 @@ export function applyOps(blocks: PlanBlockLite[], ops: PlanOp[], ctx: ApplyConte
           const dur = b.endMin - b.startMin;
           const s = findSlot(work, busy, b.dayISO, dur, [PERIOD_WINDOWS.evening], new Set([b.id]));
           if (s === null) continue;
-          const before = describeBlock(b);
+          const before = describeBlock(b, lang);
           relocate(b, b.dayISO, s, s + dur);
-          details.push(`Dời ${before} → ${slotLabel(b.dayISO, s, s + dur)}.`);
+          details.push(t('pc_moved_arrow', { before, slot: slotLabel(b.dayISO, s, s + dur, lang) }, lang));
         }
-        if (details.length === 0) applied.push('Buổi tối đã kín hoặc lịch đã ưu tiên buổi tối — mình giữ nguyên.');
-        else pushSummary(applied, `Đã chuyển ${details.length} buổi sang buổi tối:`, details);
+        if (details.length === 0) applied.push(t('pc_evenings_none', undefined, lang));
+        else pushSummary(applied, t('pc_evenings_summary', { count: details.length }, lang), details, lang);
         break;
       }
 
@@ -847,18 +864,25 @@ export function applyOps(blocks: PlanBlockLite[], ops: PlanOp[], ctx: ApplyConte
           if (hasBreak || !isFree(work, busy, b.dayISO, bs, be, new Set())) continue;
           work.push({
             id: newId(`${b.id}-brk`),
-            title: 'Break',
-            subject: 'Recharge',
+            title: t('pc_break_title', undefined, lang),
+            subject: t('pc_break_subject', undefined, lang),
             dayISO: b.dayISO,
             startMin: bs,
             endMin: be,
-            reason: 'Nghỉ ngắn 10 phút để giữ tập trung.',
+            reason: t('pc_break_reason', undefined, lang),
             kind: 'break',
           });
           added += 1;
         }
         applied.push(
-          `Thêm thời gian nghỉ: ${changed > 0 ? `chia ${changed} buổi dài thành buổi 45 phút, ` : ''}chèn ${added} quãng nghỉ 10 phút.`,
+          t(
+            'pc_breaks_done',
+            {
+              split: changed > 0 ? t('pc_breaks_split_part', { count: changed }, lang) : '',
+              added,
+            },
+            lang,
+          ),
         );
         break;
       }

@@ -11,6 +11,7 @@ import {
   Bookmark,
   LayoutDashboard,
 } from 'lucide-react';
+import { useT } from '../services/i18n';
 
 interface AppLogoProps {
   id: string;
@@ -19,6 +20,7 @@ interface AppLogoProps {
 }
 
 export const AppLogo: React.FC<AppLogoProps> = ({ id, size = 'md', className = '' }) => {
+  const { t } = useT();
   const sizeClasses = {
     sm: 'w-7 h-7 text-xs rounded-lg',
     md: 'w-10 h-10 text-sm rounded-xl',
@@ -41,7 +43,7 @@ export const AppLogo: React.FC<AppLogoProps> = ({ id, size = 'md', className = '
     case 'drive':
     case 'google-drive':
       return (
-        <div aria-label="Google Drive" className={`${sizeClasses} ${tileBase} ${tileLight} ${className}`}>
+        <div aria-label={t('logo_drive')} className={`${sizeClasses} ${tileBase} ${tileLight} ${className}`}>
           <svg className={iconSizes} viewBox="0 0 87.3 78" aria-hidden="true">
             <path d="M6.6 66.85l3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8H0c0 1.55.4 3.1 1.2 4.5z" fill="#0066DA" />
             <path d="M43.65 25L29.9 1.2c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44c-.8 1.4-1.2 2.95-1.2 4.5h27.4z" fill="#00AC47" />
@@ -56,7 +58,7 @@ export const AppLogo: React.FC<AppLogoProps> = ({ id, size = 'md', className = '
     case 'gmail':
     case 'google-mail':
       return (
-        <div aria-label="Gmail" className={`${sizeClasses} ${tileBase} ${tileLight} ${className}`}>
+        <div aria-label={t('logo_gmail')} className={`${sizeClasses} ${tileBase} ${tileLight} ${className}`}>
           <svg className={iconSizes} viewBox="0 0 24 24" aria-hidden="true">
             <rect x="2" y="4.5" width="20" height="15" rx="2.5" fill="#4285F4" />
             <path d="M2.8 6.2 12 13l9.2-6.8c-.2-.9-1-1.7-2-1.7H4.8c-1 0-1.8.8-2 1.7z" fill="#EA4335" />
@@ -70,7 +72,7 @@ export const AppLogo: React.FC<AppLogoProps> = ({ id, size = 'md', className = '
     case 'classroom':
     case 'google-classroom':
       return (
-        <div aria-label="Google Classroom" className={`${sizeClasses} ${tileBase} bg-[#137333] border-[#0E5A28] ${className}`}>
+        <div aria-label={t('logo_classroom')} className={`${sizeClasses} ${tileBase} bg-[#137333] border-[#0E5A28] ${className}`}>
           <svg className={iconSizes} viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <circle cx="12" cy="8.5" r="2.2" fill="#FFFFFF" />
             <path d="M8 15c0-2.2 1.8-4 4-4s4 1.8 4 4H8z" fill="#FFFFFF" />
@@ -84,7 +86,7 @@ export const AppLogo: React.FC<AppLogoProps> = ({ id, size = 'md', className = '
 
     case 'canvas':
       return (
-        <div aria-label="Canvas LMS" className={`${sizeClasses} ${tileBase} ${tileGradientBorder} bg-gradient-to-br from-[#E72429] to-[#C91A1E] text-white font-bold ${className}`}>
+        <div aria-label={t('logo_canvas')} className={`${sizeClasses} ${tileBase} ${tileGradientBorder} bg-gradient-to-br from-[#E72429] to-[#C91A1E] text-white font-bold ${className}`}>
           <svg className={iconSizes} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <circle cx="12" cy="3.5" r="2" />
             <circle cx="18" cy="6" r="2" />
@@ -101,14 +103,14 @@ export const AppLogo: React.FC<AppLogoProps> = ({ id, size = 'md', className = '
 
     case 'desmos-graphing':
       return (
-        <div aria-label="Desmos Graphing" className={`${sizeClasses} bg-[#0b864a] text-white flex items-center justify-center font-bold shadow-sm shadow-emerald-700/20 shrink-0 ${className}`}>
+        <div aria-label={t('logo_desmos')} className={`${sizeClasses} bg-[#0b864a] text-white flex items-center justify-center font-bold shadow-sm shadow-emerald-700/20 shrink-0 ${className}`}>
           <span className="font-serif italic font-black text-lg lowercase select-none leading-none">d</span>
         </div>
       );
 
     case 'geogebra':
       return (
-        <div aria-label="GeoGebra" className={`${sizeClasses} bg-gradient-to-br from-[#1565C0] to-[#0D47A1] text-white flex items-center justify-center font-bold shadow-sm shadow-blue-600/20 shrink-0 ${className}`}>
+        <div aria-label={t('logo_geogebra')} className={`${sizeClasses} bg-gradient-to-br from-[#1565C0] to-[#0D47A1] text-white flex items-center justify-center font-bold shadow-sm shadow-blue-600/20 shrink-0 ${className}`}>
           <svg className={iconSizes} viewBox="0 0 24 24" aria-hidden="true">
             <ellipse cx="12" cy="12" rx="8.5" ry="5.5" stroke="white" strokeWidth="1.8" fill="none" transform="rotate(-25 12 12)" />
             <circle cx="7" cy="8" r="2" fill="white" />
@@ -121,7 +123,7 @@ export const AppLogo: React.FC<AppLogoProps> = ({ id, size = 'md', className = '
 
     case 'phet':
       return (
-        <div aria-label="PhET" className={`${sizeClasses} bg-[#1E398B] text-white flex items-center justify-center font-bold shadow-sm shadow-blue-900/20 shrink-0 ${className}`}>
+        <div aria-label={t('logo_phet')} className={`${sizeClasses} bg-[#1E398B] text-white flex items-center justify-center font-bold shadow-sm shadow-blue-900/20 shrink-0 ${className}`}>
           <svg className={iconSizes} viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <ellipse cx="12" cy="12" rx="9" ry="3.5" stroke="#EE7321" strokeWidth="1.8" transform="rotate(30 12 12)" />
             <ellipse cx="12" cy="12" rx="9" ry="3.5" stroke="#4FC3F7" strokeWidth="1.8" transform="rotate(-30 12 12)" />
@@ -132,70 +134,70 @@ export const AppLogo: React.FC<AppLogoProps> = ({ id, size = 'md', className = '
 
     case 'flashcards':
       return (
-        <div aria-label="Flashcards (SM-2)" className={`${sizeClasses} bg-gradient-to-br from-[#4257B2] to-[#2E3E85] text-white flex items-center justify-center font-bold shadow-sm shadow-blue-700/20 shrink-0 ${className}`}>
+        <div aria-label={t('logo_flashcards')} className={`${sizeClasses} bg-gradient-to-br from-[#4257B2] to-[#2E3E85] text-white flex items-center justify-center font-bold shadow-sm shadow-blue-700/20 shrink-0 ${className}`}>
           <Layers className={iconSizes} aria-hidden="true" />
         </div>
       );
 
     case 'excalidraw':
       return (
-        <div aria-label="Excalidraw" className={`${sizeClasses} bg-gradient-to-br from-[#6965DB] to-[#5046E5] text-white flex items-center justify-center font-bold shadow-sm shadow-indigo-500/20 shrink-0 ${className}`}>
+        <div aria-label={t('logo_excalidraw')} className={`${sizeClasses} bg-gradient-to-br from-[#6965DB] to-[#5046E5] text-white flex items-center justify-center font-bold shadow-sm shadow-indigo-500/20 shrink-0 ${className}`}>
           <PenTool className={iconSizes} aria-hidden="true" />
         </div>
       );
 
     case 'radar':
       return (
-        <div aria-label="Daily Schedule & AI Planner" className={`${sizeClasses} ${tileBase} ${tileGradientBorder} bg-gradient-to-br from-[#10B981] to-[#059669] text-white font-bold ${className}`}>
+        <div aria-label={t('logo_radar')} className={`${sizeClasses} ${tileBase} ${tileGradientBorder} bg-gradient-to-br from-[#10B981] to-[#059669] text-white font-bold ${className}`}>
           <Compass className={iconSizes} aria-hidden="true" />
         </div>
       );
 
     case 'tracker':
       return (
-        <div aria-label="Assignment Tracker" className={`${sizeClasses} ${tileBase} ${tileGradientBorder} bg-gradient-to-br from-[#6366F1] to-[#4F46E5] text-white font-bold ${className}`}>
+        <div aria-label={t('logo_tracker')} className={`${sizeClasses} ${tileBase} ${tileGradientBorder} bg-gradient-to-br from-[#6366F1] to-[#4F46E5] text-white font-bold ${className}`}>
           <CheckSquare className={iconSizes} aria-hidden="true" />
         </div>
       );
 
     case 'pomodoro':
       return (
-        <div aria-label="Pomodoro Focus" className={`${sizeClasses} ${tileBase} ${tileGradientBorder} bg-gradient-to-br from-[#EF4444] to-[#DC2626] text-white font-bold ${className}`}>
+        <div aria-label={t('logo_pomodoro')} className={`${sizeClasses} ${tileBase} ${tileGradientBorder} bg-gradient-to-br from-[#EF4444] to-[#DC2626] text-white font-bold ${className}`}>
           <Timer className={iconSizes} aria-hidden="true" />
         </div>
       );
 
     case 'arxiv':
       return (
-        <div aria-label="arXiv Papers" className={`${sizeClasses} bg-gradient-to-br from-[#B91C1C] to-[#991B1B] text-white flex items-center justify-center font-bold shadow-sm shrink-0 ${className}`}>
+        <div aria-label={t('logo_arxiv')} className={`${sizeClasses} bg-gradient-to-br from-[#B91C1C] to-[#991B1B] text-white flex items-center justify-center font-bold shadow-sm shrink-0 ${className}`}>
           <BookOpen className={iconSizes} aria-hidden="true" />
         </div>
       );
 
     case 'open-library':
       return (
-        <div aria-label="Open Library" className={`${sizeClasses} bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] text-white flex items-center justify-center font-bold shadow-sm shrink-0 ${className}`}>
+        <div aria-label={t('logo_open_library')} className={`${sizeClasses} bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] text-white flex items-center justify-center font-bold shadow-sm shrink-0 ${className}`}>
           <Bookmark className={iconSizes} aria-hidden="true" />
         </div>
       );
 
     case 'notes-markdown':
       return (
-        <div aria-label="Markdown Notes" className={`${sizeClasses} bg-gradient-to-br from-[#2563EB] to-[#1D4ED8] text-white flex items-center justify-center font-bold shadow-sm shrink-0 ${className}`}>
+        <div aria-label={t('logo_notes')} className={`${sizeClasses} bg-gradient-to-br from-[#2563EB] to-[#1D4ED8] text-white flex items-center justify-center font-bold shadow-sm shrink-0 ${className}`}>
           <FileText className={iconSizes} aria-hidden="true" />
         </div>
       );
 
     case 'ai-suite':
       return (
-        <div aria-label="AI Academic Suite" className={`${sizeClasses} bg-gradient-to-br from-[#E11D48] to-[#9F1239] text-white flex items-center justify-center font-bold shadow-sm shrink-0 ${className}`}>
+        <div aria-label={t('logo_ai_suite')} className={`${sizeClasses} bg-gradient-to-br from-[#E11D48] to-[#9F1239] text-white flex items-center justify-center font-bold shadow-sm shrink-0 ${className}`}>
           <Sparkles className={iconSizes} aria-hidden="true" />
         </div>
       );
 
     case 'dashboard':
       return (
-        <div aria-label="Dashboard Home" className={`${sizeClasses} bg-gradient-to-br from-[#D97757] to-[#B85638] text-white flex items-center justify-center font-bold shadow-sm shadow-[#D97757]/20 shrink-0 ${className}`}>
+        <div aria-label={t('logo_dashboard')} className={`${sizeClasses} bg-gradient-to-br from-[#D97757] to-[#B85638] text-white flex items-center justify-center font-bold shadow-sm shadow-[#D97757]/20 shrink-0 ${className}`}>
           <LayoutDashboard className={iconSizes} aria-hidden="true" />
         </div>
       );

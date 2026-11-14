@@ -59,10 +59,58 @@ import {
 } from '../services/gemini/providers';
 import { loadCanvasSettings, saveCanvasSettings } from '../services/canvas';
 import { hasFeatureAccess, type GoogleFeature } from '../services/googleAuth';
-import { t, useLang } from '../services/i18n';
+import { useT } from '../services/i18n';
 import { LanguageToggle } from './LanguageToggle';
+import { CURRENT_VERSION } from './ChangelogModal';
 import { setNasaApodEnabled } from '../hooks/useNasaApod';
 import { fetchNasaApodV2, NASA_APOD_CACHE_KEY, NASA_APOD_TOGGLE_EVENT } from '../services/publicApis';
+
+const NAV_ITEMS = [
+  { id: 'general', labelKey: 'settings_nav_general', subKey: 'settings_sub_general', icon: Sliders },
+  { id: 'models', labelKey: 'settings_nav_models', subKey: 'settings_sub_models', icon: Bot },
+  { id: 'sync', labelKey: 'settings_nav_sync', subKey: 'settings_sub_sync', icon: Globe },
+  { id: 'appearance', labelKey: 'settings_nav_appearance', subKey: 'settings_sub_appearance', icon: Palette },
+  { id: 'shortcuts', labelKey: 'settings_nav_shortcuts', subKey: 'settings_sub_shortcuts', icon: Keyboard },
+  { id: 'integrations', labelKey: 'settings_nav_integrations', subKey: 'settings_sub_integrations', icon: Layers },
+  { id: 'support', labelKey: 'settings_nav_support', subKey: 'settings_sub_support', icon: HelpCircle },
+] as const;
+
+const AVATAR_OPTIONS = [
+  { id: 'grad', labelKey: 'avatar_scholar', bg: 'bg-[#C96442]' },
+  { id: 'book', labelKey: 'avatar_researcher', bg: 'bg-[#5E5D59]' },
+  { id: 'bot', labelKey: 'avatar_cybernetic', bg: 'bg-[#141413] dark:bg-[#F5F4ED]' },
+  { id: 'zap', labelKey: 'avatar_polymath', bg: 'bg-[#A94E33]' },
+] as const;
+
+const DENSITY_OPTIONS = [
+  { id: 'compact', labelKey: 'settings_density_compact' },
+  { id: 'comfortable', labelKey: 'settings_density_comfortable' },
+  { id: 'spacious', labelKey: 'settings_density_spacious' },
+] as const;
+
+const PALETTE_OPTIONS = [
+  { id: 'linen', nameKey: 'settings_palette_light', color: 'bg-[#E8E6DC] text-[#141413] border-[#E8E6DC]', accent: 'bg-[#C96442]' },
+  { id: 'midnight', nameKey: 'settings_palette_dark', color: 'bg-[#141413] text-[#F5F4ED] border-[#2C2B27]', accent: 'bg-[#C96442]' },
+] as const;
+
+const SHORTCUT_ITEMS = [
+  { labelKey: 'settings_sc_canvas', key: '1', settingKey: 'tab1' },
+  { labelKey: 'settings_sc_schedule', key: '2', settingKey: 'tab2' },
+  { labelKey: 'settings_sc_tracker', key: '3', settingKey: 'tab3' },
+  { labelKey: 'settings_sc_gmail', key: '4', settingKey: 'tab4' },
+  { labelKey: 'settings_sc_drive', key: '5', settingKey: 'tab5' },
+  { labelKey: 'settings_sc_search', key: 'Cmd+K', settingKey: 'search' },
+  { labelKey: 'settings_sc_sync', key: 'R', settingKey: 'sync' },
+  { labelKey: 'settings_sc_esc', key: 'Esc', settingKey: 'esc' },
+] as const;
+
+const GOOGLE_TOOLS = [
+  { id: 'calendar', labelKey: 'settings_tool_cal_label', descKey: 'settings_tool_cal_desc' },
+  { id: 'gmail', labelKey: 'settings_tool_gmail_label', descKey: 'settings_tool_gmail_desc' },
+  { id: 'drive', labelKey: 'settings_tool_drive_label', descKey: 'settings_tool_drive_desc' },
+  { id: 'sheets', labelKey: 'settings_tool_sheets_label', descKey: 'settings_tool_sheets_desc' },
+  { id: 'classroom', labelKey: 'settings_tool_classroom_label', descKey: 'settings_tool_classroom_desc' },
+] as const satisfies ReadonlyArray<{ id: GoogleFeature; labelKey: string; descKey: string }>;
 
 export interface ShortcutSettings {
   masterEnabled: boolean;
@@ -158,7 +206,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
   onDismissPwa,
 }) => {
   const [activeSection, setActiveSection] = useState<SettingsSection>('general');
-  useLang();
+  const { t } = useT();
   const [, setGoogleScopeTick] = useState(0);
   useEffect(() => {
     const bump = () => setGoogleScopeTick((n) => n + 1);
@@ -260,7 +308,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
     localStorage.removeItem('scc_emails_cache_v3');
     localStorage.removeItem(NASA_APOD_CACHE_KEY);
     setShowSemesterResetModal(false);
-    alert('Semester reset complete. Local records have been cleared for the new term.');
+    alert(t('settings_reset_done_alert'));
     window.location.reload();
   };
 
@@ -308,42 +356,50 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
 
   if (!isOpen) return null;
 
+  const formatExpiryLabel = (s: ReturnType<typeof getExpiryStatus>) => {
+    if (s.state === 'none') return '';
+    if (s.state === 'expired') return t('ai_key_expired');
+    if (s.daysLeft === 0) return t('ai_key_expires_today');
+    if (s.daysLeft === 1) return t('ai_key_expires_in_one', { days: 1 });
+    return t('ai_key_expires_in_other', { days: s.daysLeft ?? 0 });
+  };
+
   const handleSaveKeys = () => {
     setClientGeminiApiKey(geminiKey);
     setClientGroqApiKey(groqKey);
     try { setGeminiKeyExpiry(geminiExpiry ? geminiExpiry : null); } catch {}
     try { setGroqKeyExpiry(groqExpiry ? groqExpiry : null); } catch {}
-    setGeminiStatusMsg('Keys saved locally.');
+    setGeminiStatusMsg(t('settings_keys_saved_msg'));
   };
 
   const handleSaveCanvasConnection = () => {
     try {
       const current = loadCanvasSettings();
       saveCanvasSettings({ ...current, apiDomain: canvasDomain.trim(), apiToken: canvasToken.trim() });
-      setCanvasSaveMsg('Canvas domain + token saved. Press Save & Sync in Canvas tab to apply.');
+      setCanvasSaveMsg(t('settings_canvas_saved_msg'));
     } catch {
-      setCanvasSaveMsg('Could not save Canvas settings.');
+      setCanvasSaveMsg(t('settings_canvas_save_err'));
     }
   };
 
   const handleTestGemini = async () => {
     if (!geminiKey.trim()) {
       setGeminiTestStatus('failed');
-      setGeminiStatusMsg('Please enter a Gemini API key.');
+      setGeminiStatusMsg(t('settings_gemini_test_enter'));
       return;
     }
     setIsTestingGemini(true);
     setGeminiTestStatus('idle');
-    setGeminiStatusMsg('Testing Gemini 2.5 Flash connection...');
+    setGeminiStatusMsg(t('settings_gemini_testing'));
     const ok = await testGeminiApiKey(geminiKey);
     setIsTestingGemini(false);
     if (ok) {
       setGeminiTestStatus('success');
-      setGeminiStatusMsg('Gemini Connection Verified! Ready for multimodal & schema tasks.');
+      setGeminiStatusMsg(t('settings_gemini_test_ok'));
       setClientGeminiApiKey(geminiKey);
     } else {
       setGeminiTestStatus('failed');
-      setGeminiStatusMsg('Connection failed. Please check your key.');
+      setGeminiStatusMsg(t('settings_gemini_test_fail'));
     }
   };
 
@@ -374,15 +430,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
     }));
   };
 
-  const navItems: Array<{ id: SettingsSection; label: string; icon: any }> = [
-    { id: 'general', label: 'General', icon: Sliders },
-    { id: 'models', label: 'Models & AI Keys', icon: Bot },
-    { id: 'sync', label: 'Connections', icon: Globe },
-    { id: 'appearance', label: 'Appearance', icon: Palette },
-    { id: 'shortcuts', label: 'Shortcuts', icon: Keyboard },
-    { id: 'integrations', label: 'Integrations & LMS', icon: Layers },
-    { id: 'support', label: 'Help & Support', icon: HelpCircle },
-  ];
+  const currentNavItem = NAV_ITEMS.find((n) => n.id === activeSection) || NAV_ITEMS[0];
 
   return (
     <div className="fixed inset-0 bg-[#141413]/70 backdrop-blur-xs flex items-center justify-center z-50 p-4 sm:p-6 animate-in fade-in duration-200">
@@ -393,12 +441,12 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
           <div className="space-y-4">
             <div className="px-2 pt-1">
               <span className="text-[11px] font-bold uppercase tracking-wider text-[#8C897F]">
-                Settings
+                {t('settings')}
               </span>
             </div>
 
             <nav className="space-y-1">
-              {navItems.map((item) => {
+              {NAV_ITEMS.map((item) => {
                 const Icon = item.icon;
                 const isActive = activeSection === item.id;
                 return (
@@ -412,7 +460,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                     }`}
                   >
                     <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-[#C96442]' : 'text-[#8C897F]'}`} />
-                    <span>{item.label}</span>
+                    <span>{t(item.labelKey)}</span>
                   </button>
                 );
               })}
@@ -425,7 +473,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
               {user ? (
                 <div className="w-8 h-8 rounded-lg bg-[#C96442] text-white flex items-center justify-center font-bold text-xs shrink-0 overflow-hidden">
                   {user.photoURL ? (
-                    <img src={user.photoURL} alt="Avatar" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                    <img src={user.photoURL} alt={t('avatar_title')} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                   ) : (
                     (user.displayName || user.email || 'U').slice(0, 2).toUpperCase()
                   )}
@@ -437,10 +485,10 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
               )}
               <div className="min-w-0 flex-1">
                 <div className="text-xs font-bold text-[#141413] dark:text-[#F5F4ED] truncate leading-tight">
-                  {user ? user.displayName || user.email?.split('@')[0] : 'Guest User'}
+                  {user ? user.displayName || user.email?.split('@')[0] : t('settings_guest_user')}
                 </div>
                 <div className="text-[10px] text-[#8C897F] truncate">
-                  {user ? user.email : 'Local Storage Only'}
+                  {user ? user.email : t('settings_local_only')}
                 </div>
               </div>
             </div>
@@ -454,21 +502,16 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
           <div className="px-8 py-6 border-b border-[#E8E6DC]/60 dark:border-[#2C2B27]/60 flex items-center justify-between">
             <div>
               <h2 className="text-lg font-bold text-[#141413] dark:text-[#F5F4ED]">
-                {navItems.find((n) => n.id === activeSection)?.label}
+                {t(currentNavItem.labelKey)}
               </h2>
               <p className="text-xs text-[#8C897F] mt-0.5">
-                {activeSection === 'general' && 'Set your language, workspace layout, and sign-in preferences.'}
-                {activeSection === 'models' && 'Add optional personal AI helper keys (Gemini and Groq).'}
-                {activeSection === 'sync' && 'Manage Google sign-in, individual Google tools, Canvas LMS, and AI keys.'}
-                {activeSection === 'appearance' && 'Customize theme warmth, contrast, and motion reduction.'}
-                {activeSection === 'shortcuts' && 'Keyboard navigation and quick action hotkeys.'}
-                {activeSection === 'integrations' && 'See Canvas LMS and Google tools connected to your account.'}
-                {activeSection === 'support' && 'Download app, report bugs, feedback & share love.'}
+                {t(currentNavItem.subKey)}
               </p>
             </div>
 
             <button
               onClick={onClose}
+              aria-label={t('close')}
               className="p-2 rounded-xl text-[#8C897F] hover:bg-[#E8E6DC] dark:hover:bg-[#1F1E1B] hover:text-[#141413] dark:hover:text-[#F5F4ED] transition-colors cursor-pointer"
             >
               <X className="w-5 h-5" />
@@ -569,12 +612,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2">
-                      {[
-                        { id: 'grad', label: t('avatar_scholar'), bg: 'bg-[#C96442]', icon: 'GraduationCap' },
-                        { id: 'book', label: t('avatar_researcher'), bg: 'bg-[#5E5D59]', icon: 'BookOpen' },
-                        { id: 'bot', label: t('avatar_cybernetic'), bg: 'bg-[#141413] dark:bg-[#F5F4ED]', icon: 'Bot' },
-                        { id: 'zap', label: t('avatar_polymath'), bg: 'bg-[#A94E33]', icon: 'Zap' },
-                      ].map((av) => (
+                      {AVATAR_OPTIONS.map((av) => (
                         <button
                           key={av.id}
                           type="button"
@@ -586,7 +624,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                           }`}
                         >
                           <div className={`w-2.5 h-2.5 rounded-full ${av.bg}`} />
-                          <span>{av.label}</span>
+                          <span>{t(av.labelKey)}</span>
                         </button>
                       ))}
                     </div>
@@ -624,7 +662,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                       onClick={() => {
                         localStorage.removeItem('scc_emails_cache_v3');
                         localStorage.removeItem('scc_email_alerts_v3');
-                        alert('Local email and alert cache cleared.');
+                        alert(t('settings_cache_cleared_alert'));
                       }}
                       className="px-3.5 py-1.5 bg-white dark:bg-[#252422] border border-[#E8E6DC] dark:border-[#2C2B27] hover:border-rose-500 text-rose-600 rounded-xl text-xs font-bold transition-colors cursor-pointer"
                     >
@@ -641,8 +679,8 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                 <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/40 rounded-2xl border border-emerald-300 dark:border-emerald-800 flex items-start gap-2.5 text-xs text-emerald-900 dark:text-emerald-300">
                   <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                   <div>
-                    <span className="font-bold block mb-0.5">Automatic Backup AI Active</span>
-                    StudentOS uses your Gemini key first and automatically switches to Groq if Gemini reaches a daily limit.
+                    <span className="font-bold block mb-0.5">{t('settings_backup_banner_title')}</span>
+                    {t('settings_backup_banner_sub')}
                   </div>
                 </div>
 
@@ -651,10 +689,10 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                   <div className="flex items-center justify-between">
                     <div>
                       <label className="text-xs font-bold text-[#141413] dark:text-[#F5F4ED] block">
-                        Google Gemini Key
+                        {t('settings_gemini_label')}
                       </label>
                       <span className="text-[11px] text-[#8C897F]">
-                        Used for reading math photos, spotting homework in notes, and study practice.
+                        {t('settings_gemini_desc')}
                       </span>
                     </div>
                     <a
@@ -663,7 +701,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                       rel="noreferrer"
                       className="text-[11px] text-[#C96442] hover:underline font-semibold flex items-center gap-1"
                     >
-                      <span>Get Free Key</span>
+                      <span>{t('settings_gemini_get_free')}</span>
                       <ExternalLink className="w-3 h-3" />
                     </a>
                   </div>
@@ -675,10 +713,12 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                       value={geminiKey}
                       onChange={(e) => setGeminiKey(e.target.value)}
                       placeholder="AIzaSy..."
+                      aria-label={t('settings_aria_gemini_key')}
                       className="w-full pl-9 pr-10 py-2 text-xs font-mono bg-white dark:bg-[#141413] border border-[#E8E6DC] dark:border-[#2C2B27] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C96442] text-[#141413] dark:text-[#F5F4ED]"
                     />
                     <button
                       type="button"
+                      aria-label={showGeminiKey ? t('ai_key_hide') : t('ai_key_show')}
                       onClick={() => setShowGeminiKey(!showGeminiKey)}
                       className="p-1.5 text-[#8C897F] hover:text-[#141413] dark:hover:text-[#F5F4ED] absolute right-2.5 top-1/2 -translate-y-1/2"
                     >
@@ -688,11 +728,11 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
 
                   <div className="flex items-center justify-between gap-2 flex-wrap">
                     <span className="text-[11px] font-mono text-[#8C897F]">
-                      {geminiKey ? `Saved: ${maskApiKey(geminiKey)}` : 'No key saved'}
-                      {(() => { const s = getExpiryStatus(geminiExpiry); return s.label ? ` • ${s.label}` : ''; })()}
+                      {geminiKey ? t('settings_key_saved_masked', { masked: maskApiKey(geminiKey) }) : t('settings_key_none')}
+                      {(() => { const label = formatExpiryLabel(getExpiryStatus(geminiExpiry)); return label ? ` • ${label}` : ''; })()}
                     </span>
                     <label className="flex items-center gap-1.5 text-[11px] text-[#8C897F]">
-                      <span>Expires</span>
+                      <span>{t('settings_expires_label')}</span>
                       <input
                         type="date"
                         value={geminiExpiry}
@@ -700,14 +740,14 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                         className="px-2 py-1 text-[11px] bg-white dark:bg-[#141413] border border-[#E8E6DC] dark:border-[#2C2B27] rounded-lg text-[#141413] dark:text-[#F5F4ED]"
                       />
                       {geminiExpiry && (
-                        <button type="button" onClick={() => setGeminiExpiry('')} className="text-[11px] text-[#C96442] hover:underline font-semibold">Clear</button>
+                        <button type="button" onClick={() => setGeminiExpiry('')} className="text-[11px] text-[#C96442] hover:underline font-semibold">{t('settings_clear_btn')}</button>
                       )}
                     </label>
                   </div>
 
                   <div className="flex items-center justify-between pt-1">
                     <span className="text-[11px] text-[#8C897F]">
-                      {geminiStatusMsg || 'Stored locally in browser.'}
+                      {geminiStatusMsg || t('settings_keys_stored_hint')}
                     </span>
                     <button
                       onClick={handleTestGemini}
@@ -715,7 +755,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                       className="px-3 py-1 bg-white dark:bg-[#252422] border border-[#E8E6DC] dark:border-[#2C2B27] hover:border-[#C96442] text-[#141413] dark:text-[#F5F4ED] rounded-lg text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
                     >
                       <RefreshCw className={`w-3 h-3 ${isTestingGemini ? 'animate-spin text-[#C96442]' : ''}`} />
-                      <span>{isTestingGemini ? 'Testing...' : 'Test Connection'}</span>
+                      <span>{isTestingGemini ? t('settings_gemini_testing') : t('settings_gemini_test_btn')}</span>
                     </button>
                   </div>
                 </div>
@@ -725,10 +765,10 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                   <div className="flex items-center justify-between">
                     <div>
                       <label className="text-xs font-bold text-[#141413] dark:text-[#F5F4ED] block">
-                        Groq Key (Backup AI)
+                        {t('settings_groq_label')}
                       </label>
                       <span className="text-[11px] text-[#8C897F]">
-                        Automatic backup if your Gemini key reaches its daily limit.
+                        {t('settings_groq_desc')}
                       </span>
                     </div>
                     <a
@@ -737,7 +777,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                       rel="noreferrer"
                       className="text-[11px] text-[#C96442] hover:underline font-semibold flex items-center gap-1"
                     >
-                      <span>Get Groq Key</span>
+                      <span>{t('settings_groq_get_key')}</span>
                       <ExternalLink className="w-3 h-3" />
                     </a>
                   </div>
@@ -749,10 +789,12 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                       value={groqKey}
                       onChange={(e) => setGroqKey(e.target.value)}
                       placeholder="gsk_..."
+                      aria-label={t('settings_aria_groq_key')}
                       className="w-full pl-9 pr-10 py-2 text-xs font-mono bg-white dark:bg-[#141413] border border-[#E8E6DC] dark:border-[#2C2B27] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C96442] text-[#141413] dark:text-[#F5F4ED]"
                     />
                     <button
                       type="button"
+                      aria-label={showGroqKey ? t('ai_key_hide') : t('ai_key_show')}
                       onClick={() => setShowGroqKey(!showGroqKey)}
                       className="p-1.5 text-[#8C897F] hover:text-[#141413] dark:hover:text-[#F5F4ED] absolute right-2.5 top-1/2 -translate-y-1/2"
                     >
@@ -762,11 +804,11 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
 
                   <div className="flex items-center justify-between gap-2 flex-wrap">
                     <span className="text-[11px] font-mono text-[#8C897F]">
-                      {groqKey ? `Saved: ${maskApiKey(groqKey)}` : 'No key saved'}
-                      {(() => { const s = getExpiryStatus(groqExpiry); return s.label ? ` • ${s.label}` : ''; })()}
+                      {groqKey ? t('settings_key_saved_masked', { masked: maskApiKey(groqKey) }) : t('settings_key_none')}
+                      {(() => { const label = formatExpiryLabel(getExpiryStatus(groqExpiry)); return label ? ` • ${label}` : ''; })()}
                     </span>
                     <label className="flex items-center gap-1.5 text-[11px] text-[#8C897F]">
-                      <span>Expires</span>
+                      <span>{t('settings_expires_label')}</span>
                       <input
                         type="date"
                         value={groqExpiry}
@@ -774,7 +816,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                         className="px-2 py-1 text-[11px] bg-white dark:bg-[#141413] border border-[#E8E6DC] dark:border-[#2C2B27] rounded-lg text-[#141413] dark:text-[#F5F4ED]"
                       />
                       {groqExpiry && (
-                        <button type="button" onClick={() => setGroqExpiry('')} className="text-[11px] text-[#C96442] hover:underline font-semibold">Clear</button>
+                        <button type="button" onClick={() => setGroqExpiry('')} className="text-[11px] text-[#C96442] hover:underline font-semibold">{t('settings_clear_btn')}</button>
                       )}
                     </label>
                   </div>
@@ -785,7 +827,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                     onClick={handleSaveKeys}
                     className="px-5 py-2 bg-[#C96442] hover:bg-[#C86646] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer"
                   >
-                    Save API Keys
+                    {t('settings_save_api_keys')}
                   </button>
                 </div>
               </div>
@@ -798,10 +840,10 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                 <div className="p-4 bg-[#E8E6DC] dark:bg-[#1F1E1B] rounded-2xl border border-[#E8E6DC] dark:border-[#2C2B27] space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="text-xs font-bold text-[#141413] dark:text-[#F5F4ED]">
-                      AI Keys
+                      {t('settings_keys_title')}
                     </div>
                     <span className="text-[10px] font-mono text-[#8C897F]">
-                      {geminiKey ? `Gemini ${maskApiKey(geminiKey)}` : 'Gemini —'} • {groqKey ? `Groq ${maskApiKey(groqKey)}` : 'Groq —'}
+                      {t('ai_key_gemini_name')} {geminiKey ? maskApiKey(geminiKey) : '—'} • {t('ai_key_groq_name')} {groqKey ? maskApiKey(groqKey) : '—'}
                     </span>
                   </div>
                   <div className="grid sm:grid-cols-2 gap-2">
@@ -811,12 +853,13 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                         type={showGeminiKey ? 'text' : 'password'}
                         value={geminiKey}
                         onChange={(e) => setGeminiKey(e.target.value)}
-                        placeholder="Gemini key (AIzaSy...)"
-                        aria-label="Gemini API key"
+                        placeholder={t('settings_aria_gemini_key')}
+                        aria-label={t('settings_aria_gemini_key')}
                         className="w-full pl-9 pr-10 py-2 text-xs font-mono bg-white dark:bg-[#141413] border border-[#E8E6DC] dark:border-[#2C2B27] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C96442] text-[#141413] dark:text-[#F5F4ED]"
                       />
                       <button
                         type="button"
+                        aria-label={showGeminiKey ? t('ai_key_hide') : t('ai_key_show')}
                         onClick={() => setShowGeminiKey(!showGeminiKey)}
                         className="p-1.5 text-[#8C897F] hover:text-[#141413] dark:hover:text-[#F5F4ED] absolute right-2.5 top-1/2 -translate-y-1/2"
                       >
@@ -829,12 +872,13 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                         type={showGroqKey ? 'text' : 'password'}
                         value={groqKey}
                         onChange={(e) => setGroqKey(e.target.value)}
-                        placeholder="Groq key (gsk_...)"
-                        aria-label="Groq API key"
+                        placeholder={t('settings_aria_groq_key')}
+                        aria-label={t('settings_aria_groq_key')}
                         className="w-full pl-9 pr-10 py-2 text-xs font-mono bg-white dark:bg-[#141413] border border-[#E8E6DC] dark:border-[#2C2B27] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C96442] text-[#141413] dark:text-[#F5F4ED]"
                       />
                       <button
                         type="button"
+                        aria-label={showGroqKey ? t('ai_key_hide') : t('ai_key_show')}
                         onClick={() => setShowGroqKey(!showGroqKey)}
                         className="p-1.5 text-[#8C897F] hover:text-[#141413] dark:hover:text-[#F5F4ED] absolute right-2.5 top-1/2 -translate-y-1/2"
                       >
@@ -844,33 +888,33 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                   </div>
                   <div className="grid sm:grid-cols-2 gap-2">
                     <label className="flex items-center gap-1.5 text-[11px] text-[#8C897F]">
-                      <span>Gemini expires</span>
+                      <span>{t('settings_gemini_expires_label')}</span>
                       <input
                         type="date"
                         value={geminiExpiry}
                         onChange={(e) => setGeminiExpiry(e.target.value)}
                         className="px-2 py-1 text-[11px] bg-white dark:bg-[#141413] border border-[#E8E6DC] dark:border-[#2C2B27] rounded-lg text-[#141413] dark:text-[#F5F4ED]"
                       />
-                      <span className="font-semibold">{getExpiryStatus(geminiExpiry).label}</span>
+                      <span className="font-semibold">{formatExpiryLabel(getExpiryStatus(geminiExpiry))}</span>
                     </label>
                     <label className="flex items-center gap-1.5 text-[11px] text-[#8C897F]">
-                      <span>Groq expires</span>
+                      <span>{t('settings_groq_expires_label')}</span>
                       <input
                         type="date"
                         value={groqExpiry}
                         onChange={(e) => setGroqExpiry(e.target.value)}
                         className="px-2 py-1 text-[11px] bg-white dark:bg-[#141413] border border-[#E8E6DC] dark:border-[#2C2B27] rounded-lg text-[#141413] dark:text-[#F5F4ED]"
                       />
-                      <span className="font-semibold">{getExpiryStatus(groqExpiry).label}</span>
+                      <span className="font-semibold">{formatExpiryLabel(getExpiryStatus(groqExpiry))}</span>
                     </label>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] text-[#8C897F]">{geminiStatusMsg || 'Stored locally in browser.'}</span>
+                    <span className="text-[11px] text-[#8C897F]">{geminiStatusMsg || t('settings_keys_stored_hint')}</span>
                     <button
                       onClick={handleSaveKeys}
                       className="px-4 py-1.5 bg-[#C96442] hover:bg-[#C86646] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer"
                     >
-                      Save AI Keys
+                      {t('settings_save_ai_keys')}
                     </button>
                   </div>
                 </div>
@@ -879,10 +923,10 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                 <div className="p-4 bg-[#E8E6DC] dark:bg-[#1F1E1B] rounded-2xl border border-[#E8E6DC] dark:border-[#2C2B27] space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="text-xs font-bold text-[#141413] dark:text-[#F5F4ED]">
-                      Canvas LMS
+                      {t('settings_canvas_title')}
                     </div>
                     <span className="text-[10px] font-mono text-[#8C897F]">
-                      {canvasDomain || 'No domain saved'} • {canvasToken ? `Token ${maskApiKey(canvasToken)}` : 'No token'}
+                      {canvasDomain || t('settings_canvas_summary_none_domain')} • {canvasToken ? t('settings_canvas_summary_token', { masked: maskApiKey(canvasToken) }) : t('settings_canvas_summary_none_token')}
                     </span>
                   </div>
                   <div className="grid gap-2">
@@ -890,8 +934,8 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                       type="text"
                       value={canvasDomain}
                       onChange={(e) => setCanvasDomain(e.target.value)}
-                      placeholder="https://your-school.instructure.com"
-                      aria-label="Canvas domain"
+                      placeholder={t('settings_canvas_domain_ph')}
+                      aria-label={t('settings_aria_canvas_domain')}
                       className="w-full px-3 py-2 text-xs font-mono bg-white dark:bg-[#141413] border border-[#E8E6DC] dark:border-[#2C2B27] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C96442] text-[#141413] dark:text-[#F5F4ED]"
                     />
                     <div className="relative">
@@ -900,12 +944,13 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                         type={showCanvasToken ? 'text' : 'password'}
                         value={canvasToken}
                         onChange={(e) => setCanvasToken(e.target.value)}
-                        placeholder="Canvas access token (optional)"
-                        aria-label="Canvas access token"
+                        placeholder={t('settings_canvas_token_ph')}
+                        aria-label={t('settings_aria_canvas_token')}
                         className="w-full pl-9 pr-10 py-2 text-xs font-mono bg-white dark:bg-[#141413] border border-[#E8E6DC] dark:border-[#2C2B27] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C96442] text-[#141413] dark:text-[#F5F4ED]"
                       />
                       <button
                         type="button"
+                        aria-label={showCanvasToken ? t('ai_key_hide') : t('ai_key_show')}
                         onClick={() => setShowCanvasToken(!showCanvasToken)}
                         className="p-1.5 text-[#8C897F] hover:text-[#141413] dark:hover:text-[#F5F4ED] absolute right-2.5 top-1/2 -translate-y-1/2"
                       >
@@ -915,17 +960,17 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                   </div>
                   <div className="flex items-center justify-between gap-2 flex-wrap">
                     <span className="text-[11px] text-[#8C897F]">
-                      {canvasSaveMsg || 'Press Save & Sync in Canvas tab to apply.'}
+                      {canvasSaveMsg || t('settings_canvas_note')}
                     </span>
                     <button
                       onClick={handleSaveCanvasConnection}
                       className="px-4 py-1.5 bg-white dark:bg-[#252422] border border-[#E8E6DC] dark:border-[#2C2B27] hover:border-[#C96442] text-[#141413] dark:text-[#F5F4ED] rounded-xl text-xs font-bold transition-colors cursor-pointer"
                     >
-                      Save Canvas
+                      {t('settings_canvas_save_btn')}
                     </button>
                   </div>
                   <div className="text-[11px] text-[#8C897F]">
-                    Note: press Save &amp; Sync in Canvas tab to apply.
+                    {t('settings_canvas_note')}
                   </div>
                 </div>
 
@@ -934,12 +979,12 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                   <div className="flex items-center justify-between gap-3 flex-wrap">
                     <div>
                       <div className="text-xs font-bold text-[#141413] dark:text-[#F5F4ED]">
-                        Google Account Sign-In
+                        {t('settings_google_title')}
                       </div>
                       <div className="text-[11px] text-[#8C897F]">
                         {user
-                          ? `Signed in as ${user.email} (name & email only)`
-                          : 'Sign in with Google using just your name & email'}
+                          ? t('settings_google_desc_signed_in', { email: user.email || '' })
+                          : t('settings_google_desc_guest')}
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -952,7 +997,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                           }}
                           className="px-3 py-1.5 bg-white dark:bg-[#252422] border border-[#E8E6DC] dark:border-[#2C2B27] hover:border-[#C96442] text-[#141413] dark:text-[#F5F4ED] rounded-xl text-xs font-bold transition-colors cursor-pointer"
                         >
-                          Manage Connections
+                          {t('settings_manage_connections')}
                         </button>
                       )}
                       {user ? (
@@ -960,7 +1005,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                           onClick={onLogout}
                           className="px-3.5 py-1.5 bg-white dark:bg-[#252422] border border-rose-300 dark:border-rose-800 text-rose-600 rounded-xl text-xs font-bold transition-colors cursor-pointer"
                         >
-                          Sign out
+                          {t('settings_google_signout_btn')}
                         </button>
                       ) : (
                         <button
@@ -968,7 +1013,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                           disabled={isLoggingIn}
                           className="px-3.5 py-1.5 bg-[#C96442] text-white rounded-xl text-xs font-bold transition-colors cursor-pointer shadow-xs"
                         >
-                          Sign in with Google
+                          {t('settings_google_signin_btn')}
                         </button>
                       )}
                     </div>
@@ -976,18 +1021,10 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
 
                   <div className="pt-2 border-t border-[#DFDACB]/70 dark:border-[#2C2B27] space-y-1.5">
                     <div className="text-[11px] font-semibold text-[#5E5D59] dark:text-[#B5B2A8]">
-                      Individual Google tools — connect only the ones you want:
+                      {t('settings_google_tools_heading')}
                     </div>
                     <div className="grid sm:grid-cols-2 gap-2">
-                      {(
-                        [
-                          { id: 'calendar', label: 'Google Calendar', desc: 'View today & add study blocks' },
-                          { id: 'gmail', label: 'Gmail (Read-only)', desc: 'Find homework & exam notices' },
-                          { id: 'drive', label: 'Google Drive & Docs', desc: 'Create & save study docs' },
-                          { id: 'sheets', label: 'Google Sheets', desc: 'Back up your assignment list' },
-                          { id: 'classroom', label: 'Google Classroom', desc: 'Import classes & deadlines' },
-                        ] as { id: GoogleFeature; label: string; desc: string }[]
-                      ).map((tool) => {
+                      {GOOGLE_TOOLS.map((tool) => {
                         const connected = hasFeatureAccess(tool.id, user?.uid);
                         return (
                           <div
@@ -996,13 +1033,13 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                           >
                             <div className="min-w-0">
                               <div className="text-xs font-bold text-[#141413] dark:text-[#F5F4ED] truncate">
-                                {tool.label}
+                                {t(tool.labelKey)}
                               </div>
-                              <div className="text-[10px] text-[#8C897F] truncate">{tool.desc}</div>
+                              <div className="text-[10px] text-[#8C897F] truncate">{t(tool.descKey)}</div>
                             </div>
                             {connected ? (
                               <span className="shrink-0 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
-                                Connected
+                                {t('settings_connected_badge')}
                               </span>
                             ) : (
                               <button
@@ -1019,7 +1056,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                                 }}
                                 className="shrink-0 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-[#C96442] hover:bg-[#B85432] text-white cursor-pointer transition-colors"
                               >
-                                Connect
+                                {t('settings_connect_btn')}
                               </button>
                             )}
                           </div>
@@ -1034,7 +1071,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                   <div className="p-4 bg-[#E8E6DC] dark:bg-[#1F1E1B] rounded-2xl border border-[#E8E6DC] dark:border-[#2C2B27] flex items-center justify-between">
                     <div>
                       <div className="text-xs font-bold text-[#141413] dark:text-[#F5F4ED]">
-                        Master Assignment Sheet
+                        {t('settings_master_sheet_title')}
                       </div>
                       <div className="text-[11px] text-[#8C897F] truncate max-w-xs">
                         {sheetUrl}
@@ -1046,7 +1083,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                       rel="noreferrer"
                       className="px-3.5 py-1.5 bg-white dark:bg-[#252422] border border-[#E8E6DC] dark:border-[#2C2B27] hover:border-[#C96442] text-[#141413] dark:text-[#F5F4ED] rounded-xl text-xs font-bold flex items-center gap-1 transition-colors"
                     >
-                      <span>Open Sheet</span>
+                      <span>{t('settings_open_sheet')}</span>
                       <ExternalLink className="w-3 h-3" />
                     </a>
                   </div>
@@ -1054,7 +1091,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
 
                 {/* Friendly privacy reassurance */}
                 <div className="p-3.5 rounded-2xl bg-white dark:bg-[#141413] border border-[#E8E6DC] dark:border-[#2C2B27] text-[11px] text-[#5E5D59] dark:text-[#B5B2A8] leading-relaxed">
-                  Each Google tool only turns on when you choose to connect it, and you can turn tools off anytime in your Google Account settings or via Manage Connections above.
+                  {t('settings_google_privacy_note')}
                 </div>
               </div>
             )}
@@ -1066,24 +1103,24 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                 <div className="p-4 bg-[#E8E6DC] dark:bg-[#1F1E1B] rounded-2xl border border-[#E8E6DC] dark:border-[#2C2B27] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
                     <div className="text-xs font-bold text-[#141413] dark:text-[#F5F4ED]">
-                      Display &amp; Layout Density
+                      {t('settings_density_title')}
                     </div>
                     <div className="text-[11px] text-[#8C897F]">
-                      Compact mode fits 35% more content onto 13-inch laptop displays.
+                      {t('settings_density_sub')}
                     </div>
                   </div>
                   <div className="flex items-center gap-1 p-1 bg-white dark:bg-[#141413] rounded-xl border border-[#E8E6DC] dark:border-[#2C2B27] shrink-0">
-                    {(['compact', 'comfortable', 'spacious'] as const).map((d) => (
+                    {DENSITY_OPTIONS.map((d) => (
                       <button
-                        key={d}
-                        onClick={() => handleDensityChange(d)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition-all cursor-pointer ${
-                          density === d
+                        key={d.id}
+                        onClick={() => handleDensityChange(d.id)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                          density === d.id
                             ? 'bg-[#C96442] text-white shadow-xs'
                             : 'text-[#8C897F] hover:text-[#141413] dark:hover:text-[#F5F4ED]'
                         }`}
                       >
-                        {d}
+                        {t(d.labelKey)}
                       </button>
                     ))}
                   </div>
@@ -1094,35 +1131,32 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="text-xs font-bold text-[#141413] dark:text-[#F5F4ED]">
-                        Atmospheric Color Palette
+                        {t('settings_palette_title')}
                       </div>
                       <div className="text-[11px] text-[#8C897F]">
-                        Warm cream for day, dark charcoal for night. Terracotta accent in both.
+                        {t('settings_palette_sub')}
                       </div>
                     </div>
                     <span className="text-[10px] font-mono font-bold text-[#C96442] uppercase">
-                      {colorTheme}
+                      {colorTheme === 'midnight' ? t('settings_dark_btn') : t('settings_light_btn')}
                     </span>
                   </div>
 
                   <div className="grid grid-cols-2 gap-2">
-                    {[
-                      { id: 'linen', name: 'Warm Cream (Light)', color: 'bg-[#E8E6DC] text-[#141413] border-[#E8E6DC]', accent: 'bg-[#C96442]' },
-                      { id: 'midnight', name: 'Dark Charcoal (Dark)', color: 'bg-[#141413] text-[#F5F4ED] border-[#2C2B27]', accent: 'bg-[#C96442]' },
-                    ].map((t) => (
+                    {PALETTE_OPTIONS.map((palette) => (
                       <button
-                        key={t.id}
-                        onClick={() => handleThemeChange(t.id as any)}
+                        key={palette.id}
+                        onClick={() => handleThemeChange(palette.id)}
                         className={`p-2.5 rounded-xl border text-left text-xs font-bold transition-all cursor-pointer flex flex-col justify-between h-16 ${
-                          t.color
+                          palette.color
                         } ${
-                          colorTheme === t.id
+                          colorTheme === palette.id
                             ? 'ring-2 ring-[#C96442] scale-[1.02] shadow-xs'
                             : 'opacity-80 hover:opacity-100'
                         }`}
                       >
-                        <div className={`w-3 h-3 rounded-full ${t.accent}`} />
-                        <span className="text-[11px] truncate">{t.name}</span>
+                        <div className={`w-3 h-3 rounded-full ${palette.accent}`} />
+                        <span className="text-[11px] truncate">{t(palette.nameKey)}</span>
                       </button>
                     ))}
                   </div>
@@ -1132,10 +1166,10 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                 <div className="p-4 bg-[#E8E6DC] dark:bg-[#1F1E1B] rounded-2xl border border-[#E8E6DC] dark:border-[#2C2B27] flex items-center justify-between">
                   <div>
                     <div className="text-xs font-bold text-[#141413] dark:text-[#F5F4ED]">
-                      Dark &amp; Light Mode
+                      {t('settings_mode_title')}
                     </div>
                     <div className="text-[11px] text-[#8C897F]">
-                      Anti-eyestrain warm cream or low-light dark.
+                      {t('settings_mode_sub')}
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5 p-1 bg-white dark:bg-[#141413] rounded-xl border border-[#E8E6DC] dark:border-[#2C2B27]">
@@ -1146,7 +1180,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                       }`}
                     >
                       <Sun className="w-3.5 h-3.5" />
-                      <span>Cream</span>
+                      <span>{t('settings_light_btn')}</span>
                     </button>
                     <button
                       onClick={() => setDarkMode(true)}
@@ -1155,7 +1189,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                       }`}
                     >
                       <Moon className="w-3.5 h-3.5" />
-                      <span>Dark</span>
+                      <span>{t('settings_dark_btn')}</span>
                     </button>
                   </div>
                 </div>
@@ -1164,15 +1198,16 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                 <div className="p-4 bg-[#E8E6DC] dark:bg-[#1F1E1B] rounded-2xl border border-[#E8E6DC] dark:border-[#2C2B27] flex items-center justify-between">
                   <div>
                     <div className="text-xs font-bold text-[#141413] dark:text-[#F5F4ED]">
-                      Sync with Operating System
+                      {t('settings_auto_theme_title')}
                     </div>
                     <div className="text-[11px] text-[#8C897F]">
-                      Automatically switch between Light and Dark mode based on OS preferences.
+                      {t('settings_auto_theme_sub')}
                     </div>
                   </div>
                   <input
                     type="checkbox"
                     checked={autoSystemTheme}
+                    aria-label={t('settings_auto_theme_title')}
                     onChange={(e) => handleAutoSystemThemeChange(e.target.checked)}
                     className="w-4 h-4 rounded text-[#C96442] focus:ring-[#C96442] cursor-pointer"
                   />
@@ -1182,15 +1217,16 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                 <div className="p-4 bg-[#E8E6DC] dark:bg-[#1F1E1B] rounded-2xl border border-[#E8E6DC] dark:border-[#2C2B27] flex items-center justify-between">
                   <div>
                     <div className="text-xs font-bold text-[#141413] dark:text-[#F5F4ED]">
-                      Reduced Motion
+                      {t('settings_reduced_motion_title')}
                     </div>
                     <div className="text-[11px] text-[#8C897F]">
-                      Disable heavy transition animations for lower CPU usage.
+                      {t('settings_reduced_motion_sub')}
                     </div>
                   </div>
                   <input
                     type="checkbox"
                     checked={reducedMotion}
+                    aria-label={t('settings_reduced_motion_title')}
                     onChange={(e) => setReducedMotion(e.target.checked)}
                     className="w-4 h-4 rounded text-[#C96442] focus:ring-[#C96442] cursor-pointer"
                   />
@@ -1200,15 +1236,16 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                 <div className="p-4 bg-[#E8E6DC] dark:bg-[#1F1E1B] rounded-2xl border border-[#E8E6DC] dark:border-[#2C2B27] flex items-center justify-between">
                   <div>
                     <div className="text-xs font-bold text-[#141413] dark:text-[#F5F4ED]">
-                      High Contrast Mode
+                      {t('settings_high_contrast_title')}
                     </div>
                     <div className="text-[11px] text-[#8C897F]">
-                      Increase border and text contrast for outdoor readability.
+                      {t('settings_high_contrast_sub')}
                     </div>
                   </div>
                   <input
                     type="checkbox"
                     checked={highContrast}
+                    aria-label={t('settings_high_contrast_title')}
                     onChange={(e) => setHighContrast(e.target.checked)}
                     className="w-4 h-4 rounded text-[#C96442] focus:ring-[#C96442] cursor-pointer"
                   />
@@ -1219,18 +1256,18 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                   <div className="flex items-center justify-between gap-2">
                   <div>
                     <div className="text-xs font-bold text-[#141413] dark:text-[#F5F4ED]">
-                      Ảnh thiên văn NASA mỗi ngày (APOD)
+                      {t('nasa_title')}
                     </div>
                     <div className="text-[11px] text-[#8C897F]">
-                      Xem ảnh vũ trụ kèm giải thích. Cần mạng. Giới hạn miễn phí. • Display the daily deep-space photo on Home.
+                      {t('settings_nasa_sub')}
                     </div>
-                    <div className="text-[10px] text-[#8C897F]">Ảnh: NASA APOD</div>
+                    <div className="text-[10px] text-[#8C897F]">{t('dash_image_credit')}</div>
                   </div>
                   <input
                     type="checkbox"
                     checked={enableNasaApod}
                     onChange={(e) => handleToggleNasaApod(e.target.checked)}
-                    aria-label="Ảnh thiên văn NASA mỗi ngày (APOD) — Toggle NASA Astronomy Picture of the Day"
+                    aria-label={t('settings_aria_nasa_toggle')}
                     className="w-6 h-6 min-w-[44px] min-h-[44px] rounded text-[#C96442] focus:ring-[#C96442] cursor-pointer"
                   />
                   </div>
@@ -1241,20 +1278,20 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                       disabled={nasaTestState === 'testing'}
                       className="px-3 py-2 bg-white dark:bg-[#1A1917] border border-[#E8E6DC] dark:border-[#2C2B27] rounded-xl text-[11px] font-bold text-[#141413] dark:text-[#F5F4ED] hover:border-[#C96442] min-h-[44px] cursor-pointer disabled:opacity-60"
                     >
-                      {nasaTestState === 'testing' ? 'Đang kiểm tra…' : 'Kiểm tra kết nối • Test'}
+                      {nasaTestState === 'testing' ? t('settings_nasa_testing') : t('settings_nasa_test')}
                     </button>
                     <button
                       type="button"
                       onClick={handleClearNasaCache}
                       className="px-3 py-2 bg-white dark:bg-[#1A1917] border border-[#E8E6DC] dark:border-[#2C2B27] rounded-xl text-[11px] font-bold text-[#141413] dark:text-[#F5F4ED] hover:border-[#C96442] min-h-[44px] cursor-pointer"
                     >
-                      Xóa ảnh đã lưu • Clear cache
+                      {t('settings_nasa_clear_cache')}
                     </button>
-                    {nasaTestState === 'ok' && <span className="text-[11px] font-bold text-emerald-600" role="status">Đã kết nối — ảnh tải được. • Connected.</span>}
-                    {nasaTestState === 'fail' && <span className="text-[11px] font-bold text-rose-600" role="status">NASA giới hạn hoặc mất mạng. Hiện ảnh cũ — bấm Thử lại.</span>}
+                    {nasaTestState === 'ok' && <span className="text-[11px] font-bold text-emerald-600" role="status">{t('settings_nasa_status_ok')}</span>}
+                    {nasaTestState === 'fail' && <span className="text-[11px] font-bold text-rose-600" role="status">{t('dash_apod_error')}</span>}
                   </div>
                   {enableNasaApod && nasaPreview && nasaPreview.mediaType === 'image' && (
-                    <img src={nasaPreview.url} alt={nasaPreview.title || 'NASA preview'} loading="lazy" decoding="async" referrerPolicy="no-referrer" className="w-full h-24 object-cover rounded-xl border border-[#E8E6DC] dark:border-[#2C2B27]" />
+                    <img src={nasaPreview.url} alt={nasaPreview.title || t('nasa_title')} loading="lazy" decoding="async" referrerPolicy="no-referrer" className="w-full h-24 object-cover rounded-xl border border-[#E8E6DC] dark:border-[#2C2B27]" />
                   )}
                 </div>
               </div>
@@ -1266,38 +1303,30 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                 <div className="p-4 bg-[#E8E6DC] dark:bg-[#1F1E1B] rounded-2xl border border-[#E8E6DC] dark:border-[#2C2B27] flex items-center justify-between">
                   <div>
                     <div className="text-xs font-bold text-[#141413] dark:text-[#F5F4ED]">
-                      Master Keyboard Shortcuts Switch
+                      {t('settings_sc_master_title')}
                     </div>
                     <div className="text-[11px] text-[#8C897F]">
-                      Enable single-key shortcuts (1-5 for tabs, R to sync, ? for help).
+                      {t('settings_sc_master_sub')}
                     </div>
                   </div>
                   <input
                     type="checkbox"
                     checked={shortcutSettings.masterEnabled}
+                    aria-label={t('settings_sc_master_title')}
                     onChange={(e) => toggleAllShortcuts(e.target.checked)}
                     className="w-4 h-4 rounded text-[#C96442] focus:ring-[#C96442] cursor-pointer"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 text-xs">
-                  {[
-                    { label: 'Canvas LMS Tab', key: '1', settingKey: 'tab1' as const },
-                    { label: 'Daily Schedule Tab', key: '2', settingKey: 'tab2' as const },
-                    { label: 'Assignment Tracker', key: '3', settingKey: 'tab3' as const },
-                    { label: 'Gmail AI Scanner', key: '4', settingKey: 'tab4' as const },
-                    { label: 'Google Drive Tab', key: '5', settingKey: 'tab5' as const },
-                    { label: 'Spotlight Search', key: 'Cmd+K', settingKey: 'search' as const },
-                    { label: 'Refresh Data', key: 'R', settingKey: 'sync' as const },
-                    { label: 'Exit Zen Focus', key: 'Esc', settingKey: 'esc' as const },
-                  ].map((s) => (
+                  {SHORTCUT_ITEMS.map((s) => (
                     <div
-                      key={s.label}
+                      key={s.labelKey}
                       className="p-3 bg-[#E8E6DC] dark:bg-[#1F1E1B] rounded-xl border border-[#E8E6DC] dark:border-[#2C2B27] flex items-center justify-between"
                     >
                       <div>
                         <span className="font-semibold block text-[#141413] dark:text-[#F5F4ED]">
-                          {s.label}
+                          {t(s.labelKey)}
                         </span>
                         <span className="font-mono text-[10px] text-[#C96442] font-bold">
                           [{s.key}]
@@ -1306,6 +1335,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                       <input
                         type="checkbox"
                         checked={shortcutSettings.keys[s.settingKey]}
+                        aria-label={t(s.labelKey)}
                         onChange={() => toggleIndividualKey(s.settingKey)}
                         className="w-3.5 h-3.5 rounded text-[#C96442] focus:ring-[#C96442] cursor-pointer"
                       />
@@ -1319,8 +1349,8 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
             {activeSection === 'integrations' && (
               <div className="space-y-3">
                 {[
-                  { name: 'Canvas LMS', desc: 'Sync assignments via your Canvas link or school sign-in', badge: 'Available', icon: Layers },
-                  { name: 'Google Classroom', desc: 'Import classes, homework, and teacher notices', badge: hasFeatureAccess('classroom', user?.uid) ? 'Connected' : 'Ready', icon: GraduationCap },
+                  { name: t('settings_canvas_title'), desc: t('settings_integ_canvas_desc'), badge: t('settings_integ_available'), icon: Layers },
+                  { name: t('settings_tool_classroom_label'), desc: t('settings_integ_classroom_desc'), badge: hasFeatureAccess('classroom', user?.uid) ? t('settings_connected_badge') : t('settings_integ_ready'), icon: GraduationCap },
                 ].map((integ) => {
                   const Icon = integ.icon;
                   return (
@@ -1356,8 +1386,8 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                   <div className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-xl bg-[#C96442] text-white flex items-center justify-center font-bold text-xs">S</div>
                     <div>
-                      <div className="text-xs font-bold text-[#141413] dark:text-[#F5F4ED]">Install StudentOS App</div>
-                      <div className="text-[11px] text-[#8C897F]">One-tap home screen access — works offline too.</div>
+                      <div className="text-xs font-bold text-[#141413] dark:text-[#F5F4ED]">{t('settings_pwa_title')}</div>
+                      <div className="text-[11px] text-[#8C897F]">{t('settings_pwa_sub')}</div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -1368,42 +1398,42 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                           className="flex-1 px-4 py-2 bg-[#C96442] hover:bg-[#C86646] text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer"
                         >
                           <Download className="w-3.5 h-3.5" />
-                          <span>Install Now</span>
+                          <span>{t('settings_pwa_install_now')}</span>
                         </button>
                         {onDismissPwa && (
                           <button onClick={onDismissPwa} className="px-3 py-2 bg-white dark:bg-[#252422] border border-[#E8E6DC] dark:border-[#2C2B27] rounded-xl text-xs font-bold text-[#6B6860] cursor-pointer">
-                            Later
+                            {t('settings_pwa_later')}
                           </button>
                         )}
                       </>
                     ) : (
                       <div className="w-full p-2.5 rounded-xl bg-white dark:bg-[#141413] border border-[#E8E6DC] dark:border-[#2C2B27] text-[11px] text-[#6B6860] leading-relaxed">
-                        {typeof window !== 'undefined' && (window.matchMedia?.('(display-mode: standalone)')?.matches || (navigator as any).standalone) ? '✓ Already installed — you’re running in standalone mode.' : 'No install prompt available yet. On desktop use Chrome menu → Cast, save and share → Install StudentOS. On iOS use Share → Add to Home Screen.'}
+                        {typeof window !== 'undefined' && (window.matchMedia?.('(display-mode: standalone)')?.matches || (navigator as any).standalone) ? t('settings_pwa_already') : t('settings_pwa_manual')}
                       </div>
                     )}
                   </div>
-                  <div className="text-[10px] text-[#8C897F]">Tip: Installing pins StudentOS to your dock or home screen so it launches fast and works offline.</div>
+                  <div className="text-[10px] text-[#8C897F]">{t('settings_pwa_hint')}</div>
                 </div>
 
                 {/* Help & Feedback */}
                 <div className="p-4 bg-[#E8E6DC] dark:bg-[#1F1E1B] rounded-2xl border border-[#E8E6DC] dark:border-[#2C2B27] space-y-3">
                   <div className="flex items-center gap-2">
                     <MessageCircle className="w-4 h-4 text-[#C96442]" />
-                    <span className="text-xs font-bold text-[#141413] dark:text-[#F5F4ED]">Help & Feedback</span>
+                    <span className="text-xs font-bold text-[#141413] dark:text-[#F5F4ED]">{t('settings_help_title')}</span>
                   </div>
-                  <p className="text-[11px] text-[#6B6860] leading-relaxed">Report bugs, request features, or share your academic setup — we read every submission.</p>
+                  <p className="text-[11px] text-[#6B6860] leading-relaxed">{t('settings_help_sub')}</p>
                   <div className="space-y-2">
                     <a href="https://github.com/buianhuy2009/Sutdent-Command-Center/issues/new" target="_blank" rel="noreferrer" className="w-full flex items-center justify-between p-3 rounded-xl bg-white dark:bg-[#141413] border border-[#E8E6DC] dark:border-[#2C2B27] hover:border-[#C96442] text-xs font-bold text-[#141413] dark:text-[#F5F4ED] transition-colors">
-                      <span className="flex items-center gap-2"><Github className="w-3.5 h-3.5" /> Report a Bug — GitHub Issue</span>
+                      <span className="flex items-center gap-2"><Github className="w-3.5 h-3.5" /> {t('settings_help_bug')}</span>
                       <ExternalLink className="w-3 h-3 text-[#8C897F]" />
                     </a>
                     <a href="https://tally.so" target="_blank" rel="noreferrer" className="w-full flex items-center justify-between p-3 rounded-xl bg-white dark:bg-[#141413] border border-[#E8E6DC] dark:border-[#2C2B27] hover:border-[#C96442] text-xs font-bold text-[#141413] dark:text-[#F5F4ED] transition-colors">
-                      <span className="flex items-center gap-2"><Bug className="w-3.5 h-3.5" /> Request Feature — Tally Form</span>
+                      <span className="flex items-center gap-2"><Bug className="w-3.5 h-3.5" /> {t('settings_help_feature')}</span>
                       <ExternalLink className="w-3 h-3 text-[#8C897F]" />
                     </a>
                     <a href="https://twitter.com/intent/tweet?text=Check%20out%20Student%20Command%20Center%20%E2%80%94%20my%20unified%20academic%20OS%20https://sutdent-command-center.vercel.app" target="_blank" rel="noreferrer" className="w-full flex items-center justify-center gap-1.5 p-3 rounded-xl bg-[#C96442] hover:bg-[#C86646] text-white text-xs font-bold shadow-xs transition-colors">
                       <Share2 className="w-3.5 h-3.5" />
-                      <span>Share your setup on X</span>
+                      <span>{t('settings_help_share')}</span>
                     </a>
                   </div>
                 </div>
@@ -1412,9 +1442,11 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                 <div className="p-4 bg-white dark:bg-[#141413] rounded-2xl border border-[#E8E6DC] dark:border-[#2C2B27] flex items-center justify-between">
                   <div>
                     <div className="text-xs font-bold text-[#141413] dark:text-[#F5F4ED] flex items-center gap-1.5"><Heart className="w-3.5 h-3.5 text-rose-500" /> StudentOS</div>
-                    <div className="text-[11px] text-[#8C897F]">Open-source • Local-first • v2.2.2 • <a href="https://github.com/buianhuy2009/Sutdent-Command-Center" target="_blank" rel="noreferrer" className="underline hover:text-[#C96442]">GitHub</a> • <span className="cursor-pointer underline hover:text-[#C96442]" onClick={() => { onClose(); onOpenChangelog?.(); }}>What’s new?</span></div>
+                    <div className="text-[11px] text-[#8C897F]">
+                      {t('settings_about_links', { version: CURRENT_VERSION })} <a href="https://github.com/buianhuy2009/Sutdent-Command-Center" target="_blank" rel="noreferrer" className="underline hover:text-[#C96442]">{t('settings_about_github')}</a> • <span className="cursor-pointer underline hover:text-[#C96442]" onClick={() => { onClose(); onOpenChangelog?.(); }}>{t('settings_about_whats_new')}</span>
+                    </div>
                   </div>
-                  <div className="text-[10px] font-mono text-[#8C897F] bg-[#E8E6DC] dark:bg-[#1F1E1B] px-2 py-1 rounded-lg border">v2.2.2</div>
+                  <div className="text-[10px] font-mono text-[#8C897F] bg-[#E8E6DC] dark:bg-[#1F1E1B] px-2 py-1 rounded-lg border">v{CURRENT_VERSION}</div>
                 </div>
               </div>
             )}
@@ -1429,10 +1461,10 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
           <div className="bg-white dark:bg-[#1A1917] max-w-sm w-full rounded-3xl border border-rose-300 dark:border-rose-800 p-6 space-y-4 shadow-2xl">
             <div className="flex items-center gap-2.5 text-rose-600 dark:text-rose-400 font-bold text-sm">
               <AlertTriangle className="w-5 h-5" />
-              <span>Confirm Semester Reset</span>
+              <span>{t('settings_reset_modal_title')}</span>
             </div>
             <p className="text-xs text-[#5C5A54] dark:text-[#B5B2A8] leading-relaxed">
-              This action will reset your active coursework lists, notes, study streaks, and focus stats for the new semester. This cannot be undone.
+              {t('settings_reset_modal_desc')}
             </p>
             <div className="grid grid-cols-2 gap-2 pt-2">
               <button
@@ -1440,14 +1472,14 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                 onClick={() => setShowSemesterResetModal(false)}
                 className="px-4 py-2 bg-[#E8E6DC] dark:bg-[#1F1E1B] border border-[#E8E6DC] dark:border-[#2C2B27] text-[#141413] dark:text-[#F5F4ED] rounded-xl text-xs font-bold cursor-pointer"
               >
-                Cancel
+                {t('common_cancel')}
               </button>
               <button
                 type="button"
                 onClick={handleExecuteSemesterReset}
                 className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer shadow-xs"
               >
-                Confirm Reset
+                {t('settings_reset_confirm_btn')}
               </button>
             </div>
           </div>

@@ -1,29 +1,30 @@
 import { GoogleGenAI } from "@google/genai";
+import { t } from "../i18n";
 import { rateLimiter } from "./rateLimiter";
 import { checkDailyQuota, incrementQuota, getClientGeminiApiKey, callGroqDirect, getClientGroqApiKey, GEMINI_DEFAULT_MODEL, GEMINI_FALLBACK_MODEL, GEMINI_SAFETY_MODELS } from "./providers";
 
 function extractErrorText(err: any): string {
   const status = err?.status ?? err?.code ?? err?.response?.status;
-  const rawMsg: string = err?.message || err?.error?.message || String(err ?? 'Unknown error');
+  const rawMsg: string = err?.message || err?.error?.message || String(err ?? t('gclient_unknown_err'));
   const msg = rawMsg.slice(0, 500);
   if (status === 400 || /API key not valid|API_KEY_INVALID|invalid/i.test(msg)) {
-    return `Invalid API key (400). Check the key was copied fully from Google AI Studio, no extra spaces. Details: ${msg}`;
+    return t('gclient_err_400', { msg });
   }
   if (status === 403 || /PERMISSION_DENIED|forbidden/i.test(msg)) {
-    return `Key forbidden (403): the key lacks Gemini API access or the API is disabled in Google Cloud. Details: ${msg}`;
+    return t('gclient_err_403', { msg });
   }
   if (status === 404 || /NOT_FOUND|not found|Retired|deprecated|model/i.test(msg)) {
-    return `Model not found (404): the requested model may be retired. Try ${GEMINI_DEFAULT_MODEL} / ${GEMINI_FALLBACK_MODEL}. Details: ${msg}`;
+    return t('gclient_err_404', { defaultModel: GEMINI_DEFAULT_MODEL, fallbackModel: GEMINI_FALLBACK_MODEL, msg });
   }
   if (status === 429 || /429|RESOURCE_EXHAUSTED|quota|rate/i.test(msg)) {
-    return `Rate limited / quota exhausted (429). Wait a minute or use your own key. Details: ${msg}`;
+    return t('gclient_err_429', { msg });
   }
-  return status ? `Gemini error (${status}): ${msg}` : `Gemini error: ${msg}`;
+  return status ? t('gclient_err_status', { status, msg }) : t('gclient_err_plain', { msg });
 }
 
 export async function testGeminiApiKeyDetailed(key: string): Promise<{ ok: boolean; error?: string; model?: string }> {
   const trimmed = (key || '').trim();
-  if (!trimmed) return { ok: false, error: 'Please enter an API key first.' };
+  if (!trimmed) return { ok: false, error: t('gclient_enter_key') };
   const candidates = Array.from(new Set([GEMINI_DEFAULT_MODEL, GEMINI_FALLBACK_MODEL]));
   let lastError = '';
   for (const model of candidates) {
@@ -31,7 +32,7 @@ export async function testGeminiApiKeyDetailed(key: string): Promise<{ ok: boole
       const ai = new GoogleGenAI({ apiKey: trimmed });
       const response = await ai.models.generateContent({ model, contents: 'Respond with "pong".' });
       if ((response.text || '').toLowerCase().includes('pong')) return { ok: true, model };
-      lastError = `Model ${model} responded but did not return "pong". Check key permissions and model access.`;
+      lastError = t('gclient_no_pong', { model });
     } catch (err) {
       lastError = extractErrorText(err);
       const isModelNotFound =
@@ -39,12 +40,12 @@ export async function testGeminiApiKeyDetailed(key: string): Promise<{ ok: boole
       if (!isModelNotFound) return { ok: false, error: lastError, model };
     }
   }
-  return { ok: false, error: lastError || 'Connection failed. Please check your API key.', model: candidates[0] };
+  return { ok: false, error: lastError || t('gclient_conn_failed'), model: candidates[0] };
 }
 
 export async function testGroqApiKeyDetailed(key: string): Promise<{ ok: boolean; error?: string }> {
   const trimmed = (key || '').trim();
-  if (!trimmed) return { ok: false, error: 'Please enter a Groq API key first.' };
+  if (!trimmed) return { ok: false, error: t('gclient_enter_groq_key') };
   try {
     const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
@@ -54,18 +55,18 @@ export async function testGroqApiKeyDetailed(key: string): Promise<{ ok: boolean
     if (!res.ok) {
       let detail = res.statusText;
       try { const data = await res.json(); detail = data?.error?.message || detail; } catch {}
-      if (res.status === 401) return { ok: false, error: `Invalid Groq key (401). ${detail}`.slice(0, 500) };
-      if (res.status === 429) return { ok: false, error: `Groq rate limited (429). ${detail}`.slice(0, 500) };
-      return { ok: false, error: `Groq error (${res.status}): ${detail}`.slice(0, 500) };
+      if (res.status === 401) return { ok: false, error: t('gclient_groq_401', { detail }).slice(0, 500) };
+      if (res.status === 429) return { ok: false, error: t('gclient_groq_429', { detail }).slice(0, 500) };
+      return { ok: false, error: t('gclient_groq_err', { status: res.status, detail }).slice(0, 500) };
     }
     return { ok: true };
   } catch (err: any) {
-    return { ok: false, error: `Groq test failed: ${(err?.message || String(err)).slice(0, 500)}` };
+    return { ok: false, error: t('gclient_groq_test_failed', { msg: (err?.message || String(err)).slice(0, 500) }) };
   }
 }
 
 export async function callGemini(params: { contents: any; config?: any; model?: string }): Promise<string> {
-  if (!checkDailyQuota()) throw new Error('Daily Gemini quota reached (50/day). Try tomorrow or set your own API key.');
+  if (!checkDailyQuota()) throw new Error(t('gclient_daily_limit'));
   return rateLimiter.execute(async () => {
     incrementQuota();
     const clientKey = getClientGeminiApiKey();
@@ -80,7 +81,7 @@ export async function callGemini(params: { contents: any; config?: any; model?: 
         try {
           const ai = new GoogleGenAI({ apiKey: clientKey });
           const res = await ai.models.generateContent({ model: m, contents: params.contents, config: params.config });
-          if (!res.text || !res.text.trim()) throw new Error(`Empty response returned by ${m}.`);
+          if (!res.text || !res.text.trim()) throw new Error(t('gclient_empty_model', { model: m }));
           return res.text;
         } catch (e: any) {
           lastErrorMessage = extractErrorText(e);
@@ -100,16 +101,16 @@ export async function callGemini(params: { contents: any; config?: any; model?: 
       });
       const contentType = serverRes.headers?.get?.('content-type') || '';
       if (!contentType.includes('application/json')) {
-        throw new Error(`Unexpected response from /api/gemini/generate (${serverRes.status}, content-type: ${contentType || 'unknown'}).`);
+        throw new Error(t('airouter_unexpected_res', { status: serverRes.status, contentType: contentType || t('airouter_unknown_type') }));
       }
       const data = await serverRes.json();
       if (serverRes.ok) {
         if (!data?.text || !String(data.text).trim()) {
-          throw new Error('Server returned an empty AI response.');
+          throw new Error(t('gclient_empty_server'));
         }
         return String(data.text);
       }
-      lastErrorMessage = data?.error || `Server AI proxy error (${serverRes.status}).`;
+      lastErrorMessage = data?.error || t('gclient_server_err', { status: serverRes.status });
       if (serverRes.status === 429) {
         throw new Error(lastErrorMessage);
       }
@@ -131,7 +132,7 @@ export async function callGemini(params: { contents: any; config?: any; model?: 
       }
     }
 
-    throw new Error(lastErrorMessage || 'AI service unavailable across configured providers. Check your API key or try again.');
+    throw new Error(lastErrorMessage || t('gclient_unavailable'));
   });
 }
 
@@ -143,7 +144,7 @@ export function repairJsonString<T=any>(raw:string):T{
     if(firstBrace!==-1 && (firstBracket===-1 || firstBrace<firstBracket)){ start=firstBrace; end=cleaned.lastIndexOf('}')+1; }
     else if(firstBracket!==-1){ start=firstBracket; end=cleaned.lastIndexOf(']')+1; }
     const sliced=cleaned.slice(start,end);
-    try{ return JSON.parse(sliced); }catch{ throw new Error(`Failed parse ${raw.slice(0,100)}`); }
+    try{ return JSON.parse(sliced); }catch{ throw new Error(t('gclient_parse_failed', { preview: raw.slice(0, 100) })); }
   }
 }
 

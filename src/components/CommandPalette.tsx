@@ -25,7 +25,7 @@ import {
   Grid2x2,
 } from 'lucide-react';
 import { Assignment, AppTab } from '../types';
-import { t, useLang } from '../services/i18n';
+import { useT } from '../services/i18n';
 
 interface CommandPaletteProps {
   isOpen: boolean;
@@ -50,14 +50,14 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   assignments,
   sheetUrl,
 }) => {
-  useLang();
+  const { t, lang, formatDate } = useT();
   const [query, setQuery] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
   const [mathCopied, setMathCopied] = useState(false);
   const mathCopyTimer = React.useRef<number | undefined>(undefined);
   const listRef = React.useRef<HTMLDivElement>(null);
 
-  useEffect(() => { if (isOpen) { setActiveIndex(0); setMathCopied(false); } }, [isOpen, query]);
+  useEffect(() => { if (isOpen) { setActiveIndex(0); setMathCopied(false); } }, [isOpen, query, lang]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -148,7 +148,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     // Workspaces & Kept Apps
     {
       id: 'ws-dashboard',
-      title: 'Home Dashboard (Overview)',
+      title: t('pal_ws_dashboard'),
       category: t('pal_cat_workspaces'),
       icon: CheckSquare,
       run: () => {
@@ -158,7 +158,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     },
     {
       id: 'ws-canvas',
-      title: 'Canvas LMS (Coursework & Grades)',
+      title: t('pal_ws_canvas'),
       category: t('pal_cat_workspaces'),
       icon: Layers,
       run: () => {
@@ -168,7 +168,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     },
     {
       id: 'ws-radar',
-      title: 'Daily Schedule & AI Planner',
+      title: t('pal_ws_radar'),
       category: t('pal_cat_workspaces'),
       icon: Compass,
       run: () => {
@@ -178,7 +178,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     },
     {
       id: 'ws-tracker',
-      title: 'Assignment Tracker (Google Sheets Sync)',
+      title: t('pal_ws_tracker'),
       category: t('pal_cat_workspaces'),
       icon: CheckSquare,
       run: () => {
@@ -188,7 +188,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     },
     {
       id: 'ws-gmail',
-      title: 'Gmail AI Scanner',
+      title: t('pal_ws_gmail'),
       category: t('pal_cat_workspaces'),
       icon: Mail,
       run: () => {
@@ -198,7 +198,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     },
     {
       id: 'ws-classroom',
-      title: 'Google Classroom',
+      title: t('pal_ws_classroom'),
       category: t('pal_cat_workspaces'),
       icon: BookOpen,
       run: () => {
@@ -208,7 +208,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     },
     {
       id: 'ws-drive',
-      title: 'Google Drive Files',
+      title: t('pal_ws_drive'),
       category: t('pal_cat_workspaces'),
       icon: FolderOpen,
       run: () => {
@@ -218,7 +218,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     },
     {
       id: 'ws-notes',
-      title: 'Markdown Notes & LaTeX (+ Google Doc Export)',
+      title: t('pal_ws_notes'),
       category: t('pal_cat_workspaces'),
       icon: FileText,
       run: () => {
@@ -228,7 +228,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     },
     {
       id: 'ws-flashcards',
-      title: 'Flashcards (SM-2)',
+      title: t('pal_ws_flashcards'),
       category: t('pal_cat_workspaces'),
       icon: Brain,
       run: () => {
@@ -238,7 +238,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     },
     {
       id: 'ws-pomodoro',
-      title: 'Pomodoro Focus Station',
+      title: t('pal_ws_pomodoro'),
       category: t('pal_cat_workspaces'),
       icon: Timer,
       run: () => {
@@ -248,7 +248,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     },
     {
       id: 'ws-excalidraw',
-      title: 'Excalidraw Whiteboard',
+      title: t('pal_ws_excalidraw'),
       category: t('pal_cat_workspaces'),
       icon: PenTool,
       run: () => {
@@ -258,7 +258,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     },
     {
       id: 'ws-desmos',
-      title: 'Desmos 2D Graphing Calculator',
+      title: t('pal_ws_desmos'),
       category: t('pal_cat_workspaces'),
       icon: Calculator,
       run: () => {
@@ -268,7 +268,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     },
     {
       id: 'ws-geogebra',
-      title: 'GeoGebra Math Suite',
+      title: t('pal_ws_geogebra'),
       category: t('pal_cat_workspaces'),
       icon: Grid2x2,
       run: () => {
@@ -278,7 +278,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     },
     {
       id: 'ws-phet',
-      title: 'PhET Interactive Simulations',
+      title: t('pal_ws_phet'),
       category: t('pal_cat_workspaces'),
       icon: Atom,
       run: () => {
@@ -288,7 +288,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     },
     {
       id: 'ws-arxiv',
-      title: 'arXiv Research Papers',
+      title: t('pal_ws_arxiv'),
       category: t('pal_cat_workspaces'),
       icon: BookOpen,
       run: () => {
@@ -298,7 +298,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     },
     {
       id: 'ws-open-library',
-      title: 'Open Library Textbooks',
+      title: t('pal_ws_open_library'),
       category: t('pal_cat_workspaces'),
       icon: BookOpen,
       run: () => {
@@ -310,7 +310,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     // Quick Actions
     {
       id: 'act-new-assignment',
-      title: 'Create New Assignment',
+      title: t('pal_act_new_assignment'),
       category: t('actions'),
       icon: Plus,
       run: () => {
@@ -321,7 +321,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     },
     {
       id: 'act-quick-draft',
-      title: 'Draft Teacher Email (AI Quick-Drafter)',
+      title: t('pal_act_quick_draft'),
       category: t('actions'),
       icon: Send,
       run: () => {
@@ -331,7 +331,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     },
     {
       id: 'act-ai-coach',
-      title: 'Open AI Study Coach',
+      title: t('pal_act_ai_coach'),
       category: t('actions'),
       icon: Sparkles,
       run: () => {
@@ -342,7 +342,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     // AI Slash Commands
     {
       id: 'slash-graph',
-      title: '/graph — Open Desmos 2D Graphing Calculator',
+      title: t('pal_slash_graph'),
       category: t('pal_cat_slash'),
       icon: Calculator,
       run: () => {
@@ -352,7 +352,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     },
     {
       id: 'slash-breakdown',
-      title: '/breakdown — Open Assignment Tracker to manage subtasks',
+      title: t('pal_slash_breakdown'),
       category: t('pal_cat_slash'),
       icon: Layers,
       run: () => {
@@ -362,7 +362,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     },
     {
       id: 'slash-focus',
-      title: '/focus — Launch Pomodoro Focus Station',
+      title: t('pal_slash_focus'),
       category: t('pal_cat_slash'),
       icon: Timer,
       run: () => {
@@ -372,7 +372,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     },
     {
       id: 'slash-quiz',
-      title: '/quiz — Open Flashcards (SM-2) studio',
+      title: t('pal_slash_quiz'),
       category: t('pal_cat_slash'),
       icon: Brain,
       run: () => {
@@ -384,7 +384,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     // Settings
     {
       id: 'act-theme',
-      title: 'Toggle Dark / Light Mode',
+      title: t('pal_act_theme'),
       category: t('settings'),
       icon: Moon,
       run: () => {
@@ -402,7 +402,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       if (!title) return null;
       return {
         id: 'cmd-create-task',
-        title: `Create Task: "${title}" → Master Tracker`,
+        title: t('pal_cmd_create_task', { title }),
         category: t('create'),
         icon: Plus,
         run: () => {
@@ -423,14 +423,14 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       if (!title) return null;
       return {
         id: 'cmd-create-note',
-        title: `Create Note: "${title}" → Markdown Hub`,
+        title: t('pal_cmd_create_note', { title }),
         category: t('create'),
         icon: FileText,
         run: () => {
           try {
             const raw = localStorage.getItem('scc_markdown_notes_v1');
             const arr = raw ? JSON.parse(raw) : [];
-            const note = { id: `note-${Date.now()}`, title, subject: 'General', content: `# ${title}\n\n`, updatedAt: new Date().toLocaleDateString() };
+            const note = { id: `note-${Date.now()}`, title, subject: 'General', content: `# ${title}\n\n`, updatedAt: formatDate(new Date()) };
             localStorage.setItem('scc_markdown_notes_v1', JSON.stringify([note, ...arr]));
           } catch {}
           onSelectWorkspace('notes-markdown');
@@ -444,7 +444,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       if (!mins || mins < 1 || mins > 120) return null;
       return {
         id: 'cmd-pomo',
-        title: `Start Pomodoro: ${mins} minutes → Focus Station`,
+        title: t('pal_cmd_pomo', { mins }),
         category: t('focus'),
         icon: Timer,
         run: () => {
@@ -589,7 +589,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                 <span className="text-xs font-bold">{commandAction.title}</span>
                 <span className="ml-auto text-[10px] opacity-80">{t('pal_run')}</span>
               </button>
-              <div className="px-2 pt-1 text-[10px] text-[#8C897F]">{t('pal_tip')} <span className="font-mono">t &lt;task&gt;</span> • <span className="font-mono">note &lt;title&gt;</span> • <span className="font-mono">pomo &lt;mins&gt;</span></div>
+              <div className="px-2 pt-1 text-[10px] text-[#8C897F]">{t('pal_tip')} <span className="font-mono">t &lt;{t('pal_tip_task')}&gt;</span> • <span className="font-mono">note &lt;{t('pal_tip_title')}&gt;</span> • <span className="font-mono">pomo &lt;{t('pal_tip_mins')}&gt;</span></div>
             </div>
           )}
           {/* Matched Assignments */}
@@ -615,7 +615,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                       </span>
                     </div>
                     <span className="text-[10px] font-mono text-[#8C897F]">
-                      {a.subject} • Due {a.dueDate}
+                      {a.subject} • {t('tracker_due')} {a.dueDate}
                     </span>
                   </button>
                 ))}

@@ -3,6 +3,8 @@
 // Accent #D97757 (hover #B85C38) / Active pill #F6DDCC / Ink #26241F / Muted #7A7161
 // Dark  = coal #201D18 / Panel #2B2620 / Element #38312A / Cream text #ECE3D0
 // Muted #A2937B / Accent text #E8936B / Border #4A4136
+import { t } from './i18n';
+
 export type ThemeId = 'linen' | 'midnight';
 
 const THEME_KEY = 'scc_color_theme_v1';
@@ -41,6 +43,10 @@ export const THEME_META: Record<ThemeId, { label: string; accent: string; bg: st
   linen: { label: 'Paper (Light)', accent: '#D97757', bg: '#F5F0E6' },
   midnight: { label: 'Coal (Dark)', accent: '#D97757', bg: '#201D18' },
 };
+
+export function getThemeLabel(id: ThemeId): string {
+  return t(id === 'midnight' ? 'theme_midnight_label' : 'theme_linen_label');
+}
 
 // Legacy palettes (ocean/forest/nord/dracula/catppuccin/cyberpunk/parchment) were
 // removed — migrate any stored value so dark mode is always #141413, never tinted.

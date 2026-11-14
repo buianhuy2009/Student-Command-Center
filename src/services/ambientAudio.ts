@@ -1,5 +1,6 @@
 // Ambient Audio Service (Web Audio API Synthesizer)
 // Provides zero-dependency, infinite-loop ambient soundscapes for focus and study.
+import { t } from './i18n';
 
 export type TrackId =
   | 'none'
@@ -46,6 +47,14 @@ export const AMBIENT_TRACKS: AmbientTrack[] = [
   { id: 'stream', label: 'Mountain Stream', shortLabel: '💧 Mountain Stream', iconName: 'Droplets' },
   { id: 'campfire', label: 'Cozy Campfire', shortLabel: '🔥 Cozy Campfire', iconName: 'Flame' },
 ];
+
+export function getAmbientTrackLabel(id: TrackId): string {
+  return t(`pom_track_full_${id}`);
+}
+
+export function getAmbientTrackShortLabel(id: TrackId): string {
+  return t(`pom_track_${id}`);
+}
 
 type AudioListener = (currentTrack: TrackId) => void;
 

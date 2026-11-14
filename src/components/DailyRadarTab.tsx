@@ -20,7 +20,7 @@ import { ApiActivationBanner } from './ApiActivationBanner';
 import { AIPlannerWorkspace } from './workspaces/AIPlannerWorkspace';
 import { toMobileDeepLink } from '../services/canvas';
 import { suggestStudySlots, StudySlotResult, StudySlotSuggestion } from '../services/gemini';
-import { t, useLang } from '../services/i18n';
+import { useT } from '../services/i18n';
 
 interface DailyRadarTabProps {
   events: CalendarEvent[];
@@ -178,7 +178,7 @@ export const DailyRadarTab: React.FC<DailyRadarTabProps> = ({
   classroomAssignments = [],
   emailAlerts = [],
 }) => {
-  useLang();
+  const { t, formatDate, formatTime } = useT();
   const [viewMode, setViewMode] = useState<'agenda' | 'planner'>(() => resolveRadarMode(initialMode));
   useEffect(() => {
     if (initialMode) {
@@ -226,7 +226,7 @@ export const DailyRadarTab: React.FC<DailyRadarTabProps> = ({
       setStudySlotResult(result);
     } catch (err: any) {
       console.error('Failed to suggest study slots:', err);
-      setSlotError(err?.message || 'Could not suggest study times right now. Check your Gemini/Groq key in Settings or pick a time yourself.');
+      setSlotError(err?.message || t('radar_slots_err'));
     } finally {
       setIsSuggestingSlots(false);
     }
@@ -240,7 +240,7 @@ export const DailyRadarTab: React.FC<DailyRadarTabProps> = ({
       return;
     }
     if (!onAddStudyBlock) {
-      setSlotError('Connect Google Calendar first to save study blocks there.');
+      setSlotError(t('radar_connect_cal_err'));
       return;
     }
     const freeSlots = findCollisionFreeStudySlots({
@@ -252,25 +252,31 @@ export const DailyRadarTab: React.FC<DailyRadarTabProps> = ({
       maxBlocks: 3,
     });
     if (freeSlots.length === 0) {
-      setSlotError('No free 45-minute windows found over the next 7 days. Open AI Planner to adjust your study hours.');
+      setSlotError(t('radar_no_free_slots'));
       return;
     }
     setIsSuggestingSlots(true);
     try {
+      const rhythmLabel =
+        chronotype === 'morning'
+          ? t('radar_morning')
+          : chronotype === 'evening'
+          ? t('radar_night')
+          : t('radar_balanced');
       const scheduledLabels: string[] = [];
       for (const s of freeSlots) {
         await onAddStudyBlock({
-          title: `Focus: ${s.assignmentName} (${s.subject})`,
-          description: `45-minute study session (${chronotype} focus) avoiding ${events.length} calendar events and Canvas deadlines.`,
+          title: t('radar_focus_prefix', { title: s.assignmentName, subject: s.subject }),
+          description: t('radar_autoblock_desc', { rhythm: rhythmLabel, count: events.length }),
           startDateTime: `${s.dateStr}T${s.startTime}:00`,
           endDateTime: `${s.dateStr}T${s.endTime}:00`,
         });
         scheduledLabels.push(`${s.dateStr} ${s.startTime}`);
       }
-      setAutoBlockSummary(`Scheduled ${scheduledLabels.length} free study session(s): ${scheduledLabels.join(' · ')}`);
+      setAutoBlockSummary(t('radar_autoblock_summary', { count: scheduledLabels.length, times: scheduledLabels.join(' · ') }));
     } catch (err: any) {
       console.error('Auto-block scheduling failed:', err);
-      setSlotError(err?.message || 'Could not save study sessions to Google Calendar.');
+      setSlotError(err?.message || t('radar_autoblock_save_err'));
     } finally {
       setIsSuggestingSlots(false);
     }
@@ -288,8 +294,8 @@ export const DailyRadarTab: React.FC<DailyRadarTabProps> = ({
       const startDateTime = `${todayStr}T${slot.startTime}:00`;
       const endDateTime = `${todayStr}T${slot.endTime}:00`;
       await onAddStudyBlock({
-        title: `Focus: ${slot.taskName} (${slot.taskSubject})`,
-        description: `Planned with StudentOS.\nReason: ${slot.reason}`,
+        title: t('radar_focus_prefix', { title: slot.taskName, subject: slot.taskSubject }),
+        description: t('radar_slot_desc', { reason: slot.reason }),
         startDateTime,
         endDateTime,
       });
@@ -303,7 +309,7 @@ export const DailyRadarTab: React.FC<DailyRadarTabProps> = ({
       );
     } catch (err: any) {
       console.error('Error applying study slot:', err);
-      setSlotError(err?.message || 'Could not schedule study block in Google Calendar.');
+      setSlotError(err?.message || t('radar_slot_save_err'));
     } finally {
       setSchedulingSlotIndex(null);
     }
@@ -313,7 +319,10 @@ export const DailyRadarTab: React.FC<DailyRadarTabProps> = ({
     .filter((a) => a.dueAt === todayStr && !a.isCompleted)
     .map((a) => ({
       id: a.id,
-      summary: `Canvas: ${a.name} (${a.pointsPossible !== undefined ? `${a.pointsPossible} pts` : 'Ungraded'})`,
+      summary: t('radar_canvas_event_summary', {
+        name: a.name,
+        gradeInfo: a.pointsPossible !== undefined ? t('radar_pts', { pts: a.pointsPossible }) : t('radar_ungraded'),
+      }),
       description: a.description,
       location: a.courseName,
       start: { dateTime: a.dueAt ? `${a.dueAt}T23:59:00` : undefined },
@@ -344,11 +353,7 @@ export const DailyRadarTab: React.FC<DailyRadarTabProps> = ({
 
   const formatEventTime = (isoString?: string) => {
     if (!isoString) return t('radar_all_day');
-    try {
-      return new Date(isoString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    } catch {
-      return isoString;
-    }
+    return formatTime(isoString, { hour: '2-digit', minute: '2-digit' }) || isoString;
   };
 
   return (
@@ -361,7 +366,7 @@ export const DailyRadarTab: React.FC<DailyRadarTabProps> = ({
           </div>
           <div>
             <h2 className="text-base sm:text-lg font-bold text-[#141413] dark:text-[#FAF9F5] tracking-tight">
-              {new Date().toLocaleDateString('en-US', {
+              {formatDate(new Date(), {
                 weekday: 'long',
                 month: 'short',
                 day: 'numeric',
@@ -384,7 +389,7 @@ export const DailyRadarTab: React.FC<DailyRadarTabProps> = ({
                   : 'text-[#5C5A54] dark:text-[#B5B2A8] hover:text-[#141413] dark:hover:text-[#FAF9F5]'
               }`}
             >
-              Agenda
+              {t('radar_tab_agenda')}
             </button>
             <button
               type="button"
@@ -396,7 +401,7 @@ export const DailyRadarTab: React.FC<DailyRadarTabProps> = ({
               }`}
             >
               <Sparkles className="w-3 h-3" />
-              <span>AI Planner</span>
+              <span>{t('radar_tab_planner')}</span>
             </button>
           </div>
 
@@ -719,12 +724,12 @@ export const DailyRadarTab: React.FC<DailyRadarTabProps> = ({
                           </div>
                           {isCurrent && (
                             <span className="px-1.5 py-0.2 text-[10px] font-bold bg-amber-500 text-white rounded">
-                              LIVE NOW
+                              {t('radar_live_now')}
                             </span>
                           )}
                           {event.isStudyBlock && (
                             <span className="px-1.5 py-0.2 text-[10px] font-bold bg-[#D97757] text-white rounded">
-                              45M FOCUS
+                              {t('radar_45m_focus')}
                             </span>
                           )}
                           {event.isCanvas && (

@@ -51,6 +51,7 @@ import {
   callGemini,
   repairJsonString,
 } from './gemini/client';
+import { t } from './i18n';
 
 export {
   GEMINI_DEFAULT_MODEL,
@@ -113,11 +114,11 @@ async function postGeminiJsonEndpoint<T>(url: string, body: unknown, label: stri
   });
   const contentType = res.headers?.get?.('content-type') || '';
   if (!contentType.includes('application/json')) {
-    throw new Error(`${label} returned unexpected non-JSON response (${res.status}, content-type: ${contentType || 'unknown'}).`);
+    throw new Error(t('gem_err_non_json', { label, status: res.status, contentType: contentType || 'unknown' }));
   }
   const data = await res.json();
   if (!res.ok) {
-    throw new Error(data?.error || `${label} error (${res.status} ${res.statusText || 'Failed'})`);
+    throw new Error(data?.error || t('gem_err_endpoint', { label, status: res.status, statusText: res.statusText || 'Failed' }));
   }
   return data as T;
 }
@@ -130,7 +131,7 @@ async function callGeminiJson<T>(prompt: string, label: string): Promise<T> {
   try {
     return repairJsonString<T>(raw);
   } catch (err) {
-    throw new Error(`${label} failed to parse AI JSON output: ${err instanceof Error ? err.message : String(err)}`);
+    throw new Error(t('gem_err_json_parse', { label, msg: err instanceof Error ? err.message : String(err) }));
   }
 }
 
@@ -185,14 +186,14 @@ Return only JSON.`;
   try {
     const parsed = repairJsonString<{ reply: string; actions: AgentAction[] }>(raw);
     if (!parsed || typeof parsed.reply !== 'string' || !parsed.reply.trim()) {
-      throw new Error('Missing reply text in agent payload.');
+      throw new Error(t('gem_err_agent_missing'));
     }
     return {
       reply: parsed.reply,
       actions: Array.isArray(parsed.actions) ? parsed.actions : [],
     };
   } catch (err) {
-    throw new Error(`Autonomous agent failed to return valid actions: ${err instanceof Error ? err.message : String(err)}`);
+    throw new Error(t('gem_err_agent_failed', { msg: err instanceof Error ? err.message : String(err) }));
   }
 }
 
@@ -237,11 +238,11 @@ Return only JSON.`;
   try {
     const parsed = repairJsonString<MathDebugResult>(raw);
     if (!parsed || !Array.isArray(parsed.fullLatex)) {
-      throw new Error('Missing fullLatex lines in math debugger payload.');
+      throw new Error(t('gem_err_math_missing'));
     }
     return parsed;
   } catch (err) {
-    throw new Error(`Handwritten math debugger failed: ${err instanceof Error ? err.message : String(err)}`);
+    throw new Error(t('gem_err_math_debugger', { msg: err instanceof Error ? err.message : String(err) }));
   }
 }
 
@@ -289,7 +290,7 @@ Return only JSON.`;
     const createdNotes = Array.isArray(data?.createdNotes) ? data.createdNotes : [];
     const createdCards = Array.isArray(data?.createdCards) ? data.createdCards : [];
     if (createdEvents.length === 0 && createdNotes.length === 0 && createdCards.length === 0) {
-      throw new Error('AI returned an empty semester deployment plan.');
+      throw new Error(t('gem_err_deploy_empty'));
     }
 
     return {
@@ -301,7 +302,7 @@ Return only JSON.`;
       createdDeckTitle: data.createdDeckTitle || `${syllabus.courseName} Deck`,
     };
   } catch (err) {
-    throw new Error(`Failed to deploy semester from syllabus: ${err instanceof Error ? err.message : String(err)}`);
+    throw new Error(t('gem_err_deploy', { msg: err instanceof Error ? err.message : String(err) }));
   }
 }
 
@@ -335,11 +336,11 @@ Return only JSON.`;
   try {
     const parsed = repairJsonString<ThreeTierFeynmanResult>(raw);
     if (!parsed || !parsed.tier1_eli5 || !parsed.tier3_undergrad) {
-      throw new Error('Incomplete three-tier explanation returned.');
+      throw new Error(t('gem_err_feynman_incomplete'));
     }
     return parsed;
   } catch (err) {
-    throw new Error(`Failed to generate Feynman explanation: ${err instanceof Error ? err.message : String(err)}`);
+    throw new Error(t('gem_err_feynman_failed', { msg: err instanceof Error ? err.message : String(err) }));
   }
 }
 
@@ -467,11 +468,11 @@ Return only JSON.`;
   try {
     const parsed = repairJsonString<AssignmentSubTask[]>(raw);
     if (!Array.isArray(parsed) || parsed.length === 0) {
-      throw new Error('AI returned no sub-tasks.');
+      throw new Error(t('gem_err_no_subtasks'));
     }
     return parsed;
   } catch (err) {
-    throw new Error(`Failed to deconstruct assignment into sub-tasks: ${err instanceof Error ? err.message : String(err)}`);
+    throw new Error(t('gem_err_deconstruct', { msg: err instanceof Error ? err.message : String(err) }));
   }
 }
 
@@ -502,11 +503,11 @@ Use valid Desmos LaTeX (e.g. y = x^2, \\\\sin(x), \\\\cos(x), \\\\sqrt{x}). Retu
   try {
     const parsed = repairJsonString<DesmosEquation[]>(raw);
     if (!Array.isArray(parsed) || parsed.length === 0) {
-      throw new Error('AI returned no Desmos equations.');
+      throw new Error(t('gem_err_no_desmos'));
     }
     return parsed;
   } catch (err) {
-    throw new Error(`Failed to generate Desmos equations: ${err instanceof Error ? err.message : String(err)}`);
+    throw new Error(t('gem_err_desmos_failed', { msg: err instanceof Error ? err.message : String(err) }));
   }
 }
 
@@ -584,11 +585,11 @@ Return only JSON.`;
   try {
     const parsed = repairJsonString<{ latex: string; explanation: string }>(raw);
     if (!parsed || typeof parsed.latex !== 'string' || !parsed.latex.trim()) {
-      throw new Error('Missing extracted LaTeX in AI response.');
+      throw new Error(t('gem_err_missing_latex'));
     }
     return parsed;
   } catch (err) {
-    throw new Error(`Failed to convert handwritten math to LaTeX: ${err instanceof Error ? err.message : String(err)}`);
+    throw new Error(t('gem_err_latex_failed', { msg: err instanceof Error ? err.message : String(err) }));
   }
 }
 
@@ -639,11 +640,11 @@ Return only JSON.`;
   try {
     const parsed = repairJsonString<MermaidDiagramResult>(raw);
     if (!parsed || typeof parsed.code !== 'string' || !parsed.code.trim()) {
-      throw new Error('Missing diagram code in AI response.');
+      throw new Error(t('gem_err_missing_diagram'));
     }
     return parsed;
   } catch (err) {
-    throw new Error(`Failed to generate Mermaid diagram: ${err instanceof Error ? err.message : String(err)}`);
+    throw new Error(t('gem_err_diagram_failed', { msg: err instanceof Error ? err.message : String(err) }));
   }
 }
 
@@ -680,11 +681,11 @@ Return only JSON.`;
   try {
     const parsed = repairJsonString<FlashcardItem[]>(raw);
     if (!Array.isArray(parsed) || parsed.length === 0) {
-      throw new Error('AI returned no flashcards.');
+      throw new Error(t('gem_err_no_flashcards'));
     }
     return parsed;
   } catch (err) {
-    throw new Error(`Failed to synthesize flashcards: ${err instanceof Error ? err.message : String(err)}`);
+    throw new Error(t('gem_err_flashcards', { msg: err instanceof Error ? err.message : String(err) }));
   }
 }
 
@@ -724,11 +725,11 @@ Return only JSON.`;
   try {
     const parsed = repairJsonString<{ score: number; feedback: string; missingPoints: string[]; nextQuestion: string }>(raw);
     if (!parsed || typeof parsed.score !== 'number' || typeof parsed.nextQuestion !== 'string') {
-      throw new Error('Invalid viva evaluation payload.');
+      throw new Error(t('gem_err_viva_invalid'));
     }
     return parsed;
   } catch (err) {
-    throw new Error(`Oral defense evaluation failed: ${err instanceof Error ? err.message : String(err)}`);
+    throw new Error(t('gem_err_viva', { msg: err instanceof Error ? err.message : String(err) }));
   }
 }
 
@@ -783,11 +784,11 @@ Return only JSON.`;
   try {
     const parsed = repairJsonString<RubricPreCheckResult>(raw);
     if (!parsed || typeof parsed.overallScore !== 'number' || !Array.isArray(parsed.criteria)) {
-      throw new Error('Invalid rubric evaluation payload.');
+      throw new Error(t('gem_err_rubric_invalid'));
     }
     return parsed;
   } catch (err) {
-    throw new Error(`Rubric pre-check failed: ${err instanceof Error ? err.message : String(err)}`);
+    throw new Error(t('gem_err_rubric', { msg: err instanceof Error ? err.message : String(err) }));
   }
 }
 
@@ -821,11 +822,11 @@ Return only JSON.`;
   try {
     const parsed = repairJsonString<{ simplified: string; analogy: string; coreIdea: string }>(raw);
     if (!parsed || !parsed.simplified || !parsed.coreIdea) {
-      throw new Error('Incomplete simplification payload.');
+      throw new Error(t('gem_err_simplify_incomplete'));
     }
     return parsed;
   } catch (err) {
-    throw new Error(`Feynman simplification failed: ${err instanceof Error ? err.message : String(err)}`);
+    throw new Error(t('gem_err_simplify_failed', { msg: err instanceof Error ? err.message : String(err) }));
   }
 }
 
@@ -861,9 +862,9 @@ export async function summarizeEmailsWithGemini(
       oneLineSummary: `${(e.snippet || e.subject || '').slice(0, 90)}…`,
       urgency: 'INFO' as const,
       category,
-      categoryLabel: category === 'SOCIAL' ? 'Social' : 'Promotion / Spam',
+      categoryLabel: category === 'SOCIAL' ? t('gem_cat_social') : t('gem_cat_promo'),
       isSpam: category === 'PROMOTION',
-      spamReason: 'Sorted by Gmail',
+      spamReason: t('gem_sorted_by_gmail'),
       language: 'other' as const,
       gmailLabels: e.labelIds || [],
       rawEmail: e,
@@ -882,7 +883,7 @@ export async function summarizeEmailsWithGemini(
     oneLineSummary: `${(e.snippet || e.subject || '').slice(0, 90)}…`,
     urgency: 'LOW' as const,
     category: 'GENERAL' as const,
-    categoryLabel: 'Chưa đọc được',
+    categoryLabel: t('gem_cat_unread'),
     isSpam: false,
     gmailLabels: e.labelIds || [],
     rawEmail: e,
@@ -953,7 +954,7 @@ export async function sendStudyAssistantMessage(
       'Study assistant API'
     );
     if (!data?.reply || !String(data.reply).trim()) {
-      throw new Error('Study assistant API returned an empty reply.');
+      throw new Error(t('gem_err_assistant_empty'));
     }
     return String(data.reply);
   } catch (err) {
@@ -1071,7 +1072,7 @@ Output ONLY valid raw JSON.`;
 
   const parsed = await callGeminiJson<QuizQuestion[]>(prompt, 'Interactive quiz generation');
   if (!Array.isArray(parsed) || parsed.length === 0) {
-    throw new Error('Interactive quiz generation returned an empty question list.');
+    throw new Error(t('gem_err_quiz_empty'));
   }
   return parsed;
 }
@@ -1119,7 +1120,7 @@ Return ONLY raw JSON in this structure:
 
   const parsed = await callGeminiJson<DailyStudyPlanResult>(prompt, 'Daily study plan generation');
   if (!parsed || !Array.isArray(parsed.blocks)) {
-    throw new Error('Daily study plan generation returned invalid blocks.');
+    throw new Error(t('gem_err_daily_plan_invalid'));
   }
   return parsed;
 }
@@ -1157,7 +1158,7 @@ Return ONLY a raw JSON object with:
 
   const parsed = await callGeminiJson<AcademicCitationResult>(prompt, 'Academic citation generation');
   if (!parsed || (!parsed.apa && !parsed.mla && !parsed.bibtex)) {
-    throw new Error('Academic citation generation returned incomplete citation formats.');
+    throw new Error(t('gem_err_citations_incomplete'));
   }
   return parsed;
 }
@@ -1249,7 +1250,7 @@ Return ONLY valid JSON matching this exact structure:
 
   const parsed = await callGeminiJson<ParsedSyllabusData>(prompt, 'Syllabus parser');
   if (!parsed || typeof parsed.courseTitle !== 'string') {
-    throw new Error('Syllabus parser returned incomplete course metadata.');
+    throw new Error(t('gem_err_syllabus_incomplete'));
   }
   return parsed;
 }
@@ -1300,7 +1301,7 @@ Return ONLY valid JSON matching this exact structure:
 
   const parsed = await callGeminiJson<WhyIsThisHardResult>(prompt, 'Cognitive difficulty deconstruction');
   if (!parsed || !parsed.coreDifficultyReason || !Array.isArray(parsed.cognitiveBottlenecks)) {
-    throw new Error('Cognitive deconstruction returned an incomplete breakdown.');
+    throw new Error(t('gem_err_deconstruct_incomplete'));
   }
   return parsed;
 }
@@ -1369,7 +1370,7 @@ Return ONLY valid JSON:
 
   const parsed = await callGeminiJson<EssayAnalysisResult>(prompt, 'Essay draft analysis');
   if (!parsed || !parsed.thesisEvaluation) {
-    throw new Error('Essay analyzer returned an incomplete evaluation.');
+    throw new Error(t('gem_err_essay_incomplete'));
   }
   return parsed;
 }
@@ -1409,7 +1410,7 @@ Socratic Tutor:`;
   const raw = await callGemini({ contents: prompt });
   const trimmed = raw.trim();
   if (!trimmed) {
-    throw new Error('Socratic tutor returned an empty response.');
+    throw new Error(t('gem_err_tutor_empty'));
   }
   return trimmed;
 }

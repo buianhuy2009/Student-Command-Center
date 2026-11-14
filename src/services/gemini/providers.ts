@@ -1,4 +1,6 @@
 // Default Gemini model chain (server + client fallback to Groq when BYOK key set).
+import { t as tr } from '../i18n';
+
 export const GEMINI_DEFAULT_MODEL = 'gemini-flash-latest';
 export const GEMINI_FALLBACK_MODEL = 'gemini-2.5-flash';
 export const GEMINI_SAFETY_MODELS = ['gemini-flash-lite-latest'];
@@ -48,9 +50,9 @@ export function getExpiryStatus(expiresAt?: string): { state: 'none' | 'valid' |
     const exp = new Date(`${expiresAt}T00:00:00`);
     if (isNaN(exp.getTime())) return { state: 'none', daysLeft: null, label: '' };
     const daysLeft = Math.round((exp.getTime() - now.getTime()) / 86400000);
-    if (daysLeft < 0) return { state: 'expired', daysLeft, label: 'Expired' };
-    if (daysLeft <= 7) return { state: 'expiring', daysLeft, label: daysLeft === 0 ? 'Expires today' : `Expires in ${daysLeft} day${daysLeft === 1 ? '' : 's'}` };
-    return { state: 'valid', daysLeft, label: `Expires in ${daysLeft} days` };
+    if (daysLeft < 0) return { state: 'expired', daysLeft, label: tr('prov_expired') };
+    if (daysLeft <= 7) return { state: 'expiring', daysLeft, label: daysLeft === 0 ? tr('prov_expires_today') : tr(daysLeft === 1 ? 'prov_expires_in_one' : 'prov_expires_in_other', { days: daysLeft }) };
+    return { state: 'valid', daysLeft, label: tr('prov_expires_in_other', { days: daysLeft }) };
   } catch { return { state: 'none', daysLeft: null, label: '' }; }
 }
 
@@ -98,7 +100,7 @@ export function setClientGroqApiKey(key: string): void {
 
 export async function callGroqDirect(promptText: string, jsonMode: boolean=false): Promise<string> {
   const groqKey = getClientGroqApiKey();
-  if (!groqKey) throw new Error('No Groq API key configured.');
+  if (!groqKey) throw new Error(tr('prov_no_groq_key'));
   const tryModel = async (model: string) => {
     const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method:'POST', headers:{ Authorization:`Bearer ${groqKey}`, 'Content-Type':'application/json' },
@@ -106,7 +108,7 @@ export async function callGroqDirect(promptText: string, jsonMode: boolean=false
     });
     if (!res.ok) {
       const detail = await res.text().catch(() => res.statusText);
-      throw new Error(`Groq ${model} error (${res.status}): ${detail.slice(0, 200)}`);
+      throw new Error(tr('prov_groq_err', { model, status: res.status, detail: detail.slice(0, 200) }));
     }
     const data=await res.json(); return data.choices?.[0]?.message?.content||'';
   };

@@ -27,7 +27,7 @@ import {
 } from 'lucide-react';
 import type { Assignment, CalendarEvent, CanvasAssignment, EmailAlert } from '../../types';
 import { callGemini, GEMINI_DEFAULT_MODEL } from '../../services/gemini';
-import { getLang, useLang } from '../../services/i18n';
+import { formatDate as formatI18nDate, getLang, t as tr, useT } from '../../services/i18n';
 import {
   applyOps,
   buildCommandPrompt,
@@ -38,15 +38,13 @@ import {
   fold,
   hhmm,
   parseOpsResponse,
+  weekdayLabel,
   weekdayVi,
   type BusyLite,
   type PlanBlockLite,
   type PlanDiffEntry,
   type PlanOp,
 } from '../../services/planCommands';
-
-/** Vietnamese-first UI copy; re-renders via useLang() in the component. */
-const L = (vi: string, en: string) => (getLang() === 'vi' ? vi : en);
 
 /* ------------------------------------------------------------------ */
 /* Types                                                               */
@@ -202,7 +200,7 @@ function shortWeekday(iso: string): string {
     const w = weekdayVi(iso);
     return w === 'Chủ nhật' ? 'CN' : w.replace('Thứ ', 'T');
   }
-  return new Date(`${iso}T12:00:00`).toLocaleDateString('en-US', { weekday: 'short' });
+  return formatI18nDate(new Date(`${iso}T12:00:00`), { weekday: 'short' });
 }
 
 function dayLabel(iso: string): string {
@@ -215,10 +213,10 @@ function dayLabel(iso: string): string {
     if (iso === tomorrow) return `Ngày mai · ${weekdayVi(iso)} ${dm}`;
     return `${weekdayVi(iso)} · ${dm}`;
   }
-  const weekday = d.toLocaleDateString('en-US', { weekday: 'short' });
-  const md = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  if (iso === today) return `Today · ${md}`;
-  if (iso === tomorrow) return `Tomorrow · ${md}`;
+  const weekday = formatI18nDate(d, { weekday: 'short' });
+  const md = formatI18nDate(d, { month: 'short', day: 'numeric' });
+  if (iso === today) return tr('plan_today_label', { date: md });
+  if (iso === tomorrow) return tr('plan_tomorrow_label', { date: md });
   return `${weekday} · ${md}`;
 }
 
@@ -283,7 +281,7 @@ function harvestTasks(
     const dueISO = dueStatus === 'missing' ? null : parseDueToISO(a.dueDate);
     const url = a.docUrl || (a as any).sourceUrl;
     if (!dueISO) {
-      undated.push({ key: `a-${a.id}`, title: a.assignmentName || 'Untitled assignment', subject: a.subject || 'General', origin: 'assignment', url });
+      undated.push({ key: `a-${a.id}`, title: a.assignmentName || tr('plan_untitled_assignment'), subject: a.subject || tr('plan_general_subject'), origin: 'assignment', url });
       continue;
     }
     const subMin = Array.isArray(a.subtasks)
@@ -291,8 +289,8 @@ function harvestTasks(
       : 0;
     out.push({
       key: `a-${a.id}`,
-      title: a.assignmentName || 'Untitled assignment',
-      subject: a.subject || 'General',
+      title: a.assignmentName || tr('plan_untitled_assignment'),
+      subject: a.subject || tr('plan_general_subject'),
       dueISO,
       priority: a.priority || 'Med',
       minutes: Math.max(30, Math.min(240, Math.max(a.estimatedMinutes || 90, subMin || 0))),
@@ -307,7 +305,7 @@ function harvestTasks(
     if (!dueISO) return;
     out.push({
       key: `${prefix}-${c.id}`,
-      title: c.name || 'Untitled item',
+      title: c.name || tr('plan_untitled_item'),
       subject: c.courseName || fallbackSubject,
       dueISO,
       priority: 'Med',
@@ -373,7 +371,7 @@ function meetingsToBusy(meetings?: CalendarEvent[]): BusySpan[] {
         dayISO,
         startMin: Math.max(0, startMin),
         endMin: Math.max(startMin + 15, Math.min(1440, endMin)),
-        label: m.summary || 'Meeting',
+        label: m.summary || tr('plan_meeting_fallback'),
       });
     } catch {
       /* ignore malformed events */
@@ -395,7 +393,7 @@ function timetableToBusy(days: string[]): BusySpan[] {
       if (idx[key] !== dow) continue;
       const h = Number(r?.hour);
       if (!Number.isFinite(h)) continue;
-      spans.push({ dayISO, startMin: h * 60, endMin: Math.min(1440, h * 60 + 60), label: String(r?.title || 'Class') });
+      spans.push({ dayISO, startMin: h * 60, endMin: Math.min(1440, h * 60 + 60), label: String(r?.title || tr('plan_class_fallback')) });
     }
   }
   return spans;
@@ -484,12 +482,12 @@ function buildLocalPlan(
               claim(dayISO, bs, be);
               blocks.push({
                 id: `${task.key}-b${seq}`,
-                title: 'Break',
-                subject: 'Recharge',
+                title: tr('pc_break_title'),
+                subject: tr('pc_break_subject'),
                 dayISO,
                 startMin: bs,
                 endMin: be,
-                reason: 'Short breather so focus stays sharp.',
+                reason: tr('plan_breather_reason'),
                 kind: 'break',
               });
             }
@@ -519,10 +517,13 @@ function buildLocalPlan(
       const leftForDay = daysUntil(task.dueISO) - days.indexOf(day);
       const reason =
         task.priority === 'High'
-          ? `High priority · due ${task.dueISO} — placed early so it never slips.`
+          ? tr('plan_reason_high', { date: task.dueISO })
           : left <= 1
-            ? `Due ${left <= 0 ? 'today' : 'tomorrow'} — front-loaded before the deadline.`
-            : `Due ${task.dueISO} (${leftForDay} day${leftForDay === 1 ? '' : 's'} out) — steady progress, no cramming.`;
+            ? tr(left <= 0 ? 'plan_reason_due_today' : 'plan_reason_due_tomorrow')
+            : tr(leftForDay === 1 ? 'plan_reason_due_in_one' : 'plan_reason_due_in_other', {
+                date: task.dueISO,
+                days: leftForDay,
+              });
       const kind: PlanBlock['kind'] = placed === sessionsNeeded - 1 && sessionsNeeded > 1 ? 'review' : 'study';
       if (placeSession(task, day, reason, kind)) placed += 1;
       void gap;
@@ -598,11 +599,11 @@ async function tryGeminiPlan(
         id: `ai-${i}-${s}`,
         ...(task ? { taskKey: task.key } : {}),
         title,
-        subject: String(b?.subject || 'Study').slice(0, 40),
+        subject: String(b?.subject || tr('plan_study_fallback')).slice(0, 40),
         dayISO,
         startMin: Math.max(0, Math.min(1439, Math.round(s))),
         endMin: Math.max(1, Math.min(1440, Math.round(e))),
-        reason: String(b?.reason || 'Placed by AI around your deadlines.').slice(0, 140),
+        reason: String(b?.reason || tr('plan_ai_reason_fallback')).slice(0, 140),
         kind: 'study',
         ...(task?.tentative ? { tentative: true } : {}),
       });
@@ -636,19 +637,19 @@ function parseConstraintsFromText(
   if (/(avoid|no|skip)\s+(morning|mornings)/.test(lower) || /not\s+a\s+morning\s+person/.test(lower)) {
     if (!next.avoidMornings) {
       next.avoidMornings = true;
-      changes.push('Avoiding mornings — sessions move to afternoons and evenings.');
+      changes.push(tr('plan_c_avoid_mornings'));
     }
   }
   if (/(evening|night)/.test(lower) && /(prefer|after|pm)/.test(lower)) {
     if (!next.preferEvenings) {
       next.preferEvenings = true;
-      changes.push('Preferring evening slots where the day is free.');
+      changes.push(tr('plan_c_prefer_evenings'));
     }
   }
   if (/more\s+breaks?/.test(lower) || /burn(ed|t)?\s*out/.test(lower) || /shorter\s+sessions?/.test(lower)) {
     if (!next.moreBreaks) {
       next.moreBreaks = true;
-      changes.push('Shorter 45-minute sessions with breathers between them.');
+      changes.push(tr('plan_c_more_breaks'));
     }
   }
   // Explicit "keep X clear / busy Friday / no time Monday" blocks that day — same rule every weekday.
@@ -659,13 +660,13 @@ function parseConstraintsFromText(
     const match = days.find((iso) => new Date(`${iso}T12:00:00`).getDay() === idx);
     if (match && !next.blockedDays.includes(match)) {
       next.blockedDays.push(match);
-      changes.push(`Keeping ${wd[0].toUpperCase()}${wd.slice(1)} (${match}) clear — sessions moved to other days.`);
+      changes.push(tr('plan_c_day_clear', { day: weekdayLabel(match, getLang()), date: match }));
     }
   });
   if (changes.length === 0) {
     const snippet = text.trim().slice(0, 60);
     next.notes.push(snippet);
-    changes.push(`Noted (“${snippet}”) — rebalanced the week with your deadlines first.`);
+    changes.push(tr('plan_c_noted', { snippet }));
   }
   return { next, changes };
 }
@@ -674,19 +675,19 @@ function parseConstraintsFromText(
 /* Origin badges for the in-panel resource list                       */
 /* ------------------------------------------------------------------ */
 
-const ORIGIN_META: Record<DatedTask['origin'], { label: string; chip: string }> = {
-  assignment: { label: 'Tracker', chip: 'bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300' },
-  canvas: { label: 'Canvas', chip: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300' },
-  classroom: { label: 'Classroom', chip: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' },
-  gmail: { label: 'Gmail', chip: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' },
+const ORIGIN_META: Record<DatedTask['origin'], { labelKey: string; chip: string }> = {
+  assignment: { labelKey: 'plan_origin_tracker', chip: 'bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300' },
+  canvas: { labelKey: 'plan_origin_canvas', chip: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300' },
+  classroom: { labelKey: 'plan_origin_classroom', chip: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' },
+  gmail: { labelKey: 'plan_origin_gmail', chip: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' },
 };
 
 function dueNote(dueISO: string): string {
   const left = daysUntil(dueISO);
-  if (left < 0) return L(`Hạn ${dueISO} · quá hạn`, `Due ${dueISO} · overdue`);
-  if (left === 0) return L('Hạn hôm nay', 'Due today');
-  if (left === 1) return L('Hạn ngày mai', 'Due tomorrow');
-  return L(`Hạn ${dueISO} · còn ${left} ngày`, `Due ${dueISO} · ${left}d left`);
+  if (left < 0) return tr('plan_due_overdue', { date: dueISO });
+  if (left === 0) return tr('plan_due_today');
+  if (left === 1) return tr('plan_due_tomorrow');
+  return tr('plan_due_left', { date: dueISO, days: left });
 }
 
 /* ------------------------------------------------------------------ */
@@ -700,17 +701,17 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
   emailAlerts,
   meetings,
 }) => {
-  useLang(); // re-render on language toggle
+  const { lang, t, formatDate, formatTime } = useT();
   const days = useMemo(() => next7Days(), []);
   const harvested = useMemo(
     () => harvestTasks(assignments || [], canvasAssignments || [], classroomAssignments, emailAlerts),
-    [assignments, canvasAssignments, classroomAssignments, emailAlerts],
+    [assignments, canvasAssignments, classroomAssignments, emailAlerts, lang],
   );
   const tasks = harvested.tasks;
   const undated = harvested.undated;
   const busySpans = useMemo(
     () => [...meetingsToBusy(meetings), ...timetableToBusy(days)],
-    [meetings, days],
+    [meetings, days, lang],
   );
   const busyByDay = useMemo(() => {
     const map: Record<string, BusySpan[]> = {};
@@ -817,20 +818,20 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
       setAiError(null);
       setPending(null);
       const origin = opts?.origin || 'regen';
-      const label = opts?.label || L('Tạo lại', 'Regenerate');
+      const label = opts?.label || t('plan_regen');
       try {
-        setPhase(L(`Đang đọc ${tasks.length} bài tập…`, `Scanning ${tasks.length} assignment${tasks.length === 1 ? '' : 's'}…`));
+        setPhase(t(tasks.length === 1 ? 'plan_phase_scanning_one' : 'plan_phase_scanning_other', { count: tasks.length }));
         await delay(380);
         if (ctrl.signal.aborted) return;
         setPhase(
           hasMeetingFeed
-            ? L(`Chặn ${busySpans.length} lịch bận…`, `Blocking ${busySpans.length} calendar event${busySpans.length === 1 ? '' : 's'}…`)
-            : L('Đang xem tuần tới…', 'Checking the week ahead…'),
+            ? t(busySpans.length === 1 ? 'plan_phase_blocking_one' : 'plan_phase_blocking_other', { count: busySpans.length })
+            : t('plan_phase_checking_week'),
         );
         await delay(340);
         if (ctrl.signal.aborted) return;
 
-        setPhase(L('Đang hỏi AI cách xếp hợp lý (Gemini → Groq)…', 'Asking AI for a smart layout (Gemini → Groq)…'));
+        setPhase(t('plan_phase_asking_ai'));
         await delay(300);
         if (ctrl.signal.aborted) return;
 
@@ -840,23 +841,18 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
         let blocks = local;
         let mode: 'ai' | 'local' = 'local';
         {
-          setPhase(L('AI đang tinh chỉnh các buổi…', 'Refining slots with AI…'));
+          setPhase(t('plan_phase_refining'));
           const ai = await tryGeminiPlan(tasks, days, active, ctrl.signal, fixed, busySpans);
           if (ai && ai.length > 0) {
             blocks = ai;
             mode = 'ai';
           } else {
-            setAiError(
-              L(
-                'AI chưa trả về lịch dùng được (thiếu khoá hoặc hết lượt) — đang hiện lịch offline. Thêm khoá trong Cài đặt → AI (BYOK).',
-                'AI did not return a usable plan (keys missing or quota reached) — showing the offline plan instead. Add a key in Settings → AI (BYOK).',
-              ),
-            );
+            setAiError(t('plan_ai_fallback_warn'));
           }
         }
         blocks = enforceLocks(fixed, blocks, { days, busy: busySpans });
         if (ctrl.signal.aborted) return;
-        setPhase(L('Đang xếp các buổi không trùng nhau…', 'Laying out exclusive blocks…'));
+        setPhase(t('plan_phase_exclusive'));
         await delay(280);
         if (ctrl.signal.aborted) return;
 
@@ -865,7 +861,7 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
         if (!ctrl.signal.aborted) setPhase(null);
       }
     },
-    [tasks, busySpans, days, hasMeetingFeed, lockedNow, offerOrApply],
+    [tasks, busySpans, days, hasMeetingFeed, lockedNow, offerOrApply, t],
   );
 
   const applyPending = () => {
@@ -873,14 +869,14 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
     commitPlan({ blocks: pending.blocks, generatedAt: new Date().toISOString(), mode: pending.mode, constraints: pending.constraints }, pending.label);
     setConstraints(pending.constraints);
     setPending(null);
-    say(L('Đã áp dụng. Bấm "Hoàn tác" nếu muốn quay lại lịch cũ.', 'Applied. Tap "Undo" to go back to the previous plan.'));
+    say(t('plan_applied_msg'));
   };
 
   const discardPending = () => {
     if (!pending) return;
     const hadChanges = pending.diff.length > 0;
     setPending(null);
-    if (hadChanges) say(L('Đã giữ lịch cũ — không có gì thay đổi.', 'Kept your current plan — nothing changed.'));
+    if (hadChanges) say(t('plan_kept_old_msg'));
   };
 
   /** Restore a saved version; the current plan is archived first so nothing is lost. */
@@ -910,11 +906,11 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
     setPlan(restored);
     persist(restored);
     setConstraints(restored.constraints);
-    say(L(`Đã quay lại bản lúc ${new Date(v.savedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}.`, `Restored the version from ${new Date(v.savedAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}.`));
+    say(t('plan_restored_from', { time: formatTime(new Date(v.savedAt), { hour: '2-digit', minute: '2-digit' }) }));
   };
 
   const undoLast = () => {
-    if (history.length > 0) restoreVersion(history[0], L('Hoàn tác', 'Undo'));
+    if (history.length > 0) restoreVersion(history[0], t('plan_undo_label'));
   };
 
   // Auto-plan on first mount when real dated work exists.
@@ -941,7 +937,7 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
     [plan],
   );
 
-  const handleRegenerate = () => void runPlanning(constraints, undefined, { label: L('Tạo lại', 'Regenerate'), origin: 'regen' });
+  const handleRegenerate = () => void runPlanning(constraints, undefined, { label: t('plan_regen'), origin: 'regen' });
 
   /* ------------------------- day focus + manual times ------------------------- */
 
@@ -968,7 +964,7 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
     const day = days.includes(editDay) ? editDay : b.dayISO;
     const blocks = current.blocks.map((x) => (x.id === b.id ? { ...x, dayISO: day, startMin: s, endMin: e, manual: true, locked: true } : x));
     blocks.sort((x, y) => x.dayISO.localeCompare(y.dayISO) || x.startMin - y.startMin);
-    commitPlan({ ...current, blocks }, L('Sửa tay', 'Manual edit'));
+    commitPlan({ ...current, blocks }, t('plan_manual_edit'));
     setPending(null);
     setEditingId(null);
     setSelectedDay(day);
@@ -1027,7 +1023,7 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
       return;
     }
 
-    setPhase(L('Đang đọc yêu cầu của bạn…', 'Reading your request…'));
+    setPhase(t('plan_phase_reading_req'));
     let parsed: ReturnType<typeof parseOpsResponse> = null;
     try {
       const raw = await callGemini({
@@ -1045,7 +1041,7 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
     const base = planRef.current || current;
 
     if (parsed?.unclear) {
-      say(parsed.question || L('Bạn nói rõ hơn giúp mình được không — buổi nào, ngày nào?', 'Could you say which session and which day?'));
+      say(parsed.question || t('plan_clarify_fallback'));
       return;
     }
     let ops: PlanOp[] = parsed?.ops || [];
@@ -1062,12 +1058,12 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
       if (parsed === null) {
         replanFromText(text); // AI unavailable and no rule matched: old keyword re-plan
       } else {
-        say(reply || L('Mình chưa thấy cần đổi gì. Thử: "Dời Toán tối thứ 3 sang sáng thứ 7".', 'Nothing to change yet. Try: "Move math from Tuesday evening to Saturday morning".'));
+        say(reply || t('plan_no_change_hint'));
       }
       return;
     }
 
-    const res = applyOps(base.blocks, ops, { days, busy: busySpans });
+    const res = applyOps(base.blocks, ops, { days, busy: busySpans, lang });
     const candidate = enforceLocks(lockedNow(base), res.blocks, { days, busy: busySpans });
     // Remember standing preferences so a later "Tạo lại" keeps them.
     const nextConstraints: PlannerConstraints = { ...constraints, blockedDays: [...constraints.blockedDays], notes: [...constraints.notes] };
@@ -1080,7 +1076,7 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
       else if (op.op === 'clear_day' && !op.period && !nextConstraints.blockedDays.includes(op.dayISO)) nextConstraints.blockedDays.push(op.dayISO);
     }
     const lines = [
-      offline ? L('(AI chưa sẵn sàng — mình hiểu theo từ khoá.)', '(AI unavailable — understood by keywords.)') : '',
+      offline ? t('plan_offline_keywords') : '',
       reply,
       ...res.applied,
       ...res.refused,
@@ -1091,9 +1087,9 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
   /* ------------------------------ panels ------------------------------ */
 
   const diffLine = (d: PlanDiffEntry): string => {
-    if (d.type === 'added' && d.after) return `+ ${describeBlock(d.after)}`;
-    if (d.type === 'removed' && d.before) return `− ${describeBlock(d.before)}`;
-    if (d.before && d.after) return `${describeBlock(d.before)} → ${weekdayVi(d.after.dayISO)} ${hhmm(d.after.startMin)}–${hhmm(d.after.endMin)}`;
+    if (d.type === 'added' && d.after) return `+ ${describeBlock(d.after, lang)}`;
+    if (d.type === 'removed' && d.before) return `− ${describeBlock(d.before, lang)}`;
+    if (d.before && d.after) return `${describeBlock(d.before, lang)} → ${weekdayLabel(d.after.dayISO, lang)} ${hhmm(d.after.startMin)}–${hhmm(d.after.endMin)}`;
     return '';
   };
 
@@ -1104,12 +1100,12 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
     return (
       <div
         role="region"
-        aria-label={L('Thay đổi AI đề xuất', 'Changes the AI proposes')}
+        aria-label={t('plan_pending_aria')}
         className="rounded-2xl border-2 border-[#D97757]/60 bg-[#FDF5F1] p-4 dark:border-[#D97757]/50 dark:bg-[#2A1E19]"
       >
         <p className="flex items-center gap-2 text-sm font-bold text-[#1A1917] dark:text-[#F5F2EA]">
           <GitCompare className="h-4 w-4 shrink-0 text-[#D97757]" aria-hidden="true" />
-          {n === 0 ? L('Không có gì thay đổi', 'Nothing changes') : L(`AI muốn đổi ${n} buổi`, `AI wants to change ${n} session${n === 1 ? '' : 's'}`)}
+          {n === 0 ? t('plan_pending_none') : t(n === 1 ? 'plan_pending_one' : 'plan_pending_other', { count: n })}
         </p>
         {n > 0 && (
           <ul className="mt-2 space-y-1">
@@ -1127,11 +1123,11 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
                 {diffLine(d)}
               </li>
             ))}
-            {n > 12 && <li className="text-xs text-[#6B6860] dark:text-[#A8A49A]">{L(`…và ${n - 12} thay đổi khác`, `…and ${n - 12} more`)}</li>}
+            {n > 12 && <li className="text-xs text-[#6B6860] dark:text-[#A8A49A]">{t('plan_more_count', { count: n - 12 })}</li>}
           </ul>
         )}
         <p className="mt-2 text-[11px] text-[#6B6860] dark:text-[#A8A49A]">
-          {L('Buổi đã khoá luôn giữ nguyên. Lịch hiện tại được lưu vào Lịch sử trước khi đổi.', 'Locked sessions never move. Your current plan is saved to History first.')}
+          {t('plan_pending_note')}
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
           {n > 0 && (
@@ -1140,7 +1136,7 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
               onClick={applyPending}
               className="rounded-xl bg-[#D97757] px-4 py-2 text-xs font-bold text-white transition hover:bg-[#C86646]"
             >
-              {L('Áp dụng', 'Apply')}
+              {t('plan_apply_btn')}
             </button>
           )}
           <button
@@ -1148,7 +1144,7 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
             onClick={discardPending}
             className="rounded-xl border border-[#DFDACB] bg-white px-4 py-2 text-xs font-bold text-[#6B6860] transition hover:border-[#D97757] dark:border-[#2C2B27] dark:bg-[#1A1917] dark:text-[#A8A49A]"
           >
-            {n > 0 ? L('Giữ lịch cũ', 'Keep current plan') : L('Đóng', 'Close')}
+            {n > 0 ? t('plan_keep_current_btn') : t('close')}
           </button>
         </div>
       </div>
@@ -1162,13 +1158,10 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
       <div className="mx-auto w-full max-w-3xl rounded-3xl border border-amber-300 bg-amber-50 p-5 shadow-card dark:border-amber-800 dark:bg-amber-950/30">
         <p className="flex items-center gap-2 text-sm font-bold text-amber-900 dark:text-amber-100">
           <CalendarClock className="h-4 w-4 shrink-0" aria-hidden="true" />
-          {L('Chưa có hạn nộp — AI không tự đặt hạn', 'No due date yet — the AI does not invent one')} ({undated.length})
+          {t('plan_undated_title')} ({undated.length})
         </p>
         <p className="mt-1 text-xs leading-relaxed text-amber-800 dark:text-amber-200">
-          {L(
-            'Hãy đặt ngày nộp trong Assignment Tracker để AI xếp lịch cho những bài này.',
-            'Set the due date in Assignment Tracker so the AI can plan these.',
-          )}
+          {t('plan_undated_sub')}
         </p>
         <ul className="mt-3 space-y-2">
           {undated.slice(0, 10).map((u) => {
@@ -1180,7 +1173,7 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
               >
                 <div className="min-w-0">
                   <p className="flex flex-wrap items-center gap-1.5">
-                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${meta.chip}`}>{meta.label}</span>
+                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${meta.chip}`}>{t(meta.labelKey)}</span>
                     <span className="min-w-0 break-words text-xs font-bold text-[#1A1917] dark:text-[#F5F2EA]">{u.title}</span>
                   </p>
                   <p className="mt-1 text-[11px] text-[#6B6860] dark:text-[#A8A49A]">{u.subject}</p>
@@ -1193,14 +1186,14 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
                     className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-[#DFDACB] px-2 py-1 text-[11px] font-bold text-[#6B6860] transition hover:border-[#D97757] hover:text-[#D97757] dark:border-[#2C2B27] dark:text-[#A8A49A]"
                   >
                     <ExternalLink className="h-3 w-3" aria-hidden="true" />
-                    {L('Mở', 'Open')}
+                    {t('common_open')}
                   </a>
                 )}
               </li>
             );
           })}
           {undated.length > 10 && (
-            <li className="px-1 text-[11px] text-amber-800 dark:text-amber-200">{L(`…và ${undated.length - 10} bài khác`, `…and ${undated.length - 10} more`)}</li>
+            <li className="px-1 text-[11px] text-amber-800 dark:text-amber-200">{t('plan_more_items', { count: undated.length - 10 })}</li>
           )}
         </ul>
       </div>
@@ -1220,7 +1213,7 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
         >
           <span className="flex min-w-0 items-center gap-2 text-sm font-bold text-[#1A1917] dark:text-[#F5F2EA]">
             <History className="h-4 w-4 shrink-0 text-[#D97757]" aria-hidden="true" />
-            <span className="truncate">{L(`Lịch sử lịch học (${history.length})`, `Plan history (${history.length})`)}</span>
+            <span className="truncate">{t('plan_history_title', { count: history.length })}</span>
           </span>
           <ChevronRight className={`h-4 w-4 shrink-0 text-[#6B6860] transition-transform dark:text-[#A8A49A] ${showHistory ? 'rotate-90' : ''}`} aria-hidden="true" />
         </button>
@@ -1228,7 +1221,7 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
           <ul className="space-y-2 px-5 pb-5">
             {history.map((v) => {
               const sessions = v.blocks.filter((b) => b.kind !== 'break').length;
-              const when = new Date(v.savedAt).toLocaleString(getLang() === 'vi' ? 'vi-VN' : 'en-US', {
+              const when = formatDate(new Date(v.savedAt), {
                 day: 'numeric',
                 month: 'numeric',
                 hour: '2-digit',
@@ -1241,20 +1234,20 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
                 >
                   <div className="min-w-0">
                     <p className="break-words text-xs font-bold text-[#1A1917] dark:text-[#F5F2EA]">
-                      {L('Trước khi', 'Before')}: “{v.label}”
+                      {t('plan_history_before')}: “{v.label}”
                     </p>
                     <p className="text-[11px] text-[#6B6860] dark:text-[#A8A49A]">
-                      {when} · {L(`${sessions} buổi`, `${sessions} session${sessions === 1 ? '' : 's'}`)}
+                      {when} · {t(sessions === 1 ? 'plan_session_one' : 'plan_session_other', { count: sessions })}
                     </p>
                   </div>
                   <button
                     type="button"
-                    onClick={() => restoreVersion(v, L('Khôi phục', 'Restore'))}
+                    onClick={() => restoreVersion(v, t('plan_restore_label'))}
                     disabled={phase !== null}
                     className="inline-flex shrink-0 items-center justify-center gap-1 rounded-lg border border-[#DFDACB] bg-white px-3 py-1.5 text-[11px] font-bold text-[#6B6860] transition hover:border-[#D97757] hover:text-[#D97757] disabled:opacity-50 dark:border-[#2C2B27] dark:bg-[#1A1917] dark:text-[#A8A49A]"
                   >
                     <Undo2 className="h-3 w-3" aria-hidden="true" />
-                    {L('Quay lại bản này', 'Restore this version')}
+                    {t('plan_restore_btn')}
                   </button>
                 </li>
               );
@@ -1276,29 +1269,25 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
               <CalendarCheck className="h-5 w-5" aria-hidden="true" />
             </div>
             <div className="min-w-0">
-              <h2 className="text-lg font-bold text-[#1A1917] dark:text-[#F5F2EA]">AI Planner</h2>
+              <h2 className="text-lg font-bold text-[#1A1917] dark:text-[#F5F2EA]">{t('plan_title')}</h2>
               <p className="mt-1 text-sm leading-relaxed text-[#6B6860] dark:text-[#A8A49A]">
-                I turn your real assignments and Canvas deadlines into one exclusive 7-day timetable —
-                no overlaps, urgent work first.
+                {t('plan_empty_intro')}
               </p>
             </div>
           </div>
           <div className="mt-6 flex flex-col items-center rounded-2xl border border-dashed border-[#DFDACB] px-4 py-10 text-center dark:border-[#2C2B27]">
             <ListPlus className="h-8 w-8 text-[#A8A49A]" aria-hidden="true" />
             <p className="mt-3 max-w-sm text-sm font-semibold text-[#1A1917] dark:text-[#F5F2EA]">
-              {L('Chưa có bài nào có hạn nộp để xếp lịch', 'Nothing dated to plan yet')}
+              {t('plan_nothing_dated_t')}
             </p>
             <p className="mt-1 max-w-sm text-xs leading-relaxed text-[#6B6860] dark:text-[#A8A49A]">
-              {L(
-                'Thêm bài tập có ngày nộp trong Assignment Tracker hoặc đồng bộ Canvas — rồi quay lại, mình sẽ xếp cả tuần chỉ với một chạm.',
-                'Add an assignment with a due date in Assignment Tracker, or sync Canvas — then come back and I will lay out your week in one tap.',
-              )}
+              {t('plan_nothing_dated_s')}
             </p>
           </div>
           {!hasMeetingFeed && (
             <p className="mt-4 flex items-start gap-2 text-xs leading-relaxed text-[#6B6860] dark:text-[#A8A49A]">
               <CalendarX2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-              {L('Kết nối Google Calendar trong Cài đặt để lịch học tránh các cuộc họp.', 'Connect Google Calendar in Settings to include meetings around your study blocks.')}
+              {t('plan_connect_gcal_empty')}
             </p>
           )}
         </div>
@@ -1317,11 +1306,11 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
               <Sparkles className="h-5 w-5" aria-hidden="true" />
             </div>
             <div className="min-w-0">
-              <h2 className="text-lg font-bold text-[#1A1917] dark:text-[#F5F2EA]">AI Planner</h2>
+              <h2 className="text-lg font-bold text-[#1A1917] dark:text-[#F5F2EA]">{t('plan_title')}</h2>
               <p className="mt-0.5 text-xs leading-relaxed text-[#6B6860] dark:text-[#A8A49A]">
-                {L(`Lịch từng ngày từ ${tasks.length} bài có hạn nộp`, `Day-by-day plan from ${tasks.length} dated item${tasks.length === 1 ? '' : 's'}`)}
-                {hasMeetingFeed ? L(` · tránh ${busySpans.length} lịch bận`, ` · working around ${busySpans.length} meeting${busySpans.length === 1 ? '' : 's'}`) : ''}
-                {plan ? L(` · ${Math.round(totalStudyMin / 60)} giờ đã xếp`, ` · ${Math.round(totalStudyMin / 60)}h planned`) : ''}
+                {t(tasks.length === 1 ? 'plan_hdr_items_one' : 'plan_hdr_items_other', { count: tasks.length })}
+                {hasMeetingFeed ? t(busySpans.length === 1 ? 'plan_hdr_busy_one' : 'plan_hdr_busy_other', { count: busySpans.length }) : ''}
+                {plan ? t('plan_hdr_hours', { hours: Math.round(totalStudyMin / 60) }) : ''}
               </p>
             </div>
           </div>
@@ -1331,22 +1320,22 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
                 type="button"
                 onClick={undoLast}
                 disabled={phase !== null}
-                aria-label={L('Hoàn tác: quay lại bản lịch trước', 'Undo: go back to the previous plan')}
+                aria-label={t('plan_undo_aria')}
                 className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-[#DFDACB] bg-white px-3 py-2 text-xs font-bold text-[#6B6860] transition hover:border-[#D97757] hover:text-[#D97757] disabled:cursor-not-allowed disabled:opacity-60 dark:border-[#2C2B27] dark:bg-[#1A1917] dark:text-[#A8A49A]"
               >
                 <Undo2 className="h-4 w-4" aria-hidden="true" />
-                {L('↶ Hoàn tác', '↶ Undo')}
+                {t('plan_undo_btn')}
               </button>
             )}
             <button
               type="button"
               onClick={handleRegenerate}
               disabled={phase !== null}
-              aria-label={L('Tạo lại lịch học', 'Regenerate timetable')}
+              aria-label={t('plan_regen_aria')}
               className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#D97757] px-4 py-2 text-xs font-bold text-white transition hover:bg-[#C86646] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {phase ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <RefreshCw className="h-4 w-4" aria-hidden="true" />}
-              {phase ? L('Đang xếp…', 'Planning…') : L('Tạo lại', 'Regenerate')}
+              {phase ? t('plan_planning_btn') : t('plan_regen')}
             </button>
           </div>
         </div>
@@ -1361,37 +1350,37 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
               }`}
             >
               <Sparkles className="h-3 w-3" aria-hidden="true" />
-              {plan.mode === 'ai'
-                ? L('Lịch do AI tinh chỉnh (Gemini → Groq)', 'AI-tuned plan (Gemini → Groq)')
-                : L('Lịch offline — không cần khoá', 'Offline plan — no key needed')}
+              {plan.mode === 'ai' ? t('plan_badge_ai') : t('plan_badge_offline')}
             </span>
             <span className="text-[#6B6860] dark:text-[#A8A49A]">
-              {L('Cập nhật', 'Built')}{' '}
-              {new Date(plan.generatedAt).toLocaleString(getLang() === 'vi' ? 'vi-VN' : 'en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+              {t('plan_built_at')}{' '}
+              {formatDate(new Date(plan.generatedAt), { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
             </span>
             {constraints.avoidMornings && (
               <span className="rounded-full bg-amber-100 px-2.5 py-1 font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
-                {L('Không học sáng', 'No mornings')}
+                {t('plan_chip_no_mornings')}
               </span>
             )}
             {constraints.moreBreaks && (
               <span className="rounded-full bg-emerald-100 px-2.5 py-1 font-semibold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
-                {L('Thêm giờ nghỉ', 'Extra breaks')}
+                {t('plan_chip_extra_breaks')}
               </span>
             )}
             {constraints.maxSessionMin && (
               <span className="rounded-full bg-emerald-100 px-2.5 py-1 font-semibold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
-                {L(`Tối đa ${constraints.maxSessionMin} phút/buổi`, `Max ${constraints.maxSessionMin} min/session`)}
+                {t('plan_chip_max_min', { min: constraints.maxSessionMin })}
               </span>
             )}
             {constraints.latestEndMin && (
               <span className="rounded-full bg-violet-100 px-2.5 py-1 font-semibold text-violet-700 dark:bg-violet-900/30 dark:text-violet-300">
-                {L(`Xong trước ${hhmm(constraints.latestEndMin)}`, `Done by ${hhmm(constraints.latestEndMin)}`)}
+                {t('plan_chip_done_by', { time: fmtTime(constraints.latestEndMin) })}
               </span>
             )}
             {constraints.blockedDays.length > 0 && (
               <span className="rounded-full bg-sky-100 px-2.5 py-1 font-semibold text-sky-700 dark:bg-sky-900/30 dark:text-sky-300">
-                {L(`Để trống ${constraints.blockedDays.length} ngày`, `${constraints.blockedDays.length} day${constraints.blockedDays.length === 1 ? '' : 's'} kept clear`)}
+                {t(constraints.blockedDays.length === 1 ? 'plan_chip_clear_one' : 'plan_chip_clear_other', {
+                  count: constraints.blockedDays.length,
+                })}
               </span>
             )}
           </div>
@@ -1412,10 +1401,7 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
         {!hasMeetingFeed && tasks.length > 0 && (
           <p className="mt-3 flex items-start gap-2 text-xs leading-relaxed text-[#6B6860] dark:text-[#A8A49A]">
             <CalendarX2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-            {L(
-              'Kết nối Google Calendar trong Cài đặt — các buổi học sẽ tự tránh lịch họp.',
-              'Connect Google Calendar in Settings to include meetings — study blocks will work around them automatically.',
-            )}
+            {t('plan_connect_gcal_tip')}
           </p>
         )}
         {pending?.origin === 'regen' && <div className="mt-3">{renderPending('regen')}</div>}
@@ -1423,7 +1409,7 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
 
       {/* Loading skeleton */}
       {phase && (
-        <div aria-busy="true" aria-label="Planning your week" className="rounded-3xl border border-[#DFDACB] bg-white p-5 shadow-card dark:border-[#2C2B27] dark:bg-[#1A1917]">
+        <div aria-busy="true" aria-label={t('plan_busy_aria')} className="rounded-3xl border border-[#DFDACB] bg-white p-5 shadow-card dark:border-[#2C2B27] dark:bg-[#1A1917]">
           <p className="flex items-center gap-2 text-sm font-semibold text-[#1A1917] dark:text-[#F5F2EA]">
             <Loader2 className="h-4 w-4 animate-spin text-[#D97757]" aria-hidden="true" />
             {phase}
@@ -1449,7 +1435,7 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
         const isEmpty = dayBlocks.length === 0 && meetingsToday.length === 0;
         return (
           <div ref={planLiveRef} aria-live="polite" className="mx-auto w-full max-w-3xl space-y-3">
-            <div className="flex gap-1.5 overflow-x-auto pb-1" role="tablist" aria-label="Pick a day">
+            <div className="flex gap-1.5 overflow-x-auto pb-1" role="tablist" aria-label={t('plan_pick_day_aria')}>
               {days.map((day) => {
                 const n = (blocksByDay[day] || []).filter((b) => b.kind !== 'break').length;
                 const active = day === selectedDay;
@@ -1472,7 +1458,7 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
                     </span>
                     <span className="text-sm">{d.getDate()}</span>
                     <span className={`rounded-full px-1.5 text-[10px] font-bold ${active ? 'bg-white/25 text-white' : 'bg-[#D97757]/10 text-[#D97757]'}`}>
-                      {n === 0 ? '·' : L(`${n} buổi`, `${n} block${n === 1 ? '' : 's'}`)}
+                      {n === 0 ? '·' : t(n === 1 ? 'plan_block_one' : 'plan_block_other', { count: n })}
                     </span>
                   </button>
                 );
@@ -1488,18 +1474,19 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
                   <h3 className="text-base font-bold text-[#1A1917] dark:text-[#F5F2EA]">{dayLabel(selectedDay)}</h3>
                   <p className="text-xs text-[#6B6860] dark:text-[#A8A49A]">
                     {dayBlocks.length === 0 && meetingsToday.length === 0
-                      ? L('Chưa có lịch', 'Nothing scheduled')
-                      : L(
-                          `${dayBlocks.length} buổi học · ${Math.floor(dayMin / 60)} giờ ${dayMin % 60} phút`,
-                          `${dayBlocks.length} study block${dayBlocks.length === 1 ? '' : 's'} · ${Math.floor(dayMin / 60)}h ${dayMin % 60}m`,
-                        )}
+                      ? t('plan_nothing_scheduled')
+                      : t(dayBlocks.length === 1 ? 'plan_day_summary_one' : 'plan_day_summary_other', {
+                          count: dayBlocks.length,
+                          hours: Math.floor(dayMin / 60),
+                          mins: dayMin % 60,
+                        })}
                   </p>
                 </div>
                 <div className="flex items-center gap-1">
-                  <button type="button" onClick={() => stepDay(-1)} disabled={days.indexOf(selectedDay) === 0} aria-label="Previous day" className="rounded-xl border border-[#DFDACB] p-2 text-[#6B6860] transition hover:border-[#D97757] disabled:opacity-40 dark:border-[#2C2B27] dark:text-[#A8A49A]">
+                  <button type="button" onClick={() => stepDay(-1)} disabled={days.indexOf(selectedDay) === 0} aria-label={t('plan_prev_day_aria')} className="rounded-xl border border-[#DFDACB] p-2 text-[#6B6860] transition hover:border-[#D97757] disabled:opacity-40 dark:border-[#2C2B27] dark:text-[#A8A49A]">
                     <ChevronLeft className="h-4 w-4" aria-hidden="true" />
                   </button>
-                  <button type="button" onClick={() => stepDay(1)} disabled={days.indexOf(selectedDay) === days.length - 1} aria-label="Next day" className="rounded-xl border border-[#DFDACB] p-2 text-[#6B6860] transition hover:border-[#D97757] disabled:opacity-40 dark:border-[#2C2B27] dark:text-[#A8A49A]">
+                  <button type="button" onClick={() => stepDay(1)} disabled={days.indexOf(selectedDay) === days.length - 1} aria-label={t('plan_next_day_aria')} className="rounded-xl border border-[#DFDACB] p-2 text-[#6B6860] transition hover:border-[#D97757] disabled:opacity-40 dark:border-[#2C2B27] dark:text-[#A8A49A]">
                     <ChevronRight className="h-4 w-4" aria-hidden="true" />
                   </button>
                 </div>
@@ -1516,7 +1503,7 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
                       {fmtTime(m.startMin)} – {fmtTime(m.endMin)}
                     </p>
                     <p className="mt-1 text-sm font-semibold text-sky-900 dark:text-sky-100">{m.label}</p>
-                    <p className="text-xs text-sky-600 dark:text-sky-400">{L('Bận — giữ trống', 'Busy — kept clear')}</p>
+                    <p className="text-xs text-sky-600 dark:text-sky-400">{t('plan_busy_kept_clear')}</p>
                   </div>
                 ))}
                 {dayBlocks.map((b) => {
@@ -1546,14 +1533,14 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
                             ? <BookOpen className="h-4 w-4 shrink-0 text-emerald-600" aria-hidden="true" />
                             : <CalendarCheck className="h-4 w-4 shrink-0 text-violet-600" aria-hidden="true" />}
                           {fmtTime(b.startMin)} – {fmtTime(b.endMin)}
-                          <span className="text-xs font-semibold text-[#6B6860] dark:text-[#A8A49A]">({dur} min)</span>
+                          <span className="text-xs font-semibold text-[#6B6860] dark:text-[#A8A49A]">({t('plan_min_short', { count: dur })})</span>
                         </p>
                         <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
                           <button
                             type="button"
                             onClick={() => toggleLock(b)}
                             aria-pressed={!!b.locked}
-                            aria-label={b.locked ? L(`Mở khoá ${b.title}`, `Unlock ${b.title}`) : L(`Khoá ${b.title}`, `Lock ${b.title}`)}
+                            aria-label={b.locked ? t('plan_unlock_aria', { title: b.title }) : t('plan_lock_aria', { title: b.title })}
                             className={`inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-[11px] font-bold transition ${
                               b.locked
                                 ? 'border-[#D97757] bg-[#D97757] text-white hover:bg-[#C86646]'
@@ -1561,17 +1548,17 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
                             }`}
                           >
                             {b.locked ? <LockOpen className="h-3 w-3" aria-hidden="true" /> : <Lock className="h-3 w-3" aria-hidden="true" />}
-                            {b.locked ? L('Mở khoá', 'Unlock') : L('Khoá', 'Lock')}
+                            {b.locked ? t('plan_unlock_btn') : t('plan_lock_btn')}
                           </button>
                           {editingId !== b.id && (
                             <button
                               type="button"
                               onClick={() => beginEdit(b)}
-                              aria-label={L(`Đổi giờ ${b.title}`, `Change time for ${b.title}`)}
+                              aria-label={t('plan_edit_time_aria', { title: b.title })}
                               className="inline-flex items-center gap-1 rounded-lg border border-[#DFDACB] px-2 py-1 text-[11px] font-bold text-[#6B6860] transition hover:border-[#D97757] hover:text-[#D97757] dark:border-[#2C2B27] dark:text-[#A8A49A]"
                             >
                               <Pencil className="h-3 w-3" aria-hidden="true" />
-                              {L('Sửa giờ', 'Edit time')}
+                              {t('plan_edit_time_btn')}
                             </button>
                           )}
                         </div>
@@ -1584,20 +1571,20 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
                         <p className="mt-1.5 flex flex-wrap gap-1.5">
                           {b.locked && (
                             <span className="inline-flex items-center gap-1 rounded-full bg-[#D97757]/15 px-2 py-0.5 text-[10px] font-bold text-[#B85C38] dark:text-[#F0A385]">
-                              🔒 {L('Đã khoá — AI không dời', 'Locked — the AI will not move it')}
+                              🔒 {t('plan_locked_badge')}
                             </span>
                           )}
                           {b.tentative && (
                             <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">
                               <TriangleAlert className="h-3 w-3" aria-hidden="true" />
-                              {L('Hạn chưa xác nhận', 'Due date not confirmed')}
+                              {t('plan_tentative_badge')}
                             </span>
                           )}
                         </p>
                       )}
                       {b.manual && b.locked && (
                         <p className="mt-1 text-[11px] font-semibold text-[#B85C38] dark:text-[#F0A385]">
-                          {L('Đã khoá vì bạn tự sửa — bấm Mở khoá để AI được dời', 'Locked because you edited it — tap Unlock to let the AI move it')}
+                          {t('plan_manual_locked_note')}
                         </p>
                       )}
                       <p className="mt-1 text-xs italic leading-snug text-[#6B6860] dark:text-[#A8A49A]">
@@ -1606,7 +1593,7 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
                       {editingId === b.id && (
                         <div className="mt-3 rounded-xl border border-[#DFDACB] bg-white p-3 dark:border-[#2C2B27] dark:bg-[#1F1E1B]">
                           <div className="flex flex-wrap items-center gap-2">
-                            <label className="sr-only" htmlFor={`day-${b.id}`}>{L('Ngày', 'Day')}</label>
+                            <label className="sr-only" htmlFor={`day-${b.id}`}>{t('plan_field_day')}</label>
                             <select
                               id={`day-${b.id}`}
                               value={editDay}
@@ -1619,7 +1606,7 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
                                 </option>
                               ))}
                             </select>
-                            <label className="sr-only" htmlFor={`start-${b.id}`}>{L('Giờ bắt đầu', 'Start time')}</label>
+                            <label className="sr-only" htmlFor={`start-${b.id}`}>{t('plan_field_start')}</label>
                             <input
                               id={`start-${b.id}`}
                               type="time"
@@ -1628,7 +1615,7 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
                               className="rounded-lg border border-[#DFDACB] bg-white px-2 py-1.5 text-xs font-bold text-[#1A1917] dark:border-[#2C2B27] dark:bg-[#1A1917] dark:text-[#F5F2EA]"
                             />
                             <span className="text-xs font-bold text-[#6B6860] dark:text-[#A8A49A]">–</span>
-                            <label className="sr-only" htmlFor={`end-${b.id}`}>{L('Giờ kết thúc', 'End time')}</label>
+                            <label className="sr-only" htmlFor={`end-${b.id}`}>{t('plan_field_end')}</label>
                             <input
                               id={`end-${b.id}`}
                               type="time"
@@ -1642,28 +1629,28 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
                               disabled={!valid}
                               className="rounded-lg bg-[#D97757] px-3 py-1.5 text-xs font-bold text-white transition hover:bg-[#B85C38] disabled:cursor-not-allowed disabled:opacity-50"
                             >
-                              {L('Lưu', 'Save')}
+                              {t('common_save')}
                             </button>
                             <button
                               type="button"
                               onClick={() => setEditingId(null)}
                               className="rounded-lg border border-[#DFDACB] px-3 py-1.5 text-xs font-bold text-[#6B6860] dark:border-[#2C2B27] dark:text-[#A8A49A]"
                             >
-                              {L('Huỷ', 'Cancel')}
+                              {t('cancel')}
                             </button>
                           </div>
                           {!valid && (
                             <p className="mt-2 text-[11px] font-semibold text-amber-700 dark:text-amber-300">
-                              {L('Mỗi buổi cần ít nhất 15 phút, trong khoảng 00:00 đến 24:00.', 'Sessions need at least 15 minutes between 12:00 AM and midnight.')}
+                              {t('plan_edit_invalid')}
                             </p>
                           )}
                           {valid && clash && (
                             <p className="mt-2 text-[11px] font-semibold text-amber-700 dark:text-amber-300">
-                              {L('Lưu ý — giờ này trùng với buổi khác hoặc lịch bận vào', 'Heads up — this overlaps another block on')} {dayLabel(targetDay).split('·')[0].trim()}.
+                              {t('plan_edit_clash', { day: dayLabel(targetDay).split('·')[0].trim() })}.
                             </p>
                           )}
                           <p className="mt-1 text-[11px] text-[#6B6860] dark:text-[#A8A49A]">
-                            {L('Lưu xong buổi này sẽ được khoá để AI không dời.', 'Saving locks this session so the AI will not move it.')}
+                            {t('plan_edit_locks_note')}
                           </p>
                         </div>
                       )}
@@ -1673,15 +1660,12 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
                 {breaks.length > 0 && (
                   <p className="flex items-center gap-1.5 px-1 text-xs font-medium text-[#6B6860] dark:text-[#A8A49A]">
                     <Coffee className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                    {L(`${breaks.length} quãng nghỉ ngắn xen giữa`, `${breaks.length} breather${breaks.length === 1 ? '' : 's'} tucked in`)}
+                    {t(breaks.length === 1 ? 'plan_breather_one' : 'plan_breather_other', { count: breaks.length })}
                   </p>
                 )}
                 {isEmpty && (
                   <p className="rounded-2xl border border-dashed border-[#DFDACB] p-6 text-center text-xs text-[#A8A49A] dark:border-[#2C2B27]">
-                    {L(
-                      'Ngày trống — chưa có lịch. Chọn ngày khác ở trên, hoặc bấm "Sửa giờ" ở một buổi và chọn ngày này để dời sang.',
-                      "Open day — nothing scheduled. Pick another day above, or edit any block and choose this day to move it here.",
-                    )}
+                    {t('plan_open_day')}
                   </p>
                 )}
               </div>
@@ -1701,48 +1685,48 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
           >
             <span className="flex min-w-0 items-center gap-2 text-sm font-bold text-[#1A1917] dark:text-[#F5F2EA]">
               <ListTodo className="h-4 w-4 shrink-0 text-[#D97757]" aria-hidden="true" />
-              <span className="truncate">{L(`Xếp từ — ${tasks.length} mục đã kết nối`, `Planned from — ${tasks.length} connected item${tasks.length === 1 ? '' : 's'}`)}</span>
+              <span className="truncate">{t(tasks.length === 1 ? 'plan_from_items_one' : 'plan_from_items_other', { count: tasks.length })}</span>
             </span>
             <ChevronRight className={`h-4 w-4 shrink-0 text-[#6B6860] transition-transform dark:text-[#A8A49A] ${showSources ? 'rotate-90' : ''}`} aria-hidden="true" />
           </button>
           {showSources && (
             <ul className="space-y-2 px-5 pb-5">
-              {tasks.map((t) => {
-                const placed = placedByKey[t.key] || 0;
-                const meta = ORIGIN_META[t.origin];
+              {tasks.map((item) => {
+                const placed = placedByKey[item.key] || 0;
+                const meta = ORIGIN_META[item.origin];
                 return (
                   <li
-                    key={t.key}
+                    key={item.key}
                     className="flex items-start justify-between gap-3 rounded-2xl border border-[#DFDACB] bg-[#FAF9F5] p-3 dark:border-[#2C2B27] dark:bg-[#1F1E1B]"
                   >
                     <div className="min-w-0">
                       <p className="flex flex-wrap items-center gap-1.5">
-                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${meta.chip}`}>{meta.label}</span>
-                        <span className="min-w-0 break-words text-xs font-bold text-[#1A1917] dark:text-[#F5F2EA]">{t.title}</span>
-                        {t.tentative && (
+                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${meta.chip}`}>{t(meta.labelKey)}</span>
+                        <span className="min-w-0 break-words text-xs font-bold text-[#1A1917] dark:text-[#F5F2EA]">{item.title}</span>
+                        {item.tentative && (
                           <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">
-                            {L('Hạn chưa xác nhận', 'Due date not confirmed')}
+                            {t('plan_tentative_badge')}
                           </span>
                         )}
                       </p>
                       <p className="mt-1 text-[11px] text-[#6B6860] dark:text-[#A8A49A]">
-                        {t.subject} · {dueNote(t.dueISO)} · ~{t.minutes} {L('phút', 'min')}
+                        {item.subject} · {dueNote(item.dueISO)} · ~{item.minutes} {t('plan_min_unit')}
                       </p>
                       <p className={`mt-0.5 text-[11px] font-semibold ${placed > 0 ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-700 dark:text-amber-300'}`}>
                         {placed > 0
-                          ? L(`${placed} buổi trong lịch này`, `${placed} session${placed === 1 ? '' : 's'} in this plan`)
-                          : L('Chưa xếp được — tuần này hết chỗ trống', 'Not placed — no free slot this week')}
+                          ? t(placed === 1 ? 'plan_placed_one' : 'plan_placed_other', { count: placed })
+                          : t('plan_not_placed')}
                       </p>
                     </div>
-                    {t.url && (
+                    {item.url && (
                       <a
-                        href={t.url}
+                        href={item.url}
                         target="_blank"
                         rel="noreferrer"
                         className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-[#DFDACB] px-2 py-1 text-[11px] font-bold text-[#6B6860] transition hover:border-[#D97757] hover:text-[#D97757] dark:border-[#2C2B27] dark:text-[#A8A49A]"
                       >
                         <ExternalLink className="h-3 w-3" aria-hidden="true" />
-                        {L('Mở', 'Open')}
+                        {t('common_open')}
                       </a>
                     )}
                   </li>
@@ -1760,21 +1744,15 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
       <div className="rounded-3xl border border-[#DFDACB] bg-white p-5 shadow-card dark:border-[#2C2B27] dark:bg-[#1A1917] sm:p-6">
         <h3 className="flex items-center gap-2 text-sm font-bold text-[#1A1917] dark:text-[#F5F2EA]">
           <MessageSquareText className="h-4 w-4 text-[#D97757]" aria-hidden="true" />
-          {L('Đổi lịch bằng lời nói', 'Reschedule in plain words')}
+          {t('plan_chat_title')}
         </h3>
         <p className="mt-1 text-xs leading-relaxed text-[#6B6860] dark:text-[#A8A49A]">
-          {L(
-            'Thử: “Dời Toán tối thứ 3 sang sáng thứ 7”, “Tuần này em bận tối thứ 5”, “Mỗi buổi tối đa 45 phút”. AI chỉ đổi đúng buổi bạn nhắc, bạn xem trước rồi mới áp dụng.',
-            'Try “Dời Toán tối thứ 3 sang sáng thứ 7”, “Tuần này em bận tối thứ 5”, “Mỗi buổi tối đa 45 phút” — or English like “keep Friday clear”. Only what you ask changes, and you review it first.',
-          )}
+          {t('plan_chat_sub')}
         </p>
         <div aria-live="polite" className="mt-3 space-y-2">
           {chat.length === 0 && (
             <p className="rounded-2xl bg-[#FAF9F5] p-3 text-xs text-[#6B6860] dark:bg-[#1F1E1B] dark:text-[#A8A49A]">
-              {L(
-                'Chưa có yêu cầu đổi lịch — lịch mới nhất ở phía trên. Nói cho mình biết điều gì thay đổi, mình sẽ chỉ dời đúng những buổi cần dời.',
-                'No reschedule notes yet — your latest plan is shown above. Tell me what changed and I will move only the sessions that need it.',
-              )}
+              {t('plan_chat_empty')}
             </p>
           )}
           {chat.slice(-10).map((m, i) => (
@@ -1793,14 +1771,14 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
         {pending?.origin === 'chat' && <div className="mt-3">{renderPending('chat')}</div>}
         <form onSubmit={handleChatSubmit} className="mt-3 flex flex-col gap-2 sm:flex-row">
           <label htmlFor="ai-planner-chat" className="sr-only">
-            {L('Mô tả thay đổi lịch', 'Describe a schedule change')}
+            {t('plan_chat_input_label')}
           </label>
           <input
             id="ai-planner-chat"
             type="text"
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
-            placeholder={L('VD: Dời Toán tối thứ 3 sang sáng thứ 7', 'e.g. Move math from Tuesday evening to Saturday morning')}
+            placeholder={t('plan_chat_ph')}
             autoComplete="off"
             disabled={phase !== null}
             className="min-w-0 flex-1 rounded-xl border border-[#DFDACB] bg-white px-3 py-2.5 text-sm text-[#1A1917] outline-none placeholder:text-[#A8A49A] focus:border-[#D97757] focus:ring-2 focus:ring-[#D97757]/30 dark:border-[#2C2B27] dark:bg-[#1F1E1B] dark:text-[#F5F2EA]"
@@ -1808,11 +1786,11 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
           <button
             type="submit"
             disabled={phase !== null || !draft.trim()}
-            aria-label={L('Gửi yêu cầu đổi lịch', 'Send reschedule request')}
+            aria-label={t('plan_chat_send_aria')}
             className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-[#1A1917] px-4 py-2.5 text-xs font-bold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-[#F5F2EA] dark:text-[#1A1917]"
           >
             {phase ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Send className="h-4 w-4" aria-hidden="true" />}
-            {L('Đổi lịch', 'Re-plan')}
+            {t('plan_chat_send_btn')}
           </button>
         </form>
       </div>

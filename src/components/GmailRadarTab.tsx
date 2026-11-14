@@ -21,31 +21,41 @@ import {
 } from 'lucide-react';
 import { EmailAlert, EmailMessage, EmailCategory, ApiEnablementInfo } from '../types';
 import { ApiActivationBanner } from './ApiActivationBanner';
-import { t, useLang, getLang } from '../services/i18n';
-import { dismissReview, getDismissedReviewIds, gmailLink, isTeacherSender, toggleTeacherSender, viShortDate } from '../utils/trust';
+import { useT } from '../services/i18n';
+import { dismissReview, getDismissedReviewIds, gmailLink, isTeacherSender, toggleTeacherSender } from '../utils/trust';
 import { logPilot } from '../utils/pilotStats';
 
-const L = (vi: string, en: string) => (getLang() === 'vi' ? vi : en);
+function formatShortDueDate(
+  iso: string,
+  formatDate: ReturnType<typeof useT>['formatDate'],
+): string {
+  const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) {
+    const localDate = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+    return formatDate(localDate, { day: 'numeric', month: 'numeric' }) || iso;
+  }
+  return formatDate(iso, { day: 'numeric', month: 'numeric' }) || iso;
+}
 
-/** Why an email sits in "AI chưa đọc được – bạn xem giúp nhé". */
-function reviewReasonText(reason?: string): string {
+/** Why an email sits in "The AI could not read these — please take a look". */
+function reviewReasonText(reason: string | undefined, t: ReturnType<typeof useT>['t']): string {
   switch (reason) {
     case 'teacher_as_promo':
-      return L('AI định xếp thư của thầy cô vào Quảng cáo — mình giữ lại để bạn xem.', 'The AI wanted to file a teacher email as an ad — kept here for you.');
+      return t('gmail_reason_teacher_as_promo');
     case 'gmail_sorted':
-      return L('Gmail xếp thư này vào Quảng cáo/Mạng xã hội, nhưng AI thấy có thể là thư học tập.', 'Gmail filed this under Promotions/Social, but the AI thinks it may be school mail.');
+      return t('gmail_reason_gmail_sorted');
     case 'no_date':
-      return L('AI thấy có bài tập nhưng không đọc được ngày nộp.', 'The AI found a task but could not read a due date.');
+      return t('gmail_reason_no_date');
     case 'low_confidence':
-      return L('AI chưa chắc chắn về thư này.', 'The AI is not sure about this email.');
+      return t('gmail_reason_low_confidence');
     case 'ai_failed':
-      return L('AI đang lỗi hoặc hết lượt — chưa đọc được thư này.', 'The AI failed or ran out of quota — this email is unread.');
+      return t('gmail_reason_ai_failed');
     case 'ai_omitted':
-      return L('AI bỏ sót thư này khi đọc.', 'The AI skipped this email.');
+      return t('gmail_reason_ai_omitted');
     case 'skipped_with_cue':
-      return L('Gmail xếp vào Quảng cáo/MXH nên AI chưa đọc, nhưng thư có chữ như "bài tập", "kiểm tra".', 'Gmail filed this away so the AI did not read it, but it mentions homework or tests.');
+      return t('gmail_reason_skipped_with_cue');
     default:
-      return L('Gmail xếp vào Quảng cáo/Mạng xã hội nên AI chưa đọc (để tiết kiệm lượt AI).', 'Gmail filed this under Promotions/Social, so the AI did not read it (saves AI quota).');
+      return t('gmail_reason_default');
   }
 }
 import {
@@ -94,7 +104,7 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
   onUseAnotherAccount,
   onForceAIRead,
 }) => {
-  useLang();
+  const { t, formatDate } = useT();
   const [dismissed, setDismissed] = useState<Set<string>>(() => new Set(getDismissedReviewIds()));
   const [teacherTick, setTeacherTick] = useState(0);
   const [forcing, setForcing] = useState<string | null>(null);
@@ -341,11 +351,8 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
       window.dispatchEvent(
         new CustomEvent('scc-toast', {
           detail: {
-            title: L('Đã ẩn khỏi danh sách StudentOS', 'Hidden in StudentOS'),
-            message: L(
-              `Đã ẩn ${spamIds.length} thư quảng cáo trong StudentOS. Thư gốc vẫn an toàn trong Gmail.`,
-              `Hid ${spamIds.length} promotional email(s) in StudentOS. Your Gmail inbox stays untouched.`
-            ),
+            title: t('gmail_hidden_title'),
+            message: t('gmail_hidden_msg', { count: spamIds.length }),
           },
         })
       );
@@ -365,14 +372,9 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
         const errData = await res.json().catch(() => ({} as any));
         const apiMessage = errData?.error?.message || `HTTP ${res.status}`;
         if (res.status === 401 || res.status === 403 || /scope|permission|insufficient/i.test(apiMessage)) {
-          setSpamActionError(
-            L(
-              'StudentOS chỉ có quyền đọc Gmail nên không tự lưu trữ trên máy chủ Gmail. Bạn có thể ẩn ở đây hoặc mở thẳng Gmail.',
-              'StudentOS only has read access to Gmail, so it cannot move messages on Gmail servers. Hide them here or open Gmail directly.'
-            )
-          );
+          setSpamActionError(t('gmail_readonly_archive_err'));
         } else {
-          setSpamActionError(L(`Không thể lưu trữ hàng loạt: ${apiMessage}`, `Could not archive emails: ${apiMessage}`));
+          setSpamActionError(t('gmail_archive_err', { error: apiMessage }));
         }
         return;
       }
@@ -386,7 +388,7 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
         })
       );
     } catch (err: any) {
-      setSpamActionError(err?.message || 'Could not reach Gmail right now. Try hiding them in StudentOS or opening Gmail.');
+      setSpamActionError(err?.message || t('gmail_archive_net_err'));
     } finally {
       setIsArchivingSpam(false);
     }
@@ -415,18 +417,18 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
         {restoring ? (
           <span className="flex items-center gap-2 text-[#5C5A54] dark:text-[#B5B2A8] font-semibold">
             <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#D97757]" />
-            {t('gmail_scanning') === 'gmail_scanning' ? 'Reconnecting Gmail…' : t('gmail_scanning')}
+            {t('gmail_reconnecting')}
           </span>
         ) : showConnected ? (
           <span className="flex items-center gap-2 min-w-0">
             <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
             <span className="font-bold text-[#141413] dark:text-[#FAF9F5] truncate">
-              {accountEmail ? `Connected as ${accountEmail}` : t('gmail_connected_fallback') === 'gmail_connected_fallback' ? 'Gmail connected' : t('gmail_connected_fallback')}
+              {accountEmail ? t('gmail_connected_as', { email: accountEmail }) : t('gmail_connected_fallback')}
             </span>
           </span>
         ) : (
           <span className="font-semibold text-[#5C5A54] dark:text-[#B5B2A8]">
-            {t('gmail_not_connected') === 'gmail_not_connected' ? 'Gmail is not connected.' : t('gmail_not_connected')}
+            {t('gmail_not_connected')}
           </span>
         )}
         <div className="flex items-center gap-2">
@@ -437,13 +439,13 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
                 disabled={switching}
                 className="px-2.5 py-1 bg-[#FAF9F5] dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] hover:border-[#D97757] text-[#141413] dark:text-[#FAF9F5] rounded-lg font-semibold cursor-pointer disabled:opacity-60"
               >
-                {switching ? 'Switching…' : 'Use another account'}
+                {switching ? t('gmail_switching') : t('gmail_use_another')}
               </button>
               <button
                 onClick={handleDisconnectClick}
                 className="px-2.5 py-1 bg-transparent border border-[#DFDACB] dark:border-[#2C2B27] text-[#5C5A54] dark:text-[#B5B2A8] hover:text-rose-600 hover:border-rose-300 rounded-lg font-semibold cursor-pointer"
               >
-                Disconnect
+                {t('gmail_disconnect')}
               </button>
             </>
           ) : !restoring ? (
@@ -459,7 +461,7 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
                 disabled={switching}
                 className="px-2.5 py-1 bg-[#FAF9F5] dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] hover:border-[#D97757] text-[#141413] dark:text-[#FAF9F5] rounded-lg font-semibold cursor-pointer disabled:opacity-60"
               >
-                {switching ? 'Switching…' : 'Use another account'}
+                {switching ? t('gmail_switching') : t('gmail_use_another')}
               </button>
             </>
           ) : null}
@@ -481,7 +483,7 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
               }`}
             >
               {cat === 'REVIEW'
-                ? `🔎 ${L('Cần bạn xem', 'Needs your eyes')}`
+                ? `🔎 ${t('gmail_needs_eyes')}`
                 : cat === 'ALL'
                 ? t('gmail_all')
                 : cat === 'PROMOTIONS'
@@ -493,7 +495,7 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
                 : cat === 'ANNOUNCEMENT'
                 ? t('gmail_announcement')
                 : cat === 'SOCIAL'
-                ? 'Social'
+                ? t('gmail_social')
                 : t('gmail_general')}
               {cat === 'REVIEW' && reviewAlerts.length > 0 && (
                 <span className={`ml-1.5 inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full text-[10px] font-extrabold leading-none ${activeCategory === cat ? 'bg-white text-amber-700' : 'bg-amber-500 text-white'}`}>
@@ -534,15 +536,15 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
                 onClick={handleBulkArchiveSpam}
                 disabled={isArchivingSpam}
                 className="px-2.5 py-1.5 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 rounded-xl text-xs font-bold hover:bg-rose-100 dark:hover:bg-rose-900/40 disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
-                title={canModifyGmail ? t('gmail_archive_spam') : L('Chỉ ẩn trong StudentOS (vì chỉ có quyền đọc Gmail)', 'Hide inside StudentOS only (read-only Gmail mode)')}
+                title={canModifyGmail ? t('gmail_archive_spam') : t('gmail_hide_readonly_title')}
               >
                 {isArchivingSpam && <RefreshCw className="w-3 h-3 animate-spin" />}
                 <span>
                   {isArchivingSpam
-                    ? L('Đang xử lý...', 'Working...')
+                    ? t('gmail_working')
                     : canModifyGmail
                     ? `${t('gmail_archive_spam')} (${filteredAlerts.filter(a => a.isSpam).length})`
-                    : `${L('Ẩn trong StudentOS', 'Hide in StudentOS')} (${filteredAlerts.filter(a => a.isSpam).length})`}
+                    : `${t('gmail_hide_in_app')} (${filteredAlerts.filter(a => a.isSpam).length})`}
                 </span>
               </button>
               <a
@@ -551,7 +553,7 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
                 rel="noreferrer"
                 className="px-2.5 py-1.5 bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] hover:border-[#D97757] text-[#141413] dark:text-[#FAF9F5] rounded-xl text-xs font-bold inline-flex items-center gap-1"
               >
-                <span>{L('Mở Gmail', 'Open in Gmail')}</span>
+                <span>{t('gmail_open_in_gmail')}</span>
                 <ExternalLink className="w-3 h-3 text-[#D97757]" />
               </a>
             </div>
@@ -586,7 +588,7 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
               onClick={() => setSpamActionError(null)}
               className="px-2 py-1 border border-rose-300 dark:border-rose-700 rounded-lg font-semibold cursor-pointer"
             >
-              Dismiss
+              {t('common_dismiss')}
             </button>
           </div>
         </div>
@@ -604,7 +606,7 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
         </div>
       ) : null}
 
-      {/* "AI chưa đọc được – bạn xem giúp nhé": nothing the AI hid or failed on disappears */}
+      {/* Review banner: nothing the AI hid or failed on disappears */}
       {reviewAlerts.length > 0 && activeCategory !== 'REVIEW' && (
         <button
           type="button"
@@ -613,12 +615,9 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
         >
           <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
           <span>
-            <strong>{L('AI chưa đọc được – bạn xem giúp nhé', 'The AI could not read these — please take a look')}</strong>
+            <strong>{t('gmail_review_banner_title')}</strong>
             {' · '}
-            {L(
-              `${reviewAlerts.length} thư (${reviewUrgent} thư nên xem ngay): thư AI chưa chắc, thư Gmail xếp vào Quảng cáo, thư AI lỗi. Bấm để xem.`,
-              `${reviewAlerts.length} emails (${reviewUrgent} worth checking now): unsure, filed as promo by Gmail, or AI errors. Tap to review.`,
-            )}
+            {t('gmail_review_banner_desc', { total: reviewAlerts.length, urgent: reviewUrgent })}
           </span>
         </button>
       )}
@@ -641,7 +640,7 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
               </div>
             ) : filteredAlerts.length === 0 ? (
               <div className="p-8 text-center text-[#8C897F] text-xs space-y-3">
-                <p>{!showConnected ? L('Kết nối Gmail để tìm bài tập và lịch thi trong hộp thư (chỉ đọc, không sửa hay xóa thư).', 'Connect Gmail to spot homework and exam alerts in your inbox (read-only access).') : t('gmail_empty')}</p>
+                <p>{!showConnected ? t('gmail_connect_empty') : t('gmail_empty')}</p>
                 {!showConnected && (
                   <button
                     type="button"
@@ -673,8 +672,8 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
                       <span className="text-[10px] text-[#8C897F] shrink-0">
                         {alert.detectedAssignment?.isAssignment
                           ? alert.detectedAssignment.dueDate
-                            ? `${L('Hạn', 'Due')} ${viShortDate(alert.detectedAssignment.dueDate)} · ${L('chưa xác nhận', 'unconfirmed')}`
-                            : L('Chưa rõ hạn', 'No due date')
+                            ? t('gmail_due_unconfirmed', { date: formatShortDueDate(alert.detectedAssignment.dueDate, formatDate) })
+                            : t('gmail_no_due')
                           : t('gmail_recent')}
                       </span>
                     </div>
@@ -685,14 +684,14 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
 
                     <div className="flex items-center gap-1.5">
                       {alert.origin === 'classroom' && (
-                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">Classroom</span>
+                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">{t('gmail_classroom_badge')}</span>
                       )}
                       <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-[#D97757]/15 text-[#D97757]">
-                        {alert.aiStatus === 'skipped' ? L('AI chưa đọc', 'Not read by AI') : alert.aiStatus === 'failed' ? L('AI lỗi', 'AI error') : alert.category}
+                        {alert.aiStatus === 'skipped' ? t('gmail_ai_not_read') : alert.aiStatus === 'failed' ? t('gmail_ai_error') : alert.category}
                       </span>
                       {isReview(alert) && alert.needsReview && (
                         <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">
-                          {L('Cần xem', 'Review')}
+                          {t('gmail_review_badge')}
                         </span>
                       )}
                       {isHigh && (
@@ -735,7 +734,7 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
                     className="px-3 py-1.5 bg-[#FAF9F5] dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] hover:border-[#D97757] text-[#141413] dark:text-[#FAF9F5] rounded-xl text-xs font-bold flex items-center gap-1.5"
                   >
                     <ExternalLink className="w-3.5 h-3.5 text-[#D97757]" />
-                    <span>{activeAlert.origin === 'classroom' ? L('Mở bài gốc', 'Open post') : L('Mở thư gốc', 'Open in Gmail')}</span>
+                    <span>{activeAlert.origin === 'classroom' ? t('gmail_open_post') : t('gmail_open_email')}</span>
                   </a>
                   <button
                     onClick={() => onExtractAssignment(activeAlert)}
@@ -762,14 +761,14 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
                   <div className="p-4 rounded-2xl border border-amber-300 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/40 space-y-3">
                     <p className="font-bold text-amber-900 dark:text-amber-200 flex items-start gap-1.5">
                       <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-                      {reviewReasonText(activeAlert.reviewReason)}
+                      {reviewReasonText(activeAlert.reviewReason, t)}
                     </p>
                     <div className="flex flex-wrap gap-2">
                       <button
                         onClick={() => onExtractAssignment(activeAlert)}
                         className="px-3 py-2 min-h-[40px] bg-[#D97757] hover:bg-[#C86646] text-white rounded-xl text-xs font-bold"
                       >
-                        {L('Đây là bài tập', 'This is an assignment')}
+                        {t('gmail_is_assignment')}
                       </button>
                       {onForceAIRead && (activeAlert.aiStatus === 'skipped' || activeAlert.aiStatus === 'failed') && (
                         <button
@@ -786,7 +785,7 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
                           className="px-3 py-2 min-h-[40px] bg-white dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] hover:border-[#D97757] rounded-xl text-xs font-bold text-[#141413] dark:text-[#FAF9F5] disabled:opacity-60 flex items-center gap-1.5"
                         >
                           {forcing === activeAlert.id ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Bot className="w-3.5 h-3.5" />}
-                          {L('Cho AI đọc thư này', 'Let the AI read it')}
+                          {t('gmail_force_ai')}
                         </button>
                       )}
                       {activeAlert.rawEmail?.senderEmail && activeAlert.origin !== 'classroom' && (
@@ -799,8 +798,8 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
                           data-tick={teacherTick}
                         >
                           {isTeacherSender(activeAlert.rawEmail?.senderEmail)
-                            ? L('✓ Thầy cô của em (bỏ đánh dấu)', '✓ My teacher (undo)')
-                            : L('Đây là thầy cô', 'This is my teacher')}
+                            ? t('gmail_teacher_undo')
+                            : t('gmail_teacher_mark')}
                         </button>
                       )}
                       <button
@@ -811,11 +810,11 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
                         }}
                         className="px-3 py-2 min-h-[40px] rounded-xl text-xs font-bold text-[#5C5A54] dark:text-[#B5B2A8] hover:text-rose-600"
                       >
-                        {L('Không phải bài tập — đã xem', 'Not an assignment — done')}
+                        {t('gmail_not_assignment_done')}
                       </button>
                     </div>
                     <p className="text-[11px] text-amber-800/80 dark:text-amber-200/80">
-                      {L('"Đây là thầy cô": thư từ địa chỉ này sẽ luôn được AI đọc và không bao giờ bị xếp vào Quảng cáo.', '"My teacher": emails from this address are always read by the AI and never filed as ads.')}
+                      {t('gmail_teacher_hint')}
                     </p>
                   </div>
                 )}
@@ -823,28 +822,28 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
                 {activeAlert.detectedAssignment?.isAssignment && (
                   <div className="p-4 bg-[#FAF9F5] dark:bg-[#1F1E1B] rounded-2xl border border-[#DFDACB] dark:border-[#2C2B27] space-y-1.5">
                     <p className="text-[#141413] dark:text-[#FAF9F5] font-semibold">
-                      {L('AI hiểu là:', 'The AI understood:')}{' '}
-                      {L('môn', 'subject')} <strong>{activeAlert.detectedAssignment.subject || '?'}</strong> –{' '}
+                      {t('gmail_ai_understood')}{' '}
+                      {t('gmail_subj_label')} <strong>{activeAlert.detectedAssignment.subject || '?'}</strong> –{' '}
                       {activeAlert.detectedAssignment.dueDate ? (
                         <>
-                          {L('hạn', 'due')} <strong>{viShortDate(activeAlert.detectedAssignment.dueDate)}</strong>{' '}
-                          <span className="text-amber-700 dark:text-amber-300">({L('chưa xác nhận', 'unconfirmed')})</span>
+                          {t('gmail_due_label')} <strong>{formatShortDueDate(activeAlert.detectedAssignment.dueDate, formatDate)}</strong>{' '}
+                          <span className="text-amber-700 dark:text-amber-300">({t('gmail_unconfirmed')})</span>
                         </>
                       ) : (
-                        <strong className="text-amber-700 dark:text-amber-300">{L('chưa rõ hạn', 'no due date')}</strong>
+                        <strong className="text-amber-700 dark:text-amber-300">{t('gmail_no_due_lower')}</strong>
                       )}{' '}
-                      – {L('ưu tiên', 'priority')} <strong>{activeAlert.detectedAssignment.priority}</strong>
+                      – {t('gmail_priority_label')} <strong>{activeAlert.detectedAssignment.priority === 'High' ? t('confirm_prio_high') : activeAlert.detectedAssignment.priority === 'Low' ? t('confirm_prio_low') : activeAlert.detectedAssignment.priority === 'Med' ? t('confirm_prio_med') : activeAlert.detectedAssignment.priority}</strong>
                     </p>
                     {activeAlert.detectedAssignment.dueEvidence && (
                       <p className="text-[#5C5A54] dark:text-[#B5B2A8]">
-                        {L('AI đọc thấy:', 'The AI read:')} “{activeAlert.detectedAssignment.dueEvidence}”
+                        {t('gmail_ai_read_label')} “{activeAlert.detectedAssignment.dueEvidence}”
                       </p>
                     )}
                     <button
                       onClick={() => onExtractAssignment(activeAlert)}
                       className="mt-1 px-3 py-1.5 bg-[#D97757] hover:bg-[#C86646] text-white rounded-xl text-xs font-bold"
                     >
-                      {L('Kiểm tra & lưu bài tập', 'Check & save assignment')}
+                      {t('gmail_check_save')}
                     </button>
                   </div>
                 )}

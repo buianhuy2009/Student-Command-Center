@@ -1,17 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import {
   X,
-  Sparkles,
   Brain,
   AlertTriangle,
   CheckCircle2,
   BookOpen,
   Timer,
   RefreshCw,
-  HelpCircle,
   Lightbulb,
 } from 'lucide-react';
 import { explainWhyIsThisHard, WhyIsThisHardResult } from '../services/gemini';
+import { useT } from '../services/i18n';
 
 interface WhyIsThisHardModalProps {
   isOpen: boolean;
@@ -30,6 +29,7 @@ export const WhyIsThisHardModal: React.FC<WhyIsThisHardModalProps> = ({
   description,
   onStartFocusSession,
 }) => {
+  const { t } = useT();
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<WhyIsThisHardResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -55,7 +55,7 @@ export const WhyIsThisHardModal: React.FC<WhyIsThisHardModalProps> = ({
       setResult(data);
     } catch (err: any) {
       console.error('Failed to analyze assignment difficulty:', err);
-      setError('Unable to analyze assignment. Please check your AI API connection.');
+      setError(t('why_error_msg'));
     } finally {
       setIsLoading(false);
     }
@@ -76,10 +76,10 @@ export const WhyIsThisHardModal: React.FC<WhyIsThisHardModalProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-sm font-extrabold text-[#141413] dark:text-[#FAF9F5]">
-                  AI Cognitive Deconstruction
+                  {t('tracker_cog_title')}
                 </h3>
                 <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-[#FAF9F5] dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] text-[#8C897F]">
-                  Why Is This Hard?
+                  {t('why_badge')}
                 </span>
               </div>
               <p className="text-xs text-[#8C897F] truncate max-w-md">
@@ -90,6 +90,7 @@ export const WhyIsThisHardModal: React.FC<WhyIsThisHardModalProps> = ({
 
           <button
             onClick={onClose}
+            aria-label={t('close')}
             className="p-2 rounded-xl text-[#8C897F] hover:text-[#141413] dark:hover:text-[#FAF9F5] hover:bg-[#FAF9F5] dark:hover:bg-[#252422] transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
@@ -103,10 +104,10 @@ export const WhyIsThisHardModal: React.FC<WhyIsThisHardModalProps> = ({
               <RefreshCw className="w-8 h-8 text-[#D97757] animate-spin mx-auto opacity-80" />
               <div className="space-y-1">
                 <p className="text-sm font-bold text-[#141413] dark:text-[#FAF9F5]">
-                  Deconstructing cognitive bottlenecks...
+                  {t('why_loading_title')}
                 </p>
                 <p className="text-xs text-[#8C897F]">
-                  Analyzing conceptual friction points and synthesizing an approach strategy
+                  {t('why_loading_sub')}
                 </p>
               </div>
             </div>
@@ -114,34 +115,34 @@ export const WhyIsThisHardModal: React.FC<WhyIsThisHardModalProps> = ({
             <div className="p-5 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-800 text-rose-800 dark:text-rose-300 text-xs space-y-2">
               <div className="flex items-center gap-2 font-bold">
                 <AlertTriangle className="w-4 h-4 text-rose-600" />
-                <span>Analysis Error</span>
+                <span>{t('why_error_title')}</span>
               </div>
               <p>{error}</p>
               <button
                 onClick={loadAnalysis}
                 className="mt-2 px-3 py-1.5 bg-rose-600 text-white rounded-xl text-xs font-bold cursor-pointer"
               >
-                Retry Analysis
+                {t('why_retry')}
               </button>
             </div>
           ) : result ? (
             <div className="space-y-6 animate-in fade-in">
               
-              {/* 1. Core Cognitive Friction Point */}
+              {/* 1. Core Difficulty */}
               <div className="p-4 rounded-2xl bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] space-y-1.5">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-[#D97757] flex items-center gap-1.5">
                   <Lightbulb className="w-3.5 h-3.5" />
-                  <span>The Core Difficulty</span>
+                  <span>{t('why_core_title')}</span>
                 </span>
                 <p className="text-xs text-[#141413] dark:text-[#FAF9F5] leading-relaxed">
                   {result.coreDifficultyReason}
                 </p>
               </div>
 
-              {/* 2. Common Cognitive Traps */}
+              {/* 2. Common Student Pitfalls */}
               <div className="space-y-2.5">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C897F] block">
-                  Common Student Pitfalls &amp; Traps
+                  {t('why_pitfalls_title')}
                 </span>
                 <div className="space-y-2">
                   {result.cognitiveBottlenecks.map((trap, idx) => (
@@ -161,7 +162,7 @@ export const WhyIsThisHardModal: React.FC<WhyIsThisHardModalProps> = ({
               {/* 3. Step-by-Step Approach Plan */}
               <div className="space-y-2.5">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C897F] block">
-                  Recommended Approach Strategy
+                  {t('why_strategy_title')}
                 </span>
                 <div className="space-y-2">
                   {result.recommendedStepByStepPlan.map((step, idx) => (
@@ -181,7 +182,7 @@ export const WhyIsThisHardModal: React.FC<WhyIsThisHardModalProps> = ({
                 <div className="p-3.5 rounded-xl bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] space-y-1">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C897F] flex items-center gap-1">
                     <BookOpen className="w-3.5 h-3.5 text-blue-500" />
-                    <span>Prerequisites to Review</span>
+                    <span>{t('why_prereq_title')}</span>
                   </span>
                   <div className="flex flex-wrap gap-1.5 pt-1">
                     {result.prerequisiteConcepts.map((concept, idx) => (
@@ -199,10 +200,13 @@ export const WhyIsThisHardModal: React.FC<WhyIsThisHardModalProps> = ({
                   <div className="space-y-0.5">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C897F] flex items-center gap-1">
                       <Timer className="w-3.5 h-3.5 text-[#D97757]" />
-                      <span>Estimated Effort</span>
+                      <span>{t('why_effort_title')}</span>
                     </span>
                     <div className="text-xs font-bold text-[#141413] dark:text-[#FAF9F5]">
-                      ~{result.estimatedPomodoros} Focus Sprints ({result.estimatedPomodoros * 25} min)
+                      {t('why_effort_value', {
+                        count: result.estimatedPomodoros,
+                        mins: result.estimatedPomodoros * 25,
+                      })}
                     </div>
                   </div>
                   {onStartFocusSession && (
@@ -213,7 +217,7 @@ export const WhyIsThisHardModal: React.FC<WhyIsThisHardModalProps> = ({
                       }}
                       className="px-3 py-1.5 bg-[#D97757] hover:bg-[#C86646] text-white rounded-xl text-[11px] font-bold transition-all shadow-xs cursor-pointer"
                     >
-                      Start Sprint
+                      {t('why_start_sprint')}
                     </button>
                   )}
                 </div>
@@ -226,13 +230,13 @@ export const WhyIsThisHardModal: React.FC<WhyIsThisHardModalProps> = ({
         {/* Footer */}
         <div className="p-4 border-t border-[#DFDACB] dark:border-[#2C2B27] bg-[#FAF9F5] dark:bg-[#1F1E1B] flex items-center justify-between shrink-0 text-xs">
           <span className="text-[11px] text-[#8C897F]">
-            Grounded in cognitive psychology &amp; academic pedagogy
+            {t('why_footer_note')}
           </span>
           <button
             onClick={onClose}
             className="px-4 py-2 bg-white dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] text-[#141413] dark:text-[#FAF9F5] rounded-xl font-bold cursor-pointer hover:border-[#D97757] transition-colors"
           >
-            Close Deconstruction
+            {t('common_close')}
           </button>
         </div>
 

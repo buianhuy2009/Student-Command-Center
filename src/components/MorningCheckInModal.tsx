@@ -1,18 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Sun,
   Target,
   Clock,
   X,
   ArrowRight,
-  Sparkles,
-  CheckCircle2,
   CloudRain,
   Frown,
   Meh,
   Smile,
   Flame,
 } from 'lucide-react';
+import { useT } from '../services/i18n';
 
 interface MorningCheckInModalProps {
   isOpen: boolean;
@@ -22,19 +21,20 @@ interface MorningCheckInModalProps {
 }
 
 const MOOD_OPTIONS = [
-  { value: 'struggling', label: 'Struggling', Icon: CloudRain },
-  { value: 'low', label: 'Low', Icon: Frown },
-  { value: 'okay', label: 'Okay', Icon: Meh },
-  { value: 'good', label: 'Good', Icon: Smile },
-  { value: 'fired-up', label: 'Fired up', Icon: Flame },
-];
+  { value: 'struggling', labelKey: 'checkin_mood_struggling', Icon: CloudRain },
+  { value: 'low', labelKey: 'checkin_mood_low', Icon: Frown },
+  { value: 'okay', labelKey: 'checkin_mood_okay', Icon: Meh },
+  { value: 'good', labelKey: 'checkin_mood_good', Icon: Smile },
+  { value: 'fired-up', labelKey: 'checkin_mood_fired_up', Icon: Flame },
+] as const;
 
 export const MorningCheckInModal: React.FC<MorningCheckInModalProps> = ({
   isOpen,
   onClose,
-  userName = 'Student',
+  userName: _userName,
   onSaveIntention,
 }) => {
+  const { t } = useT();
   const [intention, setIntention] = useState('');
   const [targetHours, setTargetHours] = useState(3);
   const [mood, setMood] = useState<string | null>(null);
@@ -59,13 +59,14 @@ export const MorningCheckInModal: React.FC<MorningCheckInModalProps> = ({
               <Sun className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-xs font-bold text-[#141413] dark:text-[#FAF9F5]">Daily Morning Check-in</h3>
-              <p className="text-[10px] text-[#8C897F]">Set today's academic intention &amp; target</p>
+              <h3 className="text-xs font-bold text-[#141413] dark:text-[#FAF9F5]">{t('checkin_title')}</h3>
+              <p className="text-[10px] text-[#8C897F]">{t('checkin_sub')}</p>
             </div>
           </div>
 
           <button
             onClick={onClose}
+            aria-label={t('close')}
             className="p-1.5 text-[#8C897F] hover:text-[#141413] dark:hover:text-[#FAF9F5] rounded-lg cursor-pointer"
           >
             <X className="w-4 h-4" />
@@ -77,14 +78,14 @@ export const MorningCheckInModal: React.FC<MorningCheckInModalProps> = ({
           <div>
             <label className="block text-xs font-bold text-[#141413] dark:text-[#FAF9F5] mb-1.5 flex items-center gap-1.5">
               <Target className="w-3.5 h-3.5 text-[#D97757]" />
-              <span>What is your #1 priority goal today?</span>
+              <span>{t('checkin_goal_label')}</span>
             </label>
             <input
               type="text"
               required
               value={intention}
               onChange={(e) => setIntention(e.target.value)}
-              placeholder="e.g. Finish Physics Problem Set 4 &amp; revise Calculus derivatives"
+              placeholder={t('checkin_goal_ph')}
               className="w-full px-3.5 py-2.5 bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] rounded-xl text-xs text-[#141413] dark:text-[#FAF9F5] focus:outline-none focus:border-[#D97757]"
               autoFocus
             />
@@ -93,7 +94,7 @@ export const MorningCheckInModal: React.FC<MorningCheckInModalProps> = ({
           <div>
             <label className="block text-xs font-bold text-[#141413] dark:text-[#FAF9F5] mb-1.5 flex items-center gap-1.5">
               <Clock className="w-3.5 h-3.5 text-[#D97757]" />
-              <span>Deep Work Target Hours</span>
+              <span>{t('checkin_hours_label')}</span>
             </label>
             <div className="grid grid-cols-4 gap-2">
               {[1, 2, 3, 4].map((hours) => (
@@ -107,7 +108,7 @@ export const MorningCheckInModal: React.FC<MorningCheckInModalProps> = ({
                       : 'bg-[#FAF9F5] dark:bg-[#1F1E1B] border-[#DFDACB] dark:border-[#2C2B27] text-[#5C5A54] dark:text-[#B5B2A8] hover:border-[#D97757]'
                   }`}
                 >
-                  {hours} {hours === 1 ? 'Hour' : 'Hours'}
+                  {hours === 1 ? t('checkin_hour_one', { hours }) : t('checkin_hour_other', { hours })}
                 </button>
               ))}
             </div>
@@ -116,10 +117,10 @@ export const MorningCheckInModal: React.FC<MorningCheckInModalProps> = ({
           <div>
             <label className="block text-xs font-bold text-[#141413] dark:text-[#FAF9F5] mb-1.5 flex items-center gap-1.5">
               <Smile className="w-3.5 h-3.5 text-[#D97757]" />
-              <span>How are you feeling today?</span>
+              <span>{t('checkin_mood_label')}</span>
             </label>
             <div className="grid grid-cols-5 gap-2">
-              {MOOD_OPTIONS.map(({ value, label, Icon }) => (
+              {MOOD_OPTIONS.map(({ value, labelKey, Icon }) => (
                 <button
                   key={value}
                   type="button"
@@ -131,7 +132,7 @@ export const MorningCheckInModal: React.FC<MorningCheckInModalProps> = ({
                   }`}
                 >
                   <Icon className="w-4 h-4" />
-                  <span className="text-[10px] leading-none">{label}</span>
+                  <span className="text-[10px] leading-none">{t(labelKey)}</span>
                 </button>
               ))}
             </div>
@@ -143,7 +144,7 @@ export const MorningCheckInModal: React.FC<MorningCheckInModalProps> = ({
               disabled={!intention.trim()}
               className="w-full py-2.5 bg-[#D97757] hover:bg-[#C86646] disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer"
             >
-              <span>Lock In Today's Focus</span>
+              <span>{t('checkin_submit')}</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>

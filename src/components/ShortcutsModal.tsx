@@ -1,35 +1,40 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Keyboard, X } from 'lucide-react';
-import { t, useLang } from '../services/i18n';
+import { useT } from '../services/i18n';
 
 interface ShortcutsModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
+const SHORTCUT_ITEMS = [
+  { key: '⌘ + K / Ctrl + K', descKey: 'keys_d_open_palette' },
+  { key: '0', descKey: 'keys_d_dash_home' },
+  { key: '1', descKey: 'keys_d_canvas' },
+  { key: '2', descKey: 'keys_d_schedule' },
+  { key: '3', descKey: 'keys_d_tracker' },
+  { key: '4', descKey: 'keys_d_gmail' },
+  { key: '5', descKey: 'keys_d_drive' },
+  { key: 'g d', descKey: 'keys_d_go_dash' },
+  { key: 'g c', descKey: 'keys_d_go_canvas' },
+  { key: 'g t', descKey: 'keys_d_go_tracker' },
+  { key: 'g m', descKey: 'keys_d_go_gmail' },
+  { key: 'n', descKey: 'keys_d_quick_tracker' },
+  { key: 'f', descKey: 'keys_d_focus_mode' },
+  { key: 'R', descKey: 'keys_d_sync' },
+  { key: '?', descKey: 'keys_d_help' },
+  { key: 'Esc', descKey: 'keys_d_close' },
+] as const;
+
 export const ShortcutsModal: React.FC<ShortcutsModalProps> = ({ isOpen, onClose }) => {
-  useLang();
+  const { t } = useT();
   const [query, setQuery] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const shortcuts = [
-    { key: '⌘ + K / Ctrl + K', description: t('keys_d_open_palette') },
-    { key: '0', description: 'Dashboard Home' },
-    { key: '1', description: t('keys_d_canvas') },
-    { key: '2', description: t('keys_d_schedule') },
-    { key: '3', description: t('keys_d_tracker') },
-    { key: '4', description: t('keys_d_gmail') },
-    { key: '5', description: t('keys_d_drive') },
-    { key: 'g d', description: 'Go to Dashboard' },
-    { key: 'g c', description: 'Go to Canvas LMS' },
-    { key: 'g t', description: 'Go to Assignment Tracker' },
-    { key: 'g m', description: 'Go to Gmail AI' },
-    { key: 'n', description: 'Quick jump to Assignment Tracker' },
-    { key: 'f', description: 'Toggle Zen Focus Mode' },
-    { key: 'R', description: t('keys_d_sync') },
-    { key: '?', description: t('keys_d_help') },
-    { key: 'Esc', description: t('keys_d_close') },
-  ];
+  const shortcuts = SHORTCUT_ITEMS.map((item) => ({
+    key: item.key,
+    description: t(item.descKey),
+  }));
 
   const q = query.trim().toLowerCase();
   const filteredShortcuts = q

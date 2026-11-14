@@ -1,4 +1,5 @@
 import { db } from './db';
+import { getLocaleTag, t } from './i18n';
 import type { AISource, PromptTemplate } from '../types';
 
 /* ---------- BYOK + provider routing (Gemini primary, Groq fallback) ---------- */
@@ -126,21 +127,21 @@ export async function streamAnswerWithSources(
       });
       const contentType = res.headers?.get?.('content-type') || '';
       if (!contentType.includes('application/json')) {
-        throw new Error(`Unexpected response from /api/gemini/generate (${res.status}, content-type: ${contentType || 'unknown'})`);
+        throw new Error(t('airouter_unexpected_res', { status: res.status, contentType: contentType || t('airouter_unknown_type') }));
       }
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data?.error || `AI route error (${res.status})`);
+        throw new Error(data?.error || t('airouter_route_err', { status: res.status }));
       }
       const text = String(data?.text || '').trim();
       if (!text) {
-        throw new Error('Server AI endpoint returned an empty response.');
+        throw new Error(t('airouter_empty_server'));
       }
       await emitChunkedAnswer(text, sources, data?.model || model, task, callbacks);
       return;
     } catch (e: any) {
       if (callbacks.signal?.aborted) return;
-      primaryError = e?.message || 'Server AI request failed';
+      primaryError = e?.message || t('airouter_server_failed');
     }
   }
 
@@ -159,14 +160,14 @@ export async function streamAnswerWithSources(
       );
       const rType = r.headers?.get?.('content-type') || '';
       if (!rType.includes('application/json')) {
-        throw new Error(`Unexpected non-JSON response from Gemini API (${r.status})`);
+        throw new Error(t('airouter_gemini_nonjson', { status: r.status }));
       }
       const j = await r.json();
       if (!r.ok) {
-        throw new Error(j?.error?.message || `Gemini API error (${r.status})`);
+        throw new Error(j?.error?.message || t('airouter_gemini_err', { status: r.status }));
       }
       const text = String(j?.candidates?.[0]?.content?.parts?.map((p: any) => p.text).join('') || '').trim();
-      if (!text) throw new Error('Gemini returned an empty answer.');
+      if (!text) throw new Error(t('airouter_gemini_empty'));
       await emitChunkedAnswer(text, sources, model, task, callbacks);
       return;
     }
@@ -185,27 +186,27 @@ export async function streamAnswerWithSources(
       });
       const grType = gr.headers?.get?.('content-type') || '';
       if (!grType.includes('application/json')) {
-        throw new Error(`Unexpected non-JSON response from Groq API (${gr.status})`);
+        throw new Error(t('airouter_groq_nonjson', { status: gr.status }));
       }
       const gd = await gr.json();
       if (!gr.ok) {
-        throw new Error(gd?.error?.message || `Groq API error (${gr.status})`);
+        throw new Error(gd?.error?.message || t('airouter_groq_err', { status: gr.status }));
       }
       const text = String(gd?.choices?.[0]?.message?.content || '').trim();
-      if (!text) throw new Error('Groq returned an empty answer.');
+      if (!text) throw new Error(t('airouter_groq_empty'));
       await emitChunkedAnswer(text, sources, 'groq-llama', task, callbacks);
       return;
     }
 
-    throw new Error(primaryError || 'No AI key configured. Add one in Settings -> AI (BYOK).');
+    throw new Error(primaryError || t('airouter_no_key'));
   } catch (err: any) {
-    callbacks.onError?.(err?.message || primaryError || 'AI request failed');
+    callbacks.onError?.(err?.message || primaryError || t('airouter_failed'));
   }
 }
 
 export function formatSourcesFooter(sources: AISource[]): string {
   if (!sources.length) return '';
-  return '\n\nSources:\n' + sources.map((s) => `• ${s.label}${s.url ? ` (${s.url})` : ''}`).join('\n');
+  return t('airouter_sources_header') + sources.map((s) => `• ${s.label}${s.url ? ` (${s.url})` : ''}`).join('\n');
 }
 
 /* ---------- Prompt library (save/share templates) ---------- */
@@ -236,16 +237,16 @@ export function isVoiceSupported(): boolean {
 
 export function dictateOnce(opts?: { lang?: string; onResult?: (text: string, isFinal: boolean) => void; onError?: (msg: string) => void }): () => void {
   const Rec = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-  if (!Rec) { opts?.onError?.('Voice input is not supported in this browser. Try Chrome.'); return () => {}; }
+  if (!Rec) { opts?.onError?.(t('airouter_voice_unsupported')); return () => {}; }
   const rec = new Rec();
-  rec.lang = opts?.lang ?? 'en-US';
+  rec.lang = opts?.lang ?? getLocaleTag();
   rec.interimResults = true;
   rec.continuous = false;
   rec.onresult = (e: any) => {
     const r = e.results[e.results.length - 1];
     opts?.onResult?.(r[0].transcript, r.isFinal);
   };
-  rec.onerror = (e: any) => opts?.onError?.(e?.error || 'recognition error');
+  rec.onerror = (e: any) => opts?.onError?.(e?.error || t('airouter_recognition_err'));
   try { rec.start(); } catch {}
   return () => { try { rec.stop(); } catch {} };
 }
@@ -256,7 +257,7 @@ export function speakText(text: string, opts?: { rate?: number; lang?: string })
     window.speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text.slice(0, 2000));
     u.rate = opts?.rate ?? 1;
-    u.lang = opts?.lang ?? 'en-US';
+    u.lang = opts?.lang ?? getLocaleTag();
     window.speechSynthesis.speak(u);
   } catch {}
 }

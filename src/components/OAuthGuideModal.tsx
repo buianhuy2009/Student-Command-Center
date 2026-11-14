@@ -12,7 +12,7 @@ import {
   Wifi,
 } from 'lucide-react';
 import type { SignInDiagnosis } from '../services/firebase';
-import { useLang } from '../services/i18n';
+import { useT } from '../services/i18n';
 
 export interface OAuthGuideModalProps {
   isOpen: boolean;
@@ -39,8 +39,7 @@ export const OAuthGuideModal: React.FC<OAuthGuideModalProps> = ({
   onRunDiagnostics,
   onRedirectSignIn,
 }) => {
-  const [lang] = useLang();
-  const isVi = lang === 'vi';
+  const { t } = useT();
   const [envChecks, setEnvChecks] = useState<{ label: string; ok: boolean; hint?: string }[] | null>(null);
 
   useEffect(() => {
@@ -54,41 +53,23 @@ export const OAuthGuideModal: React.FC<OAuthGuideModalProps> = ({
 
   if (!isOpen) return null;
 
-  const tips = isVi
-    ? [
-        {
-          icon: AlertTriangle,
-          title: 'Cho phép cửa sổ bật lên (popups)',
-          body: 'Kiểm tra biểu tượng chặn cửa sổ bật lên trên thanh địa chỉ trình duyệt, chọn Cho phép cho trang này rồi thử đăng nhập lại.',
-        },
-        {
-          icon: Wifi,
-          title: 'Kiểm tra mạng hoặc trình chặn quảng cáo',
-          body: 'Một số tiện ích chặn quảng cáo hoặc mạng Wi-Fi trường học có thể chặn cửa sổ Google. Hãy thử tạm tắt trình chặn cho trang này.',
-        },
-        {
-          icon: ShieldCheck,
-          title: 'Thử Gmail cá nhân hoặc đăng nhập trên cùng trang',
-          body: 'Một số tài khoản Google trường học hạn chế ứng dụng bên ngoài. Bạn có thể dùng Gmail cá nhân hoặc nút đăng nhập chuyển trang bên dưới.',
-        },
-      ]
-    : [
-        {
-          icon: AlertTriangle,
-          title: 'Allow popups for this site',
-          body: 'Look for a blocked-popup icon in your browser’s address bar, allow popups for this page, and try signing in again.',
-        },
-        {
-          icon: Wifi,
-          title: 'Check your Wi-Fi or ad-blocker',
-          body: 'Strict privacy extensions or school Wi-Fi filters can block Google’s sign-in window. Try pausing them for this site or switching networks.',
-        },
-        {
-          icon: ShieldCheck,
-          title: 'Use a personal Gmail or full-page sign-in',
-          body: 'Some school Google accounts restrict outside study apps. You can try a personal Gmail account, or use full-page sign-in below without popups.',
-        },
-      ];
+  const tips = [
+    {
+      icon: AlertTriangle,
+      title: t('oauth_tip1_t'),
+      body: t('oauth_tip1_d'),
+    },
+    {
+      icon: Wifi,
+      title: t('oauth_tip2_t'),
+      body: t('oauth_tip2_d'),
+    },
+    {
+      icon: ShieldCheck,
+      title: t('oauth_tip3_t'),
+      body: t('oauth_tip3_d'),
+    },
+  ];
 
   return (
     <div
@@ -112,19 +93,17 @@ export const OAuthGuideModal: React.FC<OAuthGuideModalProps> = ({
                 id="oauth-guide-modal-title"
                 className="text-base sm:text-lg font-bold text-[#141413] dark:text-[#FAF9F5] tracking-tight"
               >
-                {isVi ? 'Gặp trục trặc khi đăng nhập Google?' : 'Trouble signing in with Google?'}
+                {t('oauth_title')}
               </h3>
               <p className="text-xs text-[#6B6860] dark:text-[#B5B2A8] mt-0.5">
-                {isVi
-                  ? 'Bài tập và ghi chú đã lưu trên máy của bạn vẫn an toàn.'
-                  : 'Your saved schoolwork is safe on this device. Try these quick fixes.'}
+                {t('oauth_sub')}
               </p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            aria-label={isVi ? 'Đóng' : 'Close'}
+            aria-label={t('common_close')}
             className="p-1.5 text-[#6B6860] hover:text-[#141413] dark:text-[#B5B2A8] dark:hover:text-[#FAF9F5] rounded-lg transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
@@ -140,7 +119,7 @@ export const OAuthGuideModal: React.FC<OAuthGuideModalProps> = ({
             </div>
             <p className="text-[11px] leading-relaxed text-amber-800 dark:text-amber-300">{diagnosis.detail}</p>
             <p className="text-[11px] leading-relaxed text-amber-900 dark:text-amber-200">
-              <strong>{isVi ? 'Cách thử: ' : 'Next step: '}</strong>
+              <strong>{t('oauth_next_step')}</strong>
               {diagnosis.fix}
             </p>
           </div>
@@ -177,13 +156,7 @@ export const OAuthGuideModal: React.FC<OAuthGuideModalProps> = ({
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isLoggingIn ? 'animate-spin' : ''}`} />
             <span>
-              {isLoggingIn
-                ? isVi
-                  ? 'Đang kết nối...'
-                  : 'Connecting...'
-                : isVi
-                ? 'Thử đăng nhập lại'
-                : 'Try signing in again'}
+              {isLoggingIn ? t('oauth_connecting') : t('oauth_retry')}
             </span>
           </button>
 
@@ -196,9 +169,7 @@ export const OAuthGuideModal: React.FC<OAuthGuideModalProps> = ({
             >
               <ArrowLeftRight className="w-3.5 h-3.5" />
               <span>
-                {isVi
-                  ? 'Đăng nhập ngay trên trang này (không cần popup)'
-                  : 'Sign in on this page instead (no popup needed)'}
+                {t('oauth_redirect_btn')}
               </span>
             </button>
           )}
@@ -211,9 +182,7 @@ export const OAuthGuideModal: React.FC<OAuthGuideModalProps> = ({
           >
             <UserCheck className="w-3.5 h-3.5 text-[#D97757]" />
             <span>
-              {isVi
-                ? 'Đăng nhập cơ bản bằng tên & email Google'
-                : 'Sign in with basic Google account'}
+              {t('oauth_basic_btn')}
             </span>
           </button>
 
@@ -225,7 +194,7 @@ export const OAuthGuideModal: React.FC<OAuthGuideModalProps> = ({
                 className="w-full py-2 px-4 text-xs font-semibold text-[#6B6860] dark:text-[#B5B2A8] hover:bg-[#FAF9F5] dark:hover:bg-[#252422] flex items-center justify-center gap-2 cursor-pointer min-h-[44px]"
               >
                 <Wrench className="w-3.5 h-3.5" />
-                <span>{isVi ? 'Kiểm tra trình duyệt' : 'Check browser settings'}</span>
+                <span>{t('oauth_check_browser')}</span>
               </button>
               {envChecks && (
                 <ul className="px-4 pb-3 space-y-1.5">

@@ -11,20 +11,18 @@ import {
 } from 'lucide-react';
 import { AppLogo } from './AppLogo';
 import { APP_CATALOG } from './AppStoreModal';
-import { t, useLang, getLang } from '../services/i18n';
+import { useT } from '../services/i18n';
 import { isCanvasHidden } from './MainFlowCard';
 
-const L = (vi: string, en: string) => (getLang() === 'vi' ? vi : en);
-
 // The one main flow (judges: focus instead of 34 small apps). Always on top, never unpinnable.
-const MAIN_FLOW: Array<{ id: string; vi: string; en: string; descVi: string; descEn: string; badgeKey?: string }> = [
-  { id: 'gmail', vi: 'Hộp thư bài tập', en: 'School inbox', descVi: 'Gmail + Classroom, AI đọc', descEn: 'Gmail + Classroom, AI-read', badgeKey: 'gmail' },
-  { id: 'tracker', vi: 'Bài tập & hạn nộp', en: 'Assignments & due', descVi: 'Đã xác nhận / chưa xác nhận', descEn: 'Confirmed / unconfirmed', badgeKey: 'tracker' },
-  { id: 'radar', vi: 'Lịch học tuần', en: 'Weekly plan', descVi: 'Lịch ngày & AI xếp lịch', descEn: 'Daily agenda & AI planner', badgeKey: 'schedule' },
-  { id: 'classroom', vi: 'Google Classroom', en: 'Google Classroom', descVi: 'Bài tập & thông báo', descEn: 'Coursework & posts' },
-  { id: 'canvas', vi: 'Canvas', en: 'Canvas', descVi: 'Bài tập Canvas', descEn: 'Canvas assignments', badgeKey: 'canvas' },
-];
-const MAIN_FLOW_IDS = new Set(MAIN_FLOW.map((m) => m.id));
+const MAIN_FLOW = [
+  { id: 'gmail', labelKey: 'side_flow_gmail_t', descKey: 'side_flow_gmail_d', badgeKey: 'gmail' },
+  { id: 'tracker', labelKey: 'side_flow_tracker_t', descKey: 'side_flow_tracker_d', badgeKey: 'tracker' },
+  { id: 'radar', labelKey: 'side_flow_radar_t', descKey: 'side_flow_radar_d', badgeKey: 'schedule' },
+  { id: 'classroom', labelKey: 'side_flow_classroom_t', descKey: 'side_flow_classroom_d' },
+  { id: 'canvas', labelKey: 'side_flow_canvas_t', descKey: 'side_flow_canvas_d', badgeKey: 'canvas' },
+] as const;
+const MAIN_FLOW_IDS = new Set<string>(MAIN_FLOW.map((m) => m.id));
 
 const NavSection: React.FC<{ title?: string; isExpanded: boolean; children: React.ReactNode }> = ({ title, isExpanded, children }) => (
   <div className="space-y-1">
@@ -84,7 +82,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onUnpinApp,
   badges = {},
 }) => {
-  useLang();
+  const { t } = useT();
   const [canvasHidden, setCanvasHiddenState] = useState(isCanvasHidden);
   useEffect(() => {
     const on = (e: any) => setCanvasHiddenState(Boolean(e?.detail));
@@ -104,12 +102,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const APP_META: Record<string, { label: string; desc: string; key?: string; badgeKey?: string }> = {
-    canvas: { label: 'Canvas LMS', desc: 'Assignments & grades', key: '1', badgeKey: 'canvas' },
-    radar: { label: 'Daily Schedule & AI Planner', desc: 'Agenda & study planner', key: '2', badgeKey: 'schedule' },
-    tracker: { label: 'Assignment Tracker', desc: 'Master checklist & sync', key: '3', badgeKey: 'tracker' },
-    gmail: { label: 'Gmail AI Scanner', desc: 'Academic inbox & drafter', key: '4', badgeKey: 'gmail' },
-    drive: { label: 'Google Drive', desc: 'School docs & slides', key: '5' },
+  const APP_META: Record<string, { labelKey: string; descKey: string; key?: string; badgeKey?: string }> = {
+    canvas: { labelKey: 'side_meta_canvas_t', descKey: 'side_meta_canvas_d', key: '1', badgeKey: 'canvas' },
+    radar: { labelKey: 'side_meta_radar_t', descKey: 'side_meta_radar_d', key: '2', badgeKey: 'schedule' },
+    tracker: { labelKey: 'side_meta_tracker_t', descKey: 'side_meta_tracker_d', key: '3', badgeKey: 'tracker' },
+    gmail: { labelKey: 'side_meta_gmail_t', descKey: 'side_meta_gmail_d', key: '4', badgeKey: 'gmail' },
+    drive: { labelKey: 'side_meta_drive_t', descKey: 'side_meta_drive_d', key: '5' },
   };
 
   const pinnedApps = useMemo(() => {
@@ -171,7 +169,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <h1 className="text-sm font-extrabold text-[#2B2621] dark:text-[#F5F4ED] tracking-tight truncate leading-tight">
                 StudentOS
               </h1>
-              <p className="text-[10px] text-[#70695E] dark:text-[#B5B2A8] font-mono truncate">Academic AI Hub</p>
+              <p className="text-[10px] text-[#70695E] dark:text-[#B5B2A8] font-mono truncate">{t('side_subtitle')}</p>
             </div>
           )}
         </button>
@@ -189,17 +187,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       <div className="flex-1 overflow-y-auto min-h-0 space-y-4 pr-0.5">
-        <NavSection title={L('Luồng chính', 'Main flow')} isExpanded={isExpanded}>
+        <NavSection title={t('side_main_flow')} isExpanded={isExpanded}>
           {MAIN_FLOW.filter((m) => !(m.id === 'canvas' && canvasHidden)).map((m, i) => {
             const isActive = activeTab === m.id;
-            const count = (m.badgeKey && (badges as any)[m.badgeKey]) || 0;
+            const count = ('badgeKey' in m && m.badgeKey && (badges as any)[m.badgeKey]) || 0;
+            const itemLabel = t(m.labelKey);
             return (
               <button
                 key={`flow-${m.id}`}
                 onClick={() => onSelectTab(m.id)}
                 aria-current={isActive ? 'page' : undefined}
                 data-tour-tab={m.id}
-                title={L(m.vi, m.en)}
+                title={itemLabel}
                 className={`w-full rounded-xl flex items-center transition-all duration-200 cursor-pointer relative group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E05D38]/50 ${
                   isExpanded ? 'px-3 py-2 justify-between gap-3 min-h-[44px]' : 'w-11 h-11 mx-auto justify-center'
                 } ${
@@ -216,8 +215,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   )}
                   {isExpanded && (
                     <div className="text-left min-w-0">
-                      <div className="text-xs truncate leading-tight">{L(m.vi, m.en)}</div>
-                      <div className="text-[10px] truncate text-[#70695E] dark:text-[#B5B2A8]">{L(m.descVi, m.descEn)}</div>
+                      <div className="text-xs truncate leading-tight">{itemLabel}</div>
+                      <div className="text-[10px] truncate text-[#70695E] dark:text-[#B5B2A8]">{t(m.descKey)}</div>
                     </div>
                   )}
                 </div>
@@ -236,8 +235,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
             {pinnedApps.length === 0 ? (
               <div className="text-[11px] text-[#70695E] dark:text-[#B5B2A8] px-2 py-2 italic">{t('side_no_pinned')}</div>
             ) : pinnedApps.map((app) => {
-              const meta = APP_META[app.id] || { label: app.name, desc: app.category };
-              const badgeKey = (APP_META[app.id]?.badgeKey) || app.id;
+              const metaEntry = APP_META[app.id];
+              const metaLabel = metaEntry ? t(metaEntry.labelKey) : app.name;
+              const metaDesc = metaEntry ? t(metaEntry.descKey) : app.category;
+              const badgeKey = (metaEntry?.badgeKey) || app.id;
               const badgeCount = badges[badgeKey] || badges[app.id] || (badges as any)[app.id.replace('-', '_')] || 0;
               const hasBadge = badgeCount > 0;
               const isActive = activeTab === app.id;
@@ -255,15 +256,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         ? 'bg-[#FCEEE8] dark:bg-[#252422] text-[#E05D38] dark:text-[#E8A07E] shadow-sm font-bold'
                         : 'bg-white/60 hover:bg-white dark:bg-[#252422]/60 dark:hover:bg-[#252422] text-[#2B2621] dark:text-[#F5F4ED] border border-transparent'
                     }`}
-                    title={app.name}
+                    title={metaLabel}
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
                       <AppLogo id={app.id} size="sm" />
                       {isExpanded && (
                         <div className="text-left min-w-0">
-                          <div className="text-xs truncate leading-tight">{meta.label || app.name}</div>
+                          <div className="text-xs truncate leading-tight">{metaLabel}</div>
                           <div className={`text-[10px] truncate ${isActive ? 'text-[#E05D38]/70 dark:text-[#E59A7C]/70' : 'text-[#70695E] dark:text-[#B5B2A8]'}`}>
-                            {meta.desc || app.category}
+                            {metaDesc}
                           </div>
                         </div>
                       )}
@@ -282,7 +283,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           <span className={`absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full ring-2 ring-[#F1ECE1] dark:ring-[#282723] ${badgeColor}`} />
                         )}
                         <span className="absolute left-16 bg-[#141413] dark:bg-[#F5F4ED] text-[#F5F4ED] dark:text-[#141413] text-xs font-semibold px-2.5 py-1 rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity delay-100 whitespace-nowrap z-50 shadow-md border border-[#E8E6DC] dark:border-[#2C2B27]" role="tooltip">
-                          {meta.label || app.name}
+                          {metaLabel}
                         </span>
                       </>
                     )}
@@ -342,7 +343,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             title={t('side_open_store')}
           >
             <Plus className="w-4 h-4 shrink-0" strokeWidth={1.75} />
-            {isExpanded && <span>{L('Công cụ khác (thêm khi cần)', 'More tools (add when needed)')}</span>}
+            {isExpanded && <span>{t('side_more_tools')}</span>}
           </button>
           {!isExpanded && (
             <span className="absolute left-16 top-1/2 -translate-y-1/2 bg-[#141413] dark:bg-[#F5F4ED] text-[#F5F4ED] dark:text-[#141413] text-xs font-semibold px-2.5 py-1 rounded-lg opacity-0 pointer-events-none group-hover/add:opacity-100 transition-opacity delay-100 whitespace-nowrap z-50 shadow-md border border-[#E8E6DC] dark:border-[#2C2B27]">
@@ -391,7 +392,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               {user.photoURL ? (
                 <img
                   src={user.photoURL}
-                  alt={user.displayName || 'User'}
+                  alt={user.displayName || t('side_guest')}
                   className="w-full h-full object-cover"
                   referrerPolicy="no-referrer"
                 />

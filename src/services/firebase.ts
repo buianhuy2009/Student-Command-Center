@@ -12,6 +12,7 @@ import {
   getRedirectResult,
 } from 'firebase/auth';
 import rawFirebaseConfig from '../../firebase-applet-config.json';
+import { t } from './i18n';
 
 // Support Vite client-side environment variable overrides for custom deployments (like Vercel)
 const metaEnv = typeof import.meta !== 'undefined' ? (import.meta as any).env || {} : {};
@@ -126,80 +127,80 @@ export function classifySignInError(error: any): SignInDiagnosis {
   if (error instanceof GoogleWorkspaceGrantMissingError || code === 'auth/no-auth-token') {
     return {
       kind: 'token-missing',
-      title: 'Sign-in finished without extra permissions',
-      detail: 'Google signed you in, but the extra permission did not finish coming through. Your account is fine.',
-      fix: 'Tap “Try signing in again”. If it happens twice, choose “Redirect sign-in instead” below — it works without popups.',
+      title: t('fb_diag_token_title'),
+      detail: t('fb_diag_token_detail'),
+      fix: t('fb_diag_token_fix'),
     };
   }
   if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request' || code === 'auth/user-cancelled') {
     return {
       kind: 'popup-closed',
-      title: 'Sign-in window was closed',
-      detail: 'The Google window closed before sign-in finished.',
-      fix: 'Tap sign-in again and keep the Google window open until it closes on its own.',
+      title: t('fb_diag_closed_title'),
+      detail: t('fb_diag_closed_detail'),
+      fix: t('fb_diag_closed_fix'),
     };
   }
   if (code === 'auth/popup-blocked') {
     return {
       kind: 'popup-blocked',
-      title: 'Your browser blocked the sign-in window',
-      detail: 'Your browser stopped Google from opening its sign-in window.',
-      fix: 'Allow popups for this site in your browser bar and try again — or use “Redirect sign-in instead” below.',
+      title: t('fb_diag_blocked_title'),
+      detail: t('fb_diag_blocked_detail'),
+      fix: t('fb_diag_blocked_fix'),
     };
   }
   if (/admin|policy|disallowed|org_internal|access blocked by/i.test(all)) {
     return {
       kind: 'admin-blocked',
-      title: 'Blocked by your school or work Google account',
-      detail: 'School or work Google accounts often block outside study apps from connecting, even when you try to allow them.',
-      fix: 'Try signing in with a personal Gmail account instead, or keep using StudentOS without connecting Google.',
+      title: t('fb_diag_admin_title'),
+      detail: t('fb_diag_admin_detail'),
+      fix: t('fb_diag_admin_fix'),
     };
   }
   if (code === 'auth/unauthorized-domain' || /unauthorized-domain/i.test(all)) {
     return {
       kind: 'unauthorized-domain',
-      title: 'Sign-in is not turned on for this link yet',
-      detail: 'This web address is not set up for Google sign-in right now. It is a site setup issue, not a problem with your account.',
-      fix: 'Open StudentOS from the main website link, or explore Demo Mode while you wait.',
+      title: t('fb_diag_domain_title'),
+      detail: t('fb_diag_domain_detail'),
+      fix: t('fb_diag_domain_fix'),
     };
   }
   if (code === 'auth/api-key-not-valid' || code === 'auth/invalid-api-key' || /api-key-not-valid/i.test(all)) {
     return {
       kind: 'api-key',
-      title: 'Sign-in is unavailable on this preview link',
-      detail: 'This preview or custom link does not have Google sign-in enabled right now.',
-      fix: 'Open the main StudentOS website link and sign in there, or explore Demo Mode.',
+      title: t('fb_diag_apikey_title'),
+      detail: t('fb_diag_apikey_detail'),
+      fix: t('fb_diag_apikey_fix'),
     };
   }
   if (/verification process|Test users|unverified|access_denied|403|admin-restricted|internal-error/i.test(all)) {
     return {
       kind: 'test-user',
-      title: 'This Google feature is limited right now',
-      detail: 'Google has not opened this extra permission to all accounts yet.',
-      fix: 'You can still sign in with your basic Google account below and use your study tools right away.',
+      title: t('fb_diag_limited_title'),
+      detail: t('fb_diag_limited_detail'),
+      fix: t('fb_diag_limited_fix'),
     };
   }
   if (code === 'auth/network-request-failed' || /network/i.test(all)) {
     return {
       kind: 'network',
-      title: 'Connection interrupted during sign-in',
-      detail: 'We could not reach Google — usually because of Wi-Fi, a VPN, or a strict ad-blocker.',
-      fix: 'Check your internet connection, pause any ad-blocker for this site, and try again.',
+      title: t('fb_diag_network_title'),
+      detail: t('fb_diag_network_detail'),
+      fix: t('fb_diag_network_fix'),
     };
   }
-  if (/timeout|timed out/i.test(all)) {
+  if (code === 'auth/timeout' || /timeout|timed out/i.test(all)) {
     return {
       kind: 'timeout',
-      title: 'Sign-in took too long',
-      detail: 'Google did not answer in time — often caused by a popup or cookie blocker.',
-      fix: 'Use “Redirect sign-in instead” below — it works without popups.',
+      title: t('fb_diag_timeout_title'),
+      detail: t('fb_diag_timeout_detail'),
+      fix: t('fb_diag_timeout_fix'),
     };
   }
   return {
     kind: 'unknown',
-    title: 'Could not finish signing in',
-    detail: 'Google did not complete sign-in just now.',
-    fix: 'Try once more, use redirect sign-in, or continue with basic sign-in.',
+    title: t('fb_diag_unknown_title'),
+    detail: t('fb_diag_unknown_detail'),
+    fix: t('fb_diag_unknown_fix'),
   };
 }
 
@@ -208,28 +209,28 @@ export function diagnoseSignInEnvironment(): { label: string; ok: boolean; hint?
   const out: { label: string; ok: boolean; hint?: string }[] = [];
   const cfg = effectiveFirebaseConfig;
   out.push({
-    label: 'Sign-in service ready',
+    label: t('fb_env_service_ready'),
     ok: Boolean(cfg.apiKey && cfg.projectId && cfg.authDomain),
-    hint: !cfg.apiKey ? 'Sign-in is not set up on this link right now. Try opening the main StudentOS website.' : undefined,
+    hint: !cfg.apiKey ? t('fb_env_service_hint') : undefined,
   });
   try {
     out.push({
-      label: `Current website: ${window.location.hostname}`,
+      label: t('fb_env_current_site', { host: window.location.hostname }),
       ok: true,
-      hint: 'Make sure you are using the official StudentOS web address.',
+      hint: t('fb_env_current_site_hint'),
     });
-  } catch { out.push({ label: 'Current website', ok: false }); }
+  } catch { out.push({ label: t('fb_env_current_site_fallback'), ok: false }); }
   try {
     const w = window.open('', '_blank', 'width=10,height=10');
-    if (w) { w.close(); out.push({ label: 'Popups allowed', ok: true }); }
-    else out.push({ label: 'Popups blocked', ok: false, hint: 'Allow popups for this site in your browser bar, or use redirect sign-in.' });
-  } catch { out.push({ label: 'Popups blocked', ok: false, hint: 'Allow popups for this site in your browser bar, or use redirect sign-in.' }); }
+    if (w) { w.close(); out.push({ label: t('fb_env_popups_ok'), ok: true }); }
+    else out.push({ label: t('fb_env_popups_blocked'), ok: false, hint: t('fb_env_popups_hint') });
+  } catch { out.push({ label: t('fb_env_popups_blocked'), ok: false, hint: t('fb_env_popups_hint') }); }
   try {
     document.cookie = 'scc_cookie_test=1; SameSite=Lax';
     const ok = document.cookie.includes('scc_cookie_test=1');
     document.cookie = 'scc_cookie_test=; Max-Age=0; SameSite=Lax';
-    out.push({ label: 'Cookies enabled', ok, hint: ok ? undefined : 'Turn on cookies for this site so Google sign-in can remember you.' });
-  } catch { out.push({ label: 'Cookies enabled', ok: false }); }
+    out.push({ label: t('fb_env_cookies'), ok, hint: ok ? undefined : t('fb_env_cookies_hint') });
+  } catch { out.push({ label: t('fb_env_cookies'), ok: false }); }
   return out;
 }
 
@@ -566,7 +567,7 @@ export const signInWithGoogle = async (
       const POPUP_TIMEOUT_MS = 90000;
       result = await Promise.race([
         signInWithPopup(auth, targetProvider),
-        new Promise((_res, rej) => setTimeout(() => rej(new Error('Google sign-in timed out. Please try again or use redirect sign-in instead.')), POPUP_TIMEOUT_MS)),
+        new Promise((_res, rej) => setTimeout(() => rej(Object.assign(new Error(t('fb_err_timeout')), { code: 'auth/timeout' })), POPUP_TIMEOUT_MS)),
       ]);
     } catch (popupErr: any) {
       const code = popupErr?.code || '';
@@ -628,7 +629,7 @@ export const signInWithGoogle = async (
 
     if (errorCode === 'auth/popup-blocked') {
       console.warn('Google Sign-In popup was blocked by browser. Please allow popups for this site.');
-      throw new Error('Your browser blocked the sign-in window. Please allow popups for this site and try again.');
+      throw new Error(t('fb_err_popup_blocked'));
     }
 
     console.error('Sign in error:', error);
@@ -643,7 +644,7 @@ export const signInWithGoogle = async (
       errorCode === 'auth/internal-error'
     ) {
       throw new OAuthTestUserRequiredError(
-        'This Google feature is currently limited to approved accounts. You can still sign in with your basic Google account.',
+        t('fb_err_limited'),
         effectiveFirebaseConfig.projectId
       );
     }
@@ -654,9 +655,7 @@ export const signInWithGoogle = async (
       errorMsg.includes('api-key-not-valid') ||
       errorMsg.includes('API key')
     ) {
-      throw new Error(
-        'Sign-in is not set up on this preview link right now. Try opening the main StudentOS website or explore Demo Mode.'
-      );
+      throw new Error(t('fb_err_apikey'));
     }
 
     if (
@@ -664,10 +663,8 @@ export const signInWithGoogle = async (
       errorMsg.includes('unauthorized-domain')
     ) {
       const currentHost =
-        typeof window !== 'undefined' ? window.location.hostname : 'this link';
-      throw new Error(
-        `Sign-in is not turned on for “${currentHost}” yet. Please open the main StudentOS website link.`
-      );
+        typeof window !== 'undefined' ? window.location.hostname : t('fb_this_link');
+      throw new Error(t('fb_err_domain', { host: currentHost }));
     }
 
     throw error;

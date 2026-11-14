@@ -9,6 +9,7 @@ import {
 import { extractPlainBody } from '../utils/emailText';
 import { decodeTrustNotes, encodeTrustNotes } from '../utils/trust';
 import { auth, getActiveGoogleUid } from './firebase';
+import { formatDate, t } from './i18n';
 
 import rawFirebaseConfig from '../../firebase-applet-config.json';
 
@@ -32,7 +33,7 @@ export class GoogleApiDisabledError extends Error {
     originalMessage?: string
   ) {
     super(
-      `${serviceName} is currently unavailable for this account. Please try again later.`
+      t('gw_service_unavailable', { service: serviceName })
     );
     this.name = 'GoogleApiDisabledError';
     this.serviceName = serviceName;
@@ -48,7 +49,7 @@ async function assertGoogleResponseOk(
   defaultServiceId: string
 ): Promise<void> {
   if (res.status === 401) {
-    throw new Error(`${defaultServiceName} connection expired — please reconnect and try again.`);
+    throw new Error(t('gw_service_expired', { service: defaultServiceName }));
   }
   if (!res.ok) {
     const errBody = await res.text();
@@ -119,12 +120,12 @@ export function parseGoogleApiResponseError(
         msg.includes('insufficient authentication scopes'));
 
     if (isScopeError) {
-      return new Error(`${defaultServiceName} needs your permission first — click Connect to allow access.`);
+      return new Error(t('gw_needs_permission', { service: defaultServiceName }));
     }
 
-    return new Error(`${defaultServiceName} couldn't finish that request: ${msg}`);
+    return new Error(t('gw_request_failed_msg', { service: defaultServiceName, msg }));
   } catch {
-    return new Error(`${defaultServiceName} couldn't finish that request (${status}).`);
+    return new Error(t('gw_request_failed_status', { service: defaultServiceName, status }));
   }
 }
 
@@ -149,7 +150,7 @@ export async function fetchTodayCalendarEvents(token: string): Promise<CalendarE
     });
 
     if (res.status === 401) {
-      throw new Error('Your Google Calendar connection expired. Please reconnect Google Calendar.');
+      throw new Error(t('gw_cal_expired'));
     }
 
     if (!res.ok) {
@@ -160,7 +161,7 @@ export async function fetchTodayCalendarEvents(token: string): Promise<CalendarE
     const data = await res.json();
     return (data.items || []).map((item: any) => ({
       id: item.id,
-      summary: item.summary || '(Untitled Event)',
+      summary: item.summary || t('gw_cal_untitled_event'),
       start: item.start || {},
       end: item.end || {},
       location: item.location || '',
@@ -199,13 +200,13 @@ export async function fetchUpcomingCalendarEvents(
     });
 
     if (!res.ok) {
-      throw new Error(`Calendar API error: ${res.statusText}`);
+      throw new Error(t('gw_cal_api_err', { status: res.statusText || String(res.status) }));
     }
 
     const data = await res.json();
     return (data.items || []).map((item: any) => ({
       id: item.id,
-      summary: item.summary || '(Untitled)',
+      summary: item.summary || t('gw_cal_untitled'),
       start: item.start || {},
       end: item.end || {},
       location: item.location || '',
@@ -379,13 +380,13 @@ export async function fetchAcademicEmails(
     });
 
     if (listRes.status === 401) {
-      throw new Error('Your Gmail connection expired. Please reconnect Gmail to check your inbox.');
+      throw new Error(t('gw_gmail_expired'));
     }
 
     if (!listRes.ok) {
       const errBody = await listRes.text();
       if (listRes.status === 403 && (errBody.includes('insufficient') || errBody.includes('ACCESS_TOKEN_SCOPE_INSUFFICIENT'))) {
-        throw new Error('Gmail needs permission first — click Connect Gmail to review school updates.');
+        throw new Error(t('gw_gmail_needs_permission'));
       }
       throw parseGoogleApiResponseError(listRes.status, errBody, 'Gmail', 'gmail.googleapis.com');
     }
@@ -416,10 +417,10 @@ export async function fetchAcademicEmails(
           return {
             id: data.id,
             threadId: data.threadId,
-            sender: fromHeader ? fromHeader.value.replace(/<.*>/, '').replace(/"/g, '').trim() : 'Instructor',
+            sender: fromHeader ? fromHeader.value.replace(/<.*>/, '').replace(/"/g, '').trim() : t('gw_gmail_instructor'),
             senderEmail: fromHeader ? (fromHeader.value.match(/<([^>]+)>/)?.[1] || fromHeader.value) : '',
-            subject: subjectHeader ? subjectHeader.value : '(No Subject)',
-            date: dateHeader ? new Date(dateHeader.value).toLocaleDateString() : 'Recent',
+            subject: subjectHeader ? subjectHeader.value : t('gw_gmail_no_subject'),
+            date: dateHeader ? formatDate(dateHeader.value) : t('gw_gmail_recent'),
             dateISO: Number.isFinite(sentMs) ? new Date(sentMs).toISOString() : undefined,
             snippet: bodySnippet,
             body: body || undefined,
@@ -586,7 +587,7 @@ export async function findOrCreateMasterSpreadsheet(
         };
       }
       if (checkRes.status === 401) {
-        throw new Error('Your Google Sheets connection expired. Please reconnect Google Sheets.');
+        throw new Error(t('gw_sheets_expired'));
       }
       if (checkRes.status === 404 || checkRes.status === 403) {
         clearScopedMasterSheetId(resolvedUid);
@@ -648,7 +649,7 @@ export async function findOrCreateMasterSpreadsheet(
     });
 
     if (createRes.status === 401) {
-      throw new Error('Your Google Sheets connection expired. Please reconnect Google Sheets.');
+      throw new Error(t('gw_sheets_expired'));
     }
 
     if (!createRes.ok) {
@@ -734,7 +735,7 @@ export async function readAssignmentsFromSheet(
     });
 
     if (res.status === 401) {
-      throw new Error('Your Google Sheets connection expired. Please reconnect Google Sheets.');
+      throw new Error(t('gw_sheets_expired'));
     }
 
     // Fallback to first sheet range if Assignments tab is named differently
@@ -810,7 +811,7 @@ export async function appendAssignmentToSheet(
   );
 
   if (res.status === 401) {
-    throw new Error('Google Sheets session expired or unauthorized (401).');
+    throw new Error(t('gw_sheets_unauthorized'));
   }
 
   if (!res.ok) {
@@ -850,7 +851,7 @@ export async function updateAssignmentStatusInSheet(
   );
 
   if (res.status === 401) {
-    throw new Error('Google Sheets session expired or unauthorized (401).');
+    throw new Error(t('gw_sheets_unauthorized'));
   }
 
   if (!res.ok) {
@@ -1100,7 +1101,7 @@ export async function fetchRecentSchoolFiles(
     });
 
     if (res.status === 401) {
-      throw new Error('Your Google Drive connection expired. Please reconnect Google Drive.');
+      throw new Error(t('gw_drive_expired'));
     }
 
     // Fallback for personal accounts where supportsAllDrives can throw 400, 403 or 404
@@ -1172,7 +1173,7 @@ export async function createFormattedAssignmentDoc(
     });
 
     if (createRes.status === 401) {
-      throw new Error('Your Google Docs connection expired. Please reconnect Google Drive & Docs.');
+      throw new Error(t('gw_docs_expired'));
     }
 
     if (!createRes.ok) {
@@ -1183,7 +1184,7 @@ export async function createFormattedAssignmentDoc(
     const createdDoc = await createRes.json();
     const documentId = createdDoc.documentId;
 
-    const todayFormatted = new Date().toLocaleDateString('en-US', {
+    const todayFormatted = formatDate(new Date(), {
       day: 'numeric',
       month: 'long',
       year: 'numeric',

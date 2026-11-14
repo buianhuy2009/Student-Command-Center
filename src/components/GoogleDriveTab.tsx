@@ -18,7 +18,7 @@ import {
 import { SchoolFile, ApiEnablementInfo } from '../types';
 import { ApiActivationBanner } from './ApiActivationBanner';
 import { shareGoogleDriveFile } from '../services/googleWorkspace';
-import { t, useLang } from '../services/i18n';
+import { useT } from '../services/i18n';
 
 interface GoogleDriveTabProps {
   recentFiles: SchoolFile[];
@@ -41,7 +41,7 @@ export const GoogleDriveTab: React.FC<GoogleDriveTabProps> = ({
   driveApiInfo,
   googleToken,
 }) => {
-  useLang();
+  const { t, formatDate, formatTime } = useT();
   const [searchQuery, setSearchQuery] = useState('');
   const [fileCategory, setFileCategory] = useState<string>('ALL');
   const [sortOrder, setSortOrder] = useState<string>('DEFAULT');
@@ -55,18 +55,18 @@ export const GoogleDriveTab: React.FC<GoogleDriveTabProps> = ({
 
   const getFileTypeDetails = (mimeType: string) => {
     if (mimeType.includes('document') || mimeType.includes('docx')) {
-      return { label: 'Google Doc', icon: FileText, color: 'text-blue-500', bg: 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border-blue-200 dark:border-blue-800' };
+      return { label: t('drive_type_doc'), icon: FileText, color: 'text-blue-500', bg: 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border-blue-200 dark:border-blue-800' };
     }
     if (mimeType.includes('spreadsheet') || mimeType.includes('sheet')) {
-      return { label: 'Google Sheet', icon: FileSpreadsheet, color: 'text-emerald-500', bg: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800' };
+      return { label: t('drive_type_sheet'), icon: FileSpreadsheet, color: 'text-emerald-500', bg: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800' };
     }
     if (mimeType.includes('presentation') || mimeType.includes('slide')) {
-      return { label: 'Google Slide', icon: Presentation, color: 'text-amber-500', bg: 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200 dark:border-amber-800' };
+      return { label: t('drive_type_slide'), icon: Presentation, color: 'text-amber-500', bg: 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200 dark:border-amber-800' };
     }
     if (mimeType.includes('pdf')) {
-      return { label: 'PDF Document', icon: File, color: 'text-rose-500', bg: 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border-rose-200 dark:border-rose-800' };
+      return { label: t('drive_type_pdf'), icon: File, color: 'text-rose-500', bg: 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border-rose-200 dark:border-rose-800' };
     }
-    return { label: 'School File', icon: File, color: 'text-slate-500', bg: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300' };
+    return { label: t('drive_type_other'), icon: File, color: 'text-slate-500', bg: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300' };
   };
 
   const filteredFiles = useMemo(() => {
@@ -104,7 +104,7 @@ export const GoogleDriveTab: React.FC<GoogleDriveTabProps> = ({
     e.preventDefault();
     if (!activeFile || !shareEmail.trim()) return;
     if (!isGoogleConnected || !googleToken) {
-      setShareError('Connect Google Drive first to share this document.');
+      setShareError(t('drive_connect_to_share'));
       if (onConnectGoogle) onConnectGoogle();
       return;
     }
@@ -117,7 +117,7 @@ export const GoogleDriveTab: React.FC<GoogleDriveTabProps> = ({
       setTimeout(() => setShareSuccess(false), 4000);
     } catch (err: any) {
       console.error('Error sharing file:', err);
-      setShareError(err?.message || 'Could not share this Drive file. Verify the email address and Google Drive permissions.');
+      setShareError(err?.message || t('drive_share_err'));
     } finally {
       setIsSharing(false);
     }
@@ -220,8 +220,8 @@ export const GoogleDriveTab: React.FC<GoogleDriveTabProps> = ({
               <div className="p-8 text-center text-[#8C897F] dark:text-[#B5B2A8] text-xs space-y-3 my-auto">
                 <HardDrive className="w-8 h-8 mx-auto text-[#D97757] opacity-80" />
                 <div className="space-y-1">
-                  <p className="font-bold text-[#141413] dark:text-[#FAF9F5]">Google Drive</p>
-                  <p>See and share school docs, slides, and sheets you create with StudentOS.</p>
+                  <p className="font-bold text-[#141413] dark:text-[#FAF9F5]">{t('drive_connect_card_title')}</p>
+                  <p>{t('drive_connect_card_desc')}</p>
                 </div>
                 {onConnectGoogle && (
                   <button
@@ -230,7 +230,7 @@ export const GoogleDriveTab: React.FC<GoogleDriveTabProps> = ({
                     className="px-4 py-2 bg-[#D97757] hover:bg-[#C86646] text-white rounded-xl font-bold cursor-pointer inline-flex items-center gap-1.5"
                   >
                     <Sparkles className="w-3.5 h-3.5" />
-                    <span>Connect Google Drive</span>
+                    <span>{t('canvas_connect_drive_btn')}</span>
                   </button>
                 )}
               </div>
@@ -262,7 +262,7 @@ export const GoogleDriveTab: React.FC<GoogleDriveTabProps> = ({
                           {fileType.label}
                         </span>
                         {file.modifiedTime && (
-                          <span>{new Date(file.modifiedTime).toLocaleDateString()}</span>
+                          <span>{formatDate(file.modifiedTime)}</span>
                         )}
                       </div>
                     </div>
@@ -289,7 +289,7 @@ export const GoogleDriveTab: React.FC<GoogleDriveTabProps> = ({
                     {activeFile.modifiedTime && (
                       <>
                         <span>•</span>
-                        <span>{t('drive_modified')} {new Date(activeFile.modifiedTime).toLocaleString()}</span>
+                        <span>{t('drive_modified')} {formatDate(activeFile.modifiedTime)} {formatTime(activeFile.modifiedTime)}</span>
                       </>
                     )}
                   </div>
@@ -326,7 +326,7 @@ export const GoogleDriveTab: React.FC<GoogleDriveTabProps> = ({
                       type="email"
                       value={shareEmail}
                       onChange={(e) => setShareEmail(e.target.value)}
-                      placeholder="colleague@university.edu..."
+                      placeholder={t('drive_share_ph')}
                       className="flex-1 px-3 py-2 bg-white dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-[#D97757]"
                     />
                     <button
@@ -363,14 +363,14 @@ export const GoogleDriveTab: React.FC<GoogleDriveTabProps> = ({
                 {/* File Summary */}
                 <div className="p-4 bg-white dark:bg-[#1A1917] rounded-2xl border border-[#DFDACB] dark:border-[#2C2B27] space-y-1.5">
                   <span className="text-[11px] font-bold text-[#141413] dark:text-[#FAF9F5] block">
-                    Privacy &amp; File Details
+                    {t('drive_privacy_title')}
                   </span>
                   <p className="text-[11px] text-[#8C897F] dark:text-[#B5B2A8]">
                     {getFileTypeDetails(activeFile.mimeType).label}
-                    {activeFile.modifiedTime ? ` • Updated ${new Date(activeFile.modifiedTime).toLocaleDateString()}` : ''}
+                    {activeFile.modifiedTime ? t('drive_updated_at', { date: formatDate(activeFile.modifiedTime) }) : ''}
                   </p>
                   <p className="text-[11px] text-[#8C897F] dark:text-[#B5B2A8]">
-                    StudentOS only accesses documents you create here or choose to open — never the rest of your Google Drive.
+                    {t('drive_privacy_desc')}
                   </p>
                 </div>
               </div>

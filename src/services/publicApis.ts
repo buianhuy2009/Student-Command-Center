@@ -1,4 +1,5 @@
 // Genuine Public APIs Services for StudentOS
+import { formatDate, t } from './i18n';
 
 // 1. arXiv Research Paper Search
 export interface ArxivPaper {
@@ -23,7 +24,7 @@ export async function searchArxiv(query: string, category = 'all', maxResults = 
     const url = `https://export.arxiv.org/api/query?search_query=${searchQuery}&start=0&max_results=${maxResults}&sortBy=submittedDate&sortOrder=descending`;
     const res = await fetch(url);
     if (!res.ok) {
-      throw new Error(`arXiv API error (${res.status} ${res.statusText || 'Request failed'})`);
+      throw new Error(t('pub_arxiv_err', { status: res.status, detail: res.statusText || t('pub_req_failed') }));
     }
     const xmlText = await res.text();
 
@@ -35,7 +36,7 @@ export async function searchArxiv(query: string, category = 'all', maxResults = 
     for (let i = 0; i < entries.length; i++) {
       const entry = entries[i];
       const id = entry.getElementsByTagName('id')[0]?.textContent || `arxiv-${i}`;
-      const title = entry.getElementsByTagName('title')[0]?.textContent?.replace(/\s+/g, ' ').trim() || 'Untitled Paper';
+      const title = entry.getElementsByTagName('title')[0]?.textContent?.replace(/\s+/g, ' ').trim() || t('pub_untitled_paper');
       const summary = entry.getElementsByTagName('summary')[0]?.textContent?.replace(/\s+/g, ' ').trim() || '';
       const published = entry.getElementsByTagName('published')[0]?.textContent || '';
       const updated = entry.getElementsByTagName('updated')[0]?.textContent || '';
@@ -61,14 +62,14 @@ export async function searchArxiv(query: string, category = 'all', maxResults = 
       }
 
       const primCatNode = entry.getElementsByTagName('arxiv:primary_category')[0] || entry.getElementsByTagName('category')[0];
-      const primaryCategory = primCatNode?.getAttribute('term') || 'General';
+      const primaryCategory = primCatNode?.getAttribute('term') || t('pub_general_cat');
 
       papers.push({
         id,
         title,
         summary,
         authors: authors.slice(0, 5),
-        published: published ? new Date(published).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : '',
+        published: published ? formatDate(published, { year: 'numeric', month: 'short', day: 'numeric' }) : '',
         updated,
         pdfUrl,
         arxivUrl,
@@ -101,7 +102,7 @@ export async function searchOpenLibrary(query: string, limit = 12): Promise<Open
     const url = `https://openlibrary.org/search.json?q=${encodeURIComponent(query.trim())}&limit=${limit}`;
     const res = await fetch(url);
     if (!res.ok) {
-      throw new Error(`Open Library API error (${res.status} ${res.statusText || 'Request failed'})`);
+      throw new Error(t('pub_openlib_err', { status: res.status, detail: res.statusText || t('pub_req_failed') }));
     }
     const data = await res.json();
 
@@ -113,7 +114,7 @@ export async function searchOpenLibrary(query: string, limit = 12): Promise<Open
       return {
         key: doc.key,
         title: doc.title,
-        authorNames: doc.author_name || ['Unknown Author'],
+        authorNames: doc.author_name || [t('openlib_unknown_author')],
         firstPublishYear: doc.first_publish_year,
         isbn: doc.isbn?.slice(0, 3),
         coverUrl,
@@ -251,7 +252,7 @@ export async function fetchNasaApodV2(): Promise<NasaApod | null> {
       if (res.ok) {
         const data = await res.json();
         return {
-          title: data.title || 'NASA Astronomy Picture of the Day',
+          title: data.title || t('pub_nasa_default_title'),
           date: data.date || todayDateStr(),
           explanation: data.explanation || '',
           url: data.url || '',

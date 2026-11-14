@@ -1,6 +1,7 @@
 import React from 'react';
 import { AlertTriangle, X, Check } from 'lucide-react';
 import { ConfirmationModalState } from '../types';
+import { useT } from '../services/i18n';
 
 interface ConfirmationModalProps {
   modal: ConfirmationModalState;
@@ -8,6 +9,7 @@ interface ConfirmationModalProps {
 }
 
 export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({ modal, onClose }) => {
+  const { t } = useT();
   if (!modal.isOpen) return null;
 
   return (
@@ -44,6 +46,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({ modal, onC
 
           <button
             onClick={onClose}
+            aria-label={t('close')}
             className="text-[#8C897F] hover:text-[#141413] dark:hover:text-[#FAF9F5] p-1 rounded-lg hover:bg-[#FAF9F5] dark:hover:bg-[#252422] transition-colors"
           >
             <X className="w-4 h-4" />
@@ -57,7 +60,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({ modal, onC
             onClick={onClose}
             className="px-4 py-2 text-sm font-medium text-[#5C5A54] dark:text-[#B5B2A8] hover:bg-[#FAF9F5] dark:hover:bg-[#252422] rounded-xl transition-colors"
           >
-            {modal.cancelLabel || 'Cancel'}
+            {modal.cancelLabel || t('cancel')}
           </button>
           <button
             type="button"
@@ -73,7 +76,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({ modal, onC
             }`}
           >
             <Check className="w-4 h-4" />
-            {modal.confirmLabel || 'Confirm Action'}
+            {modal.confirmLabel || t('modal_confirm_action')}
           </button>
         </div>
       </div>

@@ -7,7 +7,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { ApiEnablementInfo } from '../types';
-import { useLang } from '../services/i18n';
+import { useT } from '../services/i18n';
 
 interface ApiActivationModalProps {
   isOpen: boolean;
@@ -17,7 +17,7 @@ interface ApiActivationModalProps {
   isRetrying?: boolean;
 }
 
-function getFriendlyFeatureName(info: ApiEnablementInfo | null, isVi: boolean): string {
+function getFriendlyFeatureName(info: ApiEnablementInfo | null, fallback: string): string {
   const raw = `${info?.serviceId || ''} ${info?.serviceName || ''}`.toLowerCase();
   if (raw.includes('calendar')) return 'Google Calendar';
   if (raw.includes('gmail') || raw.includes('mail')) return 'Gmail';
@@ -25,7 +25,7 @@ function getFriendlyFeatureName(info: ApiEnablementInfo | null, isVi: boolean): 
   if (raw.includes('doc')) return 'Google Docs';
   if (raw.includes('classroom')) return 'Google Classroom';
   if (raw.includes('drive')) return 'Google Drive';
-  return isVi ? 'Tính năng Google này' : 'This Google feature';
+  return fallback;
 }
 
 export const ApiActivationModal: React.FC<ApiActivationModalProps> = ({
@@ -35,8 +35,7 @@ export const ApiActivationModal: React.FC<ApiActivationModalProps> = ({
   onRetry,
   isRetrying = false,
 }) => {
-  const [lang] = useLang();
-  const isVi = lang === 'vi';
+  const { t } = useT();
 
   useEffect(() => {
     if (!isOpen) return;
@@ -49,19 +48,13 @@ export const ApiActivationModal: React.FC<ApiActivationModalProps> = ({
 
   if (!isOpen) return null;
 
-  const featureName = getFriendlyFeatureName(info, isVi);
+  const featureName = getFriendlyFeatureName(info, t('api_feature_generic'));
 
-  const steps = isVi
-    ? [
-        'Thử lại sau một lát — đôi khi kết nối với Google chỉ bị gián đoạn tạm thời.',
-        'Kiểm tra xem trình duyệt có đang chặn cửa sổ bật lên (popup) không, rồi thử kết nối lại.',
-        'Bạn vẫn có thể ghi chú, thêm bài tập và sắp lịch học ngay trên máy — mọi dữ liệu của bạn đều an toàn.',
-      ]
-    : [
-        'Try again in a moment — temporary connection hiccups with Google usually clear right up.',
-        'Allow popups for this site and try signing in again if the permission window did not open.',
-        'You can keep adding assignments, notes, and study blocks locally right away — your saved schoolwork is safe.',
-      ];
+  const steps = [
+    t('api_modal_step1'),
+    t('api_modal_step2'),
+    t('api_modal_step3'),
+  ];
 
   return (
     <div
@@ -88,14 +81,10 @@ export const ApiActivationModal: React.FC<ApiActivationModalProps> = ({
                 id="api-activation-modal-title"
                 className="text-base font-bold text-[#141413] dark:text-[#FAF9F5]"
               >
-                {isVi
-                  ? `${featureName} hiện chưa sẵn sàng`
-                  : `${featureName} isn’t active right now`}
+                {t('api_not_active_title', { feature: featureName })}
               </h3>
               <p className="text-xs text-[#6B6860] dark:text-[#B5B2A8] mt-0.5">
-                {isVi
-                  ? 'Bài tập và ghi chú đã lưu của bạn vẫn an toàn.'
-                  : 'Your saved schoolwork is safe on this device.'}
+                {t('api_modal_sub')}
               </p>
             </div>
           </div>
@@ -103,7 +92,7 @@ export const ApiActivationModal: React.FC<ApiActivationModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            aria-label={isVi ? 'Đóng' : 'Close'}
+            aria-label={t('common_close')}
             className="p-1.5 text-[#8C897F] hover:text-[#141413] dark:hover:text-[#FAF9F5] rounded-lg hover:bg-[#FAF9F5] dark:hover:bg-[#252422] transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
@@ -115,18 +104,16 @@ export const ApiActivationModal: React.FC<ApiActivationModalProps> = ({
           <div className="p-3.5 bg-[#FAF9F5] dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] rounded-xl text-[#5C5A54] dark:text-[#B5B2A8] space-y-1.5">
             <div className="font-bold text-[#141413] dark:text-[#FAF9F5] flex items-center gap-1.5">
               <ShieldCheck className="w-4 h-4 text-[#D97757]" />
-              <span>{isVi ? 'Chuyện gì đã xảy ra?' : 'What happened?'}</span>
+              <span>{t('api_modal_what_t')}</span>
             </div>
             <p className="leading-relaxed">
-              {isVi
-                ? 'Tính năng Google này chưa được bật hoặc đang tạm gián đoạn. Đây không phải lỗi tài khoản của bạn.'
-                : 'This Google feature isn’t active right now. It’s not a problem with your account, and none of your saved work was lost.'}
+              {t('api_modal_what_d')}
             </p>
           </div>
 
           <div className="space-y-2">
             <p className="font-bold text-[#141413] dark:text-[#FAF9F5]">
-              {isVi ? 'Bạn có thể thử:' : 'What you can do'}
+              {t('api_modal_do_heading')}
             </p>
             <ul className="space-y-2 text-[#5C5A54] dark:text-[#B5B2A8]">
               {steps.map((step, i) => (
@@ -146,7 +133,7 @@ export const ApiActivationModal: React.FC<ApiActivationModalProps> = ({
             onClick={onClose}
             className="px-4 py-2 text-xs font-semibold text-[#6B6860] dark:text-[#B5B2A8] hover:bg-[#EFECE2] dark:hover:bg-[#252422] rounded-xl transition-colors cursor-pointer min-h-[40px]"
           >
-            {isVi ? 'Đóng' : 'Close'}
+            {t('common_close')}
           </button>
           {onRetry && (
             <button
@@ -156,7 +143,7 @@ export const ApiActivationModal: React.FC<ApiActivationModalProps> = ({
               className="px-4 py-2 bg-[#D97757] hover:bg-[#C86646] disabled:opacity-50 text-white text-xs font-bold rounded-xl inline-flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs min-h-[40px]"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isRetrying ? 'animate-spin' : ''}`} />
-              <span>{isVi ? 'Thử lại' : 'Try again'}</span>
+              <span>{t('common_retry')}</span>
             </button>
           )}
         </div>

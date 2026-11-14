@@ -1,6 +1,6 @@
 import React, { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { ExternalLink, Focus, Maximize2, Minimize2, RefreshCw, PenTool, Trash2 } from 'lucide-react';
-import { t, useLang } from '../../services/i18n';
+import { useT } from '../../services/i18n';
 import '@excalidraw/excalidraw/index.css';
 
 // Heavy canvas chunk loads on demand so the main bundle stays lean.
@@ -34,7 +34,7 @@ function loadSavedScene(): ExcalidrawProps['initialData'] {
 }
 
 export const ExcalidrawWorkspace: React.FC = () => {
-  useLang();
+  const { t } = useT();
   const [reloadKey, setReloadKey] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const url = 'https://excalidraw.com';
@@ -80,9 +80,7 @@ export const ExcalidrawWorkspace: React.FC = () => {
   };
 
   const handleClear = () => {
-    // NOTE: no exca_clear i18n key exists and i18n files are out of scope,
-    // so this confirm stays in plain English.
-    if (!window.confirm('Clear the whiteboard? This cannot be undone.')) {
+    if (!window.confirm(t('exca_clear_confirm'))) {
       return;
     }
     apiRef.current?.updateScene({ elements: [] });
@@ -121,7 +119,7 @@ export const ExcalidrawWorkspace: React.FC = () => {
           <button
             onClick={handleResetView}
             className="p-1.5 rounded-lg bg-white dark:bg-[#1A1917] border border-[#DFDACB] dark:border-[#2C2B27] hover:border-[#D97757] text-[#5C5A54] dark:text-[#B5B2A8] transition-colors cursor-pointer"
-            title="Reset view (zoom to fit)"
+            title={t('exca_reset_view')}
           >
             <Focus className="w-3.5 h-3.5" />
           </button>
@@ -129,7 +127,7 @@ export const ExcalidrawWorkspace: React.FC = () => {
           <button
             onClick={handleClear}
             className="p-1.5 rounded-lg bg-white dark:bg-[#1A1917] border border-[#DFDACB] dark:border-[#2C2B27] hover:border-red-400 text-[#5C5A54] dark:text-[#B5B2A8] transition-colors cursor-pointer"
-            title="Clear canvas"
+            title={t('exca_clear_canvas')}
           >
             <Trash2 className="w-3.5 h-3.5" />
           </button>
@@ -137,6 +135,7 @@ export const ExcalidrawWorkspace: React.FC = () => {
           <button
             onClick={() => setIsFullscreen(!isFullscreen)}
             className="p-1.5 rounded-lg bg-white dark:bg-[#1A1917] border border-[#DFDACB] dark:border-[#2C2B27] hover:border-[#D97757] text-[#5C5A54] dark:text-[#B5B2A8] transition-colors cursor-pointer"
+            title={isFullscreen ? t('desm_exit') : t('desm_expand')}
           >
             {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
           </button>
@@ -160,7 +159,7 @@ export const ExcalidrawWorkspace: React.FC = () => {
             fallback={
               <div className="w-full h-full min-h-[550px] flex items-center justify-center gap-2 text-xs text-[#8C897F] font-medium bg-white">
                 <RefreshCw className="w-4 h-4 animate-spin text-purple-600" />
-                <span>Loading whiteboard…</span>
+                <span>{t('exca_loading')}</span>
               </div>
             }
           >

@@ -16,6 +16,15 @@ import {
   Plus,
 } from 'lucide-react';
 import { QuickDraftRequest, QuickDraftResponse, EmailMessage, EmailAlert, SchoolFile } from '../types';
+import { useT } from '../services/i18n';
+
+const INTENT_CHIPS = [
+  { id: 'clarification', labelKey: 'draft_intent_clarification' },
+  { id: 'extension', labelKey: 'draft_intent_extension' },
+  { id: 'feedback', labelKey: 'draft_intent_feedback' },
+  { id: 'meeting', labelKey: 'draft_intent_meeting' },
+  { id: 'absence', labelKey: 'draft_intent_absence' },
+] as const;
 
 interface QuickDraftModalProps {
   isOpen: boolean;
@@ -42,11 +51,12 @@ export const QuickDraftModal: React.FC<QuickDraftModalProps> = ({
   const [teacherEmail, setTeacherEmail] = useState('');
   const [subject, setSubject] = useState('');
   const [context, setContext] = useState('');
-  const [language, setLanguage] = useState<'en' | 'vi'>('en');
+  const [emailLanguage, setEmailLanguage] = useState<'en' | 'vi'>('en');
   const [intent, setIntent] = useState<'clarification' | 'extension' | 'feedback' | 'meeting' | 'absence'>(
     'clarification'
   );
   const [tone, setTone] = useState<'polite_respectful' | 'formal' | 'brief'>('polite_respectful');
+  const { t } = useT();
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedSubject, setGeneratedSubject] = useState('');
@@ -67,9 +77,9 @@ export const QuickDraftModal: React.FC<QuickDraftModalProps> = ({
       setSubject(initialAlert.detectedAssignment?.subject || initialAlert.subject || '');
       setContext(initialAlert.oneLineSummary || initialAlert.rawEmail?.snippet || '');
       if (initialAlert.language === 'vi') {
-        setLanguage('vi');
+        setEmailLanguage('vi');
       } else {
-        setLanguage('en');
+        setEmailLanguage('en');
       }
       if (initialAlert.category === 'ASSIGNMENT') setIntent('clarification');
     } else if (initialEmail) {
@@ -80,7 +90,7 @@ export const QuickDraftModal: React.FC<QuickDraftModalProps> = ({
       const isVi = /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(
         `${initialEmail.subject} ${initialEmail.snippet}`
       );
-      if (isVi) setLanguage('vi');
+      if (isVi) setEmailLanguage('vi');
     }
   }, [initialEmail, initialAlert]);
 
@@ -95,16 +105,16 @@ export const QuickDraftModal: React.FC<QuickDraftModalProps> = ({
     setIsGenerating(true);
     try {
       const res = await onGenerateDraft({
-        teacherName: teacherName.trim() || (language === 'vi' ? 'Thầy / Cô' : 'Professor'),
+        teacherName: teacherName.trim() || t(emailLanguage === 'vi' ? 'draft_default_teacher_vi' : 'draft_default_teacher_en'),
         teacherEmail: teacherEmail.trim(),
-        subject: subject.trim() || (language === 'vi' ? 'Môn học' : 'Course Question'),
+        subject: subject.trim() || t(emailLanguage === 'vi' ? 'draft_default_subject_vi' : 'draft_default_subject_en'),
         context: context.trim(),
         topic: context.trim() || subject.trim(),
         course: subject.trim(),
         intent,
         draftType: intent,
         tone: tone === 'polite_respectful' ? 'Polite & Respectful' : tone === 'formal' ? 'Formal Academic' : 'Brief',
-        language,
+        language: emailLanguage,
         attachments: selectedFiles.map((f) => ({ name: f.name, url: f.webViewLink })),
         links: customLinks,
       });
@@ -130,20 +140,6 @@ export const QuickDraftModal: React.FC<QuickDraftModalProps> = ({
     await onSaveToGmailDrafts(teacherEmail, generatedSubject, generatedBody);
   };
 
-  const intentChips = language === 'vi' ? [
-    { id: 'clarification', label: 'Giải đáp thắc mắc bài tập' },
-    { id: 'extension', label: 'Xin gia hạn nộp bài (Extension)' },
-    { id: 'feedback', label: 'Hỏi về điểm số / Đánh giá' },
-    { id: 'meeting', label: 'Hẹn gặp trao đổi (Office Hours)' },
-    { id: 'absence', label: 'Xin phép vắng mặt / Đi trễ' },
-  ] : [
-    { id: 'clarification', label: 'Clarify Assignment Details' },
-    { id: 'extension', label: 'Request Extension' },
-    { id: 'feedback', label: 'Inquire About Grade / Feedback' },
-    { id: 'meeting', label: 'Request Office Hours Meeting' },
-    { id: 'absence', label: 'Notify Planned Absence' },
-  ];
-
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150 overflow-y-auto"
@@ -161,45 +157,48 @@ export const QuickDraftModal: React.FC<QuickDraftModalProps> = ({
             </div>
             <div>
               <h3 className="text-base font-bold text-[#141413] dark:text-[#FAF9F5]">
-                {language === 'vi' ? 'Trình Soạn Thư Lịch Sự (Polite Mailer)' : 'Polite Mailer Assistant'}
+                {t('draft_title')}
               </h3>
               <p className="text-xs text-[#6B6860] dark:text-[#B5B2A8]">
-                {language === 'vi'
-                  ? 'AI tự động chuyển đổi nháp nháp ngắn, tài liệu Drive và liên kết thành email học vụ lịch sự, chuẩn mực.'
-                  : 'AI drafts polite, formal academic emails from your informal drafts, attachments, and links.'}
+                {t('draft_sub')}
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Language Switch */}
-            <div className="flex items-center bg-[#FAF9F5] dark:bg-[#252422] rounded-lg p-0.5 border border-[#DFDACB] dark:border-[#2C2B27]">
+            {/* Email Output Language Switch */}
+            <div
+              className="flex items-center bg-[#FAF9F5] dark:bg-[#252422] rounded-lg p-0.5 border border-[#DFDACB] dark:border-[#2C2B27]"
+              role="group"
+              aria-label={t('draft_lang_label')}
+            >
               <button
                 type="button"
-                onClick={() => setLanguage('en')}
+                onClick={() => setEmailLanguage('en')}
                 className={`px-2 py-0.5 text-[11px] font-bold rounded ${
-                  language === 'en'
+                  emailLanguage === 'en'
                     ? 'bg-white dark:bg-[#252422] text-[#141413] dark:text-[#FAF9F5] shadow-2xs'
                     : 'text-[#6B6860] hover:text-[#141413] dark:text-[#B5B2A8] dark:hover:text-[#FAF9F5]'
                 }`}
               >
-                EN
+                {t('draft_lang_en')}
               </button>
               <button
                 type="button"
-                onClick={() => setLanguage('vi')}
+                onClick={() => setEmailLanguage('vi')}
                 className={`px-2 py-0.5 text-[11px] font-bold rounded ${
-                  language === 'vi'
+                  emailLanguage === 'vi'
                     ? 'bg-rose-600 text-white shadow-2xs'
                     : 'text-slate-500 hover:text-slate-800'
                 }`}
               >
-                Tiếng Việt
+                {t('draft_lang_vi')}
               </button>
             </div>
 
             <button
               onClick={onClose}
+              aria-label={t('close')}
               className="text-[#6B6860] hover:text-[#141413] dark:text-[#B5B2A8] dark:hover:text-[#FAF9F5] p-1.5 rounded-lg hover:bg-[#FAF9F5] dark:hover:bg-[#252422] transition-colors"
             >
               <X className="w-5 h-5" />
@@ -211,21 +210,21 @@ export const QuickDraftModal: React.FC<QuickDraftModalProps> = ({
           {/* Intent chips */}
           <div>
             <label className="block text-xs font-bold text-[#141413] dark:text-[#FAF9F5] mb-1.5">
-              {language === 'vi' ? 'Mục đích Email' : 'Email Purpose'}
+              {t('draft_purpose_label')}
             </label>
             <div className="flex flex-wrap gap-1.5">
-              {intentChips.map((chip) => (
+              {INTENT_CHIPS.map((chip) => (
                 <button
                   key={chip.id}
                   type="button"
-                  onClick={() => setIntent(chip.id as any)}
+                  onClick={() => setIntent(chip.id)}
                   className={`px-3 py-1 text-xs font-medium rounded-lg transition-all cursor-pointer ${
                     intent === chip.id
                       ? 'bg-rose-600 text-white shadow-xs font-semibold'
                       : 'bg-[#FAF9F5] dark:bg-[#252422] text-[#141413] dark:text-[#FAF9F5] hover:bg-[#EFECE2] dark:hover:bg-[#2C2B27]'
                   }`}
                 >
-                  {chip.label}
+                  {t(chip.labelKey)}
                 </button>
               ))}
             </div>
@@ -235,26 +234,26 @@ export const QuickDraftModal: React.FC<QuickDraftModalProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-bold text-[#141413] dark:text-[#FAF9F5] mb-1">
-                {language === 'vi' ? 'Tên Thầy / Cô / Giảng viên *' : 'Teacher / Instructor Name *'}
+                {t('draft_teacher_label')}
               </label>
               <input
                 type="text"
                 value={teacherName}
                 onChange={(e) => setTeacherName(e.target.value)}
-                placeholder={language === 'vi' ? 'vd: Thầy Nguyễn Văn An' : 'e.g. Dr. Martinez'}
+                placeholder={t('draft_teacher_ph')}
                 className="w-full px-3 py-2 text-xs bg-[#FAF9F5] dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-500 dark:text-white"
               />
             </div>
 
             <div>
               <label className="block text-xs font-bold text-[#141413] dark:text-[#FAF9F5] mb-1">
-                {language === 'vi' ? 'Tên Môn học / Lớp *' : 'Course / Subject *'}
+                {t('draft_course_label')}
               </label>
               <input
                 type="text"
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
-                placeholder={language === 'vi' ? 'vd: Giải thuật CS201 / Vật lý' : 'e.g. AP Physics C'}
+                placeholder={t('draft_course_ph')}
                 className="w-full px-3 py-2 text-xs bg-[#FAF9F5] dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-500 dark:text-white"
               />
             </div>
@@ -262,17 +261,13 @@ export const QuickDraftModal: React.FC<QuickDraftModalProps> = ({
 
           <div>
             <label className="block text-xs font-bold text-[#141413] dark:text-[#FAF9F5] mb-1">
-              {language === 'vi' ? 'Chi tiết câu hỏi / Lý do / Ngữ cảnh' : 'Context / Details / Specific Request'}
+              {t('draft_context_label')}
             </label>
             <textarea
               rows={2}
               value={context}
               onChange={(e) => setContext(e.target.value)}
-              placeholder={
-                language === 'vi'
-                  ? 'vd: Em xin phép gia hạn Báo cáo Bài tập lớn thêm 2 ngày do máy tính cá nhân bị hỏng phần cứng...'
-                  : 'e.g. Asking for clarification on Lab 3 rubric uncertainty propagation or requesting 1-day extension...'
-              }
+              placeholder={t('draft_context_ph')}
               className="w-full px-3 py-2 text-xs bg-[#FAF9F5] dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-500 dark:text-white"
             />
           </div>
@@ -281,7 +276,7 @@ export const QuickDraftModal: React.FC<QuickDraftModalProps> = ({
           <div className="space-y-3 p-3.5 bg-[#FAF9F5] dark:bg-[#252422]/40 rounded-2xl border border-[#DFDACB]/60 dark:border-[#2C2B27]">
             <h4 className="text-xs font-bold text-[#141413] dark:text-[#FAF9F5] flex items-center gap-1.5">
               <Paperclip className="w-3.5 h-3.5 text-rose-500" />
-              <span>{language === 'vi' ? 'Tài liệu Đính kèm & Đường dẫn' : 'Attachments & Reference Links'}</span>
+              <span>{t('draft_attachments_title')}</span>
             </h4>
 
             {/* Selected items badges */}
@@ -297,6 +292,7 @@ export const QuickDraftModal: React.FC<QuickDraftModalProps> = ({
                     <button
                       type="button"
                       onClick={() => setSelectedFiles(selectedFiles.filter((f) => f.id !== file.id))}
+                      aria-label={t('draft_remove_item_aria', { name: file.name })}
                       className="text-blue-400 hover:text-blue-600 dark:hover:text-blue-200 font-bold ml-1 cursor-pointer"
                     >
                       ×
@@ -316,6 +312,7 @@ export const QuickDraftModal: React.FC<QuickDraftModalProps> = ({
                     <button
                       type="button"
                       onClick={() => setCustomLinks(customLinks.filter((_, i) => i !== idx))}
+                      aria-label={t('draft_remove_item_aria', { name: link })}
                       className="text-emerald-400 hover:text-emerald-600 dark:hover:text-emerald-200 font-bold ml-1 cursor-pointer"
                     >
                       ×
@@ -329,16 +326,17 @@ export const QuickDraftModal: React.FC<QuickDraftModalProps> = ({
               {/* Google Drive Selection */}
               <div>
                 <label className="block text-[11px] font-bold text-[#6B6860] dark:text-[#B5B2A8] mb-1">
-                  {language === 'vi' ? 'Chọn tài liệu từ Google Drive' : 'Attach from Google Drive'}
+                  {t('draft_attach_drive')}
                 </label>
                 {recentFiles.length === 0 ? (
                   <span className="text-[10px] text-[#6B6860] dark:text-[#B5B2A8] block py-1.5">
-                    {language === 'vi' ? 'Chưa kết nối Drive / Không có tài liệu' : 'No Drive files loaded'}
+                    {t('draft_no_drive_files')}
                   </span>
                 ) : (
                   <div className="flex gap-1.5">
                     <select
                       value=""
+                      aria-label={t('draft_attach_drive')}
                       onChange={(e) => {
                         const fileId = e.target.value;
                         if (!fileId) return;
@@ -351,7 +349,7 @@ export const QuickDraftModal: React.FC<QuickDraftModalProps> = ({
                       className="flex-1 px-2.5 py-1.5 bg-white dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] rounded-xl text-[#141413] dark:text-[#FAF9F5] cursor-pointer outline-none focus:ring-1 focus:ring-rose-500 truncate"
                     >
                       <option value="">
-                        {language === 'vi' ? '-- Chọn file Drive gần đây --' : '-- Choose recent Drive file --'}
+                        {t('draft_choose_drive_file')}
                       </option>
                       {recentFiles.map((file) => (
                         <option key={file.id} value={file.id}>
@@ -366,7 +364,7 @@ export const QuickDraftModal: React.FC<QuickDraftModalProps> = ({
               {/* Add Custom URL Link */}
               <div>
                 <label className="block text-[11px] font-bold text-[#6B6860] dark:text-[#B5B2A8] mb-1">
-                  {language === 'vi' ? 'Thêm liên kết (URL, Github, Vercel...)' : 'Add custom URL link'}
+                  {t('draft_add_link_label')}
                 </label>
                 <div className="flex gap-1.5">
                   <input
@@ -374,6 +372,7 @@ export const QuickDraftModal: React.FC<QuickDraftModalProps> = ({
                     value={newLinkText}
                     onChange={(e) => setNewLinkText(e.target.value)}
                     placeholder="https://..."
+                    aria-label={t('draft_add_link_label')}
                     className="flex-1 px-2.5 py-1.5 bg-white dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] rounded-xl text-[#141413] dark:text-[#FAF9F5] focus:ring-1 focus:ring-rose-500 outline-none"
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
@@ -387,6 +386,7 @@ export const QuickDraftModal: React.FC<QuickDraftModalProps> = ({
                   />
                   <button
                     type="button"
+                    aria-label={t('draft_add_link_aria')}
                     onClick={() => {
                       if (newLinkText.trim() && !customLinks.includes(newLinkText.trim())) {
                         setCustomLinks([...customLinks, newLinkText.trim()]);
@@ -405,15 +405,16 @@ export const QuickDraftModal: React.FC<QuickDraftModalProps> = ({
           {/* Tone Selector & Generate Button */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-1">
             <div className="flex items-center gap-2">
-              <span className="text-xs text-[#6B6860] dark:text-[#B5B2A8] font-medium">{language === 'vi' ? 'Văn phong:' : 'Tone:'}</span>
+              <span className="text-xs text-[#6B6860] dark:text-[#B5B2A8] font-medium">{t('draft_tone_label')}</span>
               <select
                 value={tone}
+                aria-label={t('draft_tone_label')}
                 onChange={(e) => setTone(e.target.value as any)}
                 className="px-2.5 py-1 text-xs bg-[#FAF9F5] dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] rounded-lg text-[#141413] dark:text-[#FAF9F5] font-medium"
               >
-                <option value="polite_respectful">{language === 'vi' ? 'Kính trọng, lễ phép' : 'Polite & Respectful'}</option>
-                <option value="formal">{language === 'vi' ? 'Trang trọng học vụ' : 'Formal Academic'}</option>
-                <option value="brief">{language === 'vi' ? 'Ngắn gọn, súc tích' : 'Direct & Brief'}</option>
+                <option value="polite_respectful">{t('draft_tone_polite')}</option>
+                <option value="formal">{t('draft_tone_formal')}</option>
+                <option value="brief">{t('draft_tone_brief')}</option>
               </select>
             </div>
 
@@ -427,12 +428,12 @@ export const QuickDraftModal: React.FC<QuickDraftModalProps> = ({
               {isGenerating ? (
                 <>
                   <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  <span>{language === 'vi' ? 'Đang soạn thư với AI...' : 'Drafting with Gemini...'}</span>
+                  <span>{t('draft_drafting')}</span>
                 </>
               ) : (
                 <>
                   <Sparkles className="w-3.5 h-3.5" />
-                  <span>{language === 'vi' ? 'Tạo Bản Thảo Email' : 'Generate Draft'}</span>
+                  <span>{t('draft_generate_btn')}</span>
                 </>
               )}
             </button>
@@ -444,16 +445,16 @@ export const QuickDraftModal: React.FC<QuickDraftModalProps> = ({
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-[#141413] dark:text-[#FAF9F5] flex items-center gap-1.5">
                   <Mail className="w-3.5 h-3.5 text-rose-500" />
-                  <span>{language === 'vi' ? 'Bản thảo Email Sẵn Sàng' : 'Generated Email Output'}</span>
+                  <span>{t('draft_ready_title')}</span>
                 </span>
                 <span className="text-[10px] text-[#6B6860] dark:text-[#B5B2A8]">
-                  {language === 'vi' ? 'Có thể chỉnh sửa trực tiếp trước khi gửi' : 'Review & edit before sending'}
+                  {t('draft_ready_hint')}
                 </span>
               </div>
 
               <div>
                 <label className="block text-[11px] font-semibold text-[#6B6860] dark:text-[#B5B2A8] mb-0.5">
-                  {language === 'vi' ? 'Tiêu đề Email (Subject):' : 'Subject Line:'}
+                  {t('draft_subject_label')}
                 </label>
                 <input
                   type="text"
@@ -465,7 +466,7 @@ export const QuickDraftModal: React.FC<QuickDraftModalProps> = ({
 
               <div>
                 <label className="block text-[11px] font-semibold text-[#6B6860] dark:text-[#B5B2A8] mb-0.5">
-                  {language === 'vi' ? 'Nội dung Email (Body):' : 'Body:'}
+                  {t('draft_body_label')}
                 </label>
                 <textarea
                   rows={7}
@@ -475,7 +476,8 @@ export const QuickDraftModal: React.FC<QuickDraftModalProps> = ({
                 />
                 <div className="flex items-center justify-end pt-1">
                   <span className="text-[11px] text-[#6B6860] dark:text-[#B5B2A8]">
-                    {draftWordCount} words • {draftCharCount} chars{draftWordCount > 0 ? ` • ~${draftReadMins} min read` : ''}
+                    {t('draft_stats', { words: draftWordCount, chars: draftCharCount })}
+                    {draftWordCount > 0 ? ` • ${t('draft_read_mins', { mins: draftReadMins })}` : ''}
                   </span>
                 </div>
               </div>
@@ -490,12 +492,12 @@ export const QuickDraftModal: React.FC<QuickDraftModalProps> = ({
                   {copied ? (
                     <>
                       <Check className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>{language === 'vi' ? 'Đã sao chép!' : 'Copied!'}</span>
+                      <span>{t('common_copied')}</span>
                     </>
                   ) : (
                     <>
                       <Copy className="w-3.5 h-3.5" />
-                      <span>{language === 'vi' ? 'Sao chép toàn bộ' : 'Copy All'}</span>
+                      <span>{t('draft_copy_all')}</span>
                     </>
                   )}
                 </button>
@@ -508,7 +510,7 @@ export const QuickDraftModal: React.FC<QuickDraftModalProps> = ({
                     className="px-3 py-1.5 text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white rounded-lg inline-flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
                   >
                     <Save className="w-3.5 h-3.5" />
-                    <span>{isSavingDraft ? 'Saving Draft...' : (language === 'vi' ? 'Lưu vào Gmail Drafts' : 'Save to Gmail Drafts')}</span>
+                    <span>{isSavingDraft ? t('draft_saving_draft') : t('draft_save_gmail')}</span>
                   </button>
                 )}
 
@@ -522,7 +524,7 @@ export const QuickDraftModal: React.FC<QuickDraftModalProps> = ({
                   rel="noreferrer"
                   className="px-3 py-1.5 text-xs font-semibold bg-[#D97757] hover:bg-[#C86646] text-white rounded-lg inline-flex items-center gap-1.5 transition-colors"
                 >
-                  <span>{language === 'vi' ? 'Mở trong Gmail Web' : 'Open in Gmail Web'}</span>
+                  <span>{t('draft_open_gmail')}</span>
                   <ExternalLink className="w-3.5 h-3.5" />
                 </a>
               </div>

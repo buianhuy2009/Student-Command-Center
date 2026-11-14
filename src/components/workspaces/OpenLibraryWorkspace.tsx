@@ -11,10 +11,10 @@ import {
   Save,
 } from 'lucide-react';
 import { searchOpenLibrary, OpenLibraryBook } from '../../services/publicApis';
-import { t, useLang } from '../../services/i18n';
+import { useT } from '../../services/i18n';
 
 export const OpenLibraryWorkspace: React.FC = () => {
-  useLang();
+  const { t, formatDate } = useT();
   const [query, setQuery] = useState(() => {
     try { const p = localStorage.getItem('scc_openlib_prefill_v1'); if (p) { localStorage.removeItem('scc_openlib_prefill_v1'); return p; } } catch {}
     return '';
@@ -47,7 +47,7 @@ export const OpenLibraryWorkspace: React.FC = () => {
       setBooks(results);
     } catch (err) {
       console.error('Open Library search failed:', err);
-      setError('Search failed. Check your connection and try again.');
+      setError(t('openlib_search_failed'));
     } finally {
       setIsLoading(false);
     }
@@ -64,7 +64,7 @@ export const OpenLibraryWorkspace: React.FC = () => {
     try {
       const raw = localStorage.getItem('scc_markdown_notes_v1');
       const notes = raw ? JSON.parse(raw) : [];
-      const authors = book.authorNames.join(', ') || 'Unknown Author';
+      const authors = book.authorNames.join(', ') || t('openlib_unknown_author');
       const year = String(book.firstPublishYear || '');
       const citeKey = `book${book.key.replace(/[^a-zA-Z0-9]/g, '')}${year || 'nd'}`;
       const bibtex = `@book{${citeKey},\n  title = {${book.title}},\n  author = {${authors}},${year ? `\n  year = {${year}},` : ''}\n  url = {${book.openLibraryUrl}}\n}`;
@@ -76,7 +76,7 @@ export const OpenLibraryWorkspace: React.FC = () => {
         title: `Book: ${book.title.slice(0, 60)}`,
         subject: 'Reading List',
         content,
-        updatedAt: new Date().toLocaleDateString(),
+        updatedAt: formatDate(new Date()),
       };
       localStorage.setItem('scc_markdown_notes_v1', JSON.stringify([newNote, ...notes]));
       setSavedNoteKey(book.key);
@@ -139,9 +139,9 @@ export const OpenLibraryWorkspace: React.FC = () => {
         ) : error ? (
           <div className="py-24 text-center text-xs space-y-3">
             <p className="font-bold text-[#141413] dark:text-[#FAF9F5]">{error}</p>
-            <p className="text-[#8C897F]">Your search for “{query}” was kept — retry when ready.</p>
+            <p className="text-[#8C897F]">{t('arxiv_kept_query', { query })}</p>
             <button onClick={() => handleSearch()} className="px-4 py-2 bg-[#D97757] hover:bg-[#C86646] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer">
-              Retry
+              {t('retry')}
             </button>
           </div>
         ) : books.length === 0 ? (
@@ -149,12 +149,12 @@ export const OpenLibraryWorkspace: React.FC = () => {
             <Book className="w-10 h-10 mx-auto opacity-30" />
             <div className="space-y-1">
               <p className="font-bold text-[#141413] dark:text-[#FAF9F5]">{t('lib_empty_t')}</p>
-              <p>Try: "Campbell Biology", "Stewart Calculus", "Introduction to Algorithms", "Pride and Prejudice"</p>
+              <p>{t('openlib_try_examples')}</p>
             </div>
           </div>
         ) : (
           <div className="space-y-3">
-            <p className="text-[11px] text-[#8C897F] px-1">{books.length} results</p>
+            <p className="text-[11px] text-[#8C897F] px-1">{t('arxiv_results_count', { count: books.length })}</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {books.map((book) => (
               <div
@@ -232,12 +232,12 @@ export const OpenLibraryWorkspace: React.FC = () => {
                     {savedNoteKey === book.key ? (
                       <>
                         <Check className="w-3 h-3 text-emerald-600" />
-                        <span>Saved to Notes</span>
+                        <span>{t('arxiv_saved')}</span>
                       </>
                     ) : (
                       <>
                         <Save className="w-3 h-3 text-violet-600" />
-                        <span>Save to Notes</span>
+                        <span>{t('arxiv_save')}</span>
                       </>
                     )}
                   </button>

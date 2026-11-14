@@ -34,6 +34,7 @@ import {
   SocraticTurn,
 } from '../../services/gemini';
 import { MarkdownNote, SchoolFile } from '../../types';
+import { formatDate as formatI18nDate, t as translate, useT } from '../../services/i18n';
 
 type DocHubTab = 'notes' | 'generator' | 'essay-proof' | 'socratic';
 
@@ -49,28 +50,10 @@ function loadSavedNotes(): MarkdownNote[] {
   return [
     {
       id: 'note-welcome',
-      title: 'Academic Notes & Formulas Guide',
-      subject: 'General',
-      content: `# Academic Markdown & LaTeX Guide
-
-Use this note-taker for quick lecture captures, synthesis, and equations.
-
-### 1. Key Definitions
-- **Linear Algebra**: Study of vector spaces and linear mappings.
-- **Thermodynamics**: Principles governing heat and work energy conversion.
-
-### 2. Equations & Formulas
-\`\`\`math
-E = mc^2
-F = G * (m1 * m2) / r^2
-\`\`\`
-
-### 3. Study Checkpoints
-- [x] Review lecture slides
-- [ ] Complete problem set derivations
-- [ ] Self-test on Flashcard Studio
-`,
-      updatedAt: new Date().toLocaleDateString(),
+      title: translate('dochub_welcome_title'),
+      subject: translate('dochub_subject_general'),
+      content: translate('dochub_welcome_content'),
+      updatedAt: formatI18nDate(new Date()),
     },
   ];
 }
@@ -100,6 +83,7 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
   googleToken,
   onConnectGoogle,
 }) => {
+  const { t, formatDate } = useT();
   const [activeTab, setActiveTab] = useState<DocHubTab>('notes');
   const [notes, setNotes] = useState<MarkdownNote[]>(loadSavedNotes);
   const [activeNoteId, setActiveNoteId] = useState<string>(() => {
@@ -133,17 +117,18 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
   const [socraticError, setSocraticError] = useState<string | null>(null);
 
   const [notesSubjectFilter, setNotesSubjectFilter] = useState<string>('ALL');
+  const generalSubjectLabel = t('dochub_subject_general');
   const groupedNotes = useMemo(() => {
     const groups: Record<string, typeof notes> = {};
     notes.forEach(n => {
-      const subj = n.subject || 'General';
+      const subj = n.subject || generalSubjectLabel;
       if (notesSubjectFilter !== 'ALL' && subj !== notesSubjectFilter) return;
       if (!groups[subj]) groups[subj] = [];
       groups[subj].push(n);
     });
     return groups;
-  }, [notes, notesSubjectFilter]);
-  const uniqueSubjects = useMemo(() => ['ALL', ...Array.from(new Set(notes.map(n => n.subject || 'General')))], [notes]);
+  }, [notes, notesSubjectFilter, generalSubjectLabel]);
+  const uniqueSubjects = useMemo(() => ['ALL', ...Array.from(new Set(notes.map(n => n.subject || generalSubjectLabel)))], [notes, generalSubjectLabel]);
 
   const activeNote = notes.find((n) => n.id === activeNoteId) || notes[0];
 
@@ -166,7 +151,7 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
         return {
           ...n,
           ...updates,
-          updatedAt: new Date().toLocaleDateString(),
+          updatedAt: formatDate(new Date()),
         };
       }
       return n;
@@ -178,10 +163,10 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
   const handleCreateNote = () => {
     const newNote: MarkdownNote = {
       id: `note-${Date.now()}`,
-      title: 'Untitled Lecture Note',
-      subject: 'General',
-      content: '# Untitled Note\n\nBegin typing notes...',
-      updatedAt: new Date().toLocaleDateString(),
+      title: t('dochub_new_note_title'),
+      subject: t('dochub_subject_general'),
+      content: t('dochub_new_note_content'),
+      updatedAt: formatDate(new Date()),
     };
     const updated = [newNote, ...notes];
     setNotes(updated);
@@ -219,35 +204,11 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
 
   const handleInsertCornellTemplate = () => {
     if (!activeNote) return;
-    const cornellMarkdown = `# ${activeNote.title || 'Cornell Lecture Notes'}
-
-## Cornell Notes Framework
-**Date:** ${new Date().toLocaleDateString()} | **Course:** ${activeNote.subject || 'General'}
-
----
-
-### Cues & Key Concepts (Left Column)
-- **Key Term 1:** [Definition or core question]
-- **Key Formula:** [Equation / Law / Theorem]
-- **Exam Notice:** [Crucial concept likely on tests]
-
----
-
-### Detailed Lecture Notes (Main Column)
-1. **Primary Concept Explanation**:
-   - Detailed derivation and mechanisms
-   - Sub-points and proof steps
-2. **Worked Examples**:
-   - Step 1: Given variables
-   - Step 2: Applied theorem
-   - Step 3: Final evaluated output
-
----
-
-### Summary & Synthesis (Bottom Box)
-> [!NOTE]
-> *Briefly summarize the entire lecture in 2-3 sentences. Focus on big-picture takeaways and practical applications.*
-`;
+    const cornellMarkdown = t('dochub_cornell_template', {
+      title: activeNote.title || t('dochub_cornell_default_title'),
+      date: formatDate(new Date()),
+      subject: activeNote.subject || t('dochub_subject_general'),
+    });
     handleUpdateActiveNote({ content: cornellMarkdown });
   };
 
@@ -261,9 +222,9 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
     if (!isGoogleConnected || !googleToken) {
       if (onConnectGoogle) {
         onConnectGoogle();
-        setDocMessage('Allow Google Drive access in the popup, then click Generate Google Doc.');
+        setDocMessage(t('dochub_doc_allow_drive'));
       } else {
-        setDocMessage('Please connect Google Drive first to create a document.');
+        setDocMessage(t('dochub_doc_connect_first'));
       }
       return;
     }
@@ -281,21 +242,21 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
 
       const result = await createFormattedAssignmentDoc(googleToken, {
         title: docTitle.trim(),
-        subject: docSubject.trim() || 'General Coursework',
+        subject: docSubject.trim() || t('dochub_doc_default_subject'),
         formatStyle: docStyle,
         checklist: rubricChecklist,
       });
 
       if (result?.webViewLink) {
         setGeneratedDocUrl(result.webViewLink);
-        setDocMessage('Document created in your Google Drive!');
+        setDocMessage(t('dochub_doc_created_msg'));
         onRefreshFiles();
       } else {
-        setDocMessage('Could not create the Google Doc. Please try again.');
+        setDocMessage(t('dochub_doc_create_failed'));
       }
     } catch (err) {
       console.error('Doc generation error:', err);
-      setDocMessage('Could not create Google Doc. Please reconnect Google Drive and try again.');
+      setDocMessage(t('dochub_doc_reconnect_retry'));
     } finally {
       setIsGeneratingDoc(false);
     }
@@ -317,7 +278,7 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
       setEssayAnalysisResult(res);
     } catch (err: any) {
       console.error('Essay analysis failed:', err);
-      setEssayError(err?.message || 'Essay analysis failed. Check your Gemini or Groq key in Settings and try again.');
+      setEssayError(err?.message || t('dochub_essay_err'));
     } finally {
       setIsAnalyzingEssay(false);
     }
@@ -335,12 +296,12 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
       const initialQuestion = await socraticTutorStep({
         topic: socraticTopic.trim(),
         history: [],
-        userMessage: 'Hello! I want to understand and master this concept thoroughly. Please start our Socratic dialogue by asking a diagnostic question.',
+        userMessage: t('dochub_socratic_init_prompt'),
       });
       setSocraticHistory([{ role: 'model', content: initialQuestion }]);
     } catch (err: any) {
       console.error('Socratic initialization error:', err);
-      setSocraticError(err?.message || 'Could not start Socratic dialogue. Check your Gemini or Groq key in Settings and try again.');
+      setSocraticError(err?.message || t('dochub_socratic_start_err'));
     } finally {
       setIsSocraticThinking(false);
     }
@@ -366,7 +327,7 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
       setSocraticHistory([...updatedHistory, { role: 'model', content: nextQuestion }]);
     } catch (err: any) {
       console.error('Socratic reply error:', err);
-      setSocraticError(err?.message || 'Could not generate Socratic follow-up. Check your AI connection and try again.');
+      setSocraticError(err?.message || t('dochub_socratic_reply_err'));
     } finally {
       setIsSocraticThinking(false);
     }
@@ -382,10 +343,10 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
           </div>
           <div>
             <h2 className="text-base sm:text-lg font-bold text-[#141413] dark:text-[#FAF9F5] tracking-tight">
-              Dynamic Document &amp; Research Hub
+              {t('dochub_title')}
             </h2>
             <p className="text-xs text-[#8C897F] mt-0.5">
-              Markdown &amp; LaTeX notes, 1-Click Google Doc export, Essay proofreader, and Socratic tutor
+              {t('dochub_sub')}
             </p>
           </div>
         </div>
@@ -393,10 +354,10 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
         {/* Sub-Tabs */}
         <div className="flex items-center gap-1.5 overflow-x-auto p-1 bg-[#FAF9F5] dark:bg-[#1F1E1B] rounded-xl border border-[#DFDACB] dark:border-[#2C2B27]">
           {[
-            { id: 'notes', label: 'Markdown & LaTeX Notes', icon: FileText },
-            { id: 'generator', label: '1-Click Doc Generator', icon: Plus },
-            { id: 'essay-proof', label: 'Essay & Thesis Proofreader', icon: FileCheck },
-            { id: 'socratic', label: 'Socratic Dialogue Tutor', icon: MessageSquare },
+            { id: 'notes', label: t('dochub_tab_notes'), icon: FileText },
+            { id: 'generator', label: t('dochub_tab_generator'), icon: Plus },
+            { id: 'essay-proof', label: t('dochub_tab_essay'), icon: FileCheck },
+            { id: 'socratic', label: t('dochub_tab_socratic'), icon: MessageSquare },
           ].map((tab) => {
             const isActive = activeTab === tab.id;
             const Icon = tab.icon;
@@ -425,27 +386,27 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
           <div className="lg:col-span-3 bg-white dark:bg-[#1A1917] rounded-2xl border border-[#DFDACB] dark:border-[#2C2B27] p-4 shadow-xs space-y-3">
             <div className="flex items-center justify-between pb-2 border-b border-[#DFDACB] dark:border-[#2C2B27]">
               <span className="text-xs font-bold text-[#141413] dark:text-[#FAF9F5] uppercase tracking-wider">
-                Saved Notes ({notes.length})
+                {t('dochub_saved_notes', { count: notes.length })}
               </span>
               <button
                 onClick={handleCreateNote}
                 className="p-1 text-[#D97757] hover:bg-[#D97757]/10 rounded-lg transition-colors cursor-pointer"
-                title="New Note"
+                title={t('dochub_new_note_btn')}
               >
                 <Plus className="w-4 h-4" />
               </button>
             </div>
 
             <div className="flex items-center gap-1.5 mb-2 overflow-x-auto">
-              <span className="text-[10px] text-[#8C897F] font-bold shrink-0">Folder:</span>
+              <span className="text-[10px] text-[#8C897F] font-bold shrink-0">{t('dochub_folder_label')}</span>
               {uniqueSubjects.map(subj => (
-                <button key={subj} onClick={() => setNotesSubjectFilter(subj)} className={`px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap border ${notesSubjectFilter === subj ? 'bg-[#D97757] text-white border-[#D97757]' : 'bg-[#FAF9F5] dark:bg-[#1F1E1B] text-[#5C5A54] dark:text-[#B5B2A8] border-[#DFDACB] dark:border-[#2C2B27]'}`}>{subj}</button>
+                <button key={subj} onClick={() => setNotesSubjectFilter(subj)} className={`px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap border ${notesSubjectFilter === subj ? 'bg-[#D97757] text-white border-[#D97757]' : 'bg-[#FAF9F5] dark:bg-[#1F1E1B] text-[#5C5A54] dark:text-[#B5B2A8] border-[#DFDACB] dark:border-[#2C2B27]'}`}>{subj === 'ALL' ? t('dochub_filter_all') : subj}</button>
               ))}
             </div>
 
             <div className="space-y-3 max-h-[550px] overflow-y-auto pr-1">
               {Object.entries(groupedNotes).length === 0 ? (
-                <p className="text-xs text-[#8C897F] text-center py-6">No notes in this folder</p>
+                <p className="text-xs text-[#8C897F] text-center py-6">{t('dochub_empty_folder')}</p>
               ) : (
                 Object.entries(groupedNotes).map(([subj, subjNotes]) => (
                   <div key={subj} className="space-y-1.5">
@@ -465,7 +426,7 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
                         }`}
                       >
                         <div className="min-w-0 flex-1 mr-2">
-                          <p className="truncate font-semibold">{note.title || 'Untitled Note'}</p>
+                          <p className="truncate font-semibold">{note.title || t('dochub_untitled_note')}</p>
                           <span className="text-[10px] text-[#8C897F] font-mono">{note.updatedAt}</span>
                         </div>
                         {notes.length > 1 && (
@@ -497,43 +458,43 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
                       type="text"
                       value={activeNote.title}
                       onChange={(e) => handleUpdateActiveNote({ title: e.target.value })}
-                      placeholder="Note Title..."
+                      placeholder={t('dochub_note_title_ph')}
                       className="flex-1 text-base font-bold bg-transparent border-b border-transparent hover:border-[#DFDACB] focus:border-[#D97757] focus:outline-none text-[#141413] dark:text-[#FAF9F5] px-1 py-0.5 min-w-0"
                     />
                     <input
                       type="text"
                       value={activeNote.subject || ''}
                       onChange={(e) => handleUpdateActiveNote({ subject: e.target.value })}
-                      placeholder="Subject / Folder"
+                      placeholder={t('dochub_note_subject_ph')}
                       className="w-32 px-2 py-1 text-xs bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#D97757] text-[#141413] dark:text-[#FAF9F5]"
                     />
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2">
                     <div className="flex items-center gap-2 text-[11px] font-mono text-[#8C897F] px-2.5 py-1 bg-[#FAF9F5] dark:bg-[#1F1E1B] rounded-xl border border-[#DFDACB] dark:border-[#2C2B27]">
-                      <span>{noteWordCount} words</span>
+                      <span>{t('dochub_words_count', { count: noteWordCount })}</span>
                       <span>•</span>
-                      <span>{noteCharCount} chars</span>
+                      <span>{t('dochub_chars_count', { count: noteCharCount })}</span>
                       <span>•</span>
-                      <span>~{noteReadingTime} min read</span>
+                      <span>{t('dochub_read_time', { mins: noteReadingTime })}</span>
                     </div>
 
                     <button
                       onClick={handleInsertCornellTemplate}
                       className="px-3 py-1.5 text-xs font-semibold bg-[#FAF9F5] dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] hover:border-[#D97757] text-[#5C5A54] dark:text-[#B5B2A8] rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer"
-                      title="Insert structured Cornell Note format"
+                      title={t('dochub_cornell_tip')}
                     >
                       <BookOpen className="w-3.5 h-3.5 text-amber-500" />
-                      <span>Cornell Template</span>
+                      <span>{t('dochub_cornell_btn')}</span>
                     </button>
 
                     <button
                       onClick={handlePrintNote}
                       className="px-3 py-1.5 text-xs font-semibold bg-[#FAF9F5] dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] hover:border-[#D97757] text-[#5C5A54] dark:text-[#B5B2A8] rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer"
-                      title="Print or Export to PDF"
+                      title={t('dochub_print_tip')}
                     >
                       <Printer className="w-3.5 h-3.5 text-blue-500" />
-                      <span>Print / PDF</span>
+                      <span>{t('dochub_print_btn')}</span>
                     </button>
 
                     <button
@@ -541,7 +502,7 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
                       className="px-3 py-1.5 text-xs font-semibold bg-[#FAF9F5] dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] hover:border-[#D97757] text-[#5C5A54] dark:text-[#B5B2A8] rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer"
                     >
                       {copiedNote ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
-                      <span>{copiedNote ? 'Copied' : 'Copy MD'}</span>
+                      <span>{copiedNote ? t('copied') : t('dochub_copy_md')}</span>
                     </button>
 
                     <button
@@ -549,7 +510,7 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
                       className="px-3 py-1.5 text-xs font-bold bg-[#D97757] hover:bg-[#C86646] text-white rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
                     >
                       <Download className="w-3.5 h-3.5" />
-                      <span>Export .md</span>
+                      <span>{t('dochub_export_md')}</span>
                     </button>
                   </div>
                 </div>
@@ -558,12 +519,12 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
                   {/* Editor */}
                   <div className="flex flex-col h-full">
                     <span className="text-[10px] font-bold text-[#8C897F] uppercase tracking-wider mb-1">
-                      Raw Markdown / LaTeX Editor
+                      {t('dochub_raw_editor')}
                     </span>
                     <textarea
                       value={activeNote.content}
                       onChange={(e) => handleUpdateActiveNote({ content: e.target.value })}
-                      placeholder="Type markdown content here..."
+                      placeholder={t('dochub_editor_ph')}
                       className="flex-1 w-full p-4 text-xs font-mono bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#D97757] text-[#141413] dark:text-[#FAF9F5] resize-none leading-relaxed"
                     />
                   </div>
@@ -571,7 +532,7 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
                   {/* Live Render Preview */}
                   <div className="flex flex-col h-full">
                     <span className="text-[10px] font-bold text-[#8C897F] uppercase tracking-wider mb-1">
-                      Live Formatted Preview
+                      {t('dochub_live_preview')}
                     </span>
                     <div className="flex-1 p-4 bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] rounded-xl overflow-y-auto prose dark:prose-invert prose-xs max-w-none text-[#141413] dark:text-[#FAF9F5]">
                       <MathMarkdown>{activeNote.content}</MathMarkdown>
@@ -592,37 +553,37 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
             <div className="pb-3 border-b border-[#DFDACB]/60 dark:border-[#2C2B27]/60">
               <h3 className="text-sm font-bold text-[#141413] dark:text-[#FAF9F5] flex items-center gap-2">
                 <FileCheck className="w-4 h-4 text-[#D97757]" />
-                <span>AI Essay Proofreader &amp; Thesis Strength Analyzer</span>
+                <span>{t('dochub_essay_title')}</span>
               </h3>
               <p className="text-xs text-[#8C897F] mt-1">
-                Deconstruct thesis arguability, structural paragraph transitions, and evidence-to-claim alignment.
+                {t('dochub_essay_sub')}
               </p>
             </div>
 
             <form onSubmit={handleAnalyzeEssay} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-[#141413] dark:text-[#FAF9F5] mb-1">
-                  Assignment Prompt / Rubric (Optional Context)
+                  {t('dochub_essay_context_label')}
                 </label>
                 <input
                   type="text"
                   value={essayPromptContext}
                   onChange={(e) => setEssayPromptContext(e.target.value)}
-                  placeholder="e.g. Prompt: Evaluate the economic impact of the industrial revolution on urban labor."
+                  placeholder={t('dochub_essay_context_ph')}
                   className="w-full px-3.5 py-2.5 bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] rounded-xl text-xs text-[#141413] dark:text-[#FAF9F5] focus:outline-none focus:border-[#D97757]"
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-[#141413] dark:text-[#FAF9F5] mb-1">
-                  Essay Draft Text *
+                  {t('dochub_essay_draft_label')}
                 </label>
                 <textarea
                   rows={14}
                   required
                   value={essayToProof}
                   onChange={(e) => setEssayToProof(e.target.value)}
-                  placeholder="Paste your essay draft, introductory paragraph, or full argument here..."
+                  placeholder={t('dochub_essay_draft_ph')}
                   className="w-full p-4 bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] rounded-2xl text-xs font-mono text-[#141413] dark:text-[#FAF9F5] focus:outline-none focus:border-[#D97757] leading-relaxed resize-none"
                 />
               </div>
@@ -636,7 +597,7 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
 
               <div className="flex items-center justify-between pt-2">
                 <span className="text-[11px] font-mono text-[#8C897F]">
-                  {essayToProof.trim().split(/\s+/).filter(Boolean).length} words
+                  {t('dochub_words_count', { count: essayToProof.trim().split(/\s+/).filter(Boolean).length })}
                 </span>
                 <button
                   type="submit"
@@ -644,7 +605,7 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
                   className="px-5 py-2.5 bg-[#D97757] hover:bg-[#C86646] disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-2 cursor-pointer"
                 >
                   <Sparkles className={`w-3.5 h-3.5 ${isAnalyzingEssay ? 'animate-spin' : ''}`} />
-                  <span>{isAnalyzingEssay ? 'Analyzing Draft...' : 'Analyze Thesis & Structure'}</span>
+                  <span>{isAnalyzingEssay ? t('dochub_essay_analyzing') : t('dochub_essay_analyze_btn')}</span>
                 </button>
               </div>
             </form>
@@ -658,7 +619,7 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
                 <div className="p-4 rounded-2xl bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C897F]">
-                      Thesis Statement Evaluation
+                      {t('dochub_thesis_eval')}
                     </span>
                     <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
                       essayAnalysisResult.thesisEvaluation.strengthRating === 'Strong'
@@ -667,7 +628,14 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
                         ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300'
                         : 'bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300'
                     }`}>
-                      {essayAnalysisResult.thesisEvaluation.strengthRating} Thesis
+                      {t('dochub_thesis_badge', {
+                        rating:
+                          essayAnalysisResult.thesisEvaluation.strengthRating === 'Strong'
+                            ? t('dochub_strength_strong')
+                            : essayAnalysisResult.thesisEvaluation.strengthRating === 'Moderate'
+                            ? t('dochub_strength_moderate')
+                            : t('dochub_strength_weak'),
+                      })}
                     </span>
                   </div>
 
@@ -681,7 +649,7 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
 
                   <div className="pt-2 border-t border-[#DFDACB]/40 dark:border-[#2C2B27]/40 text-xs">
                     <span className="text-[10px] font-bold text-[#D97757] uppercase tracking-wider block">
-                      Suggested Refinement
+                      {t('dochub_suggested_refinement')}
                     </span>
                     <p className="font-semibold text-[#141413] dark:text-[#FAF9F5] mt-0.5">
                       {essayAnalysisResult.thesisEvaluation.suggestedRefinement}
@@ -692,7 +660,7 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
                 {/* Structural Flow */}
                 <div className="space-y-2">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C897F] block">
-                    Structural Flow &amp; Transitions
+                    {t('dochub_structural_flow')}
                   </span>
                   <p className="text-xs text-[#5C5A54] dark:text-[#B5B2A8] bg-[#FAF9F5] dark:bg-[#1F1E1B] p-3.5 rounded-xl border border-[#DFDACB]/40 dark:border-[#2C2B27]/40">
                     {essayAnalysisResult.structuralFlow.overallCoherence}
@@ -708,7 +676,7 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
                 {/* Evidence Alignment & Action Items */}
                 <div className="space-y-2">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C897F] block">
-                    Actionable Next Steps
+                    {t('dochub_action_steps')}
                   </span>
                   <div className="space-y-1.5">
                     {essayAnalysisResult.actionableNextSteps.map((step, idx) => (
@@ -723,7 +691,7 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
             ) : (
               <div className="my-auto text-center text-[#8C897F] py-16 space-y-2">
                 <FileCheck className="w-10 h-10 mx-auto opacity-30" />
-                <p className="text-xs">Paste your essay draft to generate thesis &amp; structural feedback</p>
+                <p className="text-xs">{t('dochub_essay_empty')}</p>
               </div>
             )}
           </div>
@@ -737,10 +705,10 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
             <div>
               <h3 className="text-sm font-bold text-[#141413] dark:text-[#FAF9F5] flex items-center gap-2">
                 <MessageSquare className="w-4 h-4 text-[#D97757]" />
-                <span>Socratic Concept Dialogue Engine</span>
+                <span>{t('dochub_socratic_title')}</span>
               </h3>
               <p className="text-xs text-[#8C897F] mt-0.5">
-                The AI will not give you answers directly — it asks probing diagnostic questions to build first-principles mastery.
+                {t('dochub_socratic_sub')}
               </p>
             </div>
             {socraticHistory.length > 0 && (
@@ -751,7 +719,7 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
                 }}
                 className="text-xs text-[#8C897F] hover:text-[#D97757] underline cursor-pointer"
               >
-                Reset Topic
+                {t('dochub_socratic_reset')}
               </button>
             )}
           </div>
@@ -763,10 +731,10 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
                 <Brain className="w-10 h-10 mx-auto text-[#D97757] opacity-80" />
                 <div className="space-y-1">
                   <h4 className="text-sm font-bold text-[#141413] dark:text-[#FAF9F5]">
-                    What concept would you like to master today?
+                    {t('dochub_socratic_prompt_title')}
                   </h4>
                   <p className="text-xs text-[#8C897F] max-w-md mx-auto">
-                    e.g. Fourier Transform, Bayes Theorem, Mitosis vs Meiosis, Supply &amp; Demand Elasticity
+                    {t('dochub_socratic_examples')}
                   </p>
                 </div>
                 <form onSubmit={handleStartSocraticSession} className="flex gap-2 max-w-md mx-auto">
@@ -775,7 +743,7 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
                     required
                     value={socraticTopic}
                     onChange={(e) => setSocraticTopic(e.target.value)}
-                    placeholder="Enter topic or theory..."
+                    placeholder={t('dochub_socratic_topic_ph')}
                     className="flex-1 px-4 py-2.5 bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] rounded-xl text-xs text-[#141413] dark:text-[#FAF9F5] focus:outline-none focus:border-[#D97757]"
                   />
                   <button
@@ -783,7 +751,7 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
                     disabled={isSocraticThinking || !socraticTopic.trim()}
                     className="px-4 py-2.5 bg-[#D97757] hover:bg-[#C86646] disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer"
                   >
-                    {isSocraticThinking ? 'Starting...' : 'Begin Dialogue'}
+                    {isSocraticThinking ? t('dochub_socratic_starting') : t('dochub_socratic_begin')}
                   </button>
                 </form>
               </div>
@@ -801,7 +769,7 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
                     }`}
                   >
                     <div className="text-[10px] font-bold opacity-60 mb-1">
-                      {turn.role === 'user' ? 'You' : 'Socratic Tutor'}
+                      {turn.role === 'user' ? t('dochub_socratic_you') : t('dochub_socratic_tutor')}
                     </div>
                     <MathMarkdown>{turn.content}</MathMarkdown>
                   </div>
@@ -813,7 +781,7 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
               <div className="flex justify-start">
                 <div className="p-3.5 rounded-2xl bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] text-xs text-[#8C897F] flex items-center gap-2">
                   <Sparkles className="w-3.5 h-3.5 animate-spin text-[#D97757]" />
-                  <span>Formulating Socratic question...</span>
+                  <span>{t('dochub_socratic_thinking')}</span>
                 </div>
               </div>
             )}
@@ -834,7 +802,7 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
                 type="text"
                 value={socraticInput}
                 onChange={(e) => setSocraticInput(e.target.value)}
-                placeholder="Explain your reasoning or ask for clarification..."
+                placeholder={t('dochub_socratic_reply_ph')}
                 className="flex-1 px-4 py-2.5 bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] rounded-xl text-xs text-[#141413] dark:text-[#FAF9F5] focus:outline-none focus:border-[#D97757]"
               />
               <button
@@ -843,7 +811,7 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
                 className="px-4 py-2.5 bg-[#D97757] hover:bg-[#C86646] disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5"
               >
                 <Send className="w-3.5 h-3.5" />
-                <span>Send</span>
+                <span>{t('dochub_socratic_send')}</span>
               </button>
             </form>
           )}
@@ -856,24 +824,24 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
           <div className="pb-3 border-b border-[#DFDACB] dark:border-[#2C2B27]">
             <h3 className="text-sm font-bold text-[#141413] dark:text-[#FAF9F5] flex items-center gap-2">
               <Plus className="w-4 h-4 text-[#D97757]" />
-              <span>1-Click Assignment Google Doc Generator</span>
+              <span>{t('dochub_doc_title')}</span>
             </h3>
             <p className="text-xs text-[#8C897F] mt-1">
-              Creates a fresh Google Doc formatted with MLA / APA title block, header, and pre-loaded rubric checklist.
+              {t('dochub_doc_sub')}
             </p>
           </div>
 
           <form onSubmit={handleGenerateDoc} className="space-y-3.5">
             <div>
               <label className="block text-xs font-semibold text-[#5C5A54] dark:text-[#B5B2A8] mb-1">
-                Assignment Title *
+                {t('dochub_doc_name_label')}
               </label>
               <input
                 type="text"
                 required
                 value={docTitle}
                 onChange={(e) => setDocTitle(e.target.value)}
-                placeholder="e.g. Macbeth Tragic Hero Argumentative Essay"
+                placeholder={t('dochub_doc_name_ph')}
                 className="w-full px-3 py-2 text-xs bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#D97757] text-[#141413] dark:text-[#FAF9F5]"
               />
             </div>
@@ -881,42 +849,42 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-semibold text-[#5C5A54] dark:text-[#B5B2A8] mb-1">
-                  Subject / Course
+                  {t('dochub_doc_subject_label')}
                 </label>
                 <input
                   type="text"
                   value={docSubject}
                   onChange={(e) => setDocSubject(e.target.value)}
-                  placeholder="e.g. AP English Literature"
+                  placeholder={t('dochub_doc_subject_ph')}
                   className="w-full px-3 py-2 text-xs bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#D97757] text-[#141413] dark:text-[#FAF9F5]"
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-[#5C5A54] dark:text-[#B5B2A8] mb-1">
-                  Formatting Standard
+                  {t('dochub_doc_style_label')}
                 </label>
                 <select
                   value={docStyle}
                   onChange={(e) => setDocStyle(e.target.value as any)}
                   className="w-full px-3 py-2 text-xs bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#D97757] text-[#141413] dark:text-[#FAF9F5]"
                 >
-                  <option value="Academic Standard">Academic Standard</option>
-                  <option value="MLA">MLA 9th Edition</option>
-                  <option value="APA">APA 7th Edition</option>
+                  <option value="Academic Standard">{t('dochub_doc_style_std')}</option>
+                  <option value="MLA">{t('dochub_doc_style_mla')}</option>
+                  <option value="APA">{t('dochub_doc_style_apa')}</option>
                 </select>
               </div>
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-[#5C5A54] dark:text-[#B5B2A8] mb-1">
-                Rubric Checklist Items (1 per line)
+                {t('dochub_doc_rubric_label')}
               </label>
               <textarea
                 rows={4}
                 value={docRubric}
                 onChange={(e) => setDocRubric(e.target.value)}
-                placeholder="Include 3 peer-reviewed citations&#10;Argue both sides of the thesis&#10;Word count between 1200 - 1500 words"
+                placeholder={t('dochub_doc_rubric_ph')}
                 className="w-full p-3 text-xs bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#D97757] text-[#141413] dark:text-[#FAF9F5] resize-none"
               />
             </div>
@@ -928,7 +896,7 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
             {generatedDocUrl && (
               <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl border border-emerald-200 dark:border-emerald-800 flex items-center justify-between">
                 <span className="text-xs text-emerald-800 dark:text-emerald-300 font-bold">
-                  Document Created in Google Drive!
+                  {t('dochub_doc_created_banner')}
                 </span>
                 <a
                   href={generatedDocUrl}
@@ -936,7 +904,7 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
                   rel="noreferrer"
                   className="px-3 py-1 bg-emerald-600 text-white rounded-lg text-xs font-bold flex items-center gap-1"
                 >
-                  <span>Open Doc</span>
+                  <span>{t('dochub_doc_open')}</span>
                   <ExternalLink className="w-3 h-3" />
                 </a>
               </div>
@@ -945,14 +913,14 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
             {!isGoogleConnected && onConnectGoogle && (
               <div className="p-3 bg-[#FAF9F5] dark:bg-[#1F1E1B] rounded-xl border border-[#DFDACB] dark:border-[#2C2B27] flex items-center justify-between gap-3 text-xs">
                 <span className="text-[#5C5A54] dark:text-[#B5B2A8]">
-                  Connecting Google Drive lets StudentOS create this formatted doc directly in your Drive.
+                  {t('dochub_doc_connect_hint')}
                 </span>
                 <button
                   type="button"
                   onClick={onConnectGoogle}
                   className="shrink-0 px-3 py-1.5 bg-[#D97757] hover:bg-[#C86646] text-white rounded-lg font-bold cursor-pointer"
                 >
-                  Connect Google Drive
+                  {t('dochub_doc_connect_btn')}
                 </button>
               </div>
             )}
@@ -964,7 +932,7 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
                 className="px-5 py-2 bg-[#D97757] hover:bg-[#C86646] disabled:opacity-50 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
               >
                 <Sparkles className={`w-3.5 h-3.5 ${isGeneratingDoc ? 'animate-spin' : ''}`} />
-                <span>{isGeneratingDoc ? 'Creating Doc...' : isGoogleConnected ? 'Generate Google Doc' : 'Connect Drive & Create Doc'}</span>
+                <span>{isGeneratingDoc ? t('dochub_doc_creating') : isGoogleConnected ? t('dochub_doc_generate_btn') : t('dochub_doc_connect_create_btn')}</span>
               </button>
             </div>
           </form>

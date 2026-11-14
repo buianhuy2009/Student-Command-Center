@@ -12,12 +12,20 @@ import {
 import { MathMarkdown } from './MathMarkdown';
 import { sendStudyAssistantMessage } from '../services/gemini';
 import { Assignment, CalendarEvent, EmailAlert } from '../types';
-import { useLang } from '../services/i18n';
+import { useT } from '../services/i18n';
 
 interface Message {
   role: 'user' | 'assistant';
-  content: string;
+  content?: string;
+  contentKey?: 'coach_welcome' | 'coach_cleared_full' | 'coach_cleared_drawer';
 }
+
+const PROMPT_SUGGESTION_KEYS = [
+  'coach_chip_1',
+  'coach_chip_2',
+  'coach_chip_3',
+  'coach_chip_4',
+] as const;
 
 interface StudyAssistantChatProps {
   isOpen: boolean;
@@ -50,8 +58,7 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
     return [
       {
         role: 'assistant',
-        content:
-          "Hi! I'm your **Student Command Coach**. I have full context on your schedule, assignments, and scanned teacher emails. How can I help you optimize your study flow today?",
+        contentKey: 'coach_welcome',
       },
     ];
   });
@@ -59,10 +66,8 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
   const [isSending, setIsSending] = useState(false);
   const [streamingContent, setStreamingContent] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [lang] = useLang();
-  const tutorBanner = lang === 'vi'
-    ? '💡 Gia sư AI chỉ gợi ý từng bước — không làm bài hộ'
-    : "💡 The AI tutor gives step-by-step hints — it won't do your homework";
+  const { t } = useT();
+  const tutorBanner = `💡 ${t('coach_banner')}`;
   // Persist to Dexie + localStorage via useEffect
   useEffect(() => {
     try {
@@ -101,7 +106,10 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
       const cappedEvents = events.slice(0, 20);
 
       const response = await sendStudyAssistantMessage(
-        [...messages, userMessage],
+        [...messages, userMessage].map((m) => ({
+          role: m.role,
+          content: m.content ?? (m.contentKey ? t(m.contentKey) : ''),
+        })),
         {
           assignments: cappedAssignments,
           events: cappedEvents,
@@ -124,12 +132,12 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
       // persist to Dexie
       try { const { db } = await import('../services/db'); await db.briefs?.add?.({ id: `chat-${Date.now()}`, topic: text.slice(0,40), subject: 'chat', brief: response.slice(0,500), createdAt: new Date().toISOString() } as any); } catch {}
     } catch (err) {
-      const errorDetail = err instanceof Error && err.message ? err.message : 'Unable to reach AI assistant.';
+      const errorDetail = err instanceof Error && err.message ? err.message : t('coach_error_fallback');
       setMessages((prev) => [
         ...prev,
         {
           role: 'assistant',
-          content: `Sorry, I couldn't get an AI response (${errorDetail}). Please check your Gemini/Groq API configuration in Settings and try again.`,
+          content: t('coach_error_msg', { detail: errorDetail }),
         },
       ]);
       setStreamingContent('');
@@ -137,13 +145,6 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
       setIsSending(false);
     }
   };
-
-  const promptSuggestions = [
-    'Prioritize my assignments for tonight',
-    'How should I break down my Physics Lab 3?',
-    'Draft a polite extension request email',
-    'Give me a 45-minute study plan',
-  ];
 
   if (isFullScreen) {
     return (
@@ -154,10 +155,11 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
             <button
               onClick={onClose}
               className="px-3.5 py-1.5 bg-[#D97757]/10 hover:bg-[#D97757]/20 text-[#D97757] rounded-xl text-xs font-bold flex items-center gap-2 transition-colors cursor-pointer border border-[#D97757]/30 shadow-2xs"
-              title="Return to Workspace"
+              title={t('coach_return')}
+              aria-label={t('coach_return')}
             >
               <ArrowLeft className="w-4 h-4" />
-              <span>Return to Workspace</span>
+              <span>{t('coach_return')}</span>
             </button>
             <div className="h-5 w-[1px] bg-[#DFDACB] dark:bg-[#2C2B27] hidden sm:block" />
             <div className="flex items-center gap-2">
@@ -166,10 +168,10 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
               </div>
               <div>
                 <h3 className="text-sm font-bold text-[#141413] dark:text-[#FAF9F5] leading-tight">
-                  AI Study Coach
+                  {t('coach_title')}
                 </h3>
                 <p className="text-[10px] text-[#6B6860]">
-                  Powered by Gemini Flash • Sources linked
+                  {t('coach_sub_full')}
                 </p>
               </div>
             </div>
@@ -180,12 +182,13 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
               setMessages([
                 {
                   role: 'assistant',
-                  content: "Chat cleared! What else would you like help with today?",
+                  contentKey: 'coach_cleared_full',
                 },
               ])
             }
             className="p-2 text-[#8C897F] hover:text-rose-600 dark:hover:text-rose-400 rounded-xl hover:bg-[#EFECE2] dark:hover:bg-[#252422] transition-colors cursor-pointer"
-            title="Clear Conversation"
+            title={t('coach_clear_title')}
+            aria-label={t('coach_clear_title')}
           >
             <Trash2 className="w-4 h-4" />
           </button>
@@ -219,7 +222,7 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
                   }`}
                 >
                   <div className="prose prose-sm dark:prose-invert max-w-none leading-relaxed">
-                    <MathMarkdown>{msg.content}</MathMarkdown>
+                    <MathMarkdown>{msg.contentKey ? t(msg.contentKey) : (msg.content || '')}</MathMarkdown>
                   </div>
                 </div>
 
@@ -246,7 +249,7 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
             {isSending && !streamingContent && (
               <div className="flex items-center gap-2.5 text-[#6B6860] text-xs py-2">
                 <Bot className="w-5 h-5 text-[#D97757] animate-pulse" />
-                <span className="animate-pulse font-medium">Analyzing your assignments and drafting response...</span>
+                <span className="animate-pulse font-medium">{t('coach_analyzing')}</span>
               </div>
             )}
 
@@ -258,15 +261,18 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
         {messages.length < 4 && (
           <div className="px-4 sm:px-6 py-2 border-t border-[#DFDACB] dark:border-[#2C2B27] bg-white/50 dark:bg-[#1A1917]/50">
             <div className="max-w-3xl mx-auto flex gap-2 overflow-x-auto scrollbar-none">
-              {promptSuggestions.map((prompt, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => handleSend(prompt)}
-                  className="text-xs font-medium px-3 py-1.5 bg-white dark:bg-[#1A1917] border border-[#DFDACB] dark:border-[#2C2B27] rounded-xl text-[#5C5A54] dark:text-[#B5B2A8] hover:border-[#D97757] hover:text-[#D97757] whitespace-nowrap shrink-0 transition-colors cursor-pointer shadow-2xs"
-                >
-                  {prompt}
-                </button>
-              ))}
+              {PROMPT_SUGGESTION_KEYS.map((key) => {
+                const promptText = t(key);
+                return (
+                  <button
+                    key={key}
+                    onClick={() => handleSend(promptText)}
+                    className="text-xs font-medium px-3 py-1.5 bg-white dark:bg-[#1A1917] border border-[#DFDACB] dark:border-[#2C2B27] rounded-xl text-[#5C5A54] dark:text-[#B5B2A8] hover:border-[#D97757] hover:text-[#D97757] whitespace-nowrap shrink-0 transition-colors cursor-pointer shadow-2xs"
+                  >
+                    {promptText}
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
@@ -284,19 +290,21 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
                   handleSend();
                 }
               }}
-              placeholder="Ask your coach anything about homework, deadlines, or test prep..."
+              placeholder={t('coach_input_ph_full')}
+              aria-label={t('coach_input_ph_full')}
               className="flex-1 px-4 py-3 bg-[#FAF9F5] dark:bg-[#141413] border border-[#DFDACB] dark:border-[#2C2B27] rounded-2xl text-sm focus:ring-2 focus:ring-[#D97757] outline-none text-[#141413] dark:text-[#FAF9F5] placeholder:text-[#8C897F]"
             />
             <button
               onClick={() => handleSend()}
               disabled={!inputText.trim() || isSending}
+              aria-label={t('coach_send')}
               className="px-5 py-3 bg-[#D97757] hover:bg-[#C86646] disabled:opacity-40 text-white rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-xs"
             >
               {isSending ? (
                 <RefreshCw className="w-4 h-4 animate-spin" />
               ) : (
                 <>
-                  <span>Send</span>
+                  <span>{t('coach_send')}</span>
                   <Send className="w-4 h-4" />
                 </>
               )}
@@ -319,8 +327,8 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
             <Sparkles className="w-4 h-4 text-amber-300" />
           </div>
           <div>
-            <h4 className="text-xs font-bold leading-none">AI Study Coach</h4>
-            <p className="text-[10px] text-indigo-100 mt-0.5">Powered by Gemini Flash</p>
+            <h4 className="text-xs font-bold leading-none">{t('coach_title')}</h4>
+            <p className="text-[10px] text-indigo-100 mt-0.5">{t('coach_sub_drawer')}</p>
           </div>
         </div>
 
@@ -330,19 +338,21 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
               setMessages([
                 {
                   role: 'assistant',
-                  content: "Chat cleared! How else can I help you tackle your schoolwork?",
+                  contentKey: 'coach_cleared_drawer',
                 },
               ])
             }
             className="p-1 rounded-md text-indigo-200 hover:text-white hover:bg-white/10"
-            title="Clear Chat History"
+            title={t('coach_clear_title')}
+            aria-label={t('coach_clear_title')}
           >
             <Trash2 className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={onClose}
             className="p-1 rounded-md text-indigo-200 hover:text-white hover:bg-white/10"
-            title="Close Assistant"
+            title={t('coach_close_title')}
+            aria-label={t('coach_close_title')}
           >
             <X className="w-4 h-4" />
           </button>
@@ -372,7 +382,7 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
               }`}
             >
               <div className="prose prose-xs dark:prose-invert max-w-none leading-relaxed">
-                <MathMarkdown>{msg.content}</MathMarkdown>
+                <MathMarkdown>{msg.contentKey ? t(msg.contentKey) : (msg.content || '')}</MathMarkdown>
               </div>
             </div>
             {msg.role === 'user' && (
@@ -398,7 +408,7 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
         {isSending && !streamingContent && (
           <div className="flex items-center gap-2 text-[#8C897F] text-xs py-1">
             <Bot className="w-4 h-4 text-[#D97757] animate-pulse" />
-            <span className="animate-pulse font-medium">Thinking...</span>
+            <span className="animate-pulse font-medium">{t('coach_thinking')}</span>
           </div>
         )}
         <div ref={messagesEndRef} />
@@ -412,12 +422,14 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
           onKeyDown={(e) => {
             if (e.key === 'Enter') handleSend();
           }}
-          placeholder="Ask a question..."
+          placeholder={t('coach_input_ph_drawer')}
+          aria-label={t('coach_input_ph_drawer')}
           className="flex-1 px-3 py-1.5 bg-[#FAF9F5] dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] rounded-xl text-xs outline-none text-[#141413] dark:text-[#FAF9F5]"
         />
         <button
           onClick={() => handleSend()}
           disabled={!inputText.trim() || isSending}
+          aria-label={t('coach_send')}
           className="p-2 bg-[#D97757] hover:bg-[#C86646] text-white rounded-xl"
         >
           <Send className="w-3.5 h-3.5" />

@@ -3,6 +3,7 @@ import { CheckCircle2, Circle, ArrowRight, ChevronDown } from 'lucide-react';
 import { getValidGoogleToken } from '../services/firebase';
 import { hasAnyCanvasSettings } from '../services/canvas';
 import { getGrantedScopes, hasRefreshToken } from '../services/googleAuth';
+import { useT } from '../services/i18n';
 
 export type OnboardingChecks = { canvas: boolean; google: boolean; task: boolean; pomodoro: boolean };
 
@@ -24,6 +25,7 @@ function todayStr(): string {
 }
 
 export const OnboardingChecklist: React.FC<{ onConnectCanvas: ()=>void; onConnectGoogle: ()=>void; onCreateTask: ()=>void; onStartPomodoro: ()=>void }> = ({ onConnectCanvas, onConnectGoogle, onCreateTask, onStartPomodoro }) => {
+  const { t } = useT();
   const [checks, setChecks] = useState<OnboardingChecks>(() => {
     try { const raw = localStorage.getItem('scc_onboarding_checks_v1'); return raw ? JSON.parse(raw) : { canvas:false, google:false, task:false, pomodoro:false }; } catch { return { canvas:false, google:false, task:false, pomodoro:false }; }
   });
@@ -119,32 +121,32 @@ export const OnboardingChecklist: React.FC<{ onConnectCanvas: ()=>void; onConnec
         className="w-full flex items-center justify-between text-left cursor-pointer rounded-lg focus-visible:outline-2 focus-visible:outline-[#D97757] min-h-[44px]"
       >
         <span className="flex items-center gap-2">
-          <h4 className="text-xs font-bold uppercase tracking-wider">Getting started — 4 small steps</h4>
-          <span className="text-[10px] font-medium normal-case tracking-normal text-[#6B6860] hidden sm:inline">Done items hide automatically. No rush.</span>
+          <h4 className="text-xs font-bold uppercase tracking-wider">{t('onboard_check_title')}</h4>
+          <span className="text-[10px] font-medium normal-case tracking-normal text-[#6B6860] hidden sm:inline">{t('onboard_check_sub')}</span>
         </span>
         <span className="flex items-center gap-2">
-          <span className="text-[11px] font-mono text-[#6B6860]">{progress}/4 done</span>
+          <span className="text-[11px] font-mono text-[#6B6860]">{t('onboard_check_progress', { done: progress, total: 4 })}</span>
           <ChevronDown className={`w-4 h-4 text-[#6B6860] transition-transform ${collapsed ? '' : 'rotate-180'}`} />
         </span>
       </button>
-      <div className="h-1.5 bg-[#EFECE2] dark:bg-[#252422] rounded-full overflow-hidden" role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={4} aria-label="Onboarding progress"><div className="h-full bg-[#D97757]" style={{width: `${(progress/4)*100}%`}} /></div>
+      <div className="h-1.5 bg-[#EFECE2] dark:bg-[#252422] rounded-full overflow-hidden" role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={4} aria-label={t('onboard_check_aria')}><div className="h-full bg-[#D97757]" style={{width: `${(progress/4)*100}%`}} /></div>
       {collapsed && (
         <button
           type="button"
           onClick={() => onCreateTask()}
           className="w-full text-left text-[11px] font-semibold text-[#D97757] hover:underline underline-offset-4 py-2 min-h-[44px] cursor-pointer"
         >
-          Open Tracker and add your first assignment →
+          {t('onboard_check_open_tracker')}
         </button>
       )}
       {!collapsed && (
       <div id="onboarding-checklist-body">
       <div className="space-y-2">
         {([
-          { key:'canvas', label:'Connect Canvas — pull in assignments', done: checks.canvas, action: onConnectCanvas },
-          { key:'google', label:'Connect a Google tool (optional) — Calendar, Gmail, or Classroom', done: checks.google, action: onConnectGoogle },
-          { key:'task', label:'Add your first assignment', done: checks.task, action: onCreateTask },
-          { key:'pomodoro', label:'Start a 25-min focus session', done: checks.pomodoro, action: onStartPomodoro },
+          { key:'canvas', label: t('onboard_check_canvas'), done: checks.canvas, action: onConnectCanvas },
+          { key:'google', label: t('onboard_check_google'), done: checks.google, action: onConnectGoogle },
+          { key:'task', label: t('onboard_check_task'), done: checks.task, action: onCreateTask },
+          { key:'pomodoro', label: t('onboard_check_pomodoro'), done: checks.pomodoro, action: onStartPomodoro },
         ] as const).map(item=>(
           <button key={item.key} onClick={()=>{ if (!item.done) item.action(); }} className={`w-full flex items-center justify-between p-2.5 rounded-xl border text-xs font-bold text-left min-h-[44px] ${item.done ? 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300' : 'bg-[#FAF9F5] dark:bg-[#1F1E1B] border-[#DFDACB] dark:border-[#2C2B27] hover:border-[#D97757]'}`}>
             <span className="flex items-center gap-2">{item.done? <CheckCircle2 className="w-4 h-4 text-emerald-600" /> : <Circle className="w-4 h-4 text-[#6B6860]" />} {item.label}</span>
@@ -157,7 +159,7 @@ export const OnboardingChecklist: React.FC<{ onConnectCanvas: ()=>void; onConnec
         onClick={handleDismissToday}
         className="w-full text-center text-[11px] font-semibold text-[#6B6860] hover:text-[#141413] dark:hover:text-[#FAF9F5] underline underline-offset-4 py-2 min-h-[44px] cursor-pointer"
       >
-        Hide for today
+        {t('onboard_check_hide_today')}
       </button>
       </div>
       )}

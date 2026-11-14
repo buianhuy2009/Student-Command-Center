@@ -1,5 +1,6 @@
 import React from 'react';
 import { Calendar, CheckSquare, HardDrive, Inbox, Mail, BookOpen, CreditCard, Sparkles, Lightbulb } from 'lucide-react';
+import { useT } from '../services/i18n';
 
 export interface EmptyStateAction { label: string; onClick: () => void; primary?: boolean; }
 
@@ -42,47 +43,68 @@ export const EmptyState: React.FC<{
   );
 };
 
-export const EmptyTodayEvents = (props: { onConnect?: () => void }) => (
-  <EmptyState icon={Calendar} title="No events today" description="Your calendar is clear — perfect time for a deep-work block."
-    actions={props.onConnect ? [{ label: 'Connect Calendar', onClick: props.onConnect, primary: true }] : [{ label: 'Plan a focus block', onClick: () => {}, primary: true }]}
-    tip="Students who time-block 2h daily finish 30% more assignments." />
-);
+export const EmptyTodayEvents = (props: { onConnect?: () => void }) => {
+  const { t } = useT();
+  return (
+    <EmptyState icon={Calendar} title={t('empty_events_t')} description={t('empty_events_d')}
+      actions={props.onConnect ? [{ label: t('empty_events_connect'), onClick: props.onConnect, primary: true }] : [{ label: t('empty_events_plan'), onClick: () => {}, primary: true }]}
+      tip={t('empty_events_tip')} />
+  );
+};
 
-export const EmptyAssignments = (props: { onImportCanvas?: () => void; onParseSyllabus?: () => void; onCreate?: () => void } = {}) => (
-  <EmptyState icon={CheckSquare} title="All caught up — nice work" description="No pending assignments. Pull from Canvas, scan a syllabus, or add one by hand."
-    actions={[
-      ...(props.onImportCanvas ? [{ label: 'Import from Canvas', onClick: props.onImportCanvas, primary: true }] : []),
-      ...(props.onParseSyllabus ? [{ label: 'Parse syllabus', onClick: props.onParseSyllabus }] : []),
-      ...(props.onCreate ? [{ label: 'Create manually', onClick: props.onCreate }] : []),
-    ]}
-    tip="Connect Canvas once and deadlines fill in by themselves." />
-);
+export const EmptyAssignments = (props: { onImportCanvas?: () => void; onParseSyllabus?: () => void; onCreate?: () => void } = {}) => {
+  const { t } = useT();
+  return (
+    <EmptyState icon={CheckSquare} title={t('all_caught_up')} description={t('empty_assign_d')}
+      actions={[
+        ...(props.onImportCanvas ? [{ label: t('empty_assign_canvas'), onClick: props.onImportCanvas, primary: true }] : []),
+        ...(props.onParseSyllabus ? [{ label: t('empty_assign_syllabus'), onClick: props.onParseSyllabus }] : []),
+        ...(props.onCreate ? [{ label: t('empty_assign_create'), onClick: props.onCreate }] : []),
+      ]}
+      tip={t('empty_assign_tip')} />
+  );
+};
 
-export const EmptyFiles = (props: { onConnect?: () => void } = {}) => (
-  <EmptyState icon={HardDrive} title="No recent files" description="Connect Google Drive to see your Docs, Sheets and Slides here."
-    actions={props.onConnect ? [{ label: 'Connect Drive', onClick: props.onConnect, primary: true }] : []} />
-);
+export const EmptyFiles = (props: { onConnect?: () => void } = {}) => {
+  const { t } = useT();
+  return (
+    <EmptyState icon={HardDrive} title={t('empty_files_t')} description={t('empty_files_d')}
+      actions={props.onConnect ? [{ label: t('drive_connect'), onClick: props.onConnect, primary: true }] : []} />
+  );
+};
 
-export const EmptyEmails = (props: { onConnect?: () => void } = {}) => (
-  <EmptyState icon={Mail} title="Inbox zero — enjoy it" description="No school emails flagged. We scan teacher mail for deadlines automatically."
-    actions={props.onConnect ? [{ label: 'Connect Gmail', onClick: props.onConnect, primary: true }] : []} />
-);
+export const EmptyEmails = (props: { onConnect?: () => void } = {}) => {
+  const { t } = useT();
+  return (
+    <EmptyState icon={Mail} title={t('empty_emails_t')} description={t('empty_emails_d')}
+      actions={props.onConnect ? [{ label: t('gmail_connect'), onClick: props.onConnect, primary: true }] : []} />
+  );
+};
 
-export const EmptyFlashcards = (props: { onGenerate?: () => void; onImport?: () => void } = {}) => (
-  <EmptyState icon={BookOpen} title="No flashcards yet" description="Turn notes or a PDF into a study deck in one click."
-    actions={[
-      ...(props.onGenerate ? [{ label: 'Generate from notes', onClick: props.onGenerate, primary: true }] : []),
-      ...(props.onImport ? [{ label: 'Import Anki .apkg', onClick: props.onImport }] : []),
-    ]}
-    tip="20 cards a day beats 200 the night before." />
-);
+export const EmptyFlashcards = (props: { onGenerate?: () => void; onImport?: () => void } = {}) => {
+  const { t } = useT();
+  return (
+    <EmptyState icon={BookOpen} title={t('empty_cards_t')} description={t('empty_cards_d')}
+      actions={[
+        ...(props.onGenerate ? [{ label: t('empty_cards_gen'), onClick: props.onGenerate, primary: true }] : []),
+        ...(props.onImport ? [{ label: t('empty_cards_import'), onClick: props.onImport }] : []),
+      ]}
+      tip={t('empty_cards_tip')} />
+  );
+};
 
-export const EmptyScholarships = (props: { onBrowse?: () => void } = {}) => (
-  <EmptyState icon={CreditCard} title="No scholarships tracked" description="Add deadlines once — we remind you and reuse your essays."
-    actions={props.onBrowse ? [{ label: 'Add your first scholarship', onClick: props.onBrowse, primary: true }] : []} />
-);
+export const EmptyScholarships = (props: { onBrowse?: () => void } = {}) => {
+  const { t } = useT();
+  return (
+    <EmptyState icon={CreditCard} title={t('empty_schol_t')} description={t('empty_schol_d')}
+      actions={props.onBrowse ? [{ label: t('empty_schol_add'), onClick: props.onBrowse, primary: true }] : []} />
+  );
+};
 
-export const EmptySearch = () => (
-  <EmptyState icon={Sparkles} title="No matches" description="Try fewer words, or create it — task, note, or flashcard — right from search (press C)."
-    actions={[]} tip="Search covers Canvas, Gmail, Drive, notes and flashcards." />
-);
+export const EmptySearch = () => {
+  const { t } = useT();
+  return (
+    <EmptyState icon={Sparkles} title={t('keys_no_matches')} description={t('empty_search_d')}
+      actions={[]} tip={t('empty_search_tip')} />
+  );
+};

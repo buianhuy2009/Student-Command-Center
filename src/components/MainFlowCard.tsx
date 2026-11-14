@@ -1,12 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Inbox, ListChecks, CalendarCheck, PlugZap, ChevronRight, EyeOff, Eye } from 'lucide-react';
 import type { Assignment, EmailAlert } from '../types';
-import { getLang, useLang } from '../services/i18n';
+import { useT } from '../services/i18n';
 import { hasFeatureAccess } from '../services/googleAuth';
 import { getDismissedReviewIds } from '../utils/trust';
 import { downloadPilotExport } from '../utils/pilotStats';
-
-const L = (vi: string, en: string) => (getLang() === 'vi' ? vi : en);
 
 export const CANVAS_HIDDEN_KEY = 'scc_hide_canvas_v1';
 
@@ -46,7 +44,7 @@ interface Props {
  * Gmail / Classroom / Canvas → confirm → assignments & due dates → weekly plan.
  */
 export const MainFlowCard: React.FC<Props> = ({ assignments, emailAlerts, onNavigate, isGoogleConnected, isGmailConnected, isClassroomConnected, canvasCount = 0, classroomCount = 0 }) => {
-  useLang();
+  const { t } = useT();
   const [canvasHidden, setHidden] = useState(isCanvasHidden);
   const [, setScopeTick] = useState(0);
   useEffect(() => {
@@ -92,39 +90,39 @@ export const MainFlowCard: React.FC<Props> = ({ assignments, emailAlerts, onNavi
   const num = 'flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#D97757]/15 text-[11px] font-extrabold text-[#D97757]';
 
   return (
-    <section aria-label={L('Luồng chính', 'Main flow')} className="rounded-3xl border border-[#DFDACB] bg-[#FAF9F5] p-4 shadow-card dark:border-[#2C2B27] dark:bg-[#1F1E1B] sm:p-5">
+    <section aria-label={t('side_main_flow')} className="rounded-3xl border border-[#DFDACB] bg-[#FAF9F5] p-4 shadow-card dark:border-[#2C2B27] dark:bg-[#1F1E1B] sm:p-5">
       <div className="mb-3">
-        <h2 className="text-base font-extrabold text-[#1A1917] dark:text-[#F5F2EA]">{L('Luồng chính của bạn', 'Your main flow')}</h2>
+        <h2 className="text-base font-extrabold text-[#1A1917] dark:text-[#F5F2EA]">{t('flow_title')}</h2>
         <p className="text-xs text-[#6B6860] dark:text-[#A8A49A]">
-          {L('Thư, Classroom, Canvas → bài tập & hạn nộp → lịch học tuần. AI đề xuất, bạn quyết định.', 'Email, Classroom, Canvas → assignments & due dates → weekly plan. The AI suggests, you decide.')}
+          {t('flow_sub')}
         </p>
       </div>
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
         {/* 1. Sources */}
-        <div className={step} role="group" aria-label={L('Nguồn', 'Sources')}>
+        <div className={step} role="group" aria-label={t('flow_sources')}>
           <span className="flex items-center gap-2 text-xs font-bold text-[#1A1917] dark:text-[#F5F2EA]">
             <span className={num}>1</span>
             <PlugZap className="h-4 w-4 text-[#D97757]" aria-hidden="true" />
-            {L('Nguồn', 'Sources')}
+            {t('flow_sources')}
           </span>
           <div className="flex flex-wrap gap-1.5 text-[11px] font-bold">
             <button type="button" onClick={() => onNavigate('gmail')} className="rounded-full border border-[#DFDACB] px-2 py-1 hover:border-[#D97757] dark:border-[#2C2B27] dark:text-[#D6D2C7]">
-              Gmail {gmailReady ? '✓' : `· ${L('kết nối', 'connect')}`}
+              {t('flow_gmail_item', { status: gmailReady ? '✓' : `· ${t('flow_connect')}` })}
             </button>
             <button type="button" onClick={() => onNavigate('classroom')} className="rounded-full border border-[#DFDACB] px-2 py-1 hover:border-[#D97757] dark:border-[#2C2B27] dark:text-[#D6D2C7]">
-              Classroom · {classroomReady || classroomCount > 0 ? classroomCount : L('kết nối', 'connect')}
+              {t('flow_classroom_item', { value: classroomReady || classroomCount > 0 ? classroomCount : t('flow_connect') })}
             </button>
             {canvasHidden ? (
               <button type="button" onClick={toggleCanvas} className="inline-flex items-center gap-1 rounded-full border border-dashed border-[#DFDACB] px-2 py-1 text-[#6B6860] dark:border-[#2C2B27] dark:text-[#A8A49A]">
                 <Eye className="h-3 w-3" aria-hidden="true" />
-                {L('Hiện Canvas', 'Show Canvas')}
+                {t('flow_show_canvas')}
               </button>
             ) : (
               <span className="inline-flex items-center gap-1 rounded-full border border-[#DFDACB] pl-2 dark:border-[#2C2B27] dark:text-[#D6D2C7]">
                 <button type="button" onClick={() => onNavigate('canvas')} className="py-1 hover:text-[#D97757]">
-                  Canvas · {canvasCount}
+                  {t('flow_canvas_item', { count: canvasCount })}
                 </button>
-                <button type="button" onClick={toggleCanvas} aria-label={L('Ẩn Canvas', 'Hide Canvas')} title={L('Ẩn Canvas nếu trường bạn không dùng', 'Hide Canvas if your school does not use it')} className="rounded-full p-1 text-[#6B6860] hover:text-[#D97757] dark:text-[#A8A49A]">
+                <button type="button" onClick={toggleCanvas} aria-label={t('flow_hide_canvas')} title={t('flow_hide_canvas_title')} className="rounded-full p-1 text-[#6B6860] hover:text-[#D97757] dark:text-[#A8A49A]">
                   <EyeOff className="h-3 w-3" aria-hidden="true" />
                 </button>
               </span>
@@ -137,14 +135,14 @@ export const MainFlowCard: React.FC<Props> = ({ assignments, emailAlerts, onNavi
           <span className="flex items-center gap-2 text-xs font-bold text-[#1A1917] dark:text-[#F5F2EA]">
             <span className={num}>2</span>
             <Inbox className="h-4 w-4 text-[#D97757]" aria-hidden="true" />
-            {L('Cần bạn xác nhận', 'Needs your check')}
+            {t('flow_needs_check')}
           </span>
           <span className="text-[11px] leading-relaxed text-[#3A3835] dark:text-[#D6D2C7]">
-            {stats.pending} {L('bài AI tìm thấy chờ lưu', 'AI-found tasks to confirm')}
+            {t('flow_pending_tasks', { count: stats.pending })}
             <br />
-            {stats.review} {L('thư AI chưa đọc được', 'emails the AI could not read')}
+            {t('flow_emails_unread', { count: stats.review })}
             <br />
-            {stats.unconfirmed} {L('hạn chưa xác nhận', 'unconfirmed due dates')}
+            {t('flow_unconfirmed_due', { count: stats.unconfirmed })}
           </span>
           <ChevronRight className="h-4 w-4 self-end text-[#6B6860] group-hover:text-[#D97757]" aria-hidden="true" />
         </button>
@@ -154,12 +152,12 @@ export const MainFlowCard: React.FC<Props> = ({ assignments, emailAlerts, onNavi
           <span className="flex items-center gap-2 text-xs font-bold text-[#1A1917] dark:text-[#F5F2EA]">
             <span className={num}>3</span>
             <ListChecks className="h-4 w-4 text-[#D97757]" aria-hidden="true" />
-            {L('Bài tập & hạn nộp', 'Assignments & due dates')}
+            {t('flow_assignments_due')}
           </span>
           <span className="text-[11px] leading-relaxed text-[#3A3835] dark:text-[#D6D2C7]">
-            {stats.week} {L('bài trong 7 ngày tới', 'due in the next 7 days')}
+            {t('flow_due_week', { count: stats.week })}
             <br />
-            {stats.noDate} {L('bài chưa có hạn — AI không tự đặt', 'without a date — never invented')}
+            {t('flow_no_date', { count: stats.noDate })}
           </span>
           <ChevronRight className="h-4 w-4 self-end text-[#6B6860] group-hover:text-[#D97757]" aria-hidden="true" />
         </button>
@@ -169,22 +167,22 @@ export const MainFlowCard: React.FC<Props> = ({ assignments, emailAlerts, onNavi
           <span className="flex items-center gap-2 text-xs font-bold text-[#1A1917] dark:text-[#F5F2EA]">
             <span className={num}>4</span>
             <CalendarCheck className="h-4 w-4 text-[#D97757]" aria-hidden="true" />
-            {L('Lịch học tuần', 'Weekly study plan')}
+            {t('flow_weekly_plan')}
           </span>
           <span className="text-[11px] leading-relaxed text-[#3A3835] dark:text-[#D6D2C7]">
-            {L('AI xếp lịch; bạn xem thay đổi, quay lại bản cũ và khoá buổi quan trọng.', 'The AI plans; you review changes, undo, and lock key sessions.')}
+            {t('flow_weekly_desc')}
           </span>
           <ChevronRight className="h-4 w-4 self-end text-[#6B6860] group-hover:text-[#D97757]" aria-hidden="true" />
         </button>
       </div>
       <p className="mt-3 text-[11px] text-[#6B6860] dark:text-[#A8A49A]">
         <button type="button" onClick={() => window.dispatchEvent(new CustomEvent('scc-open-privacy'))} className="font-bold text-[#D97757] underline">
-          {L('Quyền riêng tư & dữ liệu gửi cho AI', 'Privacy & what the AI sees')}
+          {t('flow_privacy_link')}
         </button>
         {' · '}
-        {L('Đang tham gia thử nghiệm?', 'In the pilot?')}{' '}
+        {t('flow_in_pilot')}{' '}
         <button type="button" onClick={downloadPilotExport} className="font-bold text-[#D97757] underline">
-          {L('Tải số liệu thử nghiệm (ẩn danh: chỉ có số đếm, không có tên hay nội dung thư)', 'Download pilot numbers (anonymous: counts only, no names or email text)')}
+          {t('flow_download_pilot')}
         </button>
       </p>
     </section>

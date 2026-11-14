@@ -30,8 +30,29 @@ import {
 } from '../services/gemini';
 import { Assignment } from '../types';
 import { MathMarkdown } from './MathMarkdown';
+import { useT } from '../services/i18n';
 
 type SuiteTab = 'planner' | 'syllabus' | 'quiz' | 'grades';
+
+const SUITE_TABS = [
+  { id: 'planner', labelKey: 'suite_tab_planner', icon: Calendar },
+  { id: 'syllabus', labelKey: 'suite_tab_syllabus', icon: BookOpen },
+  { id: 'quiz', labelKey: 'suite_tab_quiz', icon: HelpCircle },
+  { id: 'grades', labelKey: 'suite_tab_grades', icon: TrendingUp },
+] as const;
+
+const ENERGY_LEVEL_KEYS = {
+  low: 'suite_planner_energy_low',
+  medium: 'suite_planner_energy_med',
+  high: 'suite_planner_energy_high',
+} as const;
+
+const GRADE_STATUS_KEYS = {
+  Guaranteed: 'suite_grades_status_guaranteed',
+  Achievable: 'suite_grades_status_achievable',
+  Challenging: 'suite_grades_status_challenging',
+  'High Risk': 'suite_grades_status_high_risk',
+} as const;
 
 interface AiAcademicSuiteModalProps {
   isOpen: boolean;
@@ -77,6 +98,7 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
   const [predictionResult, setPredictionResult] = useState<GradePredictionResult | null>(() =>
     calculateGradePrediction({ currentGrade: 82, desiredGrade: 90, finalExamWeight: 30 })
   );
+  const { t } = useT();
 
   if (!isOpen) return null;
 
@@ -107,7 +129,7 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
       setStudyPlan(res);
     } catch (err: any) {
       console.error('Error generating plan:', err);
-      setSuiteError(err?.message || 'Could not generate daily study plan. Check your AI API key in Settings.');
+      setSuiteError(err?.message || t('suite_planner_err'));
     } finally {
       setIsPlanning(false);
     }
@@ -123,7 +145,7 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
       setParsedSyllabus(res);
     } catch (err: any) {
       console.error('Error parsing syllabus:', err);
-      setSuiteError(err?.message || 'Could not extract assignments from syllabus. Check your AI API key in Settings.');
+      setSuiteError(err?.message || t('suite_syllabus_err'));
     } finally {
       setIsParsingSyllabus(false);
     }
@@ -133,11 +155,14 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
     if (!parsedSyllabus || !onAddAssignments) return;
     const newItems: Partial<Assignment>[] = parsedSyllabus.deadlines.map((d) => ({
       assignmentName: d.title,
-      subject: parsedSyllabus.courseTitle || 'Course',
+      subject: parsedSyllabus.courseTitle || t('plan_course'),
       dueDate: d.dueDate,
       priority: d.type === 'Exam' ? 'High' : 'Med',
       status: 'Not Started',
-      notes: `Extracted from ${parsedSyllabus.courseTitle} syllabus. Instructor: ${parsedSyllabus.instructor}`,
+      notes: t('suite_syllabus_notes', {
+        course: parsedSyllabus.courseTitle,
+        instructor: parsedSyllabus.instructor,
+      }),
     }));
     onAddAssignments(newItems);
     setSyllabusImported(true);
@@ -154,7 +179,7 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
       setQuizQuestions(res);
     } catch (err: any) {
       console.error('Error generating quiz:', err);
-      setSuiteError(err?.message || 'Could not generate practice quiz. Check your AI API key in Settings.');
+      setSuiteError(err?.message || t('suite_quiz_err'));
     } finally {
       setIsGeneratingQuiz(false);
     }
@@ -197,16 +222,17 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
             </div>
             <div>
               <h2 className="text-base font-bold text-[#141413] dark:text-[#FAF9F5]">
-                StudentOS Academic AI Suite
+                {t('suite_title')}
               </h2>
               <p className="text-xs text-[#8C897F]">
-                Daily study planner, syllabus deadline parser, interactive quiz builder &amp; GPA predictor
+                {t('suite_sub')}
               </p>
             </div>
           </div>
 
           <button
             onClick={onClose}
+            aria-label={t('close')}
             className="p-2 rounded-2xl bg-[#FAF9F5] dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] hover:border-[#D97757] text-[#5C5A54] dark:text-[#B5B2A8] transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
@@ -215,18 +241,13 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
 
         {/* Tab Switcher */}
         <div className="px-6 pt-4 border-b border-[#DFDACB] dark:border-[#2C2B27] bg-white dark:bg-[#1A1917] flex items-center gap-2 overflow-x-auto scrollbar-none shrink-0">
-          {[
-            { id: 'planner', label: 'AI Daily Study Planner', icon: Calendar },
-            { id: 'syllabus', label: 'Syllabus Deadline Parser', icon: BookOpen },
-            { id: 'quiz', label: 'Interactive AI Quiz', icon: HelpCircle },
-            { id: 'grades', label: 'Grade & Exam Predictor', icon: TrendingUp },
-          ].map((tab) => {
+          {SUITE_TABS.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
             return (
               <button
                 key={tab.id}
-                onClick={() => { setActiveTab(tab.id as any); setSuiteError(null); }}
+                onClick={() => { setActiveTab(tab.id); setSuiteError(null); }}
                 className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 border-b-2 ${
                   isActive
                     ? 'bg-[#FAF9F5] dark:bg-[#252422] text-[#D97757] border-[#D97757]'
@@ -234,7 +255,7 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
                 }`}
               >
                 <Icon className="w-4 h-4" />
-                <span>{tab.label}</span>
+                <span>{t(tab.labelKey)}</span>
               </button>
             );
           })}
@@ -250,7 +271,7 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
                 onClick={() => setSuiteError(null)}
                 className="shrink-0 font-bold underline hover:opacity-80 cursor-pointer"
               >
-                Dismiss
+                {t('suite_dismiss')}
               </button>
             </div>
           )}
@@ -262,10 +283,10 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
                 <div className="flex items-center justify-between flex-wrap gap-3">
                   <div>
                     <h3 className="text-sm font-bold text-[#141413] dark:text-[#FAF9F5]">
-                      Plan Your Day with AI
+                      {t('suite_planner_title')}
                     </h3>
                     <p className="text-xs text-[#8C897F]">
-                      AI analyzes your pending coursework, energy level, and available study hours.
+                      {t('suite_planner_sub')}
                     </p>
                   </div>
 
@@ -275,7 +296,7 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
                     className="px-5 py-2 bg-[#D97757] hover:bg-[#C86646] disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-2"
                   >
                     <Zap className="w-3.5 h-3.5" />
-                    <span>{isPlanning ? 'Analyzing workload...' : 'Generate Today’s Plan'}</span>
+                    <span>{isPlanning ? t('suite_planner_btn_loading') : t('suite_planner_btn')}</span>
                   </button>
                 </div>
 
@@ -283,20 +304,20 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-[#DFDACB]/60 dark:border-[#2C2B27]/60">
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-[#141413] dark:text-[#FAF9F5]">
-                      Current Energy &amp; Focus Level:
+                      {t('suite_planner_energy_label')}
                     </label>
                     <div className="grid grid-cols-3 gap-2">
                       {(['low', 'medium', 'high'] as const).map((lvl) => (
                         <button
                           key={lvl}
                           onClick={() => setEnergyLevel(lvl)}
-                          className={`py-1.5 rounded-xl text-xs font-bold capitalize transition-colors cursor-pointer border ${
+                          className={`py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer border ${
                             energyLevel === lvl
                               ? 'bg-[#D97757] text-white border-[#D97757]'
                               : 'bg-[#FAF9F5] dark:bg-[#252422] text-[#5C5A54] dark:text-[#B5B2A8] border-[#DFDACB] dark:border-[#2C2B27]'
                           }`}
                         >
-                          {lvl === 'low' ? 'Low' : lvl === 'medium' ? 'Medium' : 'Peak'}
+                          {t(ENERGY_LEVEL_KEYS[lvl])}
                         </button>
                       ))}
                     </div>
@@ -304,8 +325,8 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
 
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between text-xs font-bold">
-                      <span>Available Study Time:</span>
-                      <span className="text-[#D97757]">{availableHours} Hours</span>
+                      <span>{t('suite_planner_hours_label')}</span>
+                      <span className="text-[#D97757]">{t('suite_planner_hours_val', { hours: availableHours })}</span>
                     </div>
                     <input
                       type="range"
@@ -313,6 +334,7 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
                       max={8}
                       step={0.5}
                       value={availableHours}
+                      aria-label={t('suite_planner_hours_label')}
                       onChange={(e) => setAvailableHours(parseFloat(e.target.value))}
                       className="w-full accent-[#D97757] cursor-pointer"
                     />
@@ -326,16 +348,16 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
                   <div className="p-3.5 bg-[#FAF9F5] dark:bg-[#1F1E1B] rounded-xl border border-[#DFDACB] dark:border-[#2C2B27] flex items-start gap-2.5">
                     <Sparkles className="w-4 h-4 text-[#D97757] shrink-0 mt-0.5" />
                     <div className="text-xs text-[#141413] dark:text-[#FAF9F5] leading-relaxed">
-                      <strong>Strategy:</strong> {studyPlan.summary}
+                      <strong>{t('suite_planner_strategy')}</strong> {studyPlan.summary}
                       <p className="text-[11px] text-[#8C897F] mt-1 font-semibold italic">
-                        Tip: {studyPlan.motivationTip}
+                        {t('suite_planner_tip')} {studyPlan.motivationTip}
                       </p>
                     </div>
                   </div>
 
                   <div className="space-y-2.5">
                     <h4 className="text-xs font-bold uppercase tracking-wider text-[#8C897F]">
-                      Time-Blocked Schedule
+                      {t('suite_planner_schedule')}
                     </h4>
                     {studyPlan.blocks.map((block, idx) => (
                       <div
@@ -351,12 +373,12 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
                               {block.task}
                             </div>
                             <div className="text-[10px] text-[#8C897F]">
-                              Strategy: {block.strategy}
+                              {t('suite_planner_strategy')} {block.strategy}
                             </div>
                           </div>
                         </div>
                         <span className="text-[11px] text-[#8C897F] shrink-0">
-                          {block.durationMinutes} mins
+                          {t('suite_planner_mins', { mins: block.durationMinutes })}
                         </span>
                       </div>
                     ))}
@@ -372,10 +394,10 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
               <div className="bg-white dark:bg-[#1A1917] rounded-2xl border border-[#DFDACB] dark:border-[#2C2B27] p-5 shadow-xs space-y-4">
                 <div>
                   <h3 className="text-sm font-bold text-[#141413] dark:text-[#FAF9F5]">
-                    Parse Course Syllabus Deadlines &amp; Weights
+                    {t('suite_syllabus_title')}
                   </h3>
                   <p className="text-xs text-[#8C897F]">
-                    Paste syllabus text below. Gemini extracts course breakdown, instructor info, and all exam/assignment deadlines.
+                    {t('suite_syllabus_sub')}
                   </p>
                 </div>
 
@@ -383,7 +405,7 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
                   rows={6}
                   value={syllabusText}
                   onChange={(e) => setSyllabusText(e.target.value)}
-                  placeholder="Paste syllabus text here (Course policies, exam schedule, homework due dates, grading scale)..."
+                  placeholder={t('suite_syllabus_ph')}
                   className="w-full p-4 text-xs font-mono bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#D97757] text-[#141413] dark:text-[#FAF9F5] leading-relaxed resize-none"
                 />
 
@@ -394,7 +416,7 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
                     className="px-5 py-2.5 bg-[#D97757] hover:bg-[#C86646] disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-2"
                   >
                     <Sparkles className="w-4 h-4" />
-                    <span>{isParsingSyllabus ? 'Extracting syllabus...' : 'Extract Deadlines & Weights'}</span>
+                    <span>{isParsingSyllabus ? t('suite_syllabus_btn_loading') : t('suite_syllabus_btn')}</span>
                   </button>
                 </div>
               </div>
@@ -408,7 +430,11 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
                         {parsedSyllabus.courseTitle}
                       </h4>
                       <p className="text-xs text-[#8C897F]">
-                        Instructor: {parsedSyllabus.instructor} ({parsedSyllabus.email}) • Office Hours: {parsedSyllabus.officeHours}
+                        {t('suite_syllabus_instructor', {
+                          name: parsedSyllabus.instructor,
+                          email: parsedSyllabus.email,
+                          hours: parsedSyllabus.officeHours,
+                        })}
                       </p>
                     </div>
 
@@ -418,7 +444,7 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
                       className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-800 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5"
                     >
                       {syllabusImported ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
-                      <span>{syllabusImported ? 'Imported to Tracker!' : 'Import to Tracker'}</span>
+                      <span>{syllabusImported ? t('suite_syllabus_imported') : t('suite_syllabus_import')}</span>
                     </button>
                   </div>
 
@@ -426,7 +452,7 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
                   {parsedSyllabus.gradingBreakdown.length > 0 && (
                     <div className="space-y-2">
                       <span className="text-[11px] font-bold uppercase tracking-wider text-[#8C897F]">
-                        Grading Weights
+                        {t('suite_syllabus_weights')}
                       </span>
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                         {parsedSyllabus.gradingBreakdown.map((gb, i) => (
@@ -449,7 +475,7 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
                   {/* Extracted Deadlines */}
                   <div className="space-y-2">
                     <span className="text-[11px] font-bold uppercase tracking-wider text-[#8C897F]">
-                      Extracted Deadlines ({parsedSyllabus.deadlines.length})
+                      {t('suite_syllabus_deadlines', { count: parsedSyllabus.deadlines.length })}
                     </span>
                     <div className="space-y-1.5">
                       {parsedSyllabus.deadlines.map((dl, i) => (
@@ -483,10 +509,10 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
               <div className="bg-white dark:bg-[#1A1917] rounded-2xl border border-[#DFDACB] dark:border-[#2C2B27] p-5 shadow-xs space-y-4">
                 <div>
                   <h3 className="text-sm font-bold text-[#141413] dark:text-[#FAF9F5]">
-                    AI Interactive Practice Quiz Generator
+                    {t('suite_quiz_title')}
                   </h3>
                   <p className="text-xs text-[#8C897F]">
-                    Paste lecture notes or enter a subject topic. AI builds a 5-question exam-style quiz with instant grading.
+                    {t('suite_quiz_sub')}
                   </p>
                 </div>
 
@@ -494,7 +520,7 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
                   rows={4}
                   value={quizNotes}
                   onChange={(e) => setQuizNotes(e.target.value)}
-                  placeholder="e.g. Photosynthesis light reactions, Calvin cycle, ATP synthase, chloroplast thylakoid membrane..."
+                  placeholder={t('suite_quiz_ph')}
                   className="w-full p-4 text-xs font-sans bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#D97757] text-[#141413] dark:text-[#FAF9F5] leading-relaxed resize-none"
                 />
 
@@ -505,7 +531,7 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
                     className="px-5 py-2.5 bg-[#D97757] hover:bg-[#C86646] disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-2"
                   >
                     <HelpCircle className="w-4 h-4" />
-                    <span>{isGeneratingQuiz ? 'Building quiz questions...' : 'Generate Practice Quiz'}</span>
+                    <span>{isGeneratingQuiz ? t('suite_quiz_btn_loading') : t('suite_quiz_btn')}</span>
                   </button>
                 </div>
               </div>
@@ -515,11 +541,15 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
                 <div className="space-y-4 animate-in fade-in">
                   <div className="flex items-center justify-between px-2">
                     <span className="text-xs font-bold uppercase tracking-wider text-[#8C897F]">
-                      Practice Questions ({quizQuestions.length})
+                      {t('suite_quiz_questions_count', { count: quizQuestions.length })}
                     </span>
                     {quizSubmitted && (
                       <div className="px-3 py-1 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 rounded-full font-bold text-xs">
-                        Score: {calculateQuizScore()} / {quizQuestions.length} ({Math.round((calculateQuizScore() / quizQuestions.length) * 100)}%)
+                        {t('suite_quiz_score', {
+                          score: calculateQuizScore(),
+                          total: quizQuestions.length,
+                          pct: Math.round((calculateQuizScore() / quizQuestions.length) * 100),
+                        })}
                       </div>
                     )}
                   </div>
@@ -576,7 +606,7 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
 
                       {quizSubmitted && (
                         <div className="p-3 bg-amber-50/70 dark:bg-amber-950/30 rounded-xl border border-amber-200 dark:border-amber-900/60 text-[11px] text-[#5C5A54] dark:text-[#B5B2A8] leading-relaxed">
-                          <strong>Explanation:</strong>{' '}
+                          <strong>{t('suite_quiz_explanation')}</strong>{' '}
                           <MathMarkdown>{q.explanation}</MathMarkdown>
                         </div>
                       )}
@@ -589,7 +619,7 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
                         onClick={() => setQuizSubmitted(true)}
                         className="px-6 py-2.5 bg-[#D97757] hover:bg-[#C86646] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer"
                       >
-                        Submit Answers &amp; Grade Quiz
+                        {t('suite_quiz_submit')}
                       </button>
                     ) : (
                       <button
@@ -597,7 +627,7 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
                         className="px-6 py-2.5 bg-[#FAF9F5] dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] hover:border-[#D97757] text-[#141413] dark:text-[#FAF9F5] rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
                       >
                         <RotateCcw className="w-3.5 h-3.5" />
-                        <span>Generate New Quiz</span>
+                        <span>{t('suite_quiz_new')}</span>
                       </button>
                     )}
                   </div>
@@ -611,13 +641,14 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-white dark:bg-[#1A1917] rounded-2xl border border-[#DFDACB] dark:border-[#2C2B27] p-5 space-y-2">
-                  <span className="text-xs font-bold text-[#8C897F]">Current Course Grade</span>
+                  <span className="text-xs font-bold text-[#8C897F]">{t('suite_grades_current')}</span>
                   <div className="flex items-center gap-2">
                     <input
                       type="number"
                       min={0}
                       max={100}
                       value={currentGrade}
+                      aria-label={t('suite_grades_current')}
                       onChange={(e) =>
                         handleRecalculateGrade(
                           parseFloat(e.target.value) || 0,
@@ -632,13 +663,14 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
                 </div>
 
                 <div className="bg-white dark:bg-[#1A1917] rounded-2xl border border-[#DFDACB] dark:border-[#2C2B27] p-5 space-y-2">
-                  <span className="text-xs font-bold text-[#8C897F]">Target Goal Grade</span>
+                  <span className="text-xs font-bold text-[#8C897F]">{t('suite_grades_target')}</span>
                   <div className="flex items-center gap-2">
                     <input
                       type="number"
                       min={0}
                       max={100}
                       value={desiredGrade}
+                      aria-label={t('suite_grades_target')}
                       onChange={(e) =>
                         handleRecalculateGrade(
                           currentGrade,
@@ -653,13 +685,14 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
                 </div>
 
                 <div className="bg-white dark:bg-[#1A1917] rounded-2xl border border-[#DFDACB] dark:border-[#2C2B27] p-5 space-y-2">
-                  <span className="text-xs font-bold text-[#8C897F]">Final Exam Weight</span>
+                  <span className="text-xs font-bold text-[#8C897F]">{t('suite_grades_weight')}</span>
                   <div className="flex items-center gap-2">
                     <input
                       type="number"
                       min={1}
                       max={100}
                       value={finalExamWeight}
+                      aria-label={t('suite_grades_weight')}
                       onChange={(e) =>
                         handleRecalculateGrade(
                           currentGrade,
@@ -678,7 +711,7 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
               {predictionResult && (
                 <div className="bg-white dark:bg-[#1A1917] rounded-3xl border border-[#DFDACB] dark:border-[#2C2B27] p-8 shadow-xs text-center space-y-4">
                   <span className="text-xs font-bold uppercase tracking-wider text-[#8C897F]">
-                    Required Final Exam Score
+                    {t('suite_grades_required')}
                   </span>
 
                   <div className="text-6xl font-mono font-bold text-[#D97757]">
@@ -686,7 +719,7 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
                   </div>
 
                   <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#FAF9F5] dark:bg-[#252422] border border-[#DFDACB] dark:border-[#2C2B27] text-[#141413] dark:text-[#FAF9F5]">
-                    <span>Status:</span>
+                    <span>{t('suite_grades_status')}</span>
                     <span
                       className={
                         predictionResult.status === 'Guaranteed' || predictionResult.status === 'Achievable'
@@ -694,7 +727,7 @@ export const AiAcademicSuiteModal: React.FC<AiAcademicSuiteModalProps> = ({
                           : 'text-rose-600'
                       }
                     >
-                      {predictionResult.status}
+                      {t(GRADE_STATUS_KEYS[predictionResult.status])}
                     </span>
                   </div>
 

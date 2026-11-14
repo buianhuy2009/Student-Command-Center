@@ -1,4 +1,5 @@
 import { CanvasAssignment, CanvasSettings, Assignment } from '../types';
+import { t } from './i18n';
 
 export const DEFAULT_CANVAS_SETTINGS: CanvasSettings = {
   calendarFeedUrl: '',
@@ -96,26 +97,26 @@ export function validateCanvasCredentials(domain?: string, token?: string): stri
   const cleanToken = (token || '').trim();
   const rawDomain = (domain || '').trim();
   if (!rawDomain && !cleanToken) {
-    return 'Paste your Canvas URL and API token (Canvas → Account → Settings → New Access Token), or paste a Calendar Feed URL instead.';
+    return t('canvas_cred_both_missing');
   }
   if (rawDomain && !cleanToken) {
-    return 'Canvas URL saved, but the API token is missing — add your token (Canvas → Account → Settings → New Access Token), then retry.';
+    return t('canvas_cred_token_missing');
   }
   if (!rawDomain && cleanToken) {
-    return 'API token needs your Canvas URL too (e.g. https://4015.instructure.com).';
+    return t('canvas_cred_domain_missing');
   }
   const probe = rawDomain.replace(/^webcal:\/\//i, 'https://');
   const withScheme = /^https?:\/\//i.test(probe) ? probe : `https://${probe}`;
   try {
     const u = new URL(withScheme);
     if (u.protocol !== 'http:' && u.protocol !== 'https:') {
-      return 'That Canvas URL does not look right — it should start with https:// (e.g. https://4015.instructure.com).';
+      return t('canvas_cred_bad_scheme');
     }
     if (!u.hostname || !u.hostname.includes('.')) {
-      return 'That Canvas URL does not look right — check it is exactly your school host (e.g. https://4015.instructure.com).';
+      return t('canvas_cred_bad_host');
     }
   } catch {
-    return 'That Canvas URL does not look right — check it is exactly your school host (e.g. https://4015.instructure.com).';
+    return t('canvas_cred_bad_host');
   }
   return null;
 }
@@ -257,12 +258,12 @@ export function parseCanvasICS(icsText: string): CanvasAssignment[] {
   if (!icsText || !icsText.includes('BEGIN:VCALENDAR')) {
     const preview = (icsText || '').slice(0, 120);
     if (/<!doctype html|<html/i.test(icsText || '')) {
-      throw new Error(
-        'Canvas feed returned a login page instead of calendar data — the feed link expired or needs sign-in. In Canvas → Calendar → Calendar Feed, copy a fresh link, save it, and sync again.'
-      );
+      throw new Error(t('canvas_ics_html_login'));
     }
     throw new Error(
-      `Canvas feed did not return calendar data${preview ? ` (got: ${preview})` : ''} — re-copy the Calendar Feed link from Canvas and try again.`
+      t('canvas_ics_not_calendar', {
+        preview: preview ? t('canvas_ics_preview', { preview }) : '',
+      })
     );
   }
 
@@ -400,11 +401,11 @@ export async function fetchCanvasAssignmentsFromFeed(feedUrl: string): Promise<C
   try {
     const u = new URL(normalizedUrl);
     if (u.protocol !== 'http:' && u.protocol !== 'https:') {
-      throw new CanvasSyncError('host', 'That Calendar Feed URL does not look like a web address — re-copy it from Canvas → Calendar → Calendar Feed.');
+      throw new CanvasSyncError('host', t('canvas_feed_bad_url'));
     }
   } catch (err) {
     if (err instanceof CanvasSyncError) throw err;
-    throw new CanvasSyncError('host', 'That Calendar Feed URL does not look like a web address — re-copy it from Canvas → Calendar → Calendar Feed.');
+    throw new CanvasSyncError('host', t('canvas_feed_bad_url'));
   }
 
   // Detect a broken/missing deployment before blaming the user's feed URL.
@@ -415,7 +416,7 @@ export async function fetchCanvasAssignmentsFromFeed(feedUrl: string): Promise<C
   try {
     res = await fetchWithTimeout(proxyUrl);
   } catch {
-    throw new CanvasSyncError('network', 'Could not reach the Canvas feed (network error or timed out). Check your connection, then retry.');
+    throw new CanvasSyncError('network', t('canvas_feed_network'));
   }
 
   if (!res.ok) {
@@ -433,19 +434,19 @@ export async function fetchCanvasAssignmentsFromFeed(feedUrl: string): Promise<C
       // Ignore body parse errors
     }
     const withDetail = (bare: string) =>
-      (errorDetail && !bare.includes(errorDetail.slice(0, 60)) ? `${bare} Detail: ${errorDetail}` : bare);
+      (errorDetail && !bare.includes(errorDetail.slice(0, 60)) ? `${bare} ${t('canvas_detail_suffix', { detail: errorDetail })}` : bare);
     if (res.status === 401 || res.status === 403) {
-      throw new CanvasSyncError('auth', withDetail('Canvas feed was rejected — the feed link expired or needs sign-in. In Canvas → Calendar → Calendar Feed, copy a fresh link, save it, and sync again.'), res.status);
+      throw new CanvasSyncError('auth', withDetail(t('canvas_feed_rejected')), res.status);
     }
     if (res.status === 404) {
-      throw new CanvasSyncError('host', withDetail('Canvas feed answered 404 — the feed URL looks wrong. Re-copy the Calendar Feed link from Canvas.'), 404);
+      throw new CanvasSyncError('host', withDetail(t('canvas_feed_404')), 404);
     }
-    throw new CanvasSyncError('unknown', withDetail(`Canvas feed fetch failed (${res.status}): ${errorDetail}`), res.status);
+    throw new CanvasSyncError('unknown', withDetail(t('canvas_feed_failed', { status: res.status, detail: errorDetail })), res.status);
   }
 
   const icsText = await res.text();
   if (!icsText || icsText.trim().length === 0) {
-    throw new CanvasSyncError('unknown', 'Canvas feed returned empty content — re-copy the Calendar Feed link from Canvas and try again.');
+    throw new CanvasSyncError('unknown', t('canvas_feed_empty'));
   }
 
   return parseCanvasICS(icsText);
@@ -487,11 +488,11 @@ async function probeBackend(): Promise<void> {
     if (res.ok && type.includes('json')) return;
     throw new CanvasSyncError(
       'backend',
-      `the server API answered status ${res.status} (${type.split(';')[0] || 'unknown type'}) instead of JSON`
+      t('canvas_backend_wrong_response', { status: res.status, type: type.split(';')[0] || 'unknown' })
     );
   } catch (err) {
     if (err instanceof CanvasSyncError) throw err;
-    throw new CanvasSyncError('backend', 'the server API is unreachable from this browser');
+    throw new CanvasSyncError('backend', t('canvas_backend_unreachable'));
   }
 }
 
@@ -872,32 +873,32 @@ export async function fetchCanvasAssignmentsFromApi(
     const s = failure?.status ?? null;
     const detail = (failure?.detail || '').trim();
     const code = (failure?.code || '').trim();
-    const withDetail = (bare: string) => (detail && !bare.includes(detail.slice(0, 60)) ? `${bare} Detail: ${detail}` : bare);
+    const withDetail = (bare: string) => (detail && !bare.includes(detail.slice(0, 60)) ? `${bare} ${t('canvas_detail_suffix', { detail })}` : bare);
     if (s === 401 || s === 403 || code === 'canvas-unauthorized') {
       // 403 via the proxy is the same user-facing problem as 401: Canvas
       // refused these credentials (bad/expired token or token without scope).
       const label = s ? `${s} ${s === 403 ? 'Forbidden' : 'Unauthorized'}` : 'Unauthorized';
-      throw new CanvasSyncError('auth', `Canvas rejected the API token (${label}).`, s ?? undefined, code || undefined);
+      throw new CanvasSyncError('auth', t('canvas_api_rejected', { label }), s ?? undefined, code || undefined);
     }
     if (code === 'host-not-allowlisted' || /not allowlisted/i.test(detail)) {
       // Valid token, wrong server config: the school host is not on the proxy
       // allowlist (common for vanity domains like canvas.school.edu outside
       // instructure.com/canvaslms.com). The token is fine — the deployment
       // must allowlist the host.
-      throw new CanvasSyncError('host', withDetail('The app server refused to contact this Canvas host (proxy allowlist).'), 400, 'host-not-allowlisted');
+      throw new CanvasSyncError('host', withDetail(t('canvas_api_host_blocked')), 400, 'host-not-allowlisted');
     }
     if (s === 400) {
-      throw new CanvasSyncError('host', withDetail('The Canvas proxy refused this host (400).'), 400, code || undefined);
+      throw new CanvasSyncError('host', withDetail(t('canvas_api_400')), 400, code || undefined);
     }
     if (s === 404) {
-      throw new CanvasSyncError('host', withDetail('Canvas answered 404 — the host path looks wrong.'), 404, code || undefined);
+      throw new CanvasSyncError('host', withDetail(t('canvas_api_404')), 404, code || undefined);
     }
     if (failure?.network) {
-      throw new CanvasSyncError('network', 'Could not reach Canvas (network error or timed out).', undefined);
+      throw new CanvasSyncError('network', t('canvas_api_network'), undefined);
     }
     throw new CanvasSyncError(
       'unknown',
-      withDetail(s ? `Canvas answered with status ${s} on every endpoint.` : 'Canvas API did not respond on any endpoint.'),
+      withDetail(s ? t('canvas_api_status_err', { status: s }) : t('canvas_api_no_response')),
       s ?? undefined,
       code || undefined
     );
@@ -992,13 +993,13 @@ export async function submitCanvasAssignment(
     throw new Error(credentialProblem);
   }
   if (!courseId || !String(courseId).trim()) {
-    throw new Error('Missing Canvas course id — open the assignment in Canvas and retry.');
+    throw new Error(t('canvas_sub_missing_course'));
   }
   if (!assignmentId || !String(assignmentId).trim()) {
-    throw new Error('Missing Canvas assignment id — open the assignment in Canvas and retry.');
+    throw new Error(t('canvas_sub_missing_assignment'));
   }
   if (!fileUrl || !String(fileUrl).trim()) {
-    throw new Error('Pick a Google Drive file to submit first.');
+    throw new Error(t('canvas_sub_missing_file'));
   }
   const cleanDomain = normalizeCanvasDomain((domain || '').trim());
   
@@ -1028,7 +1029,7 @@ export async function submitCanvasAssignment(
       body: JSON.stringify(body),
     });
   } catch {
-    throw new Error('Canvas submission failed: network error or timed out. Check your connection, then retry.');
+    throw new Error(t('canvas_sub_network'));
   }
 
   if (!res.ok) {
@@ -1046,12 +1047,12 @@ export async function submitCanvasAssignment(
     // Actionable status mapping (same vocabulary as sync errors): never show
     // a bare `failed (401)` — name the fix. Still throws Error (signature unchanged).
     if (res.status === 401 || res.status === 403) {
-      throw new Error('Canvas rejected the API token — regenerate it (Canvas → Account → Settings → New Access Token), save it here, and retry.');
+      throw new Error(t('canvas_sub_rejected'));
     }
     if (res.status === 404) {
-      throw new Error('Canvas answered 404 — the school URL, course, or assignment looks wrong. Check the Canvas URL in Settings and retry.');
+      throw new Error(t('canvas_sub_404'));
     }
-    throw new Error(`Canvas submission failed (${res.status}): ${errMessage}`);
+    throw new Error(t('canvas_sub_failed', { status: res.status, detail: errMessage }));
   }
 
   return res.json();
