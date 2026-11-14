@@ -5,7 +5,7 @@ import {
   Search,
   RefreshCw,
 } from 'lucide-react';
-import { t, useLang } from '../services/i18n';
+import { t, useLang, getLang } from '../services/i18n';
 import { LanguageToggle } from './LanguageToggle';
 
 export interface NotificationItem {
@@ -108,10 +108,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                 ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800 hover:border-emerald-400'
                 : 'bg-[#E8E6DC] dark:bg-[#1F1E1B] text-[#5E5D59] dark:text-[#B5B2A8] border-[#E8E6DC] dark:border-[#2C2B27] hover:border-[#C96442]'
             }`}
-            title="Google Workspace Sync Hub"
+            title={getLang() === 'vi' ? 'Quản lý kết nối Google' : 'Google Connections'}
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isSyncingGoogle ? 'animate-spin text-[#C96442]' : isGoogleConnected ? 'text-emerald-600 dark:text-emerald-400' : ''}`} />
-            <span className="hidden md:inline text-[11px]">{isSyncingGoogle ? t('syncing') : isGoogleConnected ? 'Google Sync' : t('connect_google')}</span>
+            <span className="hidden md:inline text-[11px]">{isSyncingGoogle ? t('syncing') : isGoogleConnected ? (getLang() === 'vi' ? 'Google đã bật' : 'Google Tools') : t('connect_google')}</span>
           </button>
         )}
 

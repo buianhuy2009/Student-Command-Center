@@ -8,7 +8,7 @@ export default async function handler(req, res) {
   if (applyApiCors(req, res, "POST, OPTIONS")) return;
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
   try {
-    const { refresh_token } = req.body || {};
+    const { refresh_token, scope: knownScope } = req.body || {};
     if (!refresh_token) return res.status(400).json({ error: "Missing refresh_token" });
     const clientId = process.env.VITE_GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID || "";
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET || "";
@@ -36,10 +36,18 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: data?.error_description || data?.error || `Refresh failed (HTTP ${upstream.status})` });
     }
     if (!data?.access_token) return res.status(400).json({ error: "Google returned no access token" });
+    const rawScope =
+      typeof data.scope === "string" && data.scope.trim()
+        ? data.scope
+        : typeof knownScope === "string"
+        ? knownScope
+        : "";
+    const scopes = Array.from(new Set(rawScope.split(/\s+/).map((s) => s.trim()).filter(Boolean)));
     return res.status(200).json({
       access_token: data.access_token,
       expires_in: data.expires_in || 3600,
-      scope: data.scope || "",
+      scope: scopes.join(" "),
+      scopes,
       token_type: data.token_type || "Bearer",
     });
   } catch (err) {

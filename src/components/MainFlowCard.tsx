@@ -1,7 +1,8 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Inbox, ListChecks, CalendarCheck, PlugZap, ChevronRight, EyeOff, Eye } from 'lucide-react';
 import type { Assignment, EmailAlert } from '../types';
 import { getLang, useLang } from '../services/i18n';
+import { hasFeatureAccess } from '../services/googleAuth';
 import { getDismissedReviewIds } from '../utils/trust';
 import { downloadPilotExport } from '../utils/pilotStats';
 
@@ -34,6 +35,8 @@ interface Props {
   emailAlerts: EmailAlert[];
   onNavigate: (tabId: string) => void;
   isGoogleConnected?: boolean;
+  isGmailConnected?: boolean;
+  isClassroomConnected?: boolean;
   canvasCount?: number;
   classroomCount?: number;
 }
@@ -42,9 +45,21 @@ interface Props {
  * The one main flow judges asked us to focus on:
  * Gmail / Classroom / Canvas → confirm → assignments & due dates → weekly plan.
  */
-export const MainFlowCard: React.FC<Props> = ({ assignments, emailAlerts, onNavigate, isGoogleConnected, canvasCount = 0, classroomCount = 0 }) => {
+export const MainFlowCard: React.FC<Props> = ({ assignments, emailAlerts, onNavigate, isGoogleConnected, isGmailConnected, isClassroomConnected, canvasCount = 0, classroomCount = 0 }) => {
   useLang();
   const [canvasHidden, setHidden] = useState(isCanvasHidden);
+  const [, setScopeTick] = useState(0);
+  useEffect(() => {
+    const refresh = () => setScopeTick((n) => n + 1);
+    window.addEventListener('scc-google-scopes-updated', refresh);
+    window.addEventListener('scc-google-token-updated', refresh);
+    return () => {
+      window.removeEventListener('scc-google-scopes-updated', refresh);
+      window.removeEventListener('scc-google-token-updated', refresh);
+    };
+  }, []);
+  const gmailReady = isGmailConnected ?? (hasFeatureAccess('gmail') || Boolean(isGoogleConnected && false));
+  const classroomReady = isClassroomConnected ?? hasFeatureAccess('classroom');
 
   const stats = useMemo(() => {
     const dismissed = new Set(getDismissedReviewIds());
@@ -94,10 +109,10 @@ export const MainFlowCard: React.FC<Props> = ({ assignments, emailAlerts, onNavi
           </span>
           <div className="flex flex-wrap gap-1.5 text-[11px] font-bold">
             <button type="button" onClick={() => onNavigate('gmail')} className="rounded-full border border-[#DFDACB] px-2 py-1 hover:border-[#D97757] dark:border-[#2C2B27] dark:text-[#D6D2C7]">
-              Gmail {isGoogleConnected ? '✓' : `· ${L('kết nối', 'connect')}`}
+              Gmail {gmailReady ? '✓' : `· ${L('kết nối', 'connect')}`}
             </button>
             <button type="button" onClick={() => onNavigate('classroom')} className="rounded-full border border-[#DFDACB] px-2 py-1 hover:border-[#D97757] dark:border-[#2C2B27] dark:text-[#D6D2C7]">
-              Classroom · {classroomCount}
+              Classroom · {classroomReady || classroomCount > 0 ? classroomCount : L('kết nối', 'connect')}
             </button>
             {canvasHidden ? (
               <button type="button" onClick={toggleCanvas} className="inline-flex items-center gap-1 rounded-full border border-dashed border-[#DFDACB] px-2 py-1 text-[#6B6860] dark:border-[#2C2B27] dark:text-[#A8A49A]">

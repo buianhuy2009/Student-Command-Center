@@ -54,6 +54,11 @@ export const GoogleClassroomPanel: React.FC<GoogleClassroomPanelProps> = ({
   const error = externalError !== undefined ? externalError : internalError;
 
   const loadAssignments = async () => {
+    if (!isGoogleConnected && onConnectGoogle) {
+      onConnectGoogle();
+      return;
+    }
+
     if (externalRefresh) {
       externalRefresh();
       return;
@@ -64,7 +69,7 @@ export const GoogleClassroomPanel: React.FC<GoogleClassroomPanelProps> = ({
     }
 
     if (!googleToken) {
-      setInternalError('Your Google session token is missing or expired. Please reconnect your Google account to sync real Classroom coursework.');
+      setInternalError('Your Google Classroom connection needs to be refreshed. Click Connect Google Classroom to continue.');
       return;
     }
 
@@ -77,10 +82,10 @@ export const GoogleClassroomPanel: React.FC<GoogleClassroomPanelProps> = ({
         localStorage.setItem('scc_cached_classroom_assignments', JSON.stringify(data));
       } catch {}
     } catch (err: any) {
-      console.warn('Classroom API call failed:', err);
+      console.warn('Classroom call failed:', err);
       setInternalError(
         err?.message ||
-          'Could not connect to Google Classroom API. Please verify Google Classroom API is enabled on your Google Cloud Console.'
+          'Could not reach Google Classroom right now. Please reconnect Google Classroom and try again.'
       );
       setInternalAssignments([]);
     } finally {
@@ -89,7 +94,7 @@ export const GoogleClassroomPanel: React.FC<GoogleClassroomPanelProps> = ({
   };
 
   useEffect(() => {
-    if (classroomAssignments === undefined && (googleToken || isGoogleConnected) && internalAssignments.length === 0) {
+    if (classroomAssignments === undefined && isGoogleConnected && googleToken && internalAssignments.length === 0) {
       loadAssignments();
     }
   }, [googleToken, isGoogleConnected, classroomAssignments]);
@@ -130,13 +135,13 @@ export const GoogleClassroomPanel: React.FC<GoogleClassroomPanelProps> = ({
               onClick={onConnectGoogle}
               className="px-3.5 py-1.5 bg-[#D97757] hover:bg-[#C86646] text-white text-xs font-semibold rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
             >
-              <span>Connect Google</span>
+              <span>Connect Google Classroom</span>
             </button>
           )}
 
           <button
             onClick={loadAssignments}
-            disabled={isLoading || (!googleToken && !isGoogleConnected)}
+            disabled={isLoading || (!googleToken && !isGoogleConnected && !onConnectGoogle)}
             className="px-3 py-1.5 text-xs font-semibold bg-[#FAF9F5] dark:bg-[#252422] hover:bg-[#EFECE2] dark:hover:bg-[#2C2A26] text-[#5C5A54] dark:text-[#B5B2A8] rounded-xl border border-[#DFDACB] dark:border-[#2C2B27] transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
             title="Refresh Classroom Coursework"
           >
@@ -162,10 +167,10 @@ export const GoogleClassroomPanel: React.FC<GoogleClassroomPanelProps> = ({
           <div className="flex items-start gap-2.5">
             <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
             <div>
-              <p className="font-bold">Google Classroom Access Required</p>
+              <p className="font-bold">Google Classroom Needs Permission</p>
               <p className="text-[11px] mt-0.5 text-amber-800 dark:text-amber-300">
                 {error.includes('PERMISSION') || error.includes('403') || error.includes('401')
-                  ? 'Your current Google login needs the new Classroom permissions, or the Classroom API needs to be enabled in your Google Cloud project.'
+                  ? 'Please connect Google Classroom so StudentOS can read your class list and due dates.'
                   : error}
               </p>
             </div>
@@ -176,18 +181,9 @@ export const GoogleClassroomPanel: React.FC<GoogleClassroomPanelProps> = ({
                 onClick={onConnectGoogle}
                 className="px-3 py-1.5 bg-[#D97757] hover:bg-[#C86646] text-white rounded-xl font-bold text-xs shadow-xs transition-colors cursor-pointer"
               >
-                Re-connect Google
+                Connect Google Classroom
               </button>
             )}
-            <a
-              href="https://console.cloud.google.com/apis/library/classroom.googleapis.com"
-              target="_blank"
-              rel="noreferrer"
-              className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold text-xs flex items-center gap-1 transition-colors"
-            >
-              <span>Cloud API</span>
-              <ExternalLink className="w-3 h-3" />
-            </a>
           </div>
         </div>
       )}
@@ -205,32 +201,32 @@ export const GoogleClassroomPanel: React.FC<GoogleClassroomPanelProps> = ({
           {!isGoogleConnected ? (
             <div className="py-12 px-4 text-center bg-[#FAF9F5] dark:bg-[#1F1E1B] rounded-xl border border-dashed border-[#DFDACB] dark:border-[#2C2B27]">
               <GraduationCap className="w-10 h-10 mx-auto text-emerald-600 mb-2 opacity-80" />
-              <h4 className="text-sm font-bold text-[#141413] dark:text-[#FAF9F5]">Connect School Google Account</h4>
+              <h4 className="text-sm font-bold text-[#141413] dark:text-[#FAF9F5]">Connect Google Classroom</h4>
               <p className="text-xs text-[#8C897F] mt-1 max-w-sm mx-auto">
-                Sign in with your Google account to sync real classes, coursework, and assignments from Google Classroom.
+                Connect your Google account (read-only) to bring in your classes, homework, and teacher notices.
               </p>
               {onConnectGoogle && (
                 <button
                   onClick={onConnectGoogle}
                   className="mt-3.5 px-4 py-2 bg-[#D97757] hover:bg-[#C86646] text-white rounded-xl text-xs font-bold transition-colors cursor-pointer shadow-xs"
                 >
-                  Connect Google
+                  Connect Google Classroom
                 </button>
               )}
             </div>
           ) : !googleToken && assignments.length === 0 ? (
             <div className="py-12 px-4 text-center bg-amber-50/70 dark:bg-amber-950/20 rounded-xl border border-dashed border-amber-300 dark:border-amber-800">
               <AlertTriangle className="w-9 h-9 mx-auto text-amber-600 mb-2 opacity-90" />
-              <h4 className="text-sm font-bold text-[#141413] dark:text-[#FAF9F5]">Reconnect Google Account</h4>
+              <h4 className="text-sm font-bold text-[#141413] dark:text-[#FAF9F5]">Reconnect Google Classroom</h4>
               <p className="text-xs text-[#5C5A54] dark:text-[#B5B2A8] mt-1 max-w-md mx-auto">
-                Your Google session token is missing or expired. Reconnect your account to load real coursework from Google Classroom.
+                Your Google Classroom connection timed out. Reconnect to refresh your coursework.
               </p>
               {onConnectGoogle && (
                 <button
                   onClick={onConnectGoogle}
                   className="mt-3.5 px-4 py-2 bg-[#D97757] hover:bg-[#C86646] text-white rounded-xl text-xs font-bold transition-colors cursor-pointer shadow-xs"
                 >
-                  Re-connect Google
+                  Reconnect Classroom
                 </button>
               )}
             </div>

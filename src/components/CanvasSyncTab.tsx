@@ -141,12 +141,12 @@ export const CanvasSyncTab: React.FC<CanvasSyncTabProps> = ({
     const trimmedFeed = feedUrl.trim();
     const isCustomDomain =
       rawDomain !== '' && normalizedDomain !== 'https://canvas.instructure.com';
-    // API mode requires BOTH the Canvas instance URL and an access token.
+    // Live token mode requires BOTH the Canvas school URL and an access token.
     if (!trimmedFeed && !trimmedToken) {
       setSettingsError(
         isCustomDomain
-          ? 'Canvas URL saved — now add your API access token to enable live sync (Canvas → Account → Settings → New Access Token).'
-          : 'Paste either your Calendar Feed URL or your Canvas URL + API token to connect.'
+          ? 'Canvas URL saved — now add your access token to enable live sync (Canvas → Account → Settings → New Access Token).'
+          : 'Paste either your Calendar Feed link or your Canvas URL + access token to connect.'
       );
       // Persist a custom URL so typed progress isn't lost, but never fire a
       // fetch with known-incomplete credentials — it can only fail confusingly.
@@ -164,7 +164,7 @@ export const CanvasSyncTab: React.FC<CanvasSyncTabProps> = ({
       return;
     }
     if (!trimmedFeed && trimmedToken && !rawDomain) {
-      setSettingsError('API token needs your Canvas URL too (e.g. https://4015.instructure.com).');
+      setSettingsError('Access token needs your Canvas school URL too (e.g. https://4015.instructure.com).');
       return;
     }
     setIsSaving(true);
@@ -219,6 +219,10 @@ export const CanvasSyncTab: React.FC<CanvasSyncTabProps> = ({
   };
 
   const handleSubmitDriveFile = async (assignment: CanvasAssignment) => {
+    if ((!isGoogleConnected || !googleToken) && onConnectGoogle) {
+      onConnectGoogle();
+      return;
+    }
     if (!onSubmitAssignment || !selectedFileId) return;
     setIsSubmittingDrive(true);
     setActionError(null);
@@ -458,8 +462,8 @@ export const CanvasSyncTab: React.FC<CanvasSyncTabProps> = ({
           <form onSubmit={handleSave} className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
             <div className="sm:col-span-2">
               <label className="block font-bold text-[#141413] dark:text-[#F5F4ED] mb-1">
-                Canvas Instance URL <span className="text-rose-500">*</span>
-                <span className="ml-1 font-normal text-[#8C897F]">— required with API token</span>
+                Canvas School URL <span className="text-rose-500">*</span>
+                <span className="ml-1 font-normal text-[#8C897F]">— required with Access Token</span>
               </label>
               <input
                 type="text"
@@ -473,13 +477,13 @@ export const CanvasSyncTab: React.FC<CanvasSyncTabProps> = ({
               <p className="mt-1 text-[11px] text-[#8C897F] leading-snug">
                 Paste your school's Canvas link — even a login URL works
                 (e.g. <span className="font-mono">https://4015.instructure.com/login/</span>).
-                We keep just the <span className="font-mono">https://…</span> host for API calls.
+                We trim it to the base <span className="font-mono">https://…</span> school web address.
               </p>
             </div>
 
             <div>
               <label className="block font-bold text-[#141413] dark:text-[#F5F4ED] mb-1">
-                Canvas API Access Token <span className="text-rose-500">*</span>
+                Canvas Access Token <span className="text-rose-500">*</span>
                 <span className="ml-1 font-normal text-[#8C897F]">— required with URL</span>
               </label>
               <input
@@ -490,7 +494,7 @@ export const CanvasSyncTab: React.FC<CanvasSyncTabProps> = ({
                 className="w-full px-3 py-2 bg-[#E8E6DC] dark:bg-[#1F1E1B] border border-[#E8E6DC] dark:border-[#2C2B27] rounded-xl font-mono text-[11px] focus:outline-none focus:ring-1 focus:ring-[#C96442]"
               />
               <p className="mt-1 text-[11px] text-[#8C897F] leading-snug">
-                Live REST sync needs <span className="font-semibold">both</span> the URL above and this token.
+                Live assignment &amp; grade sync needs <span className="font-semibold">both</span> the URL above and this token.
               </p>
               <p className="mt-1 text-[11px] text-[#8C897F] leading-snug">
                 Saved only in this browser for your signed-in account — it survives sign-out and reload, and is never shared with other accounts on this device. Treat it like a password.
@@ -815,9 +819,22 @@ export const CanvasSyncTab: React.FC<CanvasSyncTabProps> = ({
                       {isSubmittingDrive ? 'Submitting...' : 'Submit to Canvas'}
                     </button>
                   </div>
+                ) : !isGoogleConnected && onConnectGoogle ? (
+                  <div className="space-y-2">
+                    <p className="text-[10px] text-[#8C897F]">
+                      Connect Google Drive to pick documents you created in StudentOS and submit them here.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={onConnectGoogle}
+                      className="px-3 py-1.5 bg-[#C96442] hover:bg-[#A94E33] text-white font-bold rounded-xl text-xs cursor-pointer transition-colors"
+                    >
+                      Connect Google Drive
+                    </button>
+                  </div>
                 ) : (
                   <p className="text-[10px] text-[#8C897F]">
-                    No Google Drive files indexed yet. Connect Google Workspace to auto-submit assignments.
+                    No StudentOS Google Drive files yet. Create or open a Google Doc first to attach it here.
                   </p>
                 )}
               </div>

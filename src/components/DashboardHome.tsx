@@ -34,6 +34,8 @@ interface DashboardHomeProps {
   onOpenAppStore?: () => void;
   user?: User | null;
   isGoogleConnected?: boolean;
+  isGmailConnected?: boolean;
+  isClassroomConnected?: boolean;
   onConnectGoogle?: () => void;
   onOpenStudyPlan?: () => void;
   calendarEvents?: CalendarEvent[];
@@ -50,6 +52,8 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
   onNavigateWorkspace,
   user,
   isGoogleConnected = false,
+  isGmailConnected,
+  isClassroomConnected,
   onConnectGoogle,
   onOpenStudyPlan,
   calendarEvents = [],
@@ -332,6 +336,8 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
           emailAlerts={emailAlerts}
           onNavigate={onNavigateWorkspace}
           isGoogleConnected={isGoogleConnected}
+          isGmailConnected={isGmailConnected}
+          isClassroomConnected={isClassroomConnected}
           canvasCount={canvasCount}
           classroomCount={classroomCount}
         />

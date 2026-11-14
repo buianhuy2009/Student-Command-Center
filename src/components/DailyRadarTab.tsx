@@ -226,7 +226,7 @@ export const DailyRadarTab: React.FC<DailyRadarTabProps> = ({
       setStudySlotResult(result);
     } catch (err: any) {
       console.error('Failed to suggest study slots:', err);
-      setSlotError(err?.message || 'Could not generate AI study slot suggestions. Check your AI API key or use Auto-Block / AI Planner.');
+      setSlotError(err?.message || 'Could not suggest study times right now. Check your Gemini/Groq key in Settings or pick a time yourself.');
     } finally {
       setIsSuggestingSlots(false);
     }
@@ -235,8 +235,12 @@ export const DailyRadarTab: React.FC<DailyRadarTabProps> = ({
   const handleAutoBlockWeek = async () => {
     setSlotError(null);
     setAutoBlockSummary(null);
+    if (!isGoogleConnected && onConnectGoogle) {
+      onConnectGoogle();
+      return;
+    }
     if (!onAddStudyBlock) {
-      setSlotError('Connect Google Calendar before auto-blocking study sessions.');
+      setSlotError('Connect Google Calendar first to save study blocks there.');
       return;
     }
     const freeSlots = findCollisionFreeStudySlots({
@@ -248,7 +252,7 @@ export const DailyRadarTab: React.FC<DailyRadarTabProps> = ({
       maxBlocks: 3,
     });
     if (freeSlots.length === 0) {
-      setSlotError('No collision-free 45-minute windows found over the next 7 days. Open AI Planner to customize blocked hours.');
+      setSlotError('No free 45-minute windows found over the next 7 days. Open AI Planner to adjust your study hours.');
       return;
     }
     setIsSuggestingSlots(true);
@@ -257,22 +261,26 @@ export const DailyRadarTab: React.FC<DailyRadarTabProps> = ({
       for (const s of freeSlots) {
         await onAddStudyBlock({
           title: `Focus: ${s.assignmentName} (${s.subject})`,
-          description: `Collision-free 45m study block (${chronotype} chronotype) avoiding ${events.length} calendar events and Canvas due cutoffs.`,
+          description: `45-minute study session (${chronotype} focus) avoiding ${events.length} calendar events and Canvas deadlines.`,
           startDateTime: `${s.dateStr}T${s.startTime}:00`,
           endDateTime: `${s.dateStr}T${s.endTime}:00`,
         });
         scheduledLabels.push(`${s.dateStr} ${s.startTime}`);
       }
-      setAutoBlockSummary(`Scheduled ${scheduledLabels.length} conflict-free study block(s): ${scheduledLabels.join(' · ')}`);
+      setAutoBlockSummary(`Scheduled ${scheduledLabels.length} free study session(s): ${scheduledLabels.join(' · ')}`);
     } catch (err: any) {
       console.error('Auto-block scheduling failed:', err);
-      setSlotError(err?.message || 'Could not save study blocks to Google Calendar.');
+      setSlotError(err?.message || 'Could not save study sessions to Google Calendar.');
     } finally {
       setIsSuggestingSlots(false);
     }
   };
 
   const handleApplySlot = async (slot: StudySlotSuggestion, idx: number) => {
+    if (!isGoogleConnected && onConnectGoogle) {
+      onConnectGoogle();
+      return;
+    }
     if (!onAddStudyBlock) return;
     setSchedulingSlotIndex(idx);
     setSlotError(null);
@@ -281,7 +289,7 @@ export const DailyRadarTab: React.FC<DailyRadarTabProps> = ({
       const endDateTime = `${todayStr}T${slot.endTime}:00`;
       await onAddStudyBlock({
         title: `Focus: ${slot.taskName} (${slot.taskSubject})`,
-        description: `Scheduled via AI Chronotype Blocker.\nReason: ${slot.reason}`,
+        description: `Planned with StudentOS.\nReason: ${slot.reason}`,
         startDateTime,
         endDateTime,
       });
@@ -417,9 +425,9 @@ export const DailyRadarTab: React.FC<DailyRadarTabProps> = ({
 
               <button
                 id="btn-refresh-schedule-radar"
-                onClick={onRefreshEvents}
+                onClick={() => (!isGoogleConnected && onConnectGoogle ? onConnectGoogle() : onRefreshEvents())}
                 className="p-1.5 rounded-xl hover:bg-[#FAF9F5] dark:hover:bg-[#252422] text-[#8C897F] dark:text-[#B5B2A8] hover:text-[#D97757] dark:hover:text-[#E59A7C] transition-colors cursor-pointer border border-transparent hover:border-[#DFDACB] dark:hover:border-[#2C2B27]"
-                title={t('radar_sync_title')}
+                title={isGoogleConnected ? t('radar_sync_title') : t('radar_connect_cal')}
               >
                 <RefreshCw className="w-3.5 h-3.5" />
               </button>

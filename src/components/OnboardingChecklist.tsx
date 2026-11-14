@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { CheckCircle2, Circle, ArrowRight, ChevronDown } from 'lucide-react';
 import { getValidGoogleToken } from '../services/firebase';
 import { hasAnyCanvasSettings } from '../services/canvas';
-import { hasRefreshToken } from '../services/googleAuth';
+import { getGrantedScopes, hasRefreshToken } from '../services/googleAuth';
 
 export type OnboardingChecks = { canvas: boolean; google: boolean; task: boolean; pomodoro: boolean };
 
@@ -77,20 +77,34 @@ export const OnboardingChecklist: React.FC<{ onConnectCanvas: ()=>void; onConnec
       return () => clearTimeout(t);
     } catch {}
   }, []);
-  // auto-detect (uses the real connection state: fresh Workspace token or
-  // permanent offline grant; Canvas legacy key or any per-account vault)
+  // auto-detect (uses real connection state across individual Google tools & Canvas)
   useEffect(()=>{
-    const hasCanvas = hasAnyCanvasSettings();
-    let hasGoogle = false;
-    try {
-      hasGoogle = Boolean(getValidGoogleToken() || hasRefreshToken());
-    } catch {
-      hasGoogle = false;
-    }
-    const hasTask = (()=>{ try{ const r=localStorage.getItem('scc_user_assignments_v2'); return r && JSON.parse(r).length>0; } catch{return false; }})();
-    const hasPomo = (()=>{ try{ return Boolean(localStorage.getItem('scc_pomo_completed_v1')); } catch{return false; }})();
-    const next = { canvas: hasCanvas||checks.canvas, google: hasGoogle||checks.google, task: hasTask||checks.task, pomodoro: hasPomo||checks.pomodoro };
-    if (JSON.stringify(next)!==JSON.stringify(checks)) save(next);
+    const syncStatus = () => {
+      const hasCanvas = hasAnyCanvasSettings();
+      let hasGoogle = false;
+      try {
+        hasGoogle = Boolean(getValidGoogleToken() || hasRefreshToken() || getGrantedScopes().length > 0);
+      } catch {
+        hasGoogle = false;
+      }
+      const hasTask = (()=>{ try{ const r=localStorage.getItem('scc_user_assignments_v2'); return r && JSON.parse(r).length>0; } catch{return false; }})();
+      const hasPomo = (()=>{ try{ return Boolean(localStorage.getItem('scc_pomo_completed_v1')); } catch{return false; }})();
+      setChecks(prev => {
+        const next = { canvas: hasCanvas||prev.canvas, google: hasGoogle||prev.google, task: hasTask||prev.task, pomodoro: hasPomo||prev.pomodoro };
+        if (JSON.stringify(next)!==JSON.stringify(prev)) {
+          try { localStorage.setItem('scc_onboarding_checks_v1', JSON.stringify(next)); } catch {}
+          return next;
+        }
+        return prev;
+      });
+    };
+    syncStatus();
+    window.addEventListener('scc-google-scopes-updated', syncStatus);
+    window.addEventListener('scc-google-token-updated', syncStatus);
+    return () => {
+      window.removeEventListener('scc-google-scopes-updated', syncStatus);
+      window.removeEventListener('scc-google-token-updated', syncStatus);
+    };
   }, []);
   const progress = getOnboardingProgress(checks);
   if (progress===4) return null;
@@ -128,7 +142,7 @@ export const OnboardingChecklist: React.FC<{ onConnectCanvas: ()=>void; onConnec
       <div className="space-y-2">
         {([
           { key:'canvas', label:'Connect Canvas — pull in assignments', done: checks.canvas, action: onConnectCanvas },
-          { key:'google', label:'Connect Google — calendar, mail & files', done: checks.google, action: onConnectGoogle },
+          { key:'google', label:'Connect a Google tool (optional) — Calendar, Gmail, or Classroom', done: checks.google, action: onConnectGoogle },
           { key:'task', label:'Add your first assignment', done: checks.task, action: onCreateTask },
           { key:'pomodoro', label:'Start a 25-min focus session', done: checks.pomodoro, action: onStartPomodoro },
         ] as const).map(item=>(

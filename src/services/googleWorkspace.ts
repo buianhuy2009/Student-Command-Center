@@ -32,7 +32,7 @@ export class GoogleApiDisabledError extends Error {
     originalMessage?: string
   ) {
     super(
-      `${serviceName} is not enabled in your Google Cloud Project (${projectId}). Click the link to enable it in Google Cloud Console.`
+      `${serviceName} is currently unavailable for this account. Please try again later.`
     );
     this.name = 'GoogleApiDisabledError';
     this.serviceName = serviceName;
@@ -48,7 +48,7 @@ async function assertGoogleResponseOk(
   defaultServiceId: string
 ): Promise<void> {
   if (res.status === 401) {
-    throw new Error(`${defaultServiceName} session expired or unauthorized (401).`);
+    throw new Error(`${defaultServiceName} connection expired — please reconnect and try again.`);
   }
   if (!res.ok) {
     const errBody = await res.text();
@@ -119,12 +119,12 @@ export function parseGoogleApiResponseError(
         msg.includes('insufficient authentication scopes'));
 
     if (isScopeError) {
-      return new Error(`${defaultServiceName} requires permission: please reconnect your Google account to grant access.`);
+      return new Error(`${defaultServiceName} needs your permission first — click Connect to allow access.`);
     }
 
-    return new Error(`${defaultServiceName} error (${status}): ${msg}`);
+    return new Error(`${defaultServiceName} couldn't finish that request: ${msg}`);
   } catch {
-    return new Error(`${defaultServiceName} error (${status}): ${bodyText || 'Unknown error'}`);
+    return new Error(`${defaultServiceName} couldn't finish that request (${status}).`);
   }
 }
 
@@ -149,12 +149,12 @@ export async function fetchTodayCalendarEvents(token: string): Promise<CalendarE
     });
 
     if (res.status === 401) {
-      throw new Error('Google Calendar session expired or scope missing (401).');
+      throw new Error('Your Google Calendar connection expired. Please reconnect Google Calendar.');
     }
 
     if (!res.ok) {
       const errBody = await res.text();
-      throw parseGoogleApiResponseError(res.status, errBody, 'Google Calendar API', 'calendar-json.googleapis.com');
+      throw parseGoogleApiResponseError(res.status, errBody, 'Google Calendar', 'calendar-json.googleapis.com');
     }
 
     const data = await res.json();
@@ -379,15 +379,15 @@ export async function fetchAcademicEmails(
     });
 
     if (listRes.status === 401) {
-      throw new Error('Gmail session expired or scope missing (401).');
+      throw new Error('Your Gmail connection expired. Please reconnect Gmail to check your inbox.');
     }
 
     if (!listRes.ok) {
       const errBody = await listRes.text();
       if (listRes.status === 403 && (errBody.includes('insufficient') || errBody.includes('ACCESS_TOKEN_SCOPE_INSUFFICIENT'))) {
-        throw new Error('Gmail scan requires permission. Reconnect with Gmail scope or authorize inbox scanning.');
+        throw new Error('Gmail needs permission first — click Connect Gmail to review school updates.');
       }
-      throw parseGoogleApiResponseError(listRes.status, errBody, 'Gmail API', 'gmail.googleapis.com');
+      throw parseGoogleApiResponseError(listRes.status, errBody, 'Gmail', 'gmail.googleapis.com');
     }
 
     const listData = await listRes.json();
@@ -586,7 +586,7 @@ export async function findOrCreateMasterSpreadsheet(
         };
       }
       if (checkRes.status === 401) {
-        throw new Error('Google Sheets session expired or scope missing (401).');
+        throw new Error('Your Google Sheets connection expired. Please reconnect Google Sheets.');
       }
       if (checkRes.status === 404 || checkRes.status === 403) {
         clearScopedMasterSheetId(resolvedUid);
@@ -648,12 +648,12 @@ export async function findOrCreateMasterSpreadsheet(
     });
 
     if (createRes.status === 401) {
-      throw new Error('Google Sheets session expired or scope missing (401).');
+      throw new Error('Your Google Sheets connection expired. Please reconnect Google Sheets.');
     }
 
     if (!createRes.ok) {
       const errBody = await createRes.text();
-      throw parseGoogleApiResponseError(createRes.status, errBody, 'Google Sheets API', 'sheets.googleapis.com');
+      throw parseGoogleApiResponseError(createRes.status, errBody, 'Google Sheets', 'sheets.googleapis.com');
     }
 
     const createdSheet = await createRes.json();
@@ -734,7 +734,7 @@ export async function readAssignmentsFromSheet(
     });
 
     if (res.status === 401) {
-      throw new Error('Google Sheets session expired or unauthorized (401).');
+      throw new Error('Your Google Sheets connection expired. Please reconnect Google Sheets.');
     }
 
     // Fallback to first sheet range if Assignments tab is named differently
@@ -1100,7 +1100,7 @@ export async function fetchRecentSchoolFiles(
     });
 
     if (res.status === 401) {
-      throw new Error('Google Workspace session expired or unauthorized (401).');
+      throw new Error('Your Google Drive connection expired. Please reconnect Google Drive.');
     }
 
     // Fallback for personal accounts where supportsAllDrives can throw 400, 403 or 404
@@ -1172,12 +1172,12 @@ export async function createFormattedAssignmentDoc(
     });
 
     if (createRes.status === 401) {
-      throw new Error('Google Docs session expired or unauthorized (401).');
+      throw new Error('Your Google Docs connection expired. Please reconnect Google Drive & Docs.');
     }
 
     if (!createRes.ok) {
       const errBody = await createRes.text();
-      throw parseGoogleApiResponseError(createRes.status, errBody, 'Google Docs API', 'docs.googleapis.com');
+      throw parseGoogleApiResponseError(createRes.status, errBody, 'Google Docs', 'docs.googleapis.com');
     }
 
     const createdDoc = await createRes.json();

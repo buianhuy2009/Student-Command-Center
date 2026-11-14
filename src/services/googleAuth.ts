@@ -15,6 +15,7 @@
 // degrades to the local mirror only. The raw refresh token is never logged.
 
 import {
+  auth,
   getStoredGoogleToken,
   setStoredGoogleToken,
   getValidGoogleToken,
@@ -24,8 +25,23 @@ import {
   WORKSPACE_SCOPES,
 } from './firebase';
 
+export type GoogleFeature = 'calendar' | 'gmail' | 'drive' | 'sheets' | 'classroom';
+
+export const FEATURE_SCOPES: Record<GoogleFeature, string[]> = {
+  calendar: ['https://www.googleapis.com/auth/calendar.events'],
+  gmail: ['https://www.googleapis.com/auth/gmail.readonly'],
+  drive: ['https://www.googleapis.com/auth/drive.file'],
+  sheets: ['https://www.googleapis.com/auth/drive.file'],
+  classroom: [
+    'https://www.googleapis.com/auth/classroom.courses.readonly',
+    'https://www.googleapis.com/auth/classroom.coursework.me.readonly',
+    'https://www.googleapis.com/auth/classroom.announcements.readonly',
+  ],
+};
+
 const REFRESH_LS_KEY = 'scc_google_refresh_v1';
 const REFRESH_IDB_KEY = 'google_refresh_grant_v1';
+const SCOPES_LS_KEY = 'scc_google_scopes_v1';
 // Which account wrote the legacy (pre-per-uid) grant mirror — a different
 // account must never inherit it.
 const REFRESH_OWNER_KEY = 'scc_google_refresh_owner';
@@ -33,12 +49,33 @@ const refreshLsKeyFor = (uid?: string | null) =>
   uid ? `${REFRESH_LS_KEY}__${uid}` : REFRESH_LS_KEY;
 const refreshIdbKeyFor = (uid?: string | null) =>
   uid ? `${REFRESH_IDB_KEY}__${uid}` : REFRESH_IDB_KEY;
+const scopesLsKeyFor = (uid?: string | null) =>
+  uid ? `${SCOPES_LS_KEY}__${uid}` : SCOPES_LS_KEY;
 
-/** Resolve the account in scope: explicit uid → active session → null (legacy). */
+/** Normalize a space-separated scope string or array into unique, trimmed scope URLs. */
+export function normalizeScopes(input?: string | string[] | null): string[] {
+  if (!input) return [];
+  const rawList = Array.isArray(input) ? input : [input];
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const item of rawList) {
+    if (typeof item !== 'string') continue;
+    for (const part of item.split(/\s+/)) {
+      const s = part.trim();
+      if (s && !seen.has(s)) {
+        seen.add(s);
+        out.push(s);
+      }
+    }
+  }
+  return out;
+}
+
+/** Resolve the account in scope: explicit uid → active session → Firebase current user → null (legacy). */
 function resolveGrantUid(explicit?: string | null): string | null {
   if (explicit) return explicit;
   try {
-    return getActiveGoogleUid() || null;
+    return getActiveGoogleUid() || auth?.currentUser?.uid || null;
   } catch {
     return null;
   }
@@ -89,7 +126,7 @@ function loadGisScript(): Promise<void> {
             resolve();
           } else if (tries > 50) {
             clearInterval(iv);
-            reject(new Error('Google sign-in library did not load. Check your connection or ad-blocker, then retry.'));
+            reject(new Error('Could not open the Google sign-in window. Check your connection or ad-blocker, then try again.'));
           }
         }, 100);
         return;
@@ -99,7 +136,7 @@ function loadGisScript(): Promise<void> {
       s.async = true;
       s.defer = true;
       s.onload = () => resolve();
-      s.onerror = () => reject(new Error('Could not load Google sign-in library. Check your connection or ad-blocker, then retry.'));
+      s.onerror = () => reject(new Error('Could not open the Google sign-in window. Check your connection or ad-blocker, then try again.'));
       document.head.appendChild(s);
     } catch (e) {
       reject(e);
@@ -107,24 +144,100 @@ function loadGisScript(): Promise<void> {
   });
 }
 
-interface RefreshGrant {
+export interface RefreshGrant {
   rt: string;
   at: number;
   scope: string;
+  grantedScopes?: string[];
 }
 
 let grantCache: Record<string, RefreshGrant | null> = {};
+let scopesCache: Record<string, string[]> = {};
 
-/** @internal Test-only: drop cached grants so tests can simulate reload. */
+/** @internal Test-only: drop cached grants & scopes so tests can simulate reload. */
 export function __resetGrantCacheForTests() {
   grantCache = {};
+  scopesCache = {};
+}
+
+function dispatchScopesUpdated(scopes: string[], uid?: string | null) {
+  if (typeof window === 'undefined') return;
+  try {
+    window.dispatchEvent(new CustomEvent('scc-google-scopes-updated', { detail: { scopes, uid: uid || null } }));
+  } catch {}
+}
+
+function readScopesSync(uid?: string | null): string[] {
+  const resolved = resolveGrantUid(uid);
+  const key = scopesLsKeyFor(resolved);
+  if (scopesCache[key] !== undefined) return scopesCache[key];
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      const list = normalizeScopes(Array.isArray(parsed) ? parsed : String(parsed || ''));
+      scopesCache[key] = list;
+      return list;
+    }
+    if (resolved) {
+      const owner = getRefreshOwner();
+      if (!owner || owner === resolved) {
+        const legacyRaw = localStorage.getItem(SCOPES_LS_KEY);
+        if (legacyRaw) {
+          const parsed = JSON.parse(legacyRaw);
+          const list = normalizeScopes(Array.isArray(parsed) ? parsed : String(parsed || ''));
+          if (list.length) {
+            scopesCache[key] = list;
+            try {
+              localStorage.setItem(key, JSON.stringify(list));
+              setRefreshOwner(resolved);
+            } catch {}
+            return list;
+          }
+        }
+      }
+    }
+  } catch {}
+  scopesCache[key] = [];
+  return [];
+}
+
+function saveScopesSync(scopes: string[], uid?: string | null): string[] {
+  const resolved = resolveGrantUid(uid);
+  const key = scopesLsKeyFor(resolved);
+  const normalized = normalizeScopes(scopes);
+  scopesCache[key] = normalized;
+  try {
+    if (normalized.length > 0) {
+      localStorage.setItem(key, JSON.stringify(normalized));
+      localStorage.setItem(SCOPES_LS_KEY, JSON.stringify(normalized));
+      if (resolved) setRefreshOwner(resolved);
+    } else {
+      localStorage.removeItem(key);
+      const owner = getRefreshOwner();
+      if (!resolved || !owner || owner === resolved) {
+        localStorage.removeItem(SCOPES_LS_KEY);
+      }
+    }
+  } catch {}
+  return normalized;
 }
 
 function parseGrant(raw: string | null): RefreshGrant | null {
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw) as RefreshGrant;
-    return parsed && typeof parsed.rt === 'string' ? parsed : null;
+    if (!parsed || typeof parsed.rt !== 'string') return null;
+    const normalized = normalizeScopes(
+      Array.isArray(parsed.grantedScopes) && parsed.grantedScopes.length > 0
+        ? parsed.grantedScopes
+        : parsed.scope
+    );
+    return {
+      ...parsed,
+      scope: normalized.join(' '),
+      grantedScopes: normalized,
+    };
   } catch {
     return null;
   }
@@ -162,12 +275,25 @@ async function persistGrant(grant: RefreshGrant | null, uid?: string | null): Pr
   const resolved = resolveGrantUid(uid);
   const lsKey = refreshLsKeyFor(resolved);
   const idbKey = refreshIdbKeyFor(resolved);
-  grantCache[lsKey] = grant;
+  const normalizedScopes = grant
+    ? normalizeScopes(grant.grantedScopes?.length ? grant.grantedScopes : grant.scope)
+    : [];
+  const normalizedGrant: RefreshGrant | null = grant
+    ? {
+        ...grant,
+        scope: normalizedScopes.join(' '),
+        grantedScopes: normalizedScopes,
+      }
+    : null;
+
+  grantCache[lsKey] = normalizedGrant;
+  saveScopesSync(normalizedScopes, resolved);
+
   try {
-    if (grant) {
-      localStorage.setItem(lsKey, JSON.stringify(grant));
+    if (normalizedGrant) {
+      localStorage.setItem(lsKey, JSON.stringify(normalizedGrant));
       // Legacy global mirror (backwards compatible); guarded by owner on read.
-      localStorage.setItem(REFRESH_LS_KEY, JSON.stringify(grant));
+      localStorage.setItem(REFRESH_LS_KEY, JSON.stringify(normalizedGrant));
       if (resolved) setRefreshOwner(resolved);
     } else {
       localStorage.removeItem(lsKey);
@@ -182,9 +308,9 @@ async function persistGrant(grant: RefreshGrant | null, uid?: string | null): Pr
   } catch {}
   try {
     const { db } = await import('./db');
-    if (grant) {
-      await db.preferences.put({ key: idbKey, value: JSON.stringify(grant) });
-      await db.preferences.put({ key: REFRESH_IDB_KEY, value: JSON.stringify(grant) }).catch(() => {});
+    if (normalizedGrant) {
+      await db.preferences.put({ key: idbKey, value: JSON.stringify(normalizedGrant) });
+      await db.preferences.put({ key: REFRESH_IDB_KEY, value: JSON.stringify(normalizedGrant) }).catch(() => {});
     } else {
       await db.preferences.delete(idbKey);
       const owner = getRefreshOwner();
@@ -196,7 +322,8 @@ async function persistGrant(grant: RefreshGrant | null, uid?: string | null): Pr
   // Cross-device home for the grant: owner-only Firestore doc (best effort —
   // offline or restrictive rules fall back to the local mirror silently).
   try {
-    if (uid) {
+    const firestoreUid = uid || resolved;
+    if (firestoreUid) {
       const [{ getFirestore, doc, setDoc }, { getApps }] = await Promise.all([
         import('firebase/firestore'),
         import('firebase/app'),
@@ -204,22 +331,128 @@ async function persistGrant(grant: RefreshGrant | null, uid?: string | null): Pr
       const apps = getApps();
       if (apps.length) {
         const dbf = getFirestore(apps[0]);
-        if (grant) {
+        if (normalizedGrant) {
           await setDoc(
-            doc(dbf, 'users', uid, 'integrations', 'google'),
-            { refresh_token: grant.rt, scope: grant.scope, updated_at: new Date().toISOString() },
+            doc(dbf, 'users', firestoreUid, 'integrations', 'google'),
+            {
+              refresh_token: normalizedGrant.rt,
+              scope: normalizedGrant.scope,
+              grantedScopes: normalizedScopes,
+              updated_at: new Date().toISOString(),
+            },
             { merge: true }
           );
         }
       }
     }
   } catch {}
+  dispatchScopesUpdated(normalizedScopes, resolved);
+}
+
+/** Merge newly granted scopes into the active account's scope store (and refresh grant if present). */
+export function recordGrantedScopes(scopes: string | string[], uid?: string | null): string[] {
+  const resolved = resolveGrantUid(uid);
+  const incoming = normalizeScopes(scopes);
+  if (!incoming.length) return getGrantedScopes(resolved);
+  const existing = getGrantedScopes(resolved);
+  const merged = normalizeScopes([...existing, ...incoming]);
+  saveScopesSync(merged, resolved);
+  const grant = readGrantSync(resolved);
+  if (grant) {
+    const updated: RefreshGrant = {
+      ...grant,
+      scope: merged.join(' '),
+      grantedScopes: merged,
+    };
+    grantCache[refreshLsKeyFor(resolved)] = updated;
+    try {
+      localStorage.setItem(refreshLsKeyFor(resolved), JSON.stringify(updated));
+      localStorage.setItem(REFRESH_LS_KEY, JSON.stringify(updated));
+    } catch {}
+  }
+  dispatchScopesUpdated(merged, resolved);
+  return merged;
+}
+
+/** Remove specific revoked/missing scopes from the cached scope list. */
+export function removeGrantedScopes(scopesToRemove: string | string[], uid?: string | null): string[] {
+  const resolved = resolveGrantUid(uid);
+  const removeSet = new Set(normalizeScopes(scopesToRemove));
+  const remaining = getGrantedScopes(resolved).filter((s) => !removeSet.has(s));
+  saveScopesSync(remaining, resolved);
+  const grant = readGrantSync(resolved);
+  if (grant) {
+    const updated: RefreshGrant = {
+      ...grant,
+      scope: remaining.join(' '),
+      grantedScopes: remaining,
+    };
+    grantCache[refreshLsKeyFor(resolved)] = updated;
+    try {
+      localStorage.setItem(refreshLsKeyFor(resolved), JSON.stringify(updated));
+      localStorage.setItem(REFRESH_LS_KEY, JSON.stringify(updated));
+    } catch {}
+  }
+  dispatchScopesUpdated(remaining, resolved);
+  return remaining;
+}
+
+/** All normalized Google OAuth scopes currently granted for this account. */
+export function getGrantedScopes(uid?: string | null): string[] {
+  const resolved = resolveGrantUid(uid);
+  const grant = readGrantSync(resolved);
+  const grantScopes = grant
+    ? normalizeScopes(grant.grantedScopes?.length ? grant.grantedScopes : grant.scope)
+    : [];
+  const storedScopes = readScopesSync(resolved);
+  return normalizeScopes([...grantScopes, ...storedScopes]);
+}
+
+/** Check whether a full scope URL or short suffix (e.g. 'gmail.readonly') has been granted. */
+export function hasScope(scopeOrSuffix: string, uid?: string | null): boolean {
+  const target = (scopeOrSuffix || '').trim();
+  if (!target) return false;
+  const granted = getGrantedScopes(uid);
+  if (!granted.length) return false;
+  if (target.startsWith('http://') || target.startsWith('https://')) {
+    return granted.includes(target);
+  }
+  const suffix = target.replace(/^\/?(auth\/)?/, '');
+  return granted.includes(target) || granted.includes(`https://www.googleapis.com/auth/${suffix}`);
+}
+
+/** True when the account has an active/restorable Google connection AND every scope needed for `feature`. */
+export function hasFeatureAccess(feature: GoogleFeature, uid?: string | null): boolean {
+  const required = FEATURE_SCOPES[feature];
+  if (!required?.length) return false;
+  if (!isConnected(uid)) return false;
+  return required.every((s) => hasScope(s, uid));
+}
+
+if (typeof window !== 'undefined') {
+  try {
+    window.addEventListener('scc-google-token-updated', (e: any) => {
+      const detail = e?.detail;
+      if (detail?.token === null) {
+        scopesCache = {};
+        grantCache = {};
+        return;
+      }
+      if (detail?.scopes) {
+        recordGrantedScopes(detail.scopes);
+      }
+    });
+  } catch {}
 }
 
 /** Pull a cross-device grant down (e.g. fresh login on a second laptop). */
 export async function hydrateRefreshGrant(uid?: string | null): Promise<boolean> {
   const resolved = resolveGrantUid(uid);
-  if (readGrantSync(resolved)) return true;
+  const local = readGrantSync(resolved);
+  if (local) {
+    saveScopesSync(local.grantedScopes?.length ? local.grantedScopes : normalizeScopes(local.scope), resolved);
+    return true;
+  }
   try {
     const [{ getFirestore, doc, getDoc }, { getApps }] = await Promise.all([
       import('firebase/firestore'),
@@ -229,9 +462,15 @@ export async function hydrateRefreshGrant(uid?: string | null): Promise<boolean>
     const id = resolved || (await import('./firebase')).auth?.currentUser?.uid;
     if (!apps.length || !id) return false;
     const snap = await getDoc(doc(getFirestore(apps[0]), 'users', id, 'integrations', 'google'));
-    const rt = snap.exists() ? (snap.data() as any)?.refresh_token : null;
+    const data = snap.exists() ? (snap.data() as any) : null;
+    const rt = data?.refresh_token;
     if (typeof rt === 'string' && rt.length > 10) {
-      await persistGrant({ rt, at: Date.now(), scope: (snap.data() as any)?.scope || '' }, id);
+      const scopes = normalizeScopes(
+        Array.isArray(data?.grantedScopes) && data.grantedScopes.length > 0
+          ? data.grantedScopes
+          : data?.scope || ''
+      );
+      await persistGrant({ rt, at: Date.now(), scope: scopes.join(' '), grantedScopes: scopes }, id);
       return true;
     }
   } catch {}
@@ -253,10 +492,13 @@ export async function hydrateRefreshGrant(uid?: string | null): Promise<boolean>
             if (owner && owner !== resolved) continue;
           }
           grantCache[refreshLsKeyFor(resolved)] = parsed;
+          const scopes = parsed.grantedScopes?.length ? parsed.grantedScopes : normalizeScopes(parsed.scope);
+          saveScopesSync(scopes, resolved);
           try {
             localStorage.setItem(refreshLsKeyFor(resolved), JSON.stringify(parsed));
             if (resolved) setRefreshOwner(resolved);
           } catch {}
+          dispatchScopesUpdated(scopes, resolved);
           return true;
         }
       }
@@ -302,7 +544,8 @@ export function refreshGoogleAccessToken(force = false): Promise<boolean> {
   if (inflightRefresh) return inflightRefresh;
   inflightRefresh = (async () => {
     try {
-      const grant = readGrantSync();
+      const uid = resolveGrantUid();
+      const grant = readGrantSync(uid);
       if (!grant?.rt) return false;
       if (!force) {
         // Skip the network trip when the current token is comfortably fresh.
@@ -313,15 +556,33 @@ export function refreshGoogleAccessToken(force = false): Promise<boolean> {
       const res = await fetch('/api/auth/google/refresh', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refresh_token: grant.rt }),
+        body: JSON.stringify({ refresh_token: grant.rt, scope: grant.scope }),
       });
       const data = await res.json().catch(() => ({}));
       if (res.status === 401 || data?.error === 'refresh_revoked') {
-        await clearRefreshGrant();
+        await clearRefreshGrant(uid);
         return false;
       }
       if (!res.ok || !data?.access_token) return false;
-      setStoredGoogleToken(data.access_token);
+      const incomingScopes = normalizeScopes(data.scopes || data.scope);
+      const nextScopes = incomingScopes.length
+        ? incomingScopes
+        : normalizeScopes(grant.grantedScopes?.length ? grant.grantedScopes : grant.scope);
+      const prevScopesStr = normalizeScopes(grant.grantedScopes?.length ? grant.grantedScopes : grant.scope).join(' ');
+      if (nextScopes.join(' ') !== prevScopesStr || !grant.grantedScopes?.length) {
+        await persistGrant(
+          {
+            rt: grant.rt,
+            at: Date.now(),
+            scope: nextScopes.join(' '),
+            grantedScopes: nextScopes,
+          },
+          uid
+        );
+      } else {
+        saveScopesSync(nextScopes, uid);
+      }
+      setStoredGoogleToken(data.access_token, uid, nextScopes);
       return true;
     } catch {
       return false;
@@ -376,34 +637,72 @@ export async function googleFetch(input: string, init: RequestInit = {}): Promis
   return res;
 }
 
-// ---- Offline consent grant (one-time per device, permanent afterwards) ----
+// ---- Offline consent grant & incremental per-feature authorization ----
 
-/**
- * Open the Google consent popup requesting OFFLINE access and exchange the
- * returned code server-side. Returns the fresh access token, or null when the
- * user dismisses / the flow is unavailable (caller keeps existing behavior).
- */
-export async function requestOfflineGrant(opts: { gmail?: boolean } = {}): Promise<string | null> {
+export interface OfflineGrantOptions {
+  gmail?: boolean;
+  feature?: GoogleFeature;
+  scopes?: string[];
+  loginHint?: string;
+  uid?: string | null;
+  includeGrantedScopes?: boolean;
+  prompt?: string;
+}
+
+async function resolveCurrentUserContext(explicitUid?: string | null, explicitLoginHint?: string): Promise<{ uid: string | null; loginHint?: string }> {
+  let uid = resolveGrantUid(explicitUid);
+  let loginHint = explicitLoginHint;
+  if (!uid || !loginHint) {
+    try {
+      const currentUser = (await import('./firebase')).auth?.currentUser;
+      if (!uid && currentUser?.uid) uid = currentUser.uid;
+      if (!loginHint && currentUser?.email) loginHint = currentUser.email;
+    } catch {}
+  }
+  return { uid, loginHint };
+}
+
+async function runGisCodeExchange(params: {
+  scopes: string[];
+  prompt?: string;
+  loginHint?: string;
+  uid?: string | null;
+  includeGrantedScopes?: boolean;
+}): Promise<{ accessToken: string; scopes: string[] } | null> {
   if (!isOfflineGrantSupported()) return null;
   await loadGisScript();
   const clientId = getGoogleOAuthClientId();
-  const scopes = opts.gmail ? WORKSPACE_SCOPES : CORE_WORKSPACE_SCOPES;
+  const { uid, loginHint } = await resolveCurrentUserContext(params.uid, params.loginHint);
+  const includeGranted = params.includeGrantedScopes !== false;
+  const requestedScopes = normalizeScopes(params.scopes);
+  if (!requestedScopes.length) return null;
+
+  let codeCallbackScope = '';
   const code: string = await new Promise<string>((resolve, reject) => {
     try {
-      const client = (window as any).google.accounts.oauth2.initCodeClient({
+      const config: Record<string, any> = {
         client_id: clientId,
-        scope: scopes.join(' '),
+        scope: requestedScopes.join(' '),
         access_type: 'offline',
-        prompt: 'consent',
+        include_granted_scopes: includeGranted,
         ux_mode: 'popup',
         callback: (resp: any) => {
+          if (typeof resp?.scope === 'string') codeCallbackScope = resp.scope;
           if (resp?.code) resolve(resp.code);
-          else reject(new Error(resp?.error || 'Google consent was dismissed.'));
+          else reject(new Error(resp?.error || 'Google permission window was closed.'));
         },
         error_callback: (err: any) => {
-          reject(new Error(err?.message || err?.type || 'Google consent failed.'));
+          const type = String(err?.type || '');
+          if (type === 'popup_failed_to_open') {
+            reject(new Error('Your browser blocked the Google popup window. Please allow popups for this site and try again.'));
+            return;
+          }
+          reject(new Error(err?.message || type || 'Google permission could not be completed.'));
         },
-      });
+      };
+      if (params.prompt) config.prompt = params.prompt;
+      if (loginHint) config.login_hint = loginHint;
+      const client = (window as any).google.accounts.oauth2.initCodeClient(config);
       client.requestCode();
     } catch (e) {
       reject(e);
@@ -415,28 +714,106 @@ export async function requestOfflineGrant(opts: { gmail?: boolean } = {}): Promi
     throw e;
   });
   if (!code) return null;
+
+  const existingScopes = includeGranted ? getGrantedScopes(uid) : [];
   const res = await fetch('/api/auth/google/exchange', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ code, redirect_uri: 'postmessage' }),
+    body: JSON.stringify({
+      code,
+      redirect_uri: 'postmessage',
+      scope: codeCallbackScope || requestedScopes.join(' '),
+    }),
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok || !data?.access_token) {
     throw new Error(data?.error || 'Could not complete Google connection.');
   }
-  setStoredGoogleToken(data.access_token);
-  if (data.refresh_token) {
-    let uid: string | null = null;
-    try {
-      uid = (await import('./firebase')).auth?.currentUser?.uid || null;
-    } catch {}
-    await persistGrant({ rt: data.refresh_token, at: Date.now(), scope: data.scope || scopes.join(' ') }, uid);
+
+  const responseScopes = normalizeScopes(data.scopes || data.scope || codeCallbackScope);
+  const mergedScopes =
+    responseScopes.length > 0
+      ? responseScopes
+      : normalizeScopes([...existingScopes, ...requestedScopes]);
+
+  setStoredGoogleToken(data.access_token, uid, mergedScopes);
+  const existingGrant = readGrantSync(uid);
+  const rt =
+    typeof data.refresh_token === 'string' && data.refresh_token.length > 5
+      ? data.refresh_token
+      : existingGrant?.rt || '';
+
+  if (rt) {
+    await persistGrant(
+      {
+        rt,
+        at: Date.now(),
+        scope: mergedScopes.join(' '),
+        grantedScopes: mergedScopes,
+      },
+      uid
+    );
+  } else {
+    saveScopesSync(mergedScopes, uid);
+    dispatchScopesUpdated(mergedScopes, uid);
   }
+
   markGoogleConnected();
-  try {
-    window.dispatchEvent(new CustomEvent('scc-google-token-updated', { detail: { token: data.access_token } }));
-  } catch {}
-  return data.access_token as string;
+  return { accessToken: data.access_token as string, scopes: mergedScopes };
+}
+
+/**
+ * Incremental per-feature Google authorization using GIS `include_granted_scopes: true`
+ * and `login_hint` so signed-in users see ONLY one Google permission popup for the
+ * specific feature they chose (never a second Firebase popup).
+ */
+export async function requestFeaturePermission(
+  feature: GoogleFeature,
+  opts: { loginHint?: string; uid?: string } = {}
+): Promise<string | null> {
+  const scopes = FEATURE_SCOPES[feature];
+  if (!scopes?.length) return null;
+  const { uid, loginHint } = await resolveCurrentUserContext(opts.uid, opts.loginHint);
+  const prompt = hasRefreshToken(uid) ? undefined : 'consent';
+  const result = await runGisCodeExchange({
+    scopes,
+    prompt,
+    loginHint,
+    uid,
+    includeGrantedScopes: true,
+  });
+  if (!result) return null;
+  const allRequiredGranted = scopes.every((s) => result.scopes.includes(s));
+  return allRequiredGranted ? result.accessToken : null;
+}
+
+/**
+ * Open the Google consent popup requesting OFFLINE access and exchange the
+ * returned code server-side. Supports incremental per-feature grants as well as
+ * legacy `{ gmail?: boolean }` callers.
+ */
+export async function requestOfflineGrant(opts: OfflineGrantOptions = {}): Promise<string | null> {
+  if (opts.feature) {
+    return requestFeaturePermission(opts.feature, {
+      loginHint: opts.loginHint,
+      uid: opts.uid || undefined,
+    });
+  }
+  const scopes = opts.scopes?.length
+    ? opts.scopes
+    : opts.gmail
+    ? WORKSPACE_SCOPES
+    : CORE_WORKSPACE_SCOPES;
+  const { uid, loginHint } = await resolveCurrentUserContext(opts.uid, opts.loginHint);
+  const prompt = opts.prompt ?? (hasRefreshToken(uid) ? undefined : 'consent');
+  const result = await runGisCodeExchange({
+    scopes,
+    prompt,
+    loginHint,
+    uid,
+    includeGrantedScopes: opts.includeGrantedScopes !== false,
+  });
+  return result?.accessToken ?? null;
 }
 
 /** Forget everything Google-related for one account (plus server doc). */
@@ -505,44 +882,69 @@ export function isConnected(uid?: string | null): boolean {
  * when the browser still holds a Google session, otherwise null. Never throws
  * and never shows UI — failures stay silent for the caller to fall back.
  */
-function requestSilentGisToken(scopes: string[]): Promise<string | null> {
+export function requestSilentGisToken(
+  scopesOrOpts:
+    | string[]
+    | { scopes?: string[]; gmail?: boolean; feature?: GoogleFeature; loginHint?: string; uid?: string | null } = []
+): Promise<string | null> {
   return new Promise((resolve) => {
-    try {
-      const w = window as any;
-      const oauth2 = w?.google?.accounts?.oauth2;
-      if (!oauth2?.initTokenClient) return resolve(null);
-      const clientId = getGoogleOAuthClientId();
-      if (!clientId) return resolve(null);
-      let settled = false;
-      const done = (token: string | null) => {
-        if (!settled) {
-          settled = true;
-          resolve(token);
-        }
-      };
-      const timer = setTimeout(() => done(null), 8000);
+    (async () => {
       try {
-        const client = oauth2.initTokenClient({
-          client_id: clientId,
-          scope: scopes.join(' '),
-          prompt: 'none',
-          callback: (resp: any) => {
-            clearTimeout(timer);
-            done(typeof resp?.access_token === 'string' && resp.access_token.length > 5 ? resp.access_token : null);
-          },
-          error_callback: () => {
-            clearTimeout(timer);
-            done(null);
-          },
-        });
-        client.requestAccessToken({ prompt: 'none' });
+        const w = window as any;
+        const oauth2 = w?.google?.accounts?.oauth2;
+        if (!oauth2?.initTokenClient) return resolve(null);
+        const clientId = getGoogleOAuthClientId();
+        if (!clientId) return resolve(null);
+
+        const optsObj = Array.isArray(scopesOrOpts) ? { scopes: scopesOrOpts } : scopesOrOpts;
+        const resolvedScopes = optsObj.feature
+          ? FEATURE_SCOPES[optsObj.feature]
+          : optsObj.scopes?.length
+          ? optsObj.scopes
+          : optsObj.gmail
+          ? WORKSPACE_SCOPES
+          : CORE_WORKSPACE_SCOPES;
+        const { uid, loginHint } = await resolveCurrentUserContext(optsObj.uid, optsObj.loginHint);
+
+        let settled = false;
+        const done = (token: string | null) => {
+          if (!settled) {
+            settled = true;
+            resolve(token);
+          }
+        };
+        const timer = setTimeout(() => done(null), 8000);
+        try {
+          const config: Record<string, any> = {
+            client_id: clientId,
+            scope: resolvedScopes.join(' '),
+            include_granted_scopes: true,
+            prompt: 'none',
+            callback: (resp: any) => {
+              clearTimeout(timer);
+              const tok = typeof resp?.access_token === 'string' && resp.access_token.length > 5 ? resp.access_token : null;
+              if (tok) {
+                const granted = normalizeScopes(resp?.scope || resolvedScopes);
+                if (granted.length) recordGrantedScopes(granted, uid);
+              }
+              done(tok);
+            },
+            error_callback: () => {
+              clearTimeout(timer);
+              done(null);
+            },
+          };
+          if (loginHint) config.login_hint = loginHint;
+          const client = oauth2.initTokenClient(config);
+          client.requestAccessToken({ prompt: 'none' });
+        } catch {
+          clearTimeout(timer);
+          done(null);
+        }
       } catch {
-        clearTimeout(timer);
-        done(null);
+        resolve(null);
       }
-    } catch {
-      resolve(null);
-    }
+    })();
   });
 }
 
@@ -552,10 +954,15 @@ function requestSilentGisToken(scopes: string[]): Promise<string | null> {
  * Resolves a usable access token or null. Never throws and never shows UI —
  * callers fall back to the manual Connect button quietly on null.
  */
-export async function trySilentRestore(opts: { gmail?: boolean; uid?: string | null } = {}): Promise<string | null> {
+export async function trySilentRestore(
+  opts: { gmail?: boolean; feature?: GoogleFeature; scopes?: string[]; uid?: string | null; loginHint?: string } = {}
+): Promise<string | null> {
   try {
     const fresh = getValidGoogleToken();
     if (fresh) {
+      if (getGrantedScopes(opts.uid).length === 0) {
+        await hydrateRefreshGrant(opts.uid).catch(() => {});
+      }
       markGoogleConnected();
       return fresh;
     }
@@ -578,73 +985,29 @@ export async function trySilentRestore(opts: { gmail?: boolean; uid?: string | n
   try {
     if (!isOfflineGrantSupported()) return null;
     await loadGisScript().catch(() => {});
-    const scopes = opts.gmail ? WORKSPACE_SCOPES : CORE_WORKSPACE_SCOPES;
-    const silent = await requestSilentGisToken(scopes);
+    const existingScopes = getGrantedScopes(opts.uid);
+    const scopes = opts.feature
+      ? FEATURE_SCOPES[opts.feature]
+      : opts.scopes?.length
+      ? opts.scopes
+      : existingScopes.length > 0
+      ? existingScopes
+      : opts.gmail
+      ? WORKSPACE_SCOPES
+      : CORE_WORKSPACE_SCOPES;
+    const silent = await requestSilentGisToken({
+      scopes,
+      uid: opts.uid,
+      loginHint: opts.loginHint,
+    });
     if (silent) {
-      setStoredGoogleToken(silent);
+      const latestScopes = getGrantedScopes(opts.uid);
+      setStoredGoogleToken(silent, opts.uid, latestScopes);
       markGoogleConnected();
-      try {
-        window.dispatchEvent(new CustomEvent('scc-google-token-updated', { detail: { token: silent } }));
-      } catch {}
       return silent;
     }
   } catch {}
   return null;
-}
-
-async function requestOfflineGrantWithPrompt(prompt: string, opts: { gmail?: boolean } = {}): Promise<string | null> {
-  if (!isOfflineGrantSupported()) return null;
-  await loadGisScript();
-  const clientId = getGoogleOAuthClientId();
-  const scopes = opts.gmail ? WORKSPACE_SCOPES : CORE_WORKSPACE_SCOPES;
-  const code: string = await new Promise<string>((resolve, reject) => {
-    try {
-      const client = (window as any).google.accounts.oauth2.initCodeClient({
-        client_id: clientId,
-        scope: scopes.join(' '),
-        access_type: 'offline',
-        prompt,
-        ux_mode: 'popup',
-        callback: (resp: any) => {
-          if (resp?.code) resolve(resp.code);
-          else reject(new Error(resp?.error || 'Google consent was dismissed.'));
-        },
-        error_callback: (err: any) => {
-          reject(new Error(err?.message || err?.type || 'Google consent failed.'));
-        },
-      });
-      client.requestCode();
-    } catch (e) {
-      reject(e);
-    }
-  }).catch((e: any) => {
-    const msg = String(e?.message || e || '');
-    if (/dismiss|closed|popup_closed|cancel/i.test(msg)) return null as unknown as string;
-    throw e;
-  });
-  if (!code) return null;
-  const res = await fetch('/api/auth/google/exchange', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ code, redirect_uri: 'postmessage' }),
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok || !data?.access_token) {
-    throw new Error(data?.error || 'Could not complete Google connection.');
-  }
-  setStoredGoogleToken(data.access_token);
-  if (data.refresh_token) {
-    let uid: string | null = null;
-    try {
-      uid = (await import('./firebase')).auth?.currentUser?.uid || null;
-    } catch {}
-    await persistGrant({ rt: data.refresh_token, at: Date.now(), scope: data.scope || scopes.join(' ') }, uid);
-  }
-  markGoogleConnected();
-  try {
-    window.dispatchEvent(new CustomEvent('scc-google-token-updated', { detail: { token: data.access_token } }));
-  } catch {}
-  return data.access_token as string;
 }
 
 /**
@@ -653,6 +1016,20 @@ async function requestOfflineGrantWithPrompt(prompt: string, opts: { gmail?: boo
  * fresh access token, or null when the user dismisses. Existing sessions are
  * left untouched on dismiss.
  */
-export async function signInWithAccountSelect(opts: { gmail?: boolean } = {}): Promise<string | null> {
-  return requestOfflineGrantWithPrompt('select_account', opts);
+export async function signInWithAccountSelect(opts: OfflineGrantOptions = {}): Promise<string | null> {
+  const scopes = opts.feature
+    ? FEATURE_SCOPES[opts.feature]
+    : opts.scopes?.length
+    ? opts.scopes
+    : opts.gmail
+    ? WORKSPACE_SCOPES
+    : CORE_WORKSPACE_SCOPES;
+  const result = await runGisCodeExchange({
+    scopes,
+    prompt: 'select_account',
+    loginHint: opts.loginHint,
+    uid: opts.uid,
+    includeGrantedScopes: opts.includeGrantedScopes !== false,
+  });
+  return result?.accessToken ?? null;
 }

@@ -80,14 +80,14 @@ workspaceProvider.setCustomParameters({
   prompt: 'select_account',
 });
 
-// Default provider for backwards compatibility defaults to core student workspace
-export const provider = coreWorkspaceProvider;
+// Default provider uses basic sign-in (email & profile only); feature permissions are requested individually on demand.
+export const provider = basicProvider;
 
-// Custom error for Google OAuth Test Users block
+// Custom error when Google limits access to approved accounts
 export class OAuthTestUserRequiredError extends Error {
   isOAuthBlocked: boolean;
   projectId: string;
-  constructor(message: string, projectId: string = 'studentcommandcenter-39cdc') {
+  constructor(message: string, projectId: string = '') {
     super(message);
     this.name = 'OAuthTestUserRequiredError';
     this.isOAuthBlocked = true;
@@ -95,11 +95,11 @@ export class OAuthTestUserRequiredError extends Error {
   }
 }
 
-/** Granted sign-in but Google returned no workspace access token — retryable, never silent. */
+/** Granted sign-in but Google did not finish sharing feature permissions — retryable, never silent. */
 export class GoogleWorkspaceGrantMissingError extends Error {
   isOAuthBlocked = false;
   retryable = true;
-  constructor(message = 'Google signed you in but did not return a workspace access token. Please try again — if it repeats, use redirect sign-in.') {
+  constructor(message = 'Google signed you in, but the permission did not finish coming through. Please try again — or use full-page sign-in instead.') {
     super(message);
     this.name = 'GoogleWorkspaceGrantMissingError';
   }
@@ -117,90 +117,118 @@ export interface SignInDiagnosis {
   fix: string;
 }
 
-/** Map raw Firebase/Google errors to a plain-language diagnosis with a concrete fix. */
+/** Map raw sign-in errors to calm, everyday explanations with clear next steps. */
 export function classifySignInError(error: any): SignInDiagnosis {
   const code = error?.code || '';
   const msg = error?.message || '';
   const all = `${code} ${msg} ${String(error || '')}`;
-  const host = typeof window !== 'undefined' ? window.location.hostname : 'your domain';
 
   if (error instanceof GoogleWorkspaceGrantMissingError || code === 'auth/no-auth-token') {
     return {
       kind: 'token-missing',
-      title: 'Google sign-in finished without permissions',
-      detail: 'Google closed the loop but did not hand back a workspace token. Your account is fine — the handshake just dropped the token.',
-      fix: 'Tap “Retry Google Workspace Sign-In”. If it happens twice, use “Redirect sign-in instead” below — it is slower but far more reliable.',
+      title: 'Sign-in finished without extra permissions',
+      detail: 'Google signed you in, but the extra permission did not finish coming through. Your account is fine.',
+      fix: 'Tap “Try signing in again”. If it happens twice, choose “Redirect sign-in instead” below — it works without popups.',
     };
   }
   if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request' || code === 'auth/user-cancelled') {
-    return { kind: 'popup-closed', title: 'Sign-in window was closed', detail: 'The Google window closed before finishing.', fix: 'Tap sign-in again and keep the Google window open until it closes by itself.' };
+    return {
+      kind: 'popup-closed',
+      title: 'Sign-in window was closed',
+      detail: 'The Google window closed before sign-in finished.',
+      fix: 'Tap sign-in again and keep the Google window open until it closes on its own.',
+    };
   }
   if (code === 'auth/popup-blocked') {
-    return { kind: 'popup-blocked', title: 'Browser blocked the sign-in window', detail: 'Your browser stopped Google from opening its sign-in window.', fix: 'Allow popups for this site, then retry — or use “Redirect sign-in instead”, which needs no popup at all.' };
+    return {
+      kind: 'popup-blocked',
+      title: 'Your browser blocked the sign-in window',
+      detail: 'Your browser stopped Google from opening its sign-in window.',
+      fix: 'Allow popups for this site in your browser bar and try again — or use “Redirect sign-in instead” below.',
+    };
   }
   if (/admin|policy|disallowed|org_internal|access blocked by/i.test(all)) {
     return {
       kind: 'admin-blocked',
-      title: 'Blocked by your Google Workspace admin',
-      detail: 'School/work Google accounts are often locked down by an administrator so third-party study apps cannot be connected, even though you personally granted permission.',
-      fix: 'Use a personal Gmail account instead — it takes 30 seconds and unlocks Calendar, Gmail and Drive sync. Or ask your school admin to allow this app.',
+      title: 'Blocked by your school or work Google account',
+      detail: 'School or work Google accounts often block outside study apps from connecting, even when you try to allow them.',
+      fix: 'Try signing in with a personal Gmail account instead, or keep using StudentOS without connecting Google.',
     };
   }
   if (code === 'auth/unauthorized-domain' || /unauthorized-domain/i.test(all)) {
     return {
       kind: 'unauthorized-domain',
-      title: 'This website address is not approved in Firebase',
-      detail: `Google refused the login because “${host}” is not listed under Authorized Domains. This is a one-time setup step, not a problem with your account.`,
-      fix: `In Firebase Console → Authentication → Settings → Authorized Domains, add “${host}”, then retry. Takes one minute.`,
+      title: 'Sign-in is not turned on for this link yet',
+      detail: 'This web address is not set up for Google sign-in right now. It is a site setup issue, not a problem with your account.',
+      fix: 'Open StudentOS from the main website link, or explore Demo Mode while you wait.',
     };
   }
   if (code === 'auth/api-key-not-valid' || code === 'auth/invalid-api-key' || /api-key-not-valid/i.test(all)) {
     return {
       kind: 'api-key',
-      title: 'Firebase key rejected (often on preview links)',
-      detail: 'The Firebase browser key does not accept this website address — common on preview/deploy links when the key is locked to the main domain.',
-      fix: 'Open the main site address (not a preview link) and sign in there, or ask the app owner to add this address to the key’s allowed websites.',
+      title: 'Sign-in is unavailable on this preview link',
+      detail: 'This preview or custom link does not have Google sign-in enabled right now.',
+      fix: 'Open the main StudentOS website link and sign in there, or explore Demo Mode.',
     };
   }
   if (/verification process|Test users|unverified|access_denied|403|admin-restricted|internal-error/i.test(all)) {
     return {
       kind: 'test-user',
-      title: 'Google needs your email on the access list',
-      detail: 'Because the app asks for Calendar/Gmail/Drive access, Google only lets listed test accounts through until verification finishes.',
-      fix: 'Follow the steps below (publish the app once, or add your email as a test user), then retry. Basic-profile sign-in below always works instantly.',
+      title: 'This Google feature is limited right now',
+      detail: 'Google has not opened this extra permission to all accounts yet.',
+      fix: 'You can still sign in with your basic Google account below and use your study tools right away.',
     };
   }
   if (code === 'auth/network-request-failed' || /network/i.test(all)) {
-    return { kind: 'network', title: 'Network interrupted sign-in', detail: 'The request to Google never completed — usually Wi-Fi, VPN or an ad-blocker.', fix: 'Check your connection, pause ad-blockers for this site, then retry.' };
+    return {
+      kind: 'network',
+      title: 'Connection interrupted during sign-in',
+      detail: 'We could not reach Google — usually because of Wi-Fi, a VPN, or a strict ad-blocker.',
+      fix: 'Check your internet connection, pause any ad-blocker for this site, and try again.',
+    };
   }
   if (/timeout|timed out/i.test(all)) {
-    return { kind: 'timeout', title: 'Sign-in timed out', detail: 'Google took too long to answer (often strict popup/cookie blockers).', fix: 'Use “Redirect sign-in instead” — it survives popup and cookie blockers.' };
+    return {
+      kind: 'timeout',
+      title: 'Sign-in took too long',
+      detail: 'Google did not answer in time — often caused by a popup or cookie blocker.',
+      fix: 'Use “Redirect sign-in instead” below — it works without popups.',
+    };
   }
-  return { kind: 'unknown', title: 'Sign in failed', detail: msg || 'Google did not complete sign-in.', fix: 'Retry once. If it repeats, use redirect sign-in, or basic-profile sign-in to get in immediately.' };
+  return {
+    kind: 'unknown',
+    title: 'Could not finish signing in',
+    detail: 'Google did not complete sign-in just now.',
+    fix: 'Try once more, use redirect sign-in, or continue with basic sign-in.',
+  };
 }
 
-/** Best-effort environment check shown alongside failures (config, host, cookies, popups). */
+/** Best-effort browser check shown alongside failures (connection, popups, cookies). */
 export function diagnoseSignInEnvironment(): { label: string; ok: boolean; hint?: string }[] {
   const out: { label: string; ok: boolean; hint?: string }[] = [];
   const cfg = effectiveFirebaseConfig;
   out.push({
-    label: 'Firebase config present',
+    label: 'Sign-in service ready',
     ok: Boolean(cfg.apiKey && cfg.projectId && cfg.authDomain),
-    hint: !cfg.apiKey ? 'Missing API key — redeploy with VITE_FIREBASE_API_KEY set.' : undefined,
+    hint: !cfg.apiKey ? 'Sign-in is not set up on this link right now. Try opening the main StudentOS website.' : undefined,
   });
   try {
-    out.push({ label: `This address: ${window.location.hostname}`, ok: true, hint: 'If sign-in says “unauthorized-domain”, add this exact address in Firebase → Authorized Domains.' });
-  } catch { out.push({ label: 'Page address', ok: false }); }
+    out.push({
+      label: `Current website: ${window.location.hostname}`,
+      ok: true,
+      hint: 'Make sure you are using the official StudentOS web address.',
+    });
+  } catch { out.push({ label: 'Current website', ok: false }); }
   try {
     const w = window.open('', '_blank', 'width=10,height=10');
     if (w) { w.close(); out.push({ label: 'Popups allowed', ok: true }); }
-    else out.push({ label: 'Popups blocked', ok: false, hint: 'Allow popups for this site, or use redirect sign-in.' });
-  } catch { out.push({ label: 'Popups blocked', ok: false, hint: 'Allow popups for this site, or use redirect sign-in.' }); }
+    else out.push({ label: 'Popups blocked', ok: false, hint: 'Allow popups for this site in your browser bar, or use redirect sign-in.' });
+  } catch { out.push({ label: 'Popups blocked', ok: false, hint: 'Allow popups for this site in your browser bar, or use redirect sign-in.' }); }
   try {
     document.cookie = 'scc_cookie_test=1; SameSite=Lax';
     const ok = document.cookie.includes('scc_cookie_test=1');
     document.cookie = 'scc_cookie_test=; Max-Age=0; SameSite=Lax';
-    out.push({ label: 'Cookies enabled', ok, hint: ok ? undefined : 'Enable cookies for this site — Google sign-in needs them.' });
+    out.push({ label: 'Cookies enabled', ok, hint: ok ? undefined : 'Turn on cookies for this site so Google sign-in can remember you.' });
   } catch { out.push({ label: 'Cookies enabled', ok: false }); }
   return out;
 }
@@ -308,7 +336,7 @@ export const onAuthStateChangedListener = (callback: (user: User | null) => void
   return onAuthStateChanged(auth, callback);
 };
 
-export const setStoredGoogleToken = (token: string, uid?: string | null) => {
+export const setStoredGoogleToken = (token: string, uid?: string | null, scopes?: string[]) => {
   const owner = uid ?? activeGoogleUid;
   cachedAccessToken = token;
   if (typeof window !== 'undefined') {
@@ -333,7 +361,7 @@ export const setStoredGoogleToken = (token: string, uid?: string | null) => {
       }
       persistTokenToIDB(token);
       import('./db').then(({ db }) => db.preferences.put({ key: 'google_token_acquired_at', value: String(Date.now()) }).catch(()=>{}));
-      window.dispatchEvent(new CustomEvent('scc-google-token-updated', { detail: { token } }));
+      window.dispatchEvent(new CustomEvent('scc-google-token-updated', { detail: { token, scopes } }));
     } catch {}
   }
 };
@@ -518,11 +546,12 @@ export function getGoogleTokenStatus(): GoogleTokenStatus {
 }
 
 export const signInWithGoogle = async (
-  options: { requestWorkspace?: boolean; includeGmail?: boolean } = { requestWorkspace: true }
+  options: { requestWorkspace?: boolean; includeGmail?: boolean } = { requestWorkspace: false }
 ): Promise<{ user: User; accessToken: string } | null> => {
-  const targetProvider = !options.requestWorkspace
+  const requestWorkspace = Boolean(options?.requestWorkspace);
+  const targetProvider = !requestWorkspace
     ? basicProvider
-    : options.includeGmail
+    : options?.includeGmail
     ? workspaceProvider
     : coreWorkspaceProvider;
 
@@ -537,7 +566,7 @@ export const signInWithGoogle = async (
       const POPUP_TIMEOUT_MS = 90000;
       result = await Promise.race([
         signInWithPopup(auth, targetProvider),
-        new Promise((_res, rej) => setTimeout(() => rej(new Error('Google sign-in timed out after 90 seconds. The sign-in window may be blocked from answering — please use redirect sign-in instead.')), POPUP_TIMEOUT_MS)),
+        new Promise((_res, rej) => setTimeout(() => rej(new Error('Google sign-in timed out. Please try again or use redirect sign-in instead.')), POPUP_TIMEOUT_MS)),
       ]);
     } catch (popupErr: any) {
       const code = popupErr?.code || '';
@@ -556,9 +585,10 @@ export const signInWithGoogle = async (
 
     // Store access token in memory, localStorage, sessionStorage & IndexedDB
     // ONLY when workspace access was explicitly requested!
-    if (options.requestWorkspace && credential?.accessToken) {
-      setStoredGoogleToken(credential.accessToken, signedInUid);
-    } else if (!options.requestWorkspace) {
+    if (requestWorkspace && credential?.accessToken) {
+      const requestedScopes = options?.includeGmail ? WORKSPACE_SCOPES : CORE_WORKSPACE_SCOPES;
+      setStoredGoogleToken(credential.accessToken, signedInUid, requestedScopes);
+    } else if (!requestWorkspace) {
       // Basic profile login must NEVER destroy a stored Workspace grant.
       // Only drop the active mirror when switching to a *different* account,
       // so a stale token is never mistaken for the new account's session.
@@ -571,13 +601,13 @@ export const signInWithGoogle = async (
     // Workspace was requested and granted, but no token arrived — never downgrade
     // silently to "basic" (that dead-ends sync with zero explanation). Throw so the
     // UI offers a real retry / redirect path.
-    if (options.requestWorkspace && !credential?.accessToken) {
+    if (requestWorkspace && !credential?.accessToken) {
       throw new GoogleWorkspaceGrantMissingError();
     }
     
     return {
       user: result.user,
-      accessToken: options.requestWorkspace ? (credential?.accessToken || '') : '',
+      accessToken: requestWorkspace ? (credential?.accessToken || '') : '',
     };
   } catch (error: any) {
     const errorCode = error?.code || '';
@@ -598,7 +628,7 @@ export const signInWithGoogle = async (
 
     if (errorCode === 'auth/popup-blocked') {
       console.warn('Google Sign-In popup was blocked by browser. Please allow popups for this site.');
-      throw new Error('Sign-in popup was blocked by browser. Please allow popups for this site.');
+      throw new Error('Your browser blocked the sign-in window. Please allow popups for this site and try again.');
     }
 
     console.error('Sign in error:', error);
@@ -613,7 +643,7 @@ export const signInWithGoogle = async (
       errorCode === 'auth/internal-error'
     ) {
       throw new OAuthTestUserRequiredError(
-        'Google OAuth Verification required: Because sensitive Workspace scopes are requested, your Google account must be added to "Test users" in Google Cloud Console, or use Basic Profile login.',
+        'This Google feature is currently limited to approved accounts. You can still sign in with your basic Google account.',
         effectiveFirebaseConfig.projectId
       );
     }
@@ -625,7 +655,7 @@ export const signInWithGoogle = async (
       errorMsg.includes('API key')
     ) {
       throw new Error(
-        'Firebase API key is invalid or needs to be provisioned. Click "Demo Mode" to preview immediately, or accept the Firebase setup prompt to configure active Firebase credentials.'
+        'Sign-in is not set up on this preview link right now. Try opening the main StudentOS website or explore Demo Mode.'
       );
     }
 
@@ -634,14 +664,10 @@ export const signInWithGoogle = async (
       errorMsg.includes('unauthorized-domain')
     ) {
       const currentHost =
-        typeof window !== 'undefined' ? window.location.hostname : 'your domain';
+        typeof window !== 'undefined' ? window.location.hostname : 'this link';
       throw new Error(
-        `Firebase Unauthorized Domain: Add '${currentHost}' to Firebase Console → Authentication → Settings → Authorized Domains.`
+        `Sign-in is not turned on for “${currentHost}” yet. Please open the main StudentOS website link.`
       );
-    }
-
-    if (errorCode === 'auth/popup-blocked') {
-      throw new Error('Sign-in popup was blocked by browser. Please allow popups for this site.');
     }
 
     throw error;
@@ -664,11 +690,12 @@ export const signInWithGmail = async (): Promise<{ user: User; accessToken: stri
  * here — call consumeRedirectResult() on the next load to finish the job.
  */
 export const signInWithRedirectFlow = async (
-  options: { requestWorkspace?: boolean; includeGmail?: boolean } = { requestWorkspace: true }
+  options: { requestWorkspace?: boolean; includeGmail?: boolean } = { requestWorkspace: false }
 ): Promise<void> => {
-  const targetProvider = !options.requestWorkspace
+  const requestWorkspace = Boolean(options?.requestWorkspace);
+  const targetProvider = !requestWorkspace
     ? basicProvider
-    : options.includeGmail
+    : options?.includeGmail
     ? workspaceProvider
     : coreWorkspaceProvider;
   try { await setPersistence(auth, browserLocalPersistence); } catch {}

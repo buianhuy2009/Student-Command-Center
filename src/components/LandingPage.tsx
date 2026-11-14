@@ -25,7 +25,6 @@ import { LanguageToggle } from './LanguageToggle';
 
 interface LandingPageProps {
   onSignIn: () => void;
-  onSignInWorkspace?: () => void;
   onExploreDemo: () => void;
   isLoggingIn: boolean;
   darkMode: boolean;
@@ -35,13 +34,12 @@ interface LandingPageProps {
 // Honest product cards — real capabilities from the codebase, NOT user testimonials.
 const WHY_CARDS = [
   { icon: Star, titleKey: 'landing_why_oss_t', descKey: 'landing_why_oss_d', uni: 'GitHub — MIT Licensed', avatar: '★' },
-  { icon: WifiOff, titleKey: 'landing_why_offline_t', descKey: 'landing_why_offline_d', uni: 'Dexie • PWA', avatar: '◆' },
-  { icon: Bot, titleKey: 'landing_why_ai_t', descKey: 'landing_why_ai_d', uni: 'Gemini 2.0 Flash + Groq 70B', avatar: '✦' },
+  { icon: WifiOff, titleKey: 'landing_why_offline_t', descKey: 'landing_why_offline_d', uni: 'Saved Locally Offline', avatar: '◆' },
+  { icon: Bot, titleKey: 'landing_why_ai_t', descKey: 'landing_why_ai_d', uni: 'Smart AI Study Coach', avatar: '✦' },
 ];
 
 export const LandingPage: React.FC<LandingPageProps> = ({
   onSignIn,
-  onSignInWorkspace,
   onExploreDemo,
   isLoggingIn,
   darkMode,
@@ -180,19 +178,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </button>
             </div>
 
-            {onSignInWorkspace && (
-              <p className="mt-3 max-w-full overflow-hidden px-4 sm:px-0 text-center text-xs leading-relaxed text-[#5E5D59] dark:text-[#B5B2A8]">
-                <span className="break-words">{t('landing_need_sync')}{' '}</span>
-                <button
-                  type="button"
-                  onClick={onSignInWorkspace}
-                  disabled={isLoggingIn}
-                  className="inline-block max-w-full truncate align-baseline text-[#C96442] hover:text-[#A94E33] hover:underline font-semibold cursor-pointer underline-offset-2 disabled:opacity-50"
-                >
-                  {t('landing_workspace_signin')}
-                </button>
-              </p>
-            )}
+            <p className="mt-3 max-w-lg mx-auto px-4 sm:px-0 text-center text-xs leading-relaxed text-[#5E5D59] dark:text-[#B5B2A8]">
+              {getLang() === 'vi'
+                ? 'Đăng nhập bằng Google chỉ dùng tên và email của bạn. Lịch học, Gmail, Drive, Docs và Classroom chỉ xin quyền khi bạn bấm dùng lần đầu.'
+                : 'Signing in with Google only uses your name and email. Calendar, Gmail, Drive, Docs, and Classroom only ask permission when you first open them.'}
+            </p>
 
             {/* Social-proof stats strip */}
             <div className="mt-6 mx-4 sm:mx-auto max-w-xl backdrop-blur-md rounded-2xl border border-[#E8E6DC] dark:border-[#2C2B27] bg-white/60 dark:bg-[#1A1917]/60 px-4 py-3.5 flex flex-col sm:flex-row flex-wrap items-center justify-center gap-2.5 sm:gap-6 text-xs sm:text-[13px] font-semibold text-[#141413] dark:text-[#F5F4ED] shadow-sm">
@@ -227,17 +217,17 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </div>
               <div className="flex min-w-0 flex-wrap items-center justify-center gap-1.5 text-center">
                 <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-500" />
-                <span className="min-w-0 truncate">Workspace Sync</span>
+                <span className="min-w-0 truncate">Google Tools</span>
               </div>
             </div>
 
             {/* Trusted integrations */}
             <div className="mt-10 flex flex-wrap items-center justify-center gap-3 sm:gap-6 opacity-60 px-4 sm:px-0">
-              <span className="text-[11px] font-bold tracking-widest uppercase text-[#5E5D59] shrink-0">Trusted integrations</span>
+              <span className="text-[11px] font-bold tracking-widest uppercase text-[#5E5D59] shrink-0">Works with your tools</span>
               <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 max-w-full text-xs font-bold text-[#5E5D59]">
-                <span className="max-w-full truncate px-3 py-1.5 bg-white dark:bg-[#1A1917] border border-[#E8E6DC] dark:border-[#2C2B27] rounded-xl shrink-0">Canvas / Instructure</span>
-                <span className="max-w-full truncate px-3 py-1.5 bg-white dark:bg-[#1A1917] border border-[#E8E6DC] dark:border-[#2C2B27] rounded-xl inline-flex min-w-0 items-center gap-1.5 shrink-0"><GoogleIcon className="w-3.5 h-3.5 shrink-0" /><span className="truncate">Workspace</span></span>
-                <span className="max-w-full truncate px-3 py-1.5 bg-white dark:bg-[#1A1917] border border-[#E8E6DC] dark:border-[#2C2B27] rounded-xl shrink-0">Dexie • PWA</span>
+                <span className="max-w-full truncate px-3 py-1.5 bg-white dark:bg-[#1A1917] border border-[#E8E6DC] dark:border-[#2C2B27] rounded-xl shrink-0">Canvas LMS</span>
+                <span className="max-w-full truncate px-3 py-1.5 bg-white dark:bg-[#1A1917] border border-[#E8E6DC] dark:border-[#2C2B27] rounded-xl inline-flex min-w-0 items-center gap-1.5 shrink-0"><GoogleIcon className="w-3.5 h-3.5 shrink-0" /><span className="truncate">Google Tools</span></span>
+                <span className="max-w-full truncate px-3 py-1.5 bg-white dark:bg-[#1A1917] border border-[#E8E6DC] dark:border-[#2C2B27] rounded-xl shrink-0">Works Offline</span>
               </div>
             </div>
           </div>
@@ -433,10 +423,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <table className="w-full text-xs border-collapse">
                 <thead className="sticky top-0 z-10"><tr className="bg-[#E8E6DC] dark:bg-[#1F1E1B] text-left"><th className="p-2 border bg-[#E8E6DC] dark:bg-[#1F1E1B]">Feature</th><th className="p-2 border bg-[#E8E6DC] dark:bg-[#1F1E1B]">StudentOS</th><th className="p-2 border bg-[#E8E6DC] dark:bg-[#1F1E1B]">Notion</th><th className="p-2 border bg-[#E8E6DC] dark:bg-[#1F1E1B]">Canvas</th><th className="p-2 border bg-[#E8E6DC] dark:bg-[#1F1E1B]">Motion</th></tr></thead>
                 <tbody className="bg-white dark:bg-[#1A1917]">
-                  <tr><td className="p-2 border font-semibold">Canvas LMS sync</td><td className="p-2 border text-emerald-600">✓ Live REST + iCal</td><td className="p-2 border">—</td><td className="p-2 border">Native only</td><td className="p-2 border">—</td></tr>
-                  <tr><td className="p-2 border font-semibold">Gmail AI scanner</td><td className="p-2 border text-emerald-600">✓ Bilingual EN/VI</td><td className="p-2 border">—</td><td className="p-2 border">—</td><td className="p-2 border">—</td></tr>
-                  <tr><td className="p-2 border font-semibold">Sheets 2-way</td><td className="p-2 border text-emerald-600">✓ Master tracker</td><td className="p-2 border">Manual</td><td className="p-2 border">—</td><td className="p-2 border">—</td></tr>
-                  <tr><td className="p-2 border font-semibold">Offline PWA</td><td className="p-2 border text-emerald-600">✓ Dexie + Workbox</td><td className="p-2 border">Partial</td><td className="p-2 border">—</td><td className="p-2 border">—</td></tr>
+                  <tr><td className="p-2 border font-semibold">Canvas LMS sync</td><td className="p-2 border text-emerald-600">✓ Automatic class &amp; due date sync</td><td className="p-2 border">—</td><td className="p-2 border">Native only</td><td className="p-2 border">—</td></tr>
+                  <tr><td className="p-2 border font-semibold">Gmail homework finder</td><td className="p-2 border text-emerald-600">✓ Bilingual EN/VI</td><td className="p-2 border">—</td><td className="p-2 border">—</td><td className="p-2 border">—</td></tr>
+                  <tr><td className="p-2 border font-semibold">Google Sheets tracker</td><td className="p-2 border text-emerald-600">✓ Master tracker</td><td className="p-2 border">Manual</td><td className="p-2 border">—</td><td className="p-2 border">—</td></tr>
+                  <tr><td className="p-2 border font-semibold">Offline access</td><td className="p-2 border text-emerald-600">✓ Works without internet</td><td className="p-2 border">Partial</td><td className="p-2 border">—</td><td className="p-2 border">—</td></tr>
                   <tr><td className="p-2 border font-semibold">Price</td><td className="p-2 border font-bold">Free &amp; OSS</td><td className="p-2 border">Freemium</td><td className="p-2 border">Institution</td><td className="p-2 border">$19/mo</td></tr>
                 </tbody>
               </table>
@@ -459,29 +449,27 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <h3 className="text-sm font-bold text-[#141413] dark:text-[#F5F4ED] flex items-center justify-center gap-2"><ShieldCheck className="w-4 h-4 text-[#C96442]" /> {t('landing_privacy_title')}</h3>
             <p className="text-xs text-[#5E5D59] dark:text-[#B5B2A8] leading-relaxed">
               {getLang() === 'vi'
-                ? 'StudentOS chỉ xin 6 quyền Google (trước đây là 13), và chỉ Gmail là quyền nhạy cảm — chỉ xin khi bạn bật "Quét Gmail". Mọi bài tập AI tìm thấy đều chờ bạn xác nhận. Thu hồi quyền bất cứ lúc nào trong Tài khoản Google.'
-                : 'StudentOS asks Google for 6 permissions (down from 13); only Gmail is sensitive, and it is requested only when you turn on "Scan Gmail". Every assignment the AI finds waits for your confirmation. Revoke anytime in your Google Account.'}
+                ? 'Đăng nhập bằng Google chỉ dùng tên và email của bạn. Các công cụ như Lịch, Gmail, Drive, Trang tính và Classroom chỉ xin quyền đúng lúc bạn bấm bật lần đầu — bạn luôn thấy rõ quyền gì và gỡ bất cứ lúc nào trong Tài khoản Google.'
+                : 'Signing in with Google only uses your name and email. Tools like Calendar, Gmail, Drive, Sheets, and Classroom ask permission only when you first open them. Every assignment found waits for your confirmation, and you can disconnect anytime in your Google Account.'}
             </p>
             <div className="overflow-x-auto text-left">
               <table className="w-full text-[11px] border-collapse mt-2">
                 <thead>
                   <tr className="bg-[#E8E6DC] dark:bg-[#1F1E1B]">
-                    <th className="p-1.5 border">{getLang() === 'vi' ? 'Quyền' : 'Scope'}</th>
-                    <th className="p-1.5 border">{getLang() === 'vi' ? 'Để làm gì' : 'Purpose'}</th>
+                    <th className="p-1.5 border">{getLang() === 'vi' ? 'Công cụ Google' : 'Google tool'}</th>
+                    <th className="p-1.5 border">{getLang() === 'vi' ? 'Xin quyền khi nào & để làm gì' : 'Asked when used & purpose'}</th>
                     <th className="p-1.5 border">{getLang() === 'vi' ? 'Gửi cho AI?' : 'Sent to AI?'}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {[
-                    ['classroom.courses.readonly', 'Tên các lớp của bạn', 'Your class names', 'Không', 'No'],
-                    ['classroom.coursework.me.readonly', 'Bài tập & hạn nộp của bạn', 'Your coursework & due dates', 'Không (đã có sẵn ngày)', 'No (dates are structured)'],
-                    ['classroom.announcements.readonly', 'Thông báo của thầy cô', 'Teacher announcements', 'Có — nội dung thông báo, cho Gemini (Groq nếu Gemini lỗi)', 'Yes — post text, to Gemini (Groq if Gemini fails)'],
-                    ['calendar.events', 'Lịch học để không xếp trùng; thêm buổi học khi bạn bấm', 'Class times; add study sessions when you tap', 'Không', 'No'],
-                    ['drive.file', 'Chỉ file StudentOS tạo hoặc bạn chọn', 'Only files StudentOS creates or you pick', 'Không', 'No'],
-                    ['gmail.readonly', 'Chỉ khi bật "Quét Gmail": tìm bài tập trong thư', 'Only with "Scan Gmail": find homework in mail', 'Có — người gửi, tiêu đề, ≤1.500 ký tự nội dung, cho Gemini (Groq nếu Gemini lỗi)', 'Yes — sender, subject, ≤1,500 chars, to Gemini (Groq if Gemini fails)'],
-                  ].map(([scope, vi, en, aiVi, aiEn]) => (
-                    <tr key={scope}>
-                      <td className="p-1.5 border font-mono">{scope}</td>
+                    ['classroom', getLang() === 'vi' ? 'Google Classroom' : 'Google Classroom', 'Tên lớp, bài tập, hạn nộp và thông báo thầy cô', 'Course names, assignments, due dates & teacher announcements', 'Chỉ nội dung thông báo để tìm bài tập ẩn', 'Only announcement text to find hidden homework'],
+                    ['calendar', getLang() === 'vi' ? 'Lịch Google' : 'Google Calendar', 'Xem giờ học và thêm buổi học khi bạn bấm', 'See busy hours and add study blocks when you tap', 'Không', 'No'],
+                    ['drive_sheets', getLang() === 'vi' ? 'Google Drive, Docs & Sheets' : 'Google Drive, Docs & Sheets', 'Chỉ mở và lưu bài tập hoặc bảng theo dõi bạn tạo trong StudentOS', 'Only files and spreadsheets you create or pick in StudentOS', 'Không', 'No'],
+                    ['gmail', 'Gmail (chỉ đọc)', 'Chỉ khi bạn bật quét thư: tìm thông báo bài tập & lịch thi (không xóa hay tự gửi thư)', 'Only when you turn on inbox scan: spot homework & exam notices (read-only)', 'Chỉ thư chưa chắc chắn (người gửi, tiêu đề, tối đa 1.500 ký tự)', 'Only sender, subject & short snippet (≤1,500 chars) to check if it is homework'],
+                  ].map(([id, toolName, vi, en, aiVi, aiEn]) => (
+                    <tr key={id}>
+                      <td className="p-1.5 border font-semibold">{toolName}</td>
                       <td className="p-1.5 border">{getLang() === 'vi' ? vi : en}</td>
                       <td className="p-1.5 border">{getLang() === 'vi' ? aiVi : aiEn}</td>
                     </tr>
@@ -542,12 +530,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <div id="demo-fallback" style={{display:'none'}} className="absolute inset-0 flex-col items-center justify-center text-center p-6 space-y-3 bg-[#E8E6DC] dark:bg-[#1F1E1B]">
                 <div className="w-14 h-14 rounded-2xl bg-[#C96442] text-white flex items-center justify-center"><Play className="w-6 h-6" /></div>
                 <p className="text-sm font-bold">{t('demo_video_missing')}</p>
-                <p className="text-xs text-[#5E5D59] max-w-md">Connect Canvas → Sync Google Workspace → AI Study Coach plans your day. Replace public/demo.mp4 with your Loom embed.</p>
-                <div className="w-full aspect-video rounded-xl bg-[#E8E6DC] dark:bg-[#252422] border border-dashed border-[#E8E6DC] dark:border-[#2C2B27] flex items-center justify-center text-xs text-[#5E5D59]">Add your Loom link: update public/demo.mp4 or set LOOM_URL env</div>
+                <p className="text-xs text-[#5E5D59] max-w-md">Connect Canvas, track Google deadlines, and let the AI Study Coach plan your day — all in one student hub.</p>
                 <button onClick={onExploreDemo} className="mt-2 px-4 py-2 bg-[#C96442] hover:bg-[#A94E33] text-white rounded-xl text-xs font-bold">{t('landing_explore')}</button>
               </div>
             </div>
-            <div className="text-[11px] text-[#5E5D59]">Tip: Replace <code className="font-mono bg-[#E8E6DC] dark:bg-[#252422] px-1 rounded">public/demo.mp4</code> with your 60s Loom recording. YouTube fallback shown if missing.</div>
+            <div className="text-[11px] text-[#5E5D59]">Try the interactive demo anytime to explore every tool without connecting an account.</div>
           </div>
         </div>
       )}
@@ -585,7 +572,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </div>
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-[#E8E6DC] dark:border-[#2C2B27] pt-4">
             <div className="text-[11px] text-center sm:text-left text-[#5E5D59]">
-              © 2026 Student Command Center — MIT Licensed. <a href="/privacy" target="_blank" rel="noopener noreferrer" className="underline hover:text-[#C96442]">Privacy Policy</a> • <a href="/terms" target="_blank" rel="noopener noreferrer" className="underline hover:text-[#C96442]">Terms</a> • <a href="#pricing" className="underline">Pricing</a> • <a href="#faq" className="underline">FAQ</a> • <a href="#comparison" className="underline">Comparison</a> • OG 1200×630
+              © 2026 Student Command Center — MIT Licensed. <a href="/privacy" target="_blank" rel="noopener noreferrer" className="underline hover:text-[#C96442]">Privacy Policy</a> • <a href="/terms" target="_blank" rel="noopener noreferrer" className="underline hover:text-[#C96442]">Terms</a> • <a href="#pricing" className="underline">Pricing</a> • <a href="#faq" className="underline">FAQ</a> • <a href="#comparison" className="underline">Comparison</a>
             </div>
             <LanguageToggle />
           </div>

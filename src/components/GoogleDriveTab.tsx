@@ -103,8 +103,9 @@ export const GoogleDriveTab: React.FC<GoogleDriveTabProps> = ({
   const handleShareFile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeFile || !shareEmail.trim()) return;
-    if (!googleToken) {
-      setShareError('Your Google session expired or is disconnected. Reconnect Google before sharing files.');
+    if (!isGoogleConnected || !googleToken) {
+      setShareError('Connect Google Drive first to share this document.');
+      if (onConnectGoogle) onConnectGoogle();
       return;
     }
     setIsSharing(true);
@@ -175,10 +176,10 @@ export const GoogleDriveTab: React.FC<GoogleDriveTabProps> = ({
           </div>
 
           <button
-            onClick={onRefreshFiles}
+            onClick={() => (!isGoogleConnected && onConnectGoogle ? onConnectGoogle() : onRefreshFiles())}
             disabled={isLoadingFiles}
             className="p-1.5 bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] hover:border-[#D97757] text-[#5C5A54] dark:text-[#B5B2A8] rounded-xl transition-colors cursor-pointer"
-            title={t('drive_refresh')}
+            title={isGoogleConnected ? t('drive_refresh') : t('drive_connect')}
           >
             <RefreshCw className={`w-4 h-4 ${isLoadingFiles ? 'animate-spin text-[#D97757] dark:text-[#E59A7C]' : ''}`} />
           </button>
@@ -214,6 +215,24 @@ export const GoogleDriveTab: React.FC<GoogleDriveTabProps> = ({
               <div className="p-12 text-center text-[#8C897F] dark:text-[#B5B2A8] flex flex-col items-center justify-center gap-2">
                 <RefreshCw className="w-5 h-5 animate-spin text-[#D97757] dark:text-[#E59A7C]" />
                 <span className="text-xs">{t('drive_indexing')}</span>
+              </div>
+            ) : !isGoogleConnected ? (
+              <div className="p-8 text-center text-[#8C897F] dark:text-[#B5B2A8] text-xs space-y-3 my-auto">
+                <HardDrive className="w-8 h-8 mx-auto text-[#D97757] opacity-80" />
+                <div className="space-y-1">
+                  <p className="font-bold text-[#141413] dark:text-[#FAF9F5]">Google Drive</p>
+                  <p>See and share school docs, slides, and sheets you create with StudentOS.</p>
+                </div>
+                {onConnectGoogle && (
+                  <button
+                    type="button"
+                    onClick={onConnectGoogle}
+                    className="px-4 py-2 bg-[#D97757] hover:bg-[#C86646] text-white rounded-xl font-bold cursor-pointer inline-flex items-center gap-1.5"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Connect Google Drive</span>
+                  </button>
+                )}
               </div>
             ) : filteredFiles.length === 0 ? (
               <div className="p-12 text-center text-[#8C897F] dark:text-[#B5B2A8] text-xs">
@@ -341,15 +360,18 @@ export const GoogleDriveTab: React.FC<GoogleDriveTabProps> = ({
                   )}
                 </div>
 
-                {/* File Details */}
-                <div className="p-4 bg-white dark:bg-[#1A1917] rounded-2xl border border-[#DFDACB] dark:border-[#2C2B27] space-y-2">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#8C897F] dark:text-[#B5B2A8] block">
-                    {t('drive_identifiers')}
+                {/* File Summary */}
+                <div className="p-4 bg-white dark:bg-[#1A1917] rounded-2xl border border-[#DFDACB] dark:border-[#2C2B27] space-y-1.5">
+                  <span className="text-[11px] font-bold text-[#141413] dark:text-[#FAF9F5] block">
+                    Privacy &amp; File Details
                   </span>
-                  <div className="space-y-1 text-[#8C897F] dark:text-[#B5B2A8] text-[11px] font-mono">
-                    <div>ID: {activeFile.id}</div>
-                    <div>MIME: {activeFile.mimeType}</div>
-                  </div>
+                  <p className="text-[11px] text-[#8C897F] dark:text-[#B5B2A8]">
+                    {getFileTypeDetails(activeFile.mimeType).label}
+                    {activeFile.modifiedTime ? ` • Updated ${new Date(activeFile.modifiedTime).toLocaleDateString()}` : ''}
+                  </p>
+                  <p className="text-[11px] text-[#8C897F] dark:text-[#B5B2A8]">
+                    StudentOS only accesses documents you create here or choose to open — never the rest of your Google Drive.
+                  </p>
                 </div>
               </div>
             </div>

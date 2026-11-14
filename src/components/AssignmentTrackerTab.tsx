@@ -292,7 +292,7 @@ export const AssignmentTrackerTab: React.FC<AssignmentTrackerTabProps> = ({
 
   const handleSyncClick = () => {
     if (!isGoogleConnected) {
-      // Show guidance instead of silent fail
+      onConnectGoogle?.();
       return;
     }
     onRefresh();
@@ -357,12 +357,6 @@ export const AssignmentTrackerTab: React.FC<AssignmentTrackerTabProps> = ({
                 <span>{t('connect_google')}</span>
               </button>
             )}
-            <button
-              onClick={onRefresh}
-              className="px-3 py-2 bg-white dark:bg-[#1A1917] border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200 rounded-xl text-xs font-bold cursor-pointer"
-            >
-              {t('tracker_try_anyway')}
-            </button>
           </div>
         </div>
       )}
@@ -451,10 +445,10 @@ export const AssignmentTrackerTab: React.FC<AssignmentTrackerTabProps> = ({
 
           {/* Sync Sheet */}
           <button
-            onClick={onRefresh}
+            onClick={handleSyncClick}
             disabled={isLoading}
             className="px-3 py-1.5 bg-[#E8E6DC] dark:bg-[#252422] hover:bg-[#E8E6DC] dark:hover:bg-[#2C2A26] text-[#141413] dark:text-[#F5F4ED] text-xs font-bold rounded-xl border border-[#E8E6DC] dark:border-[#2C2B27] transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-            title={t('tracker_sync_title')}
+            title={isGoogleConnected ? t('tracker_sync_title') : t('connect_google')}
           >
             <RefreshCw className={`w-3.5 h-3.5 text-[#C96442] dark:text-[#E59A7C] ${isLoading ? 'animate-spin' : ''}`} />
             <span className="hidden sm:inline">{isLoading ? t('syncing') : t('sync_sheet')}</span>

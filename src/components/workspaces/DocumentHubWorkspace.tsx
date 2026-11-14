@@ -89,6 +89,7 @@ interface DocumentHubWorkspaceProps {
   onRefreshFiles: () => void;
   isGoogleConnected: boolean;
   googleToken?: string;
+  onConnectGoogle?: () => void;
 }
 
 export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
@@ -97,6 +98,7 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
   onRefreshFiles,
   isGoogleConnected,
   googleToken,
+  onConnectGoogle,
 }) => {
   const [activeTab, setActiveTab] = useState<DocHubTab>('notes');
   const [notes, setNotes] = useState<MarkdownNote[]>(loadSavedNotes);
@@ -257,7 +259,12 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
   const handleGenerateDoc = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isGoogleConnected || !googleToken) {
-      setDocMessage('Please connect your Google Account first.');
+      if (onConnectGoogle) {
+        onConnectGoogle();
+        setDocMessage('Allow Google Drive access in the popup, then click Generate Google Doc.');
+      } else {
+        setDocMessage('Please connect Google Drive first to create a document.');
+      }
       return;
     }
     if (!docTitle.trim()) return;
@@ -281,14 +288,14 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
 
       if (result?.webViewLink) {
         setGeneratedDocUrl(result.webViewLink);
-        setDocMessage(`Document created successfully! Document ID: ${result.documentId}`);
+        setDocMessage('Document created in your Google Drive!');
         onRefreshFiles();
       } else {
-        setDocMessage('Failed to create document.');
+        setDocMessage('Could not create the Google Doc. Please try again.');
       }
     } catch (err) {
       console.error('Doc generation error:', err);
-      setDocMessage('Error generating Google Doc. Please check permissions.');
+      setDocMessage('Could not create Google Doc. Please reconnect Google Drive and try again.');
     } finally {
       setIsGeneratingDoc(false);
     }
@@ -310,7 +317,7 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
       setEssayAnalysisResult(res);
     } catch (err: any) {
       console.error('Essay analysis failed:', err);
-      setEssayError(err?.message || 'Essay analysis failed. Check your AI API key in Settings and try again.');
+      setEssayError(err?.message || 'Essay analysis failed. Check your Gemini or Groq key in Settings and try again.');
     } finally {
       setIsAnalyzingEssay(false);
     }
@@ -333,7 +340,7 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
       setSocraticHistory([{ role: 'model', content: initialQuestion }]);
     } catch (err: any) {
       console.error('Socratic initialization error:', err);
-      setSocraticError(err?.message || 'Could not start Socratic dialogue. Check your AI API key in Settings and try again.');
+      setSocraticError(err?.message || 'Could not start Socratic dialogue. Check your Gemini or Groq key in Settings and try again.');
     } finally {
       setIsSocraticThinking(false);
     }
@@ -935,6 +942,21 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
               </div>
             )}
 
+            {!isGoogleConnected && onConnectGoogle && (
+              <div className="p-3 bg-[#FAF9F5] dark:bg-[#1F1E1B] rounded-xl border border-[#DFDACB] dark:border-[#2C2B27] flex items-center justify-between gap-3 text-xs">
+                <span className="text-[#5C5A54] dark:text-[#B5B2A8]">
+                  Connecting Google Drive lets StudentOS create this formatted doc directly in your Drive.
+                </span>
+                <button
+                  type="button"
+                  onClick={onConnectGoogle}
+                  className="shrink-0 px-3 py-1.5 bg-[#D97757] hover:bg-[#C86646] text-white rounded-lg font-bold cursor-pointer"
+                >
+                  Connect Google Drive
+                </button>
+              </div>
+            )}
+
             <div className="flex justify-end pt-2">
               <button
                 type="submit"
@@ -942,7 +964,7 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
                 className="px-5 py-2 bg-[#D97757] hover:bg-[#C86646] disabled:opacity-50 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
               >
                 <Sparkles className={`w-3.5 h-3.5 ${isGeneratingDoc ? 'animate-spin' : ''}`} />
-                <span>{isGeneratingDoc ? 'Creating Doc...' : 'Generate Google Doc'}</span>
+                <span>{isGeneratingDoc ? 'Creating Doc...' : isGoogleConnected ? 'Generate Google Doc' : 'Connect Drive & Create Doc'}</span>
               </button>
             </div>
           </form>

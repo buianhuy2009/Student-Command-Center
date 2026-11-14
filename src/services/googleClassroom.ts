@@ -64,7 +64,7 @@ export async function fetchClassroomCourses(token: string): Promise<ClassroomCou
     }
 
     if (res.status === 401) {
-      throw new Error('Google Classroom session expired or unauthorized (401).');
+      throw new Error('Your Google Classroom connection expired. Please reconnect Google Classroom.');
     }
 
     if (!res.ok) {
@@ -73,7 +73,7 @@ export async function fetchClassroomCourses(token: string): Promise<ClassroomCou
         console.warn('Google Classroom access not available or no active courses for this account.');
         return [];
       }
-      throw parseGoogleApiResponseError(res.status, errBody, 'Google Classroom API', 'classroom.googleapis.com');
+      throw parseGoogleApiResponseError(res.status, errBody, 'Google Classroom', 'classroom.googleapis.com');
     }
 
     const data = await res.json();
@@ -108,7 +108,7 @@ export async function fetchCourseWork(token: string, courseId: string): Promise<
 
     if (!res.ok) {
       const errBody = await res.text();
-      throw parseGoogleApiResponseError(res.status, errBody, 'Google Classroom API', 'classroom.googleapis.com');
+      throw parseGoogleApiResponseError(res.status, errBody, 'Google Classroom', 'classroom.googleapis.com');
     }
 
     const data = await res.json();

@@ -81,7 +81,6 @@ import { db } from './services/db';
 
 import {
   signInWithGoogle,
-  signInWithGoogleBasic,
   OAuthTestUserRequiredError,
   signOutUser,
   onAuthStateChangedListener,
@@ -98,11 +97,13 @@ import {
   ensureFreshGoogleToken,
   refreshGoogleAccessToken,
   hasRefreshToken,
-  requestOfflineGrant,
-  isOfflineGrantSupported,
+  hasFeatureAccess,
+  requestFeaturePermission,
   hydrateRefreshGrant,
   clearGoogleGrant,
+  type GoogleFeature,
 } from './services/googleAuth';
+import { GooglePermissionModal } from './components/GooglePermissionModal';
 import type { SignInDiagnosis } from './services/firebase';
 import * as googleWorkspaceApi from './services/googleWorkspace';
 import type { FetchEmailOptions } from './services/googleWorkspace';
@@ -726,12 +727,38 @@ export default function App() {
   // tokens renew silently — there is no expiring "session" to warn about.
   // Connected = usable access now, or a refresh grant that can mint one.
   const [googleToken, setGoogleToken] = useState<string | null>(() => getStoredGoogleToken());
-  // Connected = a FRESH access token or a permanent offline grant. A raw
-  // (possibly expired) token string alone must NOT count — otherwise the
-  // expired state could never surface its one-click Reconnect banner.
-  const isGoogleConnected = Boolean(getValidGoogleToken() || hasRefreshToken()) || isDemoMode;
+  const [scopeRevision, setScopeRevision] = useState(0);
+  useEffect(() => {
+    const bump = () => setScopeRevision((n) => n + 1);
+    window.addEventListener('scc-google-scopes-updated', bump);
+    window.addEventListener('scc-google-token-updated', bump);
+    return () => {
+      window.removeEventListener('scc-google-scopes-updated', bump);
+      window.removeEventListener('scc-google-token-updated', bump);
+    };
+  }, []);
 
-  // API Disabled Info (for Google Cloud Console Enablement)
+  const [permissionPrompt, setPermissionPrompt] = useState<{
+    feature: GoogleFeature;
+    afterConnect?: () => Promise<void> | void;
+  } | null>(null);
+  const [connectingFeature, setConnectingFeature] = useState<GoogleFeature | null>(null);
+
+  const uidForScopes = user?.uid || null;
+  const hasCalendarAccess = Boolean(isDemoMode || (scopeRevision >= 0 && hasFeatureAccess('calendar', uidForScopes)));
+  const hasGmailAccess = Boolean(isDemoMode || (scopeRevision >= 0 && hasFeatureAccess('gmail', uidForScopes)));
+  const hasDriveAccess = Boolean(isDemoMode || (scopeRevision >= 0 && hasFeatureAccess('drive', uidForScopes)));
+  const hasSheetsAccess = Boolean(isDemoMode || (scopeRevision >= 0 && hasFeatureAccess('sheets', uidForScopes)));
+  const hasClassroomAccess = Boolean(isDemoMode || (scopeRevision >= 0 && hasFeatureAccess('classroom', uidForScopes)));
+  const isGoogleConnected =
+    isDemoMode ||
+    hasCalendarAccess ||
+    hasGmailAccess ||
+    hasDriveAccess ||
+    hasSheetsAccess ||
+    hasClassroomAccess;
+
+  // Service availability status (populated only if Google reports a service unavailable)
   const [driveApiInfo, setDriveApiInfo] = useState<ApiEnablementInfo | null>(null);
   const [calendarApiInfo, setCalendarApiInfo] = useState<ApiEnablementInfo | null>(null);
   const [gmailApiInfo, setGmailApiInfo] = useState<ApiEnablementInfo | null>(null);
@@ -746,6 +773,8 @@ export default function App() {
   // Master Sheet metadata
   const [masterSheetId, setMasterSheetId] = useState<string | undefined>();
   masterSheetIdRef.current = masterSheetId;
+  const isDemoModeRef = useRef(isDemoMode);
+  isDemoModeRef.current = isDemoMode;
   const [masterSheetUrl, setMasterSheetUrl] = useState<string | undefined>();
 
   // Loading States
@@ -953,6 +982,7 @@ export default function App() {
       try {
         const queued = await db.assignmentsQueue.toArray();
         if (!queued.length) return;
+        if (!hasFeatureAccess('sheets', authUidRef.current)) return;
         const token = await ensureFreshGoogleToken();
         if (!token || !masterSheetId) return;
         for (const item of queued) {
@@ -1354,11 +1384,17 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // Fetch Google Calendar Events (access auto-renews silently via refresh grant)
+  // Fetch Google Calendar Events (runs ONLY when Calendar permission is granted)
   const loadCalendarEvents = useCallback(async (isSilent = false, _retried = false) => {
+    if (!hasFeatureAccess('calendar', authUidRef.current)) {
+      if (!isDemoModeRef.current) setCalendarEvents([]);
+      setCalendarError(null);
+      setCalendarApiInfo(null);
+      return;
+    }
     const token = await ensureFreshGoogleToken();
     if (!token) {
-      setCalendarEvents([]);
+      if (!isDemoModeRef.current) setCalendarEvents([]);
       setCalendarError(null);
       setCalendarApiInfo(null);
       return;
@@ -1407,10 +1443,8 @@ export default function App() {
         if (!isSilent) {
           addToast({
             type: 'warning',
-            title: err?.isServiceDisabled ? 'Calendar API Disabled' : 'Google Calendar Sync',
-            message: err.message || 'Could not fetch live Calendar schedule.',
-            actionLabel: err?.activationUrl ? 'Enable in Cloud' : undefined,
-            actionUrl: err?.activationUrl,
+            title: err?.isServiceDisabled ? 'Google Calendar Unavailable' : 'Google Calendar Sync',
+            message: err.message || 'Could not load your Google Calendar schedule right now.',
           });
         }
       }
@@ -1419,12 +1453,23 @@ export default function App() {
     }
   }, [addToast]);
 
-  // Fetch Academic Emails & Summarize with Gemini (access auto-renews silently)
+  // Fetch Academic Emails & Summarize with Gemini (runs ONLY when Gmail permission is granted)
   const loadEmailsAndAlerts = useCallback(async (isSilent = false, forceResort = false, options?: FetchEmailOptions, _retried = false) => {
+    if (!hasFeatureAccess('gmail', authUidRef.current)) {
+      if (!isDemoModeRef.current) {
+        setRawEmails([]);
+        setEmailAlerts([]);
+      }
+      setEmailError(null);
+      setGmailApiInfo(null);
+      return;
+    }
     const token = await ensureFreshGoogleToken();
     if (!token) {
-      setRawEmails([]);
-      setEmailAlerts([]);
+      if (!isDemoModeRef.current) {
+        setRawEmails([]);
+        setEmailAlerts([]);
+      }
       setEmailError(null);
       setGmailApiInfo(null);
       return;
@@ -1517,14 +1562,12 @@ export default function App() {
         } else {
           setGmailApiInfo(null);
         }
-        setEmailError(err.message || 'Could not scan live Gmail inbox.');
+        setEmailError(err.message || 'Could not check Gmail right now.');
         if (!isSilent) {
           addToast({
             type: 'warning',
-            title: err?.isServiceDisabled ? 'Gmail API Disabled' : 'Gmail Scanner',
-            message: err.message || 'Could not scan live Gmail inbox.',
-            actionLabel: err?.activationUrl ? 'Enable in Cloud' : undefined,
-            actionUrl: err?.activationUrl,
+            title: err?.isServiceDisabled ? 'Gmail Unavailable' : 'Gmail Scanner',
+            message: err.message || 'Could not check your Gmail inbox right now.',
           });
         }
       }
@@ -1533,8 +1576,13 @@ export default function App() {
     }
   }, [addToast]);
 
-  // Fetch Master Sheet Assignments (access auto-renews silently)
+  // Fetch Master Sheet Assignments (runs ONLY when Google Sheets permission is granted)
   const loadSheetAssignments = useCallback(async (isSilent = false, _retried = false) => {
+    if (!hasFeatureAccess('sheets', authUidRef.current)) {
+      setSheetError(null);
+      setSheetApiInfo(null);
+      return;
+    }
     const token = await ensureFreshGoogleToken();
     if (!token) {
       setSheetError(null);
@@ -1608,10 +1656,8 @@ export default function App() {
         if (!isSilent) {
           addToast({
             type: 'warning',
-            title: err?.isServiceDisabled ? 'Google Sheets API Disabled' : 'Google Sheet Sync',
-            message: err.message || 'Could not sync Master Google Sheet.',
-            actionLabel: err?.activationUrl ? 'Enable in Cloud' : undefined,
-            actionUrl: err?.activationUrl,
+            title: err?.isServiceDisabled ? 'Google Sheets Unavailable' : 'Google Sheet Sync',
+            message: err.message || 'Could not sync your Master Google Sheet right now.',
           });
         }
       }
@@ -1620,11 +1666,17 @@ export default function App() {
     }
   }, [addToast]);
 
-  // Fetch Recent Files (access auto-renews silently)
+  // Fetch Recent Files (runs ONLY when Google Drive permission is granted)
   const loadRecentFiles = useCallback(async (isSilent = false, _retried = false) => {
+    if (!hasFeatureAccess('drive', authUidRef.current)) {
+      if (!isDemoModeRef.current) setRecentFiles([]);
+      setDriveError(null);
+      setDriveApiInfo(null);
+      return;
+    }
     const token = await ensureFreshGoogleToken();
     if (!token) {
-      setRecentFiles([]);
+      if (!isDemoModeRef.current) setRecentFiles([]);
       setDriveError(null);
       setDriveApiInfo(null);
       return;
@@ -1667,10 +1719,8 @@ export default function App() {
         if (!isSilent) {
           addToast({
             type: 'warning',
-            title: err?.isServiceDisabled ? 'Google Drive API Disabled' : 'Google Drive Sync Failed',
+            title: err?.isServiceDisabled ? 'Google Drive Unavailable' : 'Google Drive Sync',
             message: errMsg,
-            actionLabel: err?.activationUrl ? 'Enable in Cloud' : undefined,
-            actionUrl: err?.activationUrl,
           });
         }
       }
@@ -1735,8 +1785,12 @@ export default function App() {
     }
   }, []);
 
-  // Fetch Google Classroom coursework (access auto-renews silently)
+  // Fetch Google Classroom coursework (runs ONLY when Classroom permission is granted)
   const loadClassroomData = useCallback(async (isSilent = false, _retried = false) => {
+    if (!hasFeatureAccess('classroom', authUidRef.current)) {
+      setClassroomError(null);
+      return;
+    }
     const token = await ensureFreshGoogleToken();
     if (!token) {
       setClassroomError(null);
@@ -1941,8 +1995,10 @@ export default function App() {
       setCanvasError(null);
       setLastSyncedAt(new Date());
 
-      // Auto-Sync Canvas Completion to Master Sheet Tracker
-      const token = await ensureFreshGoogleToken();
+      // Auto-Sync Canvas Completion to Master Sheet Tracker (only if Sheets is connected)
+      const token = hasFeatureAccess('sheets', authUidRef.current)
+        ? await ensureFreshGoogleToken()
+        : null;
       const sheetId = masterSheetIdRef.current;
       let updatedSheetCount = 0;
       const completedAssignmentIds = new Set<string>();
@@ -2064,8 +2120,8 @@ export default function App() {
           await runFullSync(false);
           addToast({
             type: 'success',
-            title: 'Google Workspace Connected',
-            message: `Signed in as ${resumed.user.displayName || resumed.user.email || 'User'}. Live Workspace data active.`,
+            title: 'Signed in with Google',
+            message: `Signed in as ${resumed.user.displayName || resumed.user.email || 'User'}.`,
           });
         } else {
           addToast({
@@ -2087,8 +2143,8 @@ export default function App() {
       await runFullSync(false);
       addToast({
         type: 'info',
-        title: 'All Channels Synced',
-        message: 'Canvas LMS and Google Workspace data updated.',
+        title: 'Everything Up to Date',
+        message: 'Refreshed Canvas LMS and your connected Google tools.',
       });
     } finally {
       setIsRefreshingAll(false);
@@ -2187,11 +2243,11 @@ export default function App() {
     }
   }, [addToast]);
 
-  // Popup-hostile browsers: full-page redirect to Google and back (no popup needed)
-  const handleRedirectSignIn = useCallback(async (requestWorkspace = true) => {
+  // Popup-hostile browsers: full-page redirect to Google and back (basic sign-in only)
+  const handleRedirectSignIn = useCallback(async (requestWorkspace = false) => {
     setIsLoggingIn(true);
     try {
-      addToast({ type: 'info', title: 'Redirecting to Google…', message: 'Grant access and you will come right back to the app.' });
+      addToast({ type: 'info', title: 'Redirecting to Google…', message: 'Sign in with your Google account and you will return right back to StudentOS.' });
       await signInWithRedirectFlow({ requestWorkspace });
     } catch (err: any) {
       handleSignInFailure(err, 'workspace');
@@ -2200,58 +2256,46 @@ export default function App() {
     }
   }, [addToast, handleSignInFailure]);
 
-  const handleGoogleSignIn = async (requestWorkspace = true) => {
+  const syncFeatureByKey = useCallback(async (feature: GoogleFeature) => {
+    switch (feature) {
+      case 'calendar':
+        await loadCalendarEvents(false);
+        break;
+      case 'gmail':
+        await loadEmailsAndAlerts(false);
+        break;
+      case 'drive':
+        await loadRecentFiles(false);
+        break;
+      case 'sheets':
+        await loadSheetAssignments(false);
+        break;
+      case 'classroom':
+        await loadClassroomData(false);
+        break;
+    }
+  }, [loadCalendarEvents, loadEmailsAndAlerts, loadRecentFiles, loadSheetAssignments, loadClassroomData]);
+
+  const promptConnectFeature = useCallback(
+    (feature: GoogleFeature, afterConnect?: () => Promise<void> | void) => {
+      setPermissionPrompt({ feature, afterConnect });
+    },
+    []
+  );
+
+  const handleGoogleSignIn = async (requestWorkspace = false) => {
     setIsLoggingIn(true);
     try {
-      // Already signed in (reconnect / Connect Workspace inside app): use single offline-grant popup
-      if (requestWorkspace && user && isOfflineGrantSupported()) {
-        setOauthGuideModalOpen(false);
-        setOauthDiagnosis(null);
-        setCalendarError(null);
-        setEmailError(null);
-        setSheetError(null);
-        setDriveError(null);
-        setCanvasError(null);
-        setClassroomError(null);
-        const offlineToken = await requestOfflineGrant();
-        if (!offlineToken) {
-          addToast({
-            type: 'info',
-            title: 'Sign-In Cancelled',
-            message: 'Workspace authorization was cancelled.',
-            duration: 5000,
-          });
-          return;
-        }
-        setGoogleToken(offlineToken);
-        try { await hydrateRefreshGrant(user.uid); } catch {}
-        await runFullSync(false);
-        addToast({
-          type: 'success',
-          title: 'Google Workspace Connected',
-          message: `Connected as ${user.displayName || user.email || 'User'}. Permanent sync enabled — no more hourly reconnects.`,
-        });
-        return;
-      }
-
       const result = await signInWithGoogle({ requestWorkspace });
       if (!result) {
-        // User closed or dismissed the popup - clean exit
-        if (requestWorkspace) {
-          addToast({
-            type: 'info',
-            title: 'Sign-In Cancelled',
-            message: 'If Google displayed "Access blocked", your account must be in Test Users in Google Cloud Console, or use Basic Sign-In.',
-            duration: 6000,
-          });
-        }
         return;
       }
       setUser(result.user);
       setIsDemoMode(false);
       setOauthGuideModalOpen(false);
       setOauthDiagnosis(null);
-      // Fresh sign-in: clear stale sync errors so reconnect visibly heals every tab
+      setActiveGoogleUid(result.user.uid);
+      // Fresh sign-in: clear stale sync errors
       setCalendarError(null);
       setEmailError(null);
       setSheetError(null);
@@ -2259,33 +2303,26 @@ export default function App() {
       setCanvasError(null);
       setClassroomError(null);
 
+      try {
+        if (result.user?.uid) {
+          await hydrateRefreshGrant(result.user.uid);
+        }
+      } catch (grantErr) {
+        console.warn('Grant check skipped:', grantErr);
+      }
+
       if (result.accessToken) {
         setGoogleToken(result.accessToken);
-        // Silently restore cross-device offline grant if one exists (avoid second consent popup)
-        let permanent = false;
-        try {
-          if (result.user?.uid) {
-            permanent = await hydrateRefreshGrant(result.user.uid);
-          }
-        } catch (grantErr) {
-          console.warn('Offline grant check skipped, keeping hourly token:', grantErr);
-        }
-        await runFullSync(false);
-        addToast({
-          type: 'success',
-          title: 'Google Workspace Connected',
-          message: permanent
-            ? `Signed in as ${result.user.displayName || result.user.email || 'User'}. Permanent sync enabled — no more hourly reconnects.`
-            : `Signed in as ${result.user.displayName || result.user.email || 'User'}. Live Workspace data active.`,
-        });
-      } else {
-        addToast({
-          type: 'info',
-          title: 'Signed in with Google',
-          message: `Signed in as ${result.user.displayName || result.user.email || 'User'}. Connect Google Workspace inside to sync Calendar & Drive.`,
-          duration: 6000,
-        });
       }
+      setScopeRevision((n) => n + 1);
+      await runFullSync(false);
+
+      addToast({
+        type: 'success',
+        title: 'Signed in with Google',
+        message: `Welcome, ${result.user.displayName || result.user.email || 'Student'}! Calendar, Gmail, Drive, Docs, and Classroom will ask permission only when you open them.`,
+        duration: 6000,
+      });
     } catch (err: any) {
       handleSignInFailure(err, 'workspace');
     } finally {
@@ -2293,64 +2330,88 @@ export default function App() {
     }
   };
 
-  const handleConnectGmail = async () => {
-    setIsLoggingIn(true);
-    try {
-      // Single consent popup when already Firebase-signed-in
-      if (user && isOfflineGrantSupported()) {
-        const offlineToken = await requestOfflineGrant({ gmail: true });
-        if (!offlineToken) {
+  const connectGoogleFeature = useCallback(
+    async (feature: GoogleFeature, afterConnect?: () => Promise<void> | void) => {
+      setConnectingFeature(feature);
+      setIsLoggingIn(true);
+      try {
+        let activeUser = user;
+        if (!activeUser) {
+          const signedIn = await signInWithGoogle({ requestWorkspace: false });
+          if (!signedIn?.user) {
+            addToast({
+              type: 'info',
+              title: 'Sign-In Cancelled',
+              message: 'Sign in with Google first when you are ready to connect this tool.',
+              duration: 4500,
+            });
+            return;
+          }
+          activeUser = signedIn.user;
+          setUser(signedIn.user);
+          setIsDemoMode(false);
+          setActiveGoogleUid(signedIn.user.uid);
+        }
+
+        const token = await requestFeaturePermission(feature, {
+          loginHint: activeUser.email || undefined,
+          uid: activeUser.uid || undefined,
+        });
+
+        if (!token) {
           addToast({
             type: 'info',
-            title: 'Gmail Connection Cancelled',
-            message: 'Gmail permission popup was closed.',
-            duration: 4000,
+            title: 'Permission Not Granted',
+            message: 'No problem — StudentOS kept that tool off. You can connect it anytime when you need it.',
+            duration: 5000,
           });
           return;
         }
-        setGoogleToken(offlineToken);
-        setEmailError(null);
-        try { await hydrateRefreshGrant(user.uid); } catch {}
-        await loadEmailsAndAlerts(false);
-        addToast({
-          type: 'success',
-          title: 'Gmail Academic Connected',
-          message: 'Academic email scanning is now active — permanently, no hourly reconnects.',
-        });
-        return;
-      }
 
-      const result = await signInWithGoogle({ requestWorkspace: true, includeGmail: true });
-      if (result?.user) {
-        setUser(result.user);
-        setIsDemoMode(false);
-        setActiveGoogleUid(result.user.uid);
-      }
-      if (result?.accessToken) {
-        setGoogleToken(result.accessToken);
-        setEmailError(null);
-        let permanent = false;
+        setGoogleToken(token);
+        setScopeRevision((n) => n + 1);
+        if (feature === 'calendar') setCalendarError(null);
+        if (feature === 'gmail') setEmailError(null);
+        if (feature === 'sheets') setSheetError(null);
+        if (feature === 'drive') setDriveError(null);
+        if (feature === 'classroom') setClassroomError(null);
+
         try {
-          if (result.user?.uid) {
-            permanent = await hydrateRefreshGrant(result.user.uid);
-          }
-        } catch (grantErr) {
-          console.warn('Offline grant check skipped, keeping hourly token:', grantErr);
+          await hydrateRefreshGrant(activeUser.uid);
+        } catch {}
+
+        await syncFeatureByKey(feature);
+        if (afterConnect) {
+          await afterConnect();
         }
-        await loadEmailsAndAlerts(false);
+
+        const labelMap: Record<GoogleFeature, string> = {
+          calendar: 'Google Calendar',
+          gmail: 'Gmail (Read-Only)',
+          drive: 'Google Drive & Docs',
+          sheets: 'Google Sheets',
+          classroom: 'Google Classroom',
+        };
         addToast({
           type: 'success',
-          title: 'Gmail Academic Connected',
-          message: permanent
-            ? 'Academic email scanning is now active — permanently, no hourly reconnects.'
-            : 'Academic email scanning is now active.',
+          title: `${labelMap[feature]} Connected`,
+          message: `Ready for ${activeUser.email || activeUser.displayName || 'your account'}.`,
         });
+      } catch (err: any) {
+        handleSignInFailure(err, feature === 'gmail' ? 'gmail' : 'workspace');
+      } finally {
+        setConnectingFeature(null);
+        setIsLoggingIn(false);
       }
-    } catch (err: any) {
-      handleSignInFailure(err, 'gmail');
-    } finally {
-      setIsLoggingIn(false);
-    }
+    },
+    [user, addToast, handleSignInFailure, syncFeatureByKey]
+  );
+
+  const confirmPermissionPrompt = async () => {
+    if (!permissionPrompt) return;
+    const { feature, afterConnect } = permissionPrompt;
+    await connectGoogleFeature(feature, afterConnect);
+    setPermissionPrompt(null);
   };
 
   const handleBasicSignIn = async () => {
@@ -2411,7 +2472,9 @@ export default function App() {
 
   // Add Assignment
   const handleAddAssignment = async (newAssign: Omit<Assignment, 'id'>) => {
-    const token = await ensureFreshGoogleToken();
+    const token = hasFeatureAccess('sheets', authUidRef.current)
+      ? await ensureFreshGoogleToken()
+      : null;
     const tempId = `assign-${Date.now()}`;
     const fullAssign: Assignment = { ...newAssign, id: tempId };
 
@@ -2450,7 +2513,9 @@ export default function App() {
     const updated = { ...assignment, status: newStatus };
     setAssignments((prev) => prev.map((a) => (a.id === assignment.id ? updated : a)));
 
-    const token = await ensureFreshGoogleToken();
+    const token = hasFeatureAccess('sheets', authUidRef.current)
+      ? await ensureFreshGoogleToken()
+      : null;
     if (token && masterSheetId && assignment.sheetRowIndex) {
       try {
         await updateAssignmentInSheet(token, masterSheetId, updated);
@@ -2481,7 +2546,9 @@ export default function App() {
   // Clear / Purge all completed assignments from Master Sheet and tracker
   const handleClearCompletedAssignments = async () => {
     const activeOnly = assignments.filter((a) => a.status !== 'Done');
-    const token = await ensureFreshGoogleToken();
+    const token = hasFeatureAccess('sheets', authUidRef.current)
+      ? await ensureFreshGoogleToken()
+      : null;
 
     if (token && masterSheetId) {
       try {
@@ -2572,7 +2639,9 @@ export default function App() {
     logPilot('due_confirmed');
     addToast({ type: 'success', title: 'Đã xác nhận hạn nộp', message: `${target.assignmentName} · ${target.dueDate}` });
     try {
-      const token = await ensureFreshGoogleToken();
+      const token = hasFeatureAccess('sheets', authUidRef.current)
+        ? await ensureFreshGoogleToken()
+        : null;
       if (token && masterSheetId) await syncAllAssignmentsToSheet(token, masterSheetId, next.filter((a) => !a.trashedAt));
     } catch (err) {
       console.warn('Sheet update after confirm failed (kept locally):', err);
@@ -2595,6 +2664,13 @@ export default function App() {
     endDateTime: string;
     location?: string;
   }) => {
+    if (!hasFeatureAccess('calendar', authUidRef.current) && !isDemoModeRef.current) {
+      promptConnectFeature('calendar', async () => {
+        await handleScheduleStudyBlock(eventData);
+      });
+      return;
+    }
+
     setIsScheduling(true);
     const token = await ensureFreshGoogleToken();
 
@@ -2620,18 +2696,33 @@ export default function App() {
           actionLabel: 'Open Calendar',
           actionUrl: createdEvent.htmlLink || 'https://calendar.google.com',
         });
-      } else {
+      } else if (isDemoModeRef.current) {
+        setCalendarEvents((prev) => [
+          ...prev,
+          {
+            id: `demo-study-${Date.now()}`,
+            summary: eventData.title,
+            description: eventData.description,
+            start: { dateTime: eventData.startDateTime },
+            end: { dateTime: eventData.endDateTime },
+            isStudyBlock: true,
+          },
+        ]);
         addToast({
-          type: 'warning',
-          title: 'Connect Google Account',
-          message: 'Sign in to Google Calendar to schedule live calendar events.',
+          type: 'success',
+          title: 'Study Block Added (Demo)',
+          message: `Added "${eventData.title}" to your demo schedule.`,
+        });
+      } else {
+        promptConnectFeature('calendar', async () => {
+          await handleScheduleStudyBlock(eventData);
         });
       }
     } catch (err: any) {
       console.error('Error adding study block:', err);
       if (err?.isServiceDisabled) {
         setApiActivationModalInfo({
-          serviceName: err.serviceName || 'Google Calendar API',
+          serviceName: err.serviceName || 'Google Calendar',
           serviceId: err.serviceId || 'calendar-json.googleapis.com',
           activationUrl: err.activationUrl,
           projectId: err.projectId || (import.meta as any).env?.VITE_GOOGLE_PROJECT_ID || '',
@@ -2640,10 +2731,8 @@ export default function App() {
       }
       addToast({
         type: 'error',
-        title: err?.isServiceDisabled ? 'Calendar API Disabled' : 'Scheduling Failed',
-        message: err.message || 'Could not insert event into Google Calendar.',
-        actionLabel: err?.activationUrl ? 'Enable in Cloud' : undefined,
-        actionUrl: err?.activationUrl,
+        title: err?.isServiceDisabled ? 'Google Calendar Unavailable' : 'Could Not Save Study Block',
+        message: err.message || 'Could not add that session to Google Calendar right now.',
       });
     } finally {
       setIsScheduling(false);
@@ -2745,12 +2834,16 @@ export default function App() {
   };
 
   const submitAssignmentWithShare = async (assignment: CanvasAssignment, fileId: string) => {
+    if (!hasFeatureAccess('drive', authUidRef.current) && !isDemoModeRef.current) {
+      promptConnectFeature('drive', async () => {
+        await submitAssignmentWithShare(assignment, fileId);
+      });
+      return;
+    }
     const token = await ensureFreshGoogleToken();
     if (!token && !isDemoMode) {
-      addToast({
-        type: 'error',
-        title: 'Google Connection Required',
-        message: 'Please connect your Google Account to submit files from Google Drive.',
+      promptConnectFeature('drive', async () => {
+        await submitAssignmentWithShare(assignment, fileId);
       });
       return;
     }
@@ -2867,7 +2960,6 @@ export default function App() {
       <>
         <LandingPage
           onSignIn={() => handleGoogleSignIn(false)}
-          onSignInWorkspace={() => handleGoogleSignIn(true)}
           onExploreDemo={() => setIsDemoMode(true)}
           isLoggingIn={isLoggingIn}
           darkMode={darkMode}
@@ -2877,14 +2969,14 @@ export default function App() {
         <OAuthGuideModal
           isOpen={oauthGuideModalOpen}
           onClose={() => { setOauthGuideModalOpen(false); setOauthDiagnosis(null); }}
-          onRetryWorkspaceSignIn={() => handleGoogleSignIn(true)}
+          onRetryWorkspaceSignIn={() => handleGoogleSignIn(false)}
           onBasicSignIn={() => handleGoogleSignIn(false)}
           isLoggingIn={isLoggingIn}
-          projectId="studentcommandcenter-39cdc"
-          userEmail="buianhuy2009@gmail.com"
+          projectId=""
+          userEmail=""
           diagnosis={oauthDiagnosis}
           onRunDiagnostics={diagnoseSignInEnvironment}
-          onRedirectSignIn={() => handleRedirectSignIn(true)}
+          onRedirectSignIn={() => handleRedirectSignIn(false)}
         />
         )}
         {privacyOpen && (
@@ -2908,7 +3000,7 @@ export default function App() {
           onDismiss={dismissToast}
           onRetry={(id: string) => {
             const t = toasts.find((x) => x.id === id);
-            if (t?.reconnectGoogle) handleGoogleSignIn(true);
+            if (t?.reconnectGoogle) handleGoogleSignIn(false);
           }}
         />
       </>
@@ -3072,34 +3164,6 @@ export default function App() {
                     exists. Access renews silently via the offline grant, so no
                     expiry state is ever surfaced — reconnecting once upgrades
                     legacy hourly tokens to permanent automatically. */}
-                {user && !isGoogleConnected && !isDemoMode && (
-                  <div className="p-4 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs shadow-xs animate-in fade-in">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-[#C96442]/15 text-[#C96442] flex items-center justify-center shrink-0">
-                        <Sparkles className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <p className="font-bold text-[#141413] dark:text-[#F5F4ED] text-sm">
-                          Google Workspace Sync Paused
-                        </p>
-                        <p className="text-[11px] text-[#5E5D59] dark:text-[#B5B2A8]">
-                          {`Signed in as ${user.email}. Connect Google Workspace with one click to enable live sync across Calendar, Drive, Sheets & Classroom — it stays connected automatically.`}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
-                      <button
-                        onClick={() => handleGoogleSignIn(true)}
-                        disabled={isLoggingIn}
-                        className="px-4 py-2 bg-[#C96442] hover:bg-[#A94E33] text-white font-bold rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                      >
-                        <RefreshCw className={`w-3.5 h-3.5 ${isLoggingIn ? 'animate-spin' : ''}`} />
-                        <span>{isLoggingIn ? 'Connecting...' : 'Connect Workspace'}</span>
-                      </button>
-                    </div>
-                  </div>
-                )}
-
                 {activeTab === 'canvas' && (
                   <CanvasSyncTab
                     settings={canvasSettings}
@@ -3115,10 +3179,10 @@ export default function App() {
                     onSyncToSheet={handleSyncCanvasToSheet}
                     onSyncAllPending={handleSyncAllPendingCanvas}
                     recentFiles={recentFiles}
-                    isGoogleConnected={isGoogleConnected}
+                    isGoogleConnected={hasDriveAccess}
                     onSubmitAssignment={handleSubmitAssignment}
-                    googleToken={googleToken || undefined}
-                    onConnectGoogle={() => handleGoogleSignIn(true)}
+                    googleToken={hasDriveAccess ? googleToken || undefined : undefined}
+                    onConnectGoogle={() => promptConnectFeature('drive', () => loadRecentFiles(false))}
                   />
                 )}
 
@@ -3135,8 +3199,8 @@ export default function App() {
                     onNavigateToTab={handleTabTransition}
                     urgentCanvasItems={canvasAssignments.filter((c) => !c.isSynced).slice(0, 3)}
                     allCanvasAssignments={canvasAssignments}
-                    isGoogleConnected={isGoogleConnected}
-                    onConnectGoogle={() => handleGoogleSignIn(true)}
+                    isGoogleConnected={hasCalendarAccess}
+                    onConnectGoogle={() => promptConnectFeature('calendar', () => loadCalendarEvents(false))}
                     calendarError={calendarError}
                     calendarApiInfo={calendarApiInfo}
                     pendingAssignments={assignments.filter((a) => a.status !== 'Done')}
@@ -3165,8 +3229,8 @@ export default function App() {
                     }}
                     onParseNaturalText={handleParseNaturalText}
                     isParsingAI={isParsingAI}
-                    isGoogleConnected={isGoogleConnected}
-                    onConnectGoogle={() => handleGoogleSignIn(true)}
+                    isGoogleConnected={hasSheetsAccess}
+                    onConnectGoogle={() => promptConnectFeature('sheets', () => loadSheetAssignments(false))}
                     onClearCompleted={handleClearCompletedAssignments}
                     onConfirmDue={handleConfirmDue}
                     sheetError={sheetError}
@@ -3193,8 +3257,9 @@ export default function App() {
                       setQuickDraftModalOpen(true);
                     }}
                     onExtractAssignment={handleExtractAssignment}
-                    isGoogleConnected={isGoogleConnected}
-                    onConnectGoogle={handleConnectGmail}
+                    isGoogleConnected={hasGmailAccess}
+                    onConnectGoogle={() => promptConnectFeature('gmail', () => loadEmailsAndAlerts(false))}
+                    connectedEmail={user?.email || null}
                     emailError={emailError}
                     gmailApiInfo={gmailApiInfo}
                   />
@@ -3205,19 +3270,19 @@ export default function App() {
                     recentFiles={recentFiles}
                     isLoadingFiles={isLoadingFiles}
                     onRefreshFiles={() => loadRecentFiles(false)}
-                    isGoogleConnected={isGoogleConnected}
-                    onConnectGoogle={() => handleGoogleSignIn(true)}
+                    isGoogleConnected={hasDriveAccess}
+                    onConnectGoogle={() => promptConnectFeature('drive', () => loadRecentFiles(false))}
                     driveError={driveError}
                     driveApiInfo={driveApiInfo}
-                    googleToken={googleToken || undefined}
+                    googleToken={hasDriveAccess ? googleToken || undefined : undefined}
                   />
                 )}
 
                 {activeTab === 'classroom' && (
                   <GoogleClassroomPanel
-                    googleToken={googleToken || undefined}
-                    isGoogleConnected={isGoogleConnected}
-                    onConnectGoogle={() => handleGoogleSignIn(true)}
+                    googleToken={hasClassroomAccess ? googleToken || undefined : undefined}
+                    isGoogleConnected={hasClassroomAccess}
+                    onConnectGoogle={() => promptConnectFeature('classroom', () => loadClassroomData(false))}
                     onSyncToSheet={handleSyncCanvasToSheet}
                     classroomAssignments={classroomAssignments}
                     isLoading={isLoadingClassroom}
@@ -3267,8 +3332,9 @@ export default function App() {
                     recentFiles={recentFiles}
                     isLoadingFiles={isLoadingFiles}
                     onRefreshFiles={() => loadRecentFiles(false)}
-                    isGoogleConnected={isGoogleConnected}
-                    googleToken={googleToken || undefined}
+                    isGoogleConnected={hasDriveAccess}
+                    googleToken={hasDriveAccess ? googleToken || undefined : undefined}
+                    onConnectGoogle={() => promptConnectFeature('drive', () => loadRecentFiles(false))}
                   />
                 )}
 
@@ -3296,7 +3362,9 @@ export default function App() {
                       onOpenAppStore={() => setAppStoreOpen(true)}
                       user={user}
                       isGoogleConnected={isGoogleConnected}
-                      onConnectGoogle={() => handleGoogleSignIn(true)}
+                      isGmailConnected={hasGmailAccess}
+                      isClassroomConnected={hasClassroomAccess}
+                      onConnectGoogle={() => setGoogleSyncHubOpen(true)}
                       onOpenStudyPlan={() => setIsStudyPlanOpen(true)}
                       calendarEvents={calendarEvents}
                       emailAlerts={allAlerts}
@@ -3307,7 +3375,7 @@ export default function App() {
                     {/* Demoted secondary card: collapsible + dismissible, never blocks greeting/Today Plan */}
                     <OnboardingChecklist
                       onConnectCanvas={()=>handleTabTransition('canvas')}
-                      onConnectGoogle={()=>handleGoogleSignIn(true)}
+                      onConnectGoogle={()=>setGoogleSyncHubOpen(true)}
                       onCreateTask={()=>handleTabTransition('tracker')}
                       onStartPomodoro={()=>{ handleTabTransition('pomodoro'); setZenFocusMode(true); }}
                     />
@@ -3328,8 +3396,10 @@ export default function App() {
         isOpen={accountSettingsOpen}
         onClose={() => setAccountSettingsOpen(false)}
         user={user}
-        onGoogleSignIn={() => handleGoogleSignIn()}
+        onGoogleSignIn={() => handleGoogleSignIn(false)}
         onLogout={handleLogout}
+        onConnectFeature={(feature: GoogleFeature) => promptConnectFeature(feature, () => syncFeatureByKey(feature))}
+        onOpenGoogleSyncHub={() => setGoogleSyncHubOpen(true)}
         isLoggingIn={isLoggingIn}
         darkMode={darkMode}
         setDarkMode={applyDarkMode}
@@ -3389,7 +3459,7 @@ export default function App() {
       />
       )}
 
-      {/* Google Workspace Sync Hub Modal */}
+      {/* Google Connections Hub Modal */}
       {googleSyncHubOpen && (
         <Suspense fallback={null}>
           <GoogleSyncHubModal
@@ -3401,20 +3471,35 @@ export default function App() {
             onSyncAll={async () => {
               await runFullSync(false);
             }}
-            onConnectGoogle={() => handleGoogleSignIn(true)}
+            onConnectGoogle={() => handleGoogleSignIn(false)}
             onDisconnectGoogle={handleDisconnectGoogle}
-            onConnectGmail={handleConnectGmail}
-            isConnectingGmail={isLoggingIn}
+            onConnectGmail={() => loadEmailsAndAlerts(false)}
+            isConnectingGmail={isLoadingEmails}
+            onConnectFeature={(feature: GoogleFeature) => {
+              setGoogleSyncHubOpen(false);
+              promptConnectFeature(feature);
+            }}
+            connectingFeature={connectingFeature}
             calendarEventsCount={calendarEvents.length}
             emailCount={rawEmails.length}
             schoolFilesCount={recentFiles.length}
             classroomCount={classroomAssignments.length}
             sheetUrl={masterSheetUrl}
             onSyncSheet={async () => {
+              if (!hasSheetsAccess && !isDemoMode) {
+                setGoogleSyncHubOpen(false);
+                promptConnectFeature('sheets', () => loadSheetAssignments(false));
+                return;
+              }
               await loadSheetAssignments(false);
             }}
             isSyncingSheet={isLoadingAssignments}
             onSyncClassroom={async () => {
+              if (!hasClassroomAccess && !isDemoMode) {
+                setGoogleSyncHubOpen(false);
+                promptConnectFeature('classroom', () => loadClassroomData(false));
+                return;
+              }
               await loadClassroomData(false);
             }}
             isSyncingClassroom={isLoadingClassroom}
@@ -3494,19 +3579,31 @@ export default function App() {
       />
       )}
 
-      {/* Google OAuth & Test Users Setup Guide Modal — gated so its chunk only loads when opened */}
+      {/* Plain-English Per-Feature Google Permission Prompt */}
+      <GooglePermissionModal
+        isOpen={Boolean(permissionPrompt)}
+        feature={permissionPrompt?.feature || 'calendar'}
+        userEmail={user?.email || null}
+        isConnecting={Boolean(connectingFeature)}
+        onConfirm={confirmPermissionPrompt}
+        onCancel={() => {
+          if (!connectingFeature) setPermissionPrompt(null);
+        }}
+      />
+
+      {/* Google Sign-In Troubleshooting Modal — gated so its chunk only loads when opened */}
       {oauthGuideModalOpen && (
       <OAuthGuideModal
         isOpen={oauthGuideModalOpen}
         onClose={() => { setOauthGuideModalOpen(false); setOauthDiagnosis(null); }}
-        onRetryWorkspaceSignIn={() => handleGoogleSignIn(true)}
+        onRetryWorkspaceSignIn={() => handleGoogleSignIn(false)}
         onBasicSignIn={handleBasicSignIn}
         isLoggingIn={isLoggingIn}
-        projectId="studentcommandcenter-39cdc"
-        userEmail="buianhuy2009@gmail.com"
+        projectId=""
+        userEmail={user?.email || ''}
         diagnosis={oauthDiagnosis}
         onRunDiagnostics={diagnoseSignInEnvironment}
-        onRedirectSignIn={() => handleRedirectSignIn(true)}
+        onRedirectSignIn={() => handleRedirectSignIn(false)}
       />
       )}
 
@@ -3644,7 +3741,7 @@ export default function App() {
           const t = toasts.find((x) => x.id === id) as any;
           if (t?.reconnectGoogle) {
             dismissToast(id);
-            handleGoogleSignIn(true);
+            handleGoogleSignIn(false);
             return;
           }
           if (typeof t?.onRetry === 'function') t.onRetry();

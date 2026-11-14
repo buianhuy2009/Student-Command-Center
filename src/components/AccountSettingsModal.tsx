@@ -58,7 +58,7 @@ import {
   getExpiryStatus,
 } from '../services/gemini/providers';
 import { loadCanvasSettings, saveCanvasSettings } from '../services/canvas';
-import { getGoogleTokenStatus } from '../services/firebase';
+import { hasFeatureAccess, type GoogleFeature } from '../services/googleAuth';
 import { t, useLang } from '../services/i18n';
 import { LanguageToggle } from './LanguageToggle';
 import { setNasaApodEnabled } from '../hooks/useNasaApod';
@@ -100,6 +100,8 @@ interface AccountSettingsModalProps {
   user: User | null;
   onGoogleSignIn: () => void;
   onLogout: () => void;
+  onConnectFeature?: (feature: GoogleFeature) => void;
+  onOpenGoogleSyncHub?: () => void;
   isLoggingIn: boolean;
   darkMode: boolean;
   setDarkMode: (val: boolean) => void;
@@ -132,6 +134,8 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
   user,
   onGoogleSignIn,
   onLogout,
+  onConnectFeature,
+  onOpenGoogleSyncHub,
   isLoggingIn,
   darkMode,
   setDarkMode,
@@ -155,6 +159,16 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
 }) => {
   const [activeSection, setActiveSection] = useState<SettingsSection>('general');
   useLang();
+  const [, setGoogleScopeTick] = useState(0);
+  useEffect(() => {
+    const bump = () => setGoogleScopeTick((n) => n + 1);
+    window.addEventListener('scc-google-scopes-updated', bump);
+    window.addEventListener('scc-google-token-updated', bump);
+    return () => {
+      window.removeEventListener('scc-google-scopes-updated', bump);
+      window.removeEventListener('scc-google-token-updated', bump);
+    };
+  }, []);
 
   // AI Keys state
   const [geminiKey, setGeminiKey] = useState('');
@@ -443,12 +457,12 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                 {navItems.find((n) => n.id === activeSection)?.label}
               </h2>
               <p className="text-xs text-[#8C897F] mt-0.5">
-                {activeSection === 'general' && 'Configure execution preferences, storage policies, and session controls.'}
-                {activeSection === 'models' && 'Manage Google Gemini and Groq API keys with dual-provider failover.'}
-                {activeSection === 'sync' && 'All keys + Canvas domain in one place — AI keys, Canvas, and Google.'}
+                {activeSection === 'general' && 'Set your language, workspace layout, and sign-in preferences.'}
+                {activeSection === 'models' && 'Add optional personal AI helper keys (Gemini and Groq).'}
+                {activeSection === 'sync' && 'Manage Google sign-in, individual Google tools, Canvas LMS, and AI keys.'}
                 {activeSection === 'appearance' && 'Customize theme warmth, contrast, and motion reduction.'}
                 {activeSection === 'shortcuts' && 'Keyboard navigation and quick action hotkeys.'}
-                {activeSection === 'integrations' && 'Connected LMS hubs, Classroom, and external study utilities.'}
+                {activeSection === 'integrations' && 'See Canvas LMS and Google tools connected to your account.'}
                 {activeSection === 'support' && 'Download app, report bugs, feedback & share love.'}
               </p>
             </div>
@@ -627,8 +641,8 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                 <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/40 rounded-2xl border border-emerald-300 dark:border-emerald-800 flex items-start gap-2.5 text-xs text-emerald-900 dark:text-emerald-300">
                   <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                   <div>
-                    <span className="font-bold block mb-0.5">Dual-Provider Redundancy Active</span>
-                    Requests prioritize your local Gemini key, automatically falling back to Groq LLaMA 3.3 70B if limits are reached.
+                    <span className="font-bold block mb-0.5">Automatic Backup AI Active</span>
+                    StudentOS uses your Gemini key first and automatically switches to Groq if Gemini reaches a daily limit.
                   </div>
                 </div>
 
@@ -637,10 +651,10 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                   <div className="flex items-center justify-between">
                     <div>
                       <label className="text-xs font-bold text-[#141413] dark:text-[#F5F4ED] block">
-                        Google Gemini API Key
+                        Google Gemini Key
                       </label>
                       <span className="text-[11px] text-[#8C897F]">
-                        Used for multimodal math OCR, structured JSON actions &amp; oral exams.
+                        Used for reading math photos, spotting homework in notes, and study practice.
                       </span>
                     </div>
                     <a
@@ -711,10 +725,10 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                   <div className="flex items-center justify-between">
                     <div>
                       <label className="text-xs font-bold text-[#141413] dark:text-[#F5F4ED] block">
-                        Groq API Key (Failover Engine)
+                        Groq Key (Backup AI)
                       </label>
                       <span className="text-[11px] text-[#8C897F]">
-                        Instant fallback to LLaMA 3.3 70B if Gemini rate limit is hit.
+                        Automatic backup if your Gemini key reaches its daily limit.
                       </span>
                     </div>
                     <a
@@ -886,8 +900,8 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                         type={showCanvasToken ? 'text' : 'password'}
                         value={canvasToken}
                         onChange={(e) => setCanvasToken(e.target.value)}
-                        placeholder="Canvas API token"
-                        aria-label="Canvas API token"
+                        placeholder="Canvas access token (optional)"
+                        aria-label="Canvas access token"
                         className="w-full pl-9 pr-10 py-2 text-xs font-mono bg-white dark:bg-[#141413] border border-[#E8E6DC] dark:border-[#2C2B27] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C96442] text-[#141413] dark:text-[#F5F4ED]"
                       />
                       <button
@@ -915,41 +929,104 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                   </div>
                 </div>
 
-                {/* Google Account (read-only status via existing helpers) */}
-                <div className="p-4 bg-[#E8E6DC] dark:bg-[#1F1E1B] rounded-2xl border border-[#E8E6DC] dark:border-[#2C2B27] flex items-center justify-between">
-                  <div>
-                    <div className="text-xs font-bold text-[#141413] dark:text-[#F5F4ED] flex items-center gap-2">
-                      <span>Google Workspace Sync</span>
-                      {(() => {
-                        let s: string = 'missing';
-                        try { s = getGoogleTokenStatus(); } catch {}
-                        return (
-                          <span className={`px-2 py-0.5 rounded-lg text-[10px] font-bold ${s === 'connected' ? 'bg-emerald-500/15 text-emerald-600' : s === 'expired' ? 'bg-amber-500/15 text-amber-600' : 'bg-[#8C897F]/15 text-[#8C897F]'}`}>
-                            {s === 'connected' ? 'Connected' : s === 'expired' ? 'Expired — reconnect' : 'Not connected'}
-                          </span>
-                        );
-                      })()}
+                {/* Google Sign-In & Per-Feature Tool Connections */}
+                <div className="p-4 bg-[#E8E6DC] dark:bg-[#1F1E1B] rounded-2xl border border-[#E8E6DC] dark:border-[#2C2B27] space-y-3">
+                  <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <div>
+                      <div className="text-xs font-bold text-[#141413] dark:text-[#F5F4ED]">
+                        Google Account Sign-In
+                      </div>
+                      <div className="text-[11px] text-[#8C897F]">
+                        {user
+                          ? `Signed in as ${user.email} (name & email only)`
+                          : 'Sign in with Google using just your name & email'}
+                      </div>
                     </div>
-                    <div className="text-[11px] text-[#8C897F]">
-                      {user ? `Connected as ${user.email}` : 'Not connected (Local Guest Mode)'}
+                    <div className="flex items-center gap-2">
+                      {onOpenGoogleSyncHub && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onClose();
+                            onOpenGoogleSyncHub();
+                          }}
+                          className="px-3 py-1.5 bg-white dark:bg-[#252422] border border-[#E8E6DC] dark:border-[#2C2B27] hover:border-[#C96442] text-[#141413] dark:text-[#F5F4ED] rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                        >
+                          Manage Connections
+                        </button>
+                      )}
+                      {user ? (
+                        <button
+                          onClick={onLogout}
+                          className="px-3.5 py-1.5 bg-white dark:bg-[#252422] border border-rose-300 dark:border-rose-800 text-rose-600 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                        >
+                          Sign out
+                        </button>
+                      ) : (
+                        <button
+                          onClick={onGoogleSignIn}
+                          disabled={isLoggingIn}
+                          className="px-3.5 py-1.5 bg-[#C96442] text-white rounded-xl text-xs font-bold transition-colors cursor-pointer shadow-xs"
+                        >
+                          Sign in with Google
+                        </button>
+                      )}
                     </div>
                   </div>
-                  {user ? (
-                    <button
-                      onClick={onLogout}
-                      className="px-3.5 py-1.5 bg-white dark:bg-[#252422] border border-rose-300 dark:border-rose-800 text-rose-600 rounded-xl text-xs font-bold transition-colors cursor-pointer"
-                    >
-                      Disconnect
-                    </button>
-                  ) : (
-                    <button
-                      onClick={onGoogleSignIn}
-                      disabled={isLoggingIn}
-                      className="px-3.5 py-1.5 bg-[#C96442] text-white rounded-xl text-xs font-bold transition-colors cursor-pointer shadow-xs"
-                    >
-                      Connect Google
-                    </button>
-                  )}
+
+                  <div className="pt-2 border-t border-[#DFDACB]/70 dark:border-[#2C2B27] space-y-1.5">
+                    <div className="text-[11px] font-semibold text-[#5E5D59] dark:text-[#B5B2A8]">
+                      Individual Google tools — connect only the ones you want:
+                    </div>
+                    <div className="grid sm:grid-cols-2 gap-2">
+                      {(
+                        [
+                          { id: 'calendar', label: 'Google Calendar', desc: 'View today & add study blocks' },
+                          { id: 'gmail', label: 'Gmail (Read-only)', desc: 'Find homework & exam notices' },
+                          { id: 'drive', label: 'Google Drive & Docs', desc: 'Create & save study docs' },
+                          { id: 'sheets', label: 'Google Sheets', desc: 'Back up your assignment list' },
+                          { id: 'classroom', label: 'Google Classroom', desc: 'Import classes & deadlines' },
+                        ] as { id: GoogleFeature; label: string; desc: string }[]
+                      ).map((tool) => {
+                        const connected = hasFeatureAccess(tool.id, user?.uid);
+                        return (
+                          <div
+                            key={tool.id}
+                            className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-white dark:bg-[#141413] border border-[#E8E6DC] dark:border-[#2C2B27]"
+                          >
+                            <div className="min-w-0">
+                              <div className="text-xs font-bold text-[#141413] dark:text-[#F5F4ED] truncate">
+                                {tool.label}
+                              </div>
+                              <div className="text-[10px] text-[#8C897F] truncate">{tool.desc}</div>
+                            </div>
+                            {connected ? (
+                              <span className="shrink-0 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+                                Connected
+                              </span>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  onClose();
+                                  if (onConnectFeature) {
+                                    onConnectFeature(tool.id);
+                                  } else if (onOpenGoogleSyncHub) {
+                                    onOpenGoogleSyncHub();
+                                  } else {
+                                    onGoogleSignIn();
+                                  }
+                                }}
+                                className="shrink-0 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-[#C96442] hover:bg-[#B85432] text-white cursor-pointer transition-colors"
+                              >
+                                Connect
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
 
                 {/* Google Sheets URL */}
@@ -975,40 +1052,9 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                   </div>
                 )}
 
-                {/* Guides */}
-                <div className="grid grid-cols-2 gap-3 pt-2">
-                  {onOpenOAuthGuide && (
-                    <button
-                      onClick={() => {
-                        onClose();
-                        onOpenOAuthGuide();
-                      }}
-                      className="p-3 bg-[#E8E6DC] dark:bg-[#1F1E1B] rounded-2xl border border-[#E8E6DC] dark:border-[#2C2B27] text-left hover:border-[#C96442] transition-colors cursor-pointer"
-                    >
-                      <div className="text-xs font-bold text-[#141413] dark:text-[#F5F4ED]">
-                        OAuth &amp; Test Users Guide
-                      </div>
-                      <div className="text-[10px] text-[#8C897F] mt-0.5">
-                        Setup instructions for Google Cloud Console.
-                      </div>
-                    </button>
-                  )}
-                  {onOpenDeploymentGuide && (
-                    <button
-                      onClick={() => {
-                        onClose();
-                        onOpenDeploymentGuide();
-                      }}
-                      className="p-3 bg-[#E8E6DC] dark:bg-[#1F1E1B] rounded-2xl border border-[#E8E6DC] dark:border-[#2C2B27] text-left hover:border-[#C96442] transition-colors cursor-pointer"
-                    >
-                      <div className="text-xs font-bold text-[#141413] dark:text-[#F5F4ED]">
-                        Vercel Deployment Guide
-                      </div>
-                      <div className="text-[10px] text-[#8C897F] mt-0.5">
-                        Full-stack deployment steps and env vars.
-                      </div>
-                    </button>
-                  )}
+                {/* Friendly privacy reassurance */}
+                <div className="p-3.5 rounded-2xl bg-white dark:bg-[#141413] border border-[#E8E6DC] dark:border-[#2C2B27] text-[11px] text-[#5E5D59] dark:text-[#B5B2A8] leading-relaxed">
+                  Each Google tool only turns on when you choose to connect it, and you can turn tools off anytime in your Google Account settings or via Manage Connections above.
                 </div>
               </div>
             )}
@@ -1273,8 +1319,8 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
             {activeSection === 'integrations' && (
               <div className="space-y-3">
                 {[
-                  { name: 'Canvas LMS', desc: 'Sync via iCal calendar URL & token', badge: 'Active', icon: Layers },
-                  { name: 'Google Classroom', desc: 'Sync coursework and materials', badge: 'Ready', icon: GraduationCap },
+                  { name: 'Canvas LMS', desc: 'Sync assignments via your Canvas link or school sign-in', badge: 'Available', icon: Layers },
+                  { name: 'Google Classroom', desc: 'Import classes, homework, and teacher notices', badge: hasFeatureAccess('classroom', user?.uid) ? 'Connected' : 'Ready', icon: GraduationCap },
                 ].map((integ) => {
                   const Icon = integ.icon;
                   return (
@@ -1311,7 +1357,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                     <div className="w-8 h-8 rounded-xl bg-[#C96442] text-white flex items-center justify-center font-bold text-xs">S</div>
                     <div>
                       <div className="text-xs font-bold text-[#141413] dark:text-[#F5F4ED]">Install StudentOS App</div>
-                      <div className="text-[11px] text-[#8C897F]">Offline + 1-tap home-screen access. No app store needed (PWA).</div>
+                      <div className="text-[11px] text-[#8C897F]">One-tap home screen access — works offline too.</div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -1336,7 +1382,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                       </div>
                     )}
                   </div>
-                  <div className="text-[10px] text-[#8C897F]">Tip: Installing pins StudentOS to your dock/home screen with offline support (Dexie + Workbox cache).</div>
+                  <div className="text-[10px] text-[#8C897F]">Tip: Installing pins StudentOS to your dock or home screen so it launches fast and works offline.</div>
                 </div>
 
                 {/* Help & Feedback */}

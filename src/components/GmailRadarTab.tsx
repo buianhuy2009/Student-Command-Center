@@ -51,8 +51,10 @@ function reviewReasonText(reason?: string): string {
 import {
   trySilentRestore,
   signInWithAccountSelect,
+  requestFeaturePermission,
+  hasFeatureAccess,
+  hasScope,
   isConnected,
-  wasPreviouslyConnected,
   clearGoogleGrant,
   googleFetch,
 } from '../services/googleAuth';
@@ -142,22 +144,22 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
     setLiveConnected(isGoogleConnected);
   }, [isGoogleConnected]);
 
-  // Instant Workspace restore: on mount, silently resume a prior grant and
-  // load Gmail data without requiring a click. Failures fall back quietly to
-  // the manual Connect button (no error spam).
+  // Instant Gmail restore: ONLY resume silently if Gmail permission was already granted.
+  // Never ask for Workspace bundles or trigger an unprompted popup on mount.
   useEffect(() => {
     if (autoTriedRef.current) return;
     autoTriedRef.current = true;
     let cancelled = false;
     (async () => {
+      const uid = auth?.currentUser?.uid || null;
       try {
-        if (!wasPreviouslyConnected() && !isConnected()) return;
+        if (!hasFeatureAccess('gmail', uid)) return;
       } catch {
         return;
       }
       setRestoring(true);
       try {
-        const token = await trySilentRestore({ gmail: true });
+        const token = await trySilentRestore({ feature: 'gmail', uid });
         if (cancelled) return;
         if (token) {
           setLiveConnected(true);
@@ -196,22 +198,16 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
     if (onConnectGoogle) {
       await onConnectGoogle();
       try {
-        setLiveConnected(isConnected());
+        setLiveConnected(hasFeatureAccess('gmail', auth?.currentUser?.uid || null) || isConnected());
       } catch {}
       return;
     }
     setRestoring(true);
     try {
-      const token = await trySilentRestore({ gmail: true });
-      if (!token) {
-        const fresh = await signInWithAccountSelect({ gmail: true }).catch(() => null);
-        if (fresh) {
-          setLiveConnected(true);
-          try {
-            onRefreshEmails(true);
-          } catch {}
-        }
-      } else {
+      const uid = auth?.currentUser?.uid || undefined;
+      const loginHint = auth?.currentUser?.email || undefined;
+      const fresh = await requestFeaturePermission('gmail', { loginHint, uid }).catch(() => null);
+      if (fresh) {
         setLiveConnected(true);
         try {
           onRefreshEmails(true);
@@ -231,7 +227,7 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
     }
     setSwitching(true);
     try {
-      const token = await signInWithAccountSelect({ gmail: true }).catch(() => null);
+      const token = await signInWithAccountSelect({ feature: 'gmail' }).catch(() => null);
       if (token) {
         setLiveConnected(true);
         try {
@@ -333,27 +329,50 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
     return counts;
   }, [emailAlerts, rawEmails, archivedIds]);
 
+  const canModifyGmail = hasScope('gmail.modify', auth?.currentUser?.uid || null);
+
   const handleBulkArchiveSpam = async () => {
     const spamIds = filteredAlerts.filter((a) => a.isSpam && a.id).map((a) => a.id);
     if (spamIds.length === 0 || isArchivingSpam) return;
 
+    // StudentOS asks for read-only Gmail access so it never changes your real inbox unexpectedly.
+    if (!canModifyGmail) {
+      setArchivedIds((prev) => Array.from(new Set([...prev, ...spamIds])));
+      window.dispatchEvent(
+        new CustomEvent('scc-toast', {
+          detail: {
+            title: L('Đã ẩn khỏi danh sách StudentOS', 'Hidden in StudentOS'),
+            message: L(
+              `Đã ẩn ${spamIds.length} thư quảng cáo trong StudentOS. Thư gốc vẫn an toàn trong Gmail.`,
+              `Hid ${spamIds.length} promotional email(s) in StudentOS. Your Gmail inbox stays untouched.`
+            ),
+          },
+        })
+      );
+      return;
+    }
+
     setIsArchivingSpam(true);
     setSpamActionError(null);
     try {
+      const rawMessageIds = spamIds.map((id) => id.replace(/^alert-/, ''));
       const res = await googleFetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/batchModify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ids: spamIds, removeLabelIds: ['INBOX'] }),
+        body: JSON.stringify({ ids: rawMessageIds, removeLabelIds: ['INBOX'] }),
       });
       if (!res.ok) {
         const errData = await res.json().catch(() => ({} as any));
         const apiMessage = errData?.error?.message || `HTTP ${res.status}`;
         if (res.status === 401 || res.status === 403 || /scope|permission|insufficient/i.test(apiMessage)) {
           setSpamActionError(
-            `Could not archive in Gmail (${apiMessage}). Reconnect Gmail with message-modify access (gmail.modify) to bulk archive spam.`
+            L(
+              'StudentOS chỉ có quyền đọc Gmail nên không tự lưu trữ trên máy chủ Gmail. Bạn có thể ẩn ở đây hoặc mở thẳng Gmail.',
+              'StudentOS only has read access to Gmail, so it cannot move messages on Gmail servers. Hide them here or open Gmail directly.'
+            )
           );
         } else {
-          setSpamActionError(`Bulk archive failed: ${apiMessage}`);
+          setSpamActionError(L(`Không thể lưu trữ hàng loạt: ${apiMessage}`, `Could not archive emails: ${apiMessage}`));
         }
         return;
       }
@@ -367,7 +386,7 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
         })
       );
     } catch (err: any) {
-      setSpamActionError(err?.message || 'Network error while archiving spam messages in Gmail.');
+      setSpamActionError(err?.message || 'Could not reach Gmail right now. Try hiding them in StudentOS or opening Gmail.');
     } finally {
       setIsArchivingSpam(false);
     }
@@ -508,27 +527,41 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
             />
           </div>
 
-          {/* Bulk archive spam */}
+          {/* Bulk hide in StudentOS / Open in Gmail */}
           {filteredAlerts.some(a => a.isSpam) && (
-            <button
-              onClick={handleBulkArchiveSpam}
-              disabled={isArchivingSpam}
-              className="px-2.5 py-1.5 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 rounded-xl text-xs font-bold hover:bg-rose-100 dark:hover:bg-rose-900/40 disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
-            >
-              {isArchivingSpam && <RefreshCw className="w-3 h-3 animate-spin" />}
-              <span>
-                {isArchivingSpam
-                  ? 'Archiving...'
-                  : `${t('gmail_archive_spam')} (${filteredAlerts.filter(a => a.isSpam).length})`}
-              </span>
-            </button>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={handleBulkArchiveSpam}
+                disabled={isArchivingSpam}
+                className="px-2.5 py-1.5 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 rounded-xl text-xs font-bold hover:bg-rose-100 dark:hover:bg-rose-900/40 disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
+                title={canModifyGmail ? t('gmail_archive_spam') : L('Chỉ ẩn trong StudentOS (vì chỉ có quyền đọc Gmail)', 'Hide inside StudentOS only (read-only Gmail mode)')}
+              >
+                {isArchivingSpam && <RefreshCw className="w-3 h-3 animate-spin" />}
+                <span>
+                  {isArchivingSpam
+                    ? L('Đang xử lý...', 'Working...')
+                    : canModifyGmail
+                    ? `${t('gmail_archive_spam')} (${filteredAlerts.filter(a => a.isSpam).length})`
+                    : `${L('Ẩn trong StudentOS', 'Hide in StudentOS')} (${filteredAlerts.filter(a => a.isSpam).length})`}
+                </span>
+              </button>
+              <a
+                href="https://mail.google.com/mail/#search/category%3Apromotions"
+                target="_blank"
+                rel="noreferrer"
+                className="px-2.5 py-1.5 bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] hover:border-[#D97757] text-[#141413] dark:text-[#FAF9F5] rounded-xl text-xs font-bold inline-flex items-center gap-1"
+              >
+                <span>{L('Mở Gmail', 'Open in Gmail')}</span>
+                <ExternalLink className="w-3 h-3 text-[#D97757]" />
+              </a>
+            </div>
           )}
 
           <button
-            onClick={() => onRefreshEmails(true)}
+            onClick={() => (showConnected ? onRefreshEmails(true) : handleConnectClick())}
             disabled={isLoadingEmails}
             className="p-1.5 bg-[#FAF9F5] dark:bg-[#1F1E1B] border border-[#DFDACB] dark:border-[#2C2B27] hover:border-[#D97757] text-[#5C5A54] dark:text-[#B5B2A8] rounded-xl transition-colors cursor-pointer"
-            title={t('gmail_refresh_inbox')}
+            title={showConnected ? t('gmail_refresh_inbox') : t('gmail_connect')}
           >
             <RefreshCw className={`w-4 h-4 ${isLoadingEmails ? 'animate-spin text-[#D97757]' : ''}`} strokeWidth={1.75} />
           </button>
@@ -607,8 +640,18 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
                 <span className="text-xs">{t('gmail_scanning')}</span>
               </div>
             ) : filteredAlerts.length === 0 ? (
-              <div className="p-12 text-center text-[#8C897F] text-xs">
-                {t('gmail_empty')}
+              <div className="p-8 text-center text-[#8C897F] text-xs space-y-3">
+                <p>{!showConnected ? L('Kết nối Gmail để tìm bài tập và lịch thi trong hộp thư (chỉ đọc, không sửa hay xóa thư).', 'Connect Gmail to spot homework and exam alerts in your inbox (read-only access).') : t('gmail_empty')}</p>
+                {!showConnected && (
+                  <button
+                    type="button"
+                    onClick={handleConnectClick}
+                    className="px-3.5 py-2 bg-[#D97757] hover:bg-[#C86646] text-white rounded-xl font-bold cursor-pointer inline-flex items-center gap-1.5"
+                  >
+                    <Mail className="w-3.5 h-3.5" />
+                    <span>{t('gmail_connect')}</span>
+                  </button>
+                )}
               </div>
             ) : (
               filteredAlerts.map((alert) => {
