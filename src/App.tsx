@@ -98,6 +98,8 @@ import {
   refreshGoogleAccessToken,
   hasRefreshToken,
   hasFeatureAccess,
+  FEATURE_SCOPES,
+  removeGrantedScopes,
   requestFeaturePermissionDetailed,
   preloadGoogleOAuthReadiness,
   hydrateRefreshGrant,
@@ -761,12 +763,15 @@ export default function App() {
   const [calendarApiInfo, setCalendarApiInfo] = useState<ApiEnablementInfo | null>(null);
   const [gmailApiInfo, setGmailApiInfo] = useState<ApiEnablementInfo | null>(null);
   const [sheetApiInfo, setSheetApiInfo] = useState<ApiEnablementInfo | null>(null);
+  const [classroomApiInfo, setClassroomApiInfo] = useState<ApiEnablementInfo | null>(null);
   const [apiActivationModalInfo, setApiActivationModalInfo] = useState<ApiEnablementInfo | null>(null);
   const [apiActivationModalOpen, setApiActivationModalOpen] = useState(false);
 
   // Sync Timestamp & Status
   const [lastSyncedAt, setLastSyncedAt] = useState<Date>(new Date());
   const isSyncingRef = useRef(false);
+  const pendingFullSyncRef = useRef(false);
+  const connectAttemptRef = useRef(0);
 
   // Master Sheet metadata
   const [masterSheetId, setMasterSheetId] = useState<string | undefined>();
@@ -1407,6 +1412,70 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
+  /** Shared Google API loader failure handler: preserves working features on 401 when refresh grant exists and revokes only the failing scope on 403 insufficient scope. */
+  const handleGoogleLoaderFailure = useCallback(
+    async (
+      feature: GoogleFeature,
+      err: any,
+      setError: (msg: string | null) => void,
+      setApiInfo: ((info: ApiEnablementInfo | null) => void) | null,
+      defaults: {
+        serviceName: string;
+        serviceId: string;
+        disconnectedMsg: string;
+        fetchMsg: string;
+        unavailTitle: string;
+        syncTitle: string;
+        syncMsg?: string;
+      },
+      isSilent: boolean
+    ) => {
+      const msg = String(err?.message || '');
+      const is401 = err?.status === 401 || /401|expired|hết hạn/i.test(msg);
+      if (is401) {
+        if (!hasRefreshToken(authUidRef.current)) {
+          await clearGoogleGrant();
+          setGoogleToken(null);
+        }
+        setError(defaults.disconnectedMsg);
+        return;
+      }
+
+      const isScope =
+        Boolean(err?.isInsufficientScope) ||
+        (err?.status === 403 && /insufficient|ACCESS_TOKEN_SCOPE_INSUFFICIENT/i.test(msg));
+      if (isScope) {
+        removeGrantedScopes(FEATURE_SCOPES[feature], authUidRef.current);
+        setScopeRevision((n) => n + 1);
+        setApiInfo?.(null);
+        setError(msg || defaults.disconnectedMsg);
+        return;
+      }
+
+      if (err?.isServiceDisabled && setApiInfo) {
+        setApiInfo({
+          serviceName: err.serviceName || defaults.serviceName,
+          serviceId: err.serviceId || defaults.serviceId,
+          activationUrl: err.activationUrl,
+          projectId: err.projectId || (import.meta as any).env?.VITE_GOOGLE_PROJECT_ID || '',
+        });
+      } else {
+        setApiInfo?.(null);
+      }
+
+      const errMsg = msg || defaults.fetchMsg;
+      setError(errMsg);
+      if (!isSilent) {
+        addToast({
+          type: 'warning',
+          title: err?.isServiceDisabled ? defaults.unavailTitle : defaults.syncTitle,
+          message: defaults.syncMsg ? msg || defaults.syncMsg : errMsg,
+        });
+      }
+    },
+    [addToast]
+  );
+
   // Fetch Google Calendar Events (runs ONLY when Calendar permission is granted)
   const loadCalendarEvents = useCallback(async (isSilent = false, _retried = false) => {
     if (!hasFeatureAccess('calendar', authUidRef.current)) {
@@ -1439,42 +1508,33 @@ export default function App() {
       setGoogleToken(token);
     } catch (err: any) {
       console.error('Calendar fetch error:', err);
-      const is401 = err?.status === 401 || /401|expired/i.test(err?.message || '');
+      const is401 = err?.status === 401 || /401|expired|hết hạn/i.test(err?.message || '');
       if (is401 && !_retried) {
         // One transparent renewal + retry — the user never sees expiry.
         if (await refreshGoogleAccessToken(true)) {
           return loadCalendarEvents(isSilent, true);
         }
       }
-      if (is401) {
-        // Grant revoked or unusable — stop quietly, keep cached events.
-        await clearGoogleGrant();
-        setGoogleToken(null);
-        setCalendarError(t('app_err_cal_disconnected'));
-      } else {
-        if (err?.isServiceDisabled) {
-          setCalendarApiInfo({
-            serviceName: err.serviceName || 'Google Calendar API',
-            serviceId: err.serviceId || 'calendar-json.googleapis.com',
-            activationUrl: err.activationUrl,
-            projectId: err.projectId || (import.meta as any).env?.VITE_GOOGLE_PROJECT_ID || '',
-          });
-        } else {
-          setCalendarApiInfo(null);
-        }
-        setCalendarError(err.message || t('app_err_cal_fetch'));
-        if (!isSilent) {
-          addToast({
-            type: 'warning',
-            title: err?.isServiceDisabled ? t('app_toast_cal_unavail') : t('app_toast_cal_sync'),
-            message: err.message || t('app_toast_cal_msg'),
-          });
-        }
-      }
+      await handleGoogleLoaderFailure(
+        'calendar',
+        err,
+        setCalendarError,
+        setCalendarApiInfo,
+        {
+          serviceName: 'Google Calendar API',
+          serviceId: 'calendar-json.googleapis.com',
+          disconnectedMsg: t('app_err_cal_disconnected'),
+          fetchMsg: t('app_err_cal_fetch'),
+          unavailTitle: t('app_toast_cal_unavail'),
+          syncTitle: t('app_toast_cal_sync'),
+          syncMsg: t('app_toast_cal_msg'),
+        },
+        isSilent
+      );
     } finally {
       if (!isSilent) setIsLoadingEvents(false);
     }
-  }, [addToast, t]);
+  }, [handleGoogleLoaderFailure, t]);
 
   // Fetch Academic Emails & Summarize with Gemini (runs ONLY when Gmail permission is granted)
   const loadEmailsAndAlerts = useCallback(async (isSilent = false, forceResort = false, options?: FetchEmailOptions, _retried = false) => {
@@ -1564,40 +1624,32 @@ export default function App() {
       }
     } catch (err: any) {
       console.error('Email fetch error:', err);
-      const is401 = err?.status === 401 || /401|expired/i.test(err?.message || '');
+      const is401 = err?.status === 401 || /401|expired|hết hạn/i.test(err?.message || '');
       if (is401 && !_retried) {
         if (await refreshGoogleAccessToken(true)) {
           return loadEmailsAndAlerts(isSilent, forceResort, options, true);
         }
       }
-      if (is401) {
-        await clearGoogleGrant();
-        setGoogleToken(null);
-        setEmailError(t('app_err_gmail_disconnected'));
-      } else {
-        if (err?.isServiceDisabled) {
-          setGmailApiInfo({
-            serviceName: err.serviceName || 'Gmail API',
-            serviceId: err.serviceId || 'gmail.googleapis.com',
-            activationUrl: err.activationUrl,
-            projectId: err.projectId || (import.meta as any).env?.VITE_GOOGLE_PROJECT_ID || '',
-          });
-        } else {
-          setGmailApiInfo(null);
-        }
-        setEmailError(err.message || t('app_err_gmail_fetch'));
-        if (!isSilent) {
-          addToast({
-            type: 'warning',
-            title: err?.isServiceDisabled ? t('app_toast_gmail_unavail') : t('app_toast_gmail_sync'),
-            message: err.message || t('app_toast_gmail_msg'),
-          });
-        }
-      }
+      await handleGoogleLoaderFailure(
+        'gmail',
+        err,
+        setEmailError,
+        setGmailApiInfo,
+        {
+          serviceName: 'Gmail API',
+          serviceId: 'gmail.googleapis.com',
+          disconnectedMsg: t('app_err_gmail_disconnected'),
+          fetchMsg: t('app_err_gmail_fetch'),
+          unavailTitle: t('app_toast_gmail_unavail'),
+          syncTitle: t('app_toast_gmail_sync'),
+          syncMsg: t('app_toast_gmail_msg'),
+        },
+        isSilent
+      );
     } finally {
       if (!isSilent) setIsLoadingEmails(false);
     }
-  }, [addToast, t]);
+  }, [handleGoogleLoaderFailure, t]);
 
   // Fetch Master Sheet Assignments (runs ONLY when Google Sheets permission is granted)
   const loadSheetAssignments = useCallback(async (isSilent = false, _retried = false) => {
@@ -1652,42 +1704,33 @@ export default function App() {
       setGoogleToken(token);
     } catch (err: any) {
       console.error('Sheet fetch error:', err);
-      const is401 = err?.status === 401 || /401|expired/i.test(err?.message || '');
+      const is401 = err?.status === 401 || /401|expired|hết hạn/i.test(err?.message || '');
       if (is401 && !_retried) {
         // One transparent renewal + retry — the user never sees expiry.
         if (await refreshGoogleAccessToken(true)) {
           return loadSheetAssignments(isSilent, true);
         }
       }
-      if (is401) {
-        // Grant revoked or unusable — stop quietly, keep cached tasks.
-        await clearGoogleGrant();
-        setGoogleToken(null);
-        setSheetError(t('app_err_sheet_disconnected'));
-      } else {
-        if (err?.isServiceDisabled) {
-          setSheetApiInfo({
-            serviceName: err.serviceName || 'Google Sheets API',
-            serviceId: err.serviceId || 'sheets.googleapis.com',
-            activationUrl: err.activationUrl,
-            projectId: err.projectId || (import.meta as any).env?.VITE_GOOGLE_PROJECT_ID || '',
-          });
-        } else {
-          setSheetApiInfo(null);
-        }
-        setSheetError(err.message || t('app_err_sheet_fetch'));
-        if (!isSilent) {
-          addToast({
-            type: 'warning',
-            title: err?.isServiceDisabled ? t('app_toast_sheet_unavail') : t('app_toast_sheet_sync'),
-            message: err.message || t('app_toast_sheet_msg'),
-          });
-        }
-      }
+      await handleGoogleLoaderFailure(
+        'sheets',
+        err,
+        setSheetError,
+        setSheetApiInfo,
+        {
+          serviceName: 'Google Sheets API',
+          serviceId: 'sheets.googleapis.com',
+          disconnectedMsg: t('app_err_sheet_disconnected'),
+          fetchMsg: t('app_err_sheet_fetch'),
+          unavailTitle: t('app_toast_sheet_unavail'),
+          syncTitle: t('app_toast_sheet_sync'),
+          syncMsg: t('app_toast_sheet_msg'),
+        },
+        isSilent
+      );
     } finally {
       if (!isSilent) setIsLoadingAssignments(false);
     }
-  }, [addToast, t]);
+  }, [handleGoogleLoaderFailure, t]);
 
   // Fetch Recent Files (runs ONLY when Google Drive permission is granted)
   const loadRecentFiles = useCallback(async (isSilent = false, _retried = false) => {
@@ -1714,43 +1757,32 @@ export default function App() {
       setGoogleToken(token);
     } catch (err: any) {
       console.error('Drive files error:', err);
-      const is401 = err?.status === 401 || /401|expired/i.test(err?.message || '');
+      const is401 = err?.status === 401 || /401|expired|hết hạn/i.test(err?.message || '');
       if (is401 && !_retried) {
         // One transparent renewal + retry — the user never sees expiry.
         if (await refreshGoogleAccessToken(true)) {
           return loadRecentFiles(isSilent, true);
         }
       }
-      if (is401) {
-        // Grant revoked or unusable — stop quietly, keep cached files.
-        await clearGoogleGrant();
-        setGoogleToken(null);
-        setDriveError(t('app_err_drive_disconnected'));
-      } else {
-        const errMsg = err?.message || t('app_err_drive_fetch');
-        if (err?.isServiceDisabled) {
-          setDriveApiInfo({
-            serviceName: err.serviceName || 'Google Drive API',
-            serviceId: err.serviceId || 'drive.googleapis.com',
-            activationUrl: err.activationUrl,
-            projectId: err.projectId || (import.meta as any).env?.VITE_GOOGLE_PROJECT_ID || '',
-          });
-        } else {
-          setDriveApiInfo(null);
-        }
-        setDriveError(errMsg);
-        if (!isSilent) {
-          addToast({
-            type: 'warning',
-            title: err?.isServiceDisabled ? t('app_toast_drive_unavail') : t('app_toast_drive_sync'),
-            message: errMsg,
-          });
-        }
-      }
+      await handleGoogleLoaderFailure(
+        'drive',
+        err,
+        setDriveError,
+        setDriveApiInfo,
+        {
+          serviceName: 'Google Drive API',
+          serviceId: 'drive.googleapis.com',
+          disconnectedMsg: t('app_err_drive_disconnected'),
+          fetchMsg: t('app_err_drive_fetch'),
+          unavailTitle: t('app_toast_drive_unavail'),
+          syncTitle: t('app_toast_drive_sync'),
+        },
+        isSilent
+      );
     } finally {
       if (!isSilent) setIsLoadingFiles(false);
     }
-  }, [addToast, t]);
+  }, [handleGoogleLoaderFailure, t]);
 
   // Classroom announcements → same AI reader as Gmail. Re-read only when the post set changes.
   const loadClassroomAnnouncements = useCallback(async (token: string) => {
@@ -1812,11 +1844,13 @@ export default function App() {
   const loadClassroomData = useCallback(async (isSilent = false, _retried = false) => {
     if (!hasFeatureAccess('classroom', authUidRef.current)) {
       setClassroomError(null);
+      setClassroomApiInfo(null);
       return;
     }
     const token = await ensureFreshGoogleToken();
     if (!token) {
       setClassroomError(null);
+      setClassroomApiInfo(null);
       return;
     }
 
@@ -1825,6 +1859,7 @@ export default function App() {
       const list = await fetchAllClassroomAssignments(token);
       setClassroomAssignments(list);
       setClassroomError(null);
+      setClassroomApiInfo(null);
       setGoogleToken(token);
       void loadClassroomAnnouncements(token);
       try {
@@ -1832,31 +1867,31 @@ export default function App() {
       } catch {}
     } catch (err: any) {
       console.error('Classroom fetch error:', err);
-      const is401 = err?.status === 401 || /401|expired/i.test(err?.message || '');
+      const is401 = err?.status === 401 || /401|expired|hết hạn/i.test(err?.message || '');
       if (is401 && !_retried) {
         if (await refreshGoogleAccessToken(true)) {
           return loadClassroomData(isSilent, true);
         }
       }
-      if (is401) {
-        await clearGoogleGrant();
-        setGoogleToken(null);
-        setClassroomError(t('app_err_cls_disconnected'));
-      } else {
-        const errMsg = err?.message || t('app_err_cls_fetch');
-        setClassroomError(errMsg);
-        if (!isSilent) {
-          addToast({
-            type: 'warning',
-            title: t('app_toast_cls_sync'),
-            message: errMsg,
-          });
-        }
-      }
+      await handleGoogleLoaderFailure(
+        'classroom',
+        err,
+        setClassroomError,
+        setClassroomApiInfo,
+        {
+          serviceName: 'Google Classroom API',
+          serviceId: 'classroom.googleapis.com',
+          disconnectedMsg: t('app_err_cls_disconnected'),
+          fetchMsg: t('app_err_cls_fetch'),
+          unavailTitle: t('app_toast_cls_sync'),
+          syncTitle: t('app_toast_cls_sync'),
+        },
+        isSilent
+      );
     } finally {
       if (!isSilent) setIsLoadingClassroom(false);
     }
-  }, [addToast, t]);
+  }, [handleGoogleLoaderFailure, t]);
 
   // Fetch Canvas assignments (Zero fake data)
   // NOTE: accepts an optional settings override so Save & Sync in CanvasSyncTab
@@ -2085,7 +2120,10 @@ export default function App() {
   const syncAbortRef = useRef<AbortController | null>(null);
   const runFullSync = useCallback(
     async (isSilent = true, externalSignal?: AbortSignal) => {
-      if (isSyncingRef.current) return;
+      if (isSyncingRef.current) {
+        pendingFullSyncRef.current = true;
+        return;
+      }
       isSyncingRef.current = true;
       const abort = externalSignal ? null : new AbortController();
       const signal = externalSignal || abort?.signal;
@@ -2104,6 +2142,12 @@ export default function App() {
       } finally {
         isSyncingRef.current = false;
         if (abort) syncAbortRef.current = null;
+        if (pendingFullSyncRef.current && !signal?.aborted) {
+          pendingFullSyncRef.current = false;
+          void runFullSync(true);
+        } else {
+          pendingFullSyncRef.current = false;
+        }
       }
     },
     [
@@ -2190,6 +2234,7 @@ export default function App() {
     const handleTokenUpdated = (e: any) => {
       const updated = e.detail?.token ?? getStoredGoogleToken();
       setGoogleToken(updated);
+      setScopeRevision((n) => n + 1);
       if (updated && !isHydratingAuthRef.current) {
         runFullSync(false);
       }
@@ -2351,12 +2396,14 @@ export default function App() {
 
   const connectGoogleFeature = useCallback(
     async (feature: GoogleFeature, afterConnect?: () => Promise<void> | void) => {
+      const attemptId = ++connectAttemptRef.current;
       setConnectingFeature(feature);
       setIsLoggingIn(true);
       try {
         let activeUser = user;
         if (!activeUser) {
           const signedIn = await signInWithGoogle({ requestWorkspace: false });
+          if (attemptId !== connectAttemptRef.current) return;
           if (!signedIn?.user) {
             addToast({
               type: 'info',
@@ -2373,17 +2420,25 @@ export default function App() {
         }
 
         // Reset any previous error state so retrying after an earlier Cancel/Deny starts clean.
-        if (feature === 'calendar') setCalendarError(null);
-        if (feature === 'gmail') setEmailError(null);
-        if (feature === 'sheets') setSheetError(null);
-        if (feature === 'drive') setDriveError(null);
-        if (feature === 'classroom') setClassroomError(null);
+        if (feature === 'calendar') { setCalendarError(null); setCalendarApiInfo(null); }
+        if (feature === 'gmail') { setEmailError(null); setGmailApiInfo(null); }
+        if (feature === 'sheets') { setSheetError(null); setSheetApiInfo(null); }
+        if (feature === 'drive') { setDriveError(null); setDriveApiInfo(null); }
+        if (feature === 'classroom') { setClassroomError(null); setClassroomApiInfo(null); }
 
         const perm = await requestFeaturePermissionDetailed(feature, {
           loginHint: activeUser.email || undefined,
           uid: activeUser.uid || undefined,
           forceConsent: true,
         });
+
+        // If user closed/cancelled the modal while OAuth popup was open, do not overwrite UI state.
+        if (attemptId !== connectAttemptRef.current) return;
+
+        // Always close the prompt and clear loading state as soon as OAuth returns.
+        setPermissionPrompt(null);
+        setConnectingFeature(null);
+        setIsLoggingIn(false);
 
         if (perm.status === 'dismissed') {
           addToast({
@@ -2429,15 +2484,6 @@ export default function App() {
         setGoogleToken(token);
         setScopeRevision((n) => n + 1);
 
-        try {
-          await hydrateRefreshGrant(activeUser.uid);
-        } catch {}
-
-        await syncFeatureByKey(feature);
-        if (afterConnect) {
-          await afterConnect();
-        }
-
         const labelMap: Record<GoogleFeature, string> = {
           calendar: t('app_feature_cal'),
           gmail: t('app_feature_gmail'),
@@ -2454,11 +2500,19 @@ export default function App() {
               ? t('app_toast_feature_ready', { name: accountLabel })
               : t('app_toast_feature_session_ready', { name: accountLabel }),
         });
+
+        // Sync in the background after modal has closed so slow network never traps the UI.
+        void (afterConnect ? afterConnect() : syncFeatureByKey(feature));
       } catch (err: any) {
-        handleSignInFailure(err, feature === 'gmail' ? 'gmail' : 'workspace');
+        if (attemptId === connectAttemptRef.current) {
+          setPermissionPrompt(null);
+          handleSignInFailure(err, feature === 'gmail' ? 'gmail' : 'workspace');
+        }
       } finally {
-        setConnectingFeature(null);
-        setIsLoggingIn(false);
+        if (attemptId === connectAttemptRef.current) {
+          setConnectingFeature(null);
+          setIsLoggingIn(false);
+        }
       }
     },
     [user, addToast, handleSignInFailure, syncFeatureByKey, t]
@@ -3329,6 +3383,7 @@ export default function App() {
                     classroomAssignments={classroomAssignments}
                     isLoading={isLoadingClassroom}
                     errorMessage={classroomError}
+                    classroomApiInfo={classroomApiInfo}
                     onRefresh={() => loadClassroomData(false)}
                   />
                 )}
@@ -3627,7 +3682,10 @@ export default function App() {
         isConnecting={Boolean(connectingFeature)}
         onConfirm={confirmPermissionPrompt}
         onCancel={() => {
-          if (!connectingFeature) setPermissionPrompt(null);
+          connectAttemptRef.current += 1;
+          setConnectingFeature(null);
+          setIsLoggingIn(false);
+          setPermissionPrompt(null);
         }}
       />
 

@@ -73,13 +73,13 @@ export const GooglePermissionModal: React.FC<GooglePermissionModalProps> = ({
     if (!isOpen) return;
     preloadGoogleOAuthReadiness();
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !isConnecting) {
+      if (e.key === 'Escape') {
         onCancel();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, isConnecting, onCancel]);
+  }, [isOpen, onCancel]);
 
   if (!isOpen) return null;
 
@@ -92,7 +92,7 @@ export const GooglePermissionModal: React.FC<GooglePermissionModalProps> = ({
       aria-labelledby="google-permission-modal-title"
       className="fixed inset-0 z-[75] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150"
       onClick={(e) => {
-        if (e.target === e.currentTarget && !isConnecting) {
+        if (e.target === e.currentTarget) {
           onCancel();
         }
       }}
@@ -120,9 +120,8 @@ export const GooglePermissionModal: React.FC<GooglePermissionModalProps> = ({
           <button
             type="button"
             onClick={onCancel}
-            disabled={isConnecting}
             aria-label={t('common_close')}
-            className="p-1.5 rounded-xl text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors cursor-pointer disabled:opacity-40"
+            className="p-1.5 rounded-xl text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -185,8 +184,7 @@ export const GooglePermissionModal: React.FC<GooglePermissionModalProps> = ({
           <button
             type="button"
             onClick={onCancel}
-            disabled={isConnecting}
-            className="px-4 py-2.5 rounded-xl text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] transition-colors cursor-pointer min-h-[44px] disabled:opacity-50"
+            className="px-4 py-2.5 rounded-xl text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] transition-colors cursor-pointer min-h-[44px]"
           >
             {t('gperm_not_now')}
           </button>

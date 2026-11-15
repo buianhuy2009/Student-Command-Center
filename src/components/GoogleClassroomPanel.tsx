@@ -9,9 +9,10 @@ import {
   BookOpen,
   Calendar,
 } from 'lucide-react';
-import { CanvasAssignment } from '../types';
+import { ApiEnablementInfo, CanvasAssignment } from '../types';
 import { fetchAllClassroomAssignments } from '../services/googleClassroom';
 import { useT } from '../services/i18n';
+import { ApiActivationBanner } from './ApiActivationBanner';
 
 interface GoogleClassroomPanelProps {
   googleToken?: string;
@@ -21,6 +22,7 @@ interface GoogleClassroomPanelProps {
   classroomAssignments?: CanvasAssignment[];
   isLoading?: boolean;
   errorMessage?: string | null;
+  classroomApiInfo?: ApiEnablementInfo | null;
   onRefresh?: () => void;
 }
 
@@ -32,6 +34,7 @@ export const GoogleClassroomPanel: React.FC<GoogleClassroomPanelProps> = ({
   classroomAssignments,
   isLoading: externalLoading,
   errorMessage: externalError,
+  classroomApiInfo,
   onRefresh: externalRefresh,
 }) => {
   const { t, formatDate } = useT();
@@ -164,7 +167,13 @@ export const GoogleClassroomPanel: React.FC<GoogleClassroomPanelProps> = ({
       </div>
 
       {/* Info / Enablement Banner if needed */}
-      {error && (
+      {classroomApiInfo ? (
+        <ApiActivationBanner
+          info={classroomApiInfo}
+          onRetry={loadAssignments}
+          isRetrying={isLoading}
+        />
+      ) : error && (
         <div className="p-4 bg-[var(--status-warn-bg)] border border-[var(--status-warn-border)] rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-[var(--status-warn-text)]">
           <div className="flex items-start gap-2.5">
             <AlertTriangle className="w-4 h-4 text-[var(--status-warn-text)] shrink-0 mt-0.5" />

@@ -289,3 +289,128 @@ describe('Light & Dark theme presets', () => {
     expect(themeSvc.getTheme()).toBe('obsidian');
   });
 });
+
+describe('Google Workspace & Classroom API error surfacing', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('surfaces GoogleApiDisabledError on 403 SERVICE_DISABLED instead of returning [] in Classroom', async () => {
+    vi.resetModules();
+    const { fetchClassroomCourses } = await import('./googleClassroom');
+    const { GoogleApiDisabledError } = await import('./googleWorkspace');
+
+    const serviceDisabledPayload = JSON.stringify({
+      error: {
+        code: 403,
+        status: 'PERMISSION_DENIED',
+        message: 'Google Classroom API has not been used in project 123456789 before or it is disabled.',
+        details: [
+          {
+            '@type': 'type.googleapis.com/google.rpc.ErrorInfo',
+            reason: 'SERVICE_DISABLED',
+            domain: 'googleapis.com',
+            metadata: { consumer: 'projects/123456789', service: 'classroom.googleapis.com' },
+          },
+        ],
+      },
+    });
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: false,
+        status: 403,
+        text: async () => serviceDisabledPayload,
+      }) as Response)
+    );
+
+    await expect(fetchClassroomCourses('ya29.test-token')).rejects.toBeInstanceOf(GoogleApiDisabledError);
+  });
+
+  it('throws insufficient scope error on Drive 403 ACCESS_TOKEN_SCOPE_INSUFFICIENT instead of returning []', async () => {
+    vi.resetModules();
+    const { fetchRecentSchoolFiles } = await import('./googleWorkspace');
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: false,
+        status: 403,
+        text: async () =>
+          JSON.stringify({
+            error: {
+              code: 403,
+              status: 'PERMISSION_DENIED',
+              message: 'Request had insufficient authentication scopes.',
+              details: [{ reason: 'ACCESS_TOKEN_SCOPE_INSUFFICIENT' }],
+            },
+          }),
+      }) as Response)
+    );
+
+    let caught: any;
+    try {
+      await fetchRecentSchoolFiles('ya29.test-token');
+    } catch (err) {
+      caught = err;
+    }
+    expect(caught).toBeTruthy();
+    expect(caught.status).toBe(403);
+    expect(caught.isInsufficientScope).toBe(true);
+  });
+
+  it('replaces stale local scopes with authoritative scopes returned by Google on new consent', async () => {
+    vi.resetModules();
+    localStorage.clear();
+
+    const ga = await import('./googleAuth');
+    const fb = await import('./firebase');
+    fb.setActiveGoogleUid(null);
+    fb.setStoredGoogleToken('ya29.previous-token');
+    // Simulate stale local scopes in localStorage that the new token will not carry
+    localStorage.setItem('scc_google_scopes_v1', JSON.stringify(ga.FEATURE_SCOPES.classroom));
+    expect(ga.hasFeatureAccess('classroom')).toBe(true);
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: any) => {
+        const url = String(input);
+        if (url.includes('/api/health')) {
+          return {
+            ok: true,
+            status: 200,
+            json: async () => ({ ok: true, hasGoogleOAuth: false }),
+          } as Response;
+        }
+        return { ok: false, status: 404, json: async () => ({}) } as Response;
+      })
+    );
+
+    if (typeof window === 'undefined') {
+      (globalThis as any).window = globalThis;
+    }
+    (window as any).google = {
+      accounts: {
+        oauth2: {
+          initCodeClient: vi.fn(),
+          initTokenClient: vi.fn((cfg: any) => ({
+            requestAccessToken: () => {
+              cfg.callback?.({
+                access_token: 'ya29.gmail-only',
+                scope: 'https://www.googleapis.com/auth/gmail.readonly',
+              });
+            },
+          })),
+        },
+      },
+    };
+
+    await ga.preloadGoogleOAuthReadiness();
+    const res = await ga.requestFeaturePermissionDetailed('gmail');
+    expect(res.status).toBe('granted');
+    expect(ga.hasFeatureAccess('gmail')).toBe(true);
+    // Stale classroom scope must not linger when Google returned only gmail scope
+    expect(ga.hasFeatureAccess('classroom')).toBe(false);
+  });
+});

@@ -2096,6 +2096,14 @@ export const vi = {
   changelog_sidebar_title: "Lịch sử phiên bản",
   changelog_whats_new: "Có gì mới",
 
+  changelog_r_2_20_1_t: "Đóng nhanh hộp thoại kết nối Google & Tải chuẩn Gmail, Classroom và Drive",
+  changelog_r_2_20_1_h1: "Cửa sổ cấp quyền Google tự đóng ngay khi nhận quyền và không bao giờ kẹt ở 'Đang mở Google...' (luôn thoát được bằng Esc, X hoặc Để sau)",
+  changelog_r_2_20_1_h2: "Gmail, Google Classroom và Drive đồng bộ ngay sau khi cấp quyền và báo rõ nếu thiếu quyền hoặc API chưa bật",
+  changelog_r_2_20_1_h3: "Lỗi tạm thời ở một dịch vụ Google sẽ không còn làm ngắt kết nối toàn bộ các công cụ Google khác",
+  changelog_r_2_20_1_d1: "Đóng hộp thoại tức thì & sửa ID Firestore: khắc phục lỗi kẹt chờ Firestore sai database và tách bước đồng bộ nền khỏi luồng OAuth để GooglePermissionModal đóng ngay khi Google trả về kết quả.",
+  changelog_r_2_20_1_d2: "Hiển thị lỗi thật cho Classroom & Drive: ngừng nuốt lỗi 403 SERVICE_DISABLED / thiếu quyền thành danh sách rỗng, gắn mã trạng thái 401 rõ ràng và thêm ApiActivationBanner cho Google Classroom.",
+  changelog_r_2_20_1_d3: "Cô lập quyền từng dịch vụ & hàng đợi đồng bộ: lượt đồng bộ sau khi cấp quyền không còn bị bỏ qua khi Canvas đang chạy, và lỗi thiếu quyền chỉ yêu cầu kết nối lại đúng dịch vụ đó.",
+
   changelog_r_2_20_0_t: "Kết nối Google mượt mà hơn, giao diện phẳng hiện đại & 6 bảng màu Sáng/Tối",
   changelog_r_2_20_0_h1: "Gmail, Google Classroom, Calendar và Drive kết nối ổn định nhờ cơ chế dự phòng đa tầng",
   changelog_r_2_20_0_h2: "Nhấn Hủy hoặc Từ chối một lần sẽ không bao giờ bị khóa — bấm Kết nối lại luôn mở màn hình cấp quyền",

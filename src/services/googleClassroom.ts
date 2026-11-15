@@ -1,5 +1,5 @@
 import { CanvasAssignment, ApiEnablementInfo, EmailMessage } from '../types';
-import { parseGoogleApiResponseError } from './googleWorkspace';
+import { GoogleApiDisabledError, makeGoogleError, parseGoogleApiResponseError } from './googleWorkspace';
 import { formatDate, t } from './i18n';
 
 export interface ClassroomCourse {
@@ -65,16 +65,20 @@ export async function fetchClassroomCourses(token: string): Promise<ClassroomCou
     }
 
     if (res.status === 401) {
-      throw new Error(t('gclass_expired'));
+      throw makeGoogleError(t('gclass_expired'), 401);
     }
 
     if (!res.ok) {
       const errBody = await res.text();
-      if (res.status === 403 && (errBody.includes('insufficient') || errBody.includes('PERMISSION_DENIED') || errBody.includes('not a member'))) {
+      const parsed = parseGoogleApiResponseError(res.status, errBody, 'Google Classroom', 'classroom.googleapis.com');
+      if (parsed instanceof GoogleApiDisabledError || (parsed as any).isInsufficientScope) {
+        throw parsed;
+      }
+      if (res.status === 403 && errBody.includes('not a member')) {
         console.warn('Google Classroom access not available or no active courses for this account.');
         return [];
       }
-      throw parseGoogleApiResponseError(res.status, errBody, 'Google Classroom', 'classroom.googleapis.com');
+      throw parsed;
     }
 
     const data = await res.json();
@@ -107,6 +111,10 @@ export async function fetchCourseWork(token: string, courseId: string): Promise<
       );
     }
 
+    if (res.status === 401) {
+      throw makeGoogleError(t('gclass_expired'), 401);
+    }
+
     if (!res.ok) {
       const errBody = await res.text();
       throw parseGoogleApiResponseError(res.status, errBody, 'Google Classroom', 'classroom.googleapis.com');
@@ -129,6 +137,7 @@ export async function fetchAllClassroomAssignments(token: string): Promise<Canva
     if (!courses || courses.length === 0) return [];
 
     const assignments: CanvasAssignment[] = [];
+    let fatalError: unknown = null;
 
     await Promise.all(
       courses.map(async (course) => {
@@ -156,11 +165,18 @@ export async function fetchAllClassroomAssignments(token: string): Promise<Canva
               submissionTypes: ['online_upload'],
             });
           });
-        } catch (e) {
+        } catch (e: any) {
           console.warn(`Could not load coursework for course ${course.id}:`, e);
+          if (!fatalError && (e?.status === 401 || e?.isInsufficientScope || e?.isServiceDisabled)) {
+            fatalError = e;
+          }
         }
       })
     );
+
+    if (assignments.length === 0 && fatalError) {
+      throw fatalError;
+    }
 
     return assignments;
   } catch (error) {

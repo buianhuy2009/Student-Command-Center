@@ -2095,6 +2095,14 @@ export const en = {
   changelog_sidebar_title: "Version History",
   changelog_whats_new: "What's New",
 
+  changelog_r_2_20_1_t: "Instant Google Connect Exit & Accurate Gmail, Classroom, and Drive Loading",
+  changelog_r_2_20_1_h1: "Google permission popup now closes immediately when access returns and never traps you on 'Opening Google...'",
+  changelog_r_2_20_1_h2: "Gmail, Google Classroom, and Drive now sync immediately after consent and clearly report API or permission issues",
+  changelog_r_2_20_1_h3: "Transient sign-in or scope errors on one Google service no longer disconnect all your other connected Google tools",
+  changelog_r_2_20_1_d1: "Instant Popup Exit & Named Database Target: fixed a Firestore database ID mismatch and decoupled background sync from OAuth completion so GooglePermissionModal closes as soon as Google returns and can always be dismissed with Esc, X, or Not now.",
+  changelog_r_2_20_1_d2: "Real Error Reporting & Classroom Banner: stopped swallowing 403 SERVICE_DISABLED / ACCESS_TOKEN_SCOPE_INSUFFICIENT responses as empty lists in Classroom and Drive, added explicit 401 status tagging, and wired ApiActivationBanner into Google Classroom.",
+  changelog_r_2_20_1_d3: "Isolated Per-Service Scopes & Sync Queueing: syncs triggered right after granting access no longer get dropped while Canvas sync is running, and scope mismatches revoke only the affected service instead of wiping every Google token.",
+
   changelog_r_2_20_0_t: "Reliable Google Services Sign-In, Modern Flat Workspace & 6 Light/Dark Palettes",
   changelog_r_2_20_0_h1: "Gmail, Google Classroom, Calendar, and Drive now connect smoothly with automatic multi-tier fallback",
   changelog_r_2_20_0_h2: "Closing or denying a permission popup never locks you out — clicking Connect always opens consent cleanly again",

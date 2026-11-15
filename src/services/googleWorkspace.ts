@@ -43,13 +43,26 @@ export class GoogleApiDisabledError extends Error {
   }
 }
 
+export function makeGoogleError(
+  message: string,
+  status: number,
+  extra?: { isInsufficientScope?: boolean }
+): Error {
+  const err = new Error(message) as Error & { status?: number; isInsufficientScope?: boolean };
+  err.status = status;
+  if (extra?.isInsufficientScope) {
+    err.isInsufficientScope = true;
+  }
+  return err;
+}
+
 async function assertGoogleResponseOk(
   res: Response,
   defaultServiceName: string,
   defaultServiceId: string
 ): Promise<void> {
   if (res.status === 401) {
-    throw new Error(t('gw_service_expired', { service: defaultServiceName }));
+    throw makeGoogleError(t('gw_service_expired', { service: defaultServiceName }), 401);
   }
   if (!res.ok) {
     const errBody = await res.text();
@@ -120,12 +133,18 @@ export function parseGoogleApiResponseError(
         msg.includes('insufficient authentication scopes'));
 
     if (isScopeError) {
-      return new Error(t('gw_needs_permission', { service: defaultServiceName }));
+      return makeGoogleError(t('gw_needs_permission', { service: defaultServiceName }), 403, {
+        isInsufficientScope: true,
+      });
     }
 
-    return new Error(t('gw_request_failed_msg', { service: defaultServiceName, msg }));
+    if (status === 401) {
+      return makeGoogleError(t('gw_service_expired', { service: defaultServiceName }), 401);
+    }
+
+    return makeGoogleError(t('gw_request_failed_msg', { service: defaultServiceName, msg }), status);
   } catch {
-    return new Error(t('gw_request_failed_status', { service: defaultServiceName, status }));
+    return makeGoogleError(t('gw_request_failed_status', { service: defaultServiceName, status }), status);
   }
 }
 
@@ -150,7 +169,7 @@ export async function fetchTodayCalendarEvents(token: string): Promise<CalendarE
     });
 
     if (res.status === 401) {
-      throw new Error(t('gw_cal_expired'));
+      throw makeGoogleError(t('gw_cal_expired'), 401);
     }
 
     if (!res.ok) {
@@ -199,8 +218,13 @@ export async function fetchUpcomingCalendarEvents(
       headers: { Authorization: `Bearer ${token}` },
     });
 
+    if (res.status === 401) {
+      throw makeGoogleError(t('gw_cal_expired'), 401);
+    }
+
     if (!res.ok) {
-      throw new Error(t('gw_cal_api_err', { status: res.statusText || String(res.status) }));
+      const errBody = await res.text();
+      throw parseGoogleApiResponseError(res.status, errBody, 'Google Calendar', 'calendar-json.googleapis.com');
     }
 
     const data = await res.json();
@@ -219,7 +243,7 @@ export async function fetchUpcomingCalendarEvents(
     }));
   } catch (error) {
     console.error('Error fetching upcoming events:', error);
-    return [];
+    throw error;
   }
 }
 
@@ -380,13 +404,13 @@ export async function fetchAcademicEmails(
     });
 
     if (listRes.status === 401) {
-      throw new Error(t('gw_gmail_expired'));
+      throw makeGoogleError(t('gw_gmail_expired'), 401);
     }
 
     if (!listRes.ok) {
       const errBody = await listRes.text();
       if (listRes.status === 403 && (errBody.includes('insufficient') || errBody.includes('ACCESS_TOKEN_SCOPE_INSUFFICIENT'))) {
-        throw new Error(t('gw_gmail_needs_permission'));
+        throw makeGoogleError(t('gw_gmail_needs_permission'), 403, { isInsufficientScope: true });
       }
       throw parseGoogleApiResponseError(listRes.status, errBody, 'Gmail', 'gmail.googleapis.com');
     }
@@ -587,7 +611,7 @@ export async function findOrCreateMasterSpreadsheet(
         };
       }
       if (checkRes.status === 401) {
-        throw new Error(t('gw_sheets_expired'));
+        throw makeGoogleError(t('gw_sheets_expired'), 401);
       }
       if (checkRes.status === 404 || checkRes.status === 403) {
         clearScopedMasterSheetId(resolvedUid);
@@ -649,7 +673,7 @@ export async function findOrCreateMasterSpreadsheet(
     });
 
     if (createRes.status === 401) {
-      throw new Error(t('gw_sheets_expired'));
+      throw makeGoogleError(t('gw_sheets_expired'), 401);
     }
 
     if (!createRes.ok) {
@@ -735,7 +759,7 @@ export async function readAssignmentsFromSheet(
     });
 
     if (res.status === 401) {
-      throw new Error(t('gw_sheets_expired'));
+      throw makeGoogleError(t('gw_sheets_expired'), 401);
     }
 
     // Fallback to first sheet range if Assignments tab is named differently
@@ -811,7 +835,7 @@ export async function appendAssignmentToSheet(
   );
 
   if (res.status === 401) {
-    throw new Error(t('gw_sheets_unauthorized'));
+    throw makeGoogleError(t('gw_sheets_unauthorized'), 401);
   }
 
   if (!res.ok) {
@@ -851,7 +875,7 @@ export async function updateAssignmentStatusInSheet(
   );
 
   if (res.status === 401) {
-    throw new Error(t('gw_sheets_unauthorized'));
+    throw makeGoogleError(t('gw_sheets_unauthorized'), 401);
   }
 
   if (!res.ok) {
@@ -1101,7 +1125,7 @@ export async function fetchRecentSchoolFiles(
     });
 
     if (res.status === 401) {
-      throw new Error(t('gw_drive_expired'));
+      throw makeGoogleError(t('gw_drive_expired'), 401);
     }
 
     // Fallback for personal accounts where supportsAllDrives can throw 400, 403 or 404
@@ -1121,11 +1145,6 @@ export async function fetchRecentSchoolFiles(
 
     if (!res.ok) {
       const errBody = await res.text();
-      // If token only has drive.file scope or query denied on full drive, return [] gracefully
-      if (res.status === 403 && (errBody.includes('insufficient') || errBody.includes('ACCESS_TOKEN_SCOPE_INSUFFICIENT'))) {
-        console.warn('Drive scope limited to app files (drive.file). Returning accessible files.');
-        return [];
-      }
       throw parseGoogleApiResponseError(res.status, errBody, 'Google Drive API', 'drive.googleapis.com');
     }
 
@@ -1173,7 +1192,7 @@ export async function createFormattedAssignmentDoc(
     });
 
     if (createRes.status === 401) {
-      throw new Error(t('gw_docs_expired'));
+      throw makeGoogleError(t('gw_docs_expired'), 401);
     }
 
     if (!createRes.ok) {

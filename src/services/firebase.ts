@@ -31,6 +31,10 @@ export const effectiveFirebaseConfig = {
     metaEnv.VITE_FIREBASE_AUTH_DOMAIN ||
     rawFirebaseConfig.authDomain ||
     `${rawFirebaseConfig.projectId}.firebaseapp.com`,
+  firestoreDatabaseId:
+    metaEnv.VITE_FIREBASE_FIRESTORE_DATABASE_ID ||
+    (rawFirebaseConfig as any).firestoreDatabaseId ||
+    '',
   storageBucket: metaEnv.VITE_FIREBASE_STORAGE_BUCKET || rawFirebaseConfig.storageBucket || '',
   messagingSenderId:
     metaEnv.VITE_FIREBASE_MESSAGING_SENDER_ID || rawFirebaseConfig.messagingSenderId || '',
@@ -712,17 +716,25 @@ export async function requestFirebaseFeaturePopupScopes(
     isSigningIn = true;
     try { await setPersistence(auth, browserLocalPersistence); } catch {}
     let result: any;
-    try {
-      result = auth.currentUser
-        ? await reauthenticateWithPopup(auth.currentUser, scopeProvider)
-        : await signInWithPopup(auth, scopeProvider);
-    } catch (reauthErr: any) {
-      if (reauthErr?.code === 'auth/user-mismatch' || reauthErr?.code === 'auth/no-current-user') {
-        result = await signInWithPopup(auth, scopeProvider);
-      } else {
+    const POPUP_TIMEOUT_MS = 90000;
+    const runPopup = async () => {
+      try {
+        return auth.currentUser
+          ? await reauthenticateWithPopup(auth.currentUser, scopeProvider)
+          : await signInWithPopup(auth, scopeProvider);
+      } catch (reauthErr: any) {
+        if (reauthErr?.code === 'auth/user-mismatch' || reauthErr?.code === 'auth/no-current-user') {
+          return await signInWithPopup(auth, scopeProvider);
+        }
         throw reauthErr;
       }
-    }
+    };
+    result = await Promise.race([
+      runPopup(),
+      new Promise((_res, rej) =>
+        setTimeout(() => rej(Object.assign(new Error(t('fb_err_timeout')), { code: 'auth/timeout' })), POPUP_TIMEOUT_MS)
+      ),
+    ]);
     const credential = GoogleAuthProvider.credentialFromResult(result);
     const accessToken = credential?.accessToken || '';
     const uid: string | null = result?.user?.uid || auth.currentUser?.uid || null;

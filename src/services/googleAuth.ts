@@ -17,6 +17,7 @@
 import {
   auth,
   defaultFirebaseOAuthClientId,
+  effectiveFirebaseConfig,
   getStoredGoogleToken,
   setStoredGoogleToken,
   getValidGoogleToken,
@@ -99,6 +100,38 @@ function setRefreshOwner(uid: string | null) {
 // Real Google access-token lifetime is 3,600s; start renewing 5 min early.
 const REFRESH_EARLY_MS = 55 * 60 * 1000;
 const GIS_SCRIPT_URL = 'https://accounts.google.com/gsi/client';
+const FIRESTORE_OP_TIMEOUT_MS = 2500;
+const IDB_OP_TIMEOUT_MS = 1500;
+const OAUTH_FETCH_TIMEOUT_MS = 15000;
+const GIS_POPUP_TIMEOUT_MS = 120000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
+  return Promise.race([
+    promise.catch(() => null),
+    new Promise<null>((resolve) => setTimeout(() => resolve(null), ms)),
+  ]);
+}
+
+async function fetchWithTimeout(input: string, init: RequestInit, timeoutMs = OAUTH_FETCH_TIMEOUT_MS): Promise<Response> {
+  const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+  try {
+    return await fetch(input, { ...init, signal: controller?.signal });
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+async function getIntegrationFirestore() {
+  const [{ getFirestore }, { getApps }] = await Promise.all([
+    import('firebase/firestore'),
+    import('firebase/app'),
+  ]);
+  const apps = getApps();
+  if (!apps.length) return null;
+  const dbId = effectiveFirebaseConfig?.firestoreDatabaseId;
+  return dbId ? getFirestore(apps[0], dbId) : getFirestore(apps[0]);
+}
 
 export function getGoogleOAuthClientId(): string {
   try {
@@ -356,30 +389,38 @@ async function persistGrant(grant: RefreshGrant | null, uid?: string | null): Pr
   try {
     const { db } = await import('./db');
     if (normalizedGrant) {
-      await db.preferences.put({ key: idbKey, value: JSON.stringify(normalizedGrant) });
-      await db.preferences.put({ key: REFRESH_IDB_KEY, value: JSON.stringify(normalizedGrant) }).catch(() => {});
+      await withTimeout(
+        Promise.all([
+          db.preferences.put({ key: idbKey, value: JSON.stringify(normalizedGrant) }),
+          db.preferences.put({ key: REFRESH_IDB_KEY, value: JSON.stringify(normalizedGrant) }).catch(() => {}),
+        ]),
+        IDB_OP_TIMEOUT_MS
+      );
     } else {
-      await db.preferences.delete(idbKey);
-      const owner = getRefreshOwner();
-      if (!resolved || !owner || owner === resolved) {
-        await db.preferences.delete(REFRESH_IDB_KEY).catch(() => {});
-      }
+      await withTimeout(
+        (async () => {
+          await db.preferences.delete(idbKey);
+          const owner = getRefreshOwner();
+          if (!resolved || !owner || owner === resolved) {
+            await db.preferences.delete(REFRESH_IDB_KEY).catch(() => {});
+          }
+        })(),
+        IDB_OP_TIMEOUT_MS
+      );
     }
   } catch {}
+  dispatchScopesUpdated(normalizedScopes, resolved);
   // Cross-device home for the grant: owner-only Firestore doc (best effort —
-  // offline or restrictive rules fall back to the local mirror silently).
-  try {
-    const firestoreUid = uid || resolved;
-    if (firestoreUid) {
-      const [{ getFirestore, doc, setDoc }, { getApps }] = await Promise.all([
-        import('firebase/firestore'),
-        import('firebase/app'),
-      ]);
-      const apps = getApps();
-      if (apps.length) {
-        const dbf = getFirestore(apps[0]);
-        if (normalizedGrant) {
-          await setDoc(
+  // runs in the background so slow/unavailable Firestore never stalls OAuth return).
+  const firestoreUid = uid || resolved;
+  if (firestoreUid && normalizedGrant) {
+    void (async () => {
+      try {
+        const dbf = await getIntegrationFirestore();
+        if (!dbf) return;
+        const { doc, setDoc } = await import('firebase/firestore');
+        await withTimeout(
+          setDoc(
             doc(dbf, 'users', firestoreUid, 'integrations', 'google'),
             {
               refresh_token: normalizedGrant.rt,
@@ -388,12 +429,12 @@ async function persistGrant(grant: RefreshGrant | null, uid?: string | null): Pr
               updated_at: new Date().toISOString(),
             },
             { merge: true }
-          );
-        }
-      }
-    }
-  } catch {}
-  dispatchScopesUpdated(normalizedScopes, resolved);
+          ),
+          FIRESTORE_OP_TIMEOUT_MS
+        );
+      } catch {}
+    })();
+  }
 }
 
 /** Merge newly granted scopes into the active account's scope store (and refresh grant if present). */
@@ -500,35 +541,14 @@ export async function hydrateRefreshGrant(uid?: string | null): Promise<boolean>
     saveScopesSync(local.grantedScopes?.length ? local.grantedScopes : normalizeScopes(local.scope), resolved);
     return true;
   }
-  try {
-    const [{ getFirestore, doc, getDoc }, { getApps }] = await Promise.all([
-      import('firebase/firestore'),
-      import('firebase/app'),
-    ]);
-    const apps = getApps();
-    const id = resolved || (await import('./firebase')).auth?.currentUser?.uid;
-    if (!apps.length || !id) return false;
-    const snap = await getDoc(doc(getFirestore(apps[0]), 'users', id, 'integrations', 'google'));
-    const data = snap.exists() ? (snap.data() as any) : null;
-    const rt = data?.refresh_token;
-    if (typeof rt === 'string' && rt.length > 10) {
-      const scopes = normalizeScopes(
-        Array.isArray(data?.grantedScopes) && data.grantedScopes.length > 0
-          ? data.grantedScopes
-          : data?.scope || ''
-      );
-      await persistGrant({ rt, at: Date.now(), scope: scopes.join(' '), grantedScopes: scopes }, id);
-      return true;
-    }
-  } catch {}
-  // IndexedDB mirror (survives localStorage clears within the same browser profile)
+  // IndexedDB mirror first (instant, local; survives localStorage clears within the same browser profile)
   try {
     const { db } = await import('./db');
     const keys = resolved
       ? [refreshIdbKeyFor(resolved), REFRESH_IDB_KEY]
       : [REFRESH_IDB_KEY];
     for (const k of keys) {
-      const row: any = await db.preferences.get(k).catch(() => null);
+      const row: any = await withTimeout(db.preferences.get(k), IDB_OP_TIMEOUT_MS);
       if (row?.value) {
         const parsed = parseGrant(typeof row.value === 'string' ? row.value : JSON.stringify(row.value));
         if (parsed?.rt) {
@@ -551,6 +571,28 @@ export async function hydrateRefreshGrant(uid?: string | null): Promise<boolean>
       }
     }
   } catch {}
+  // Cross-device Firestore fallback (bounded timeout so boot never hangs)
+  try {
+    const dbf = await getIntegrationFirestore();
+    const id = resolved || (await import('./firebase')).auth?.currentUser?.uid;
+    if (!dbf || !id) return false;
+    const { doc, getDoc } = await import('firebase/firestore');
+    const snap = await withTimeout(
+      getDoc(doc(dbf, 'users', id, 'integrations', 'google')),
+      FIRESTORE_OP_TIMEOUT_MS
+    );
+    const data = snap && snap.exists() ? (snap.data() as any) : null;
+    const rt = data?.refresh_token;
+    if (typeof rt === 'string' && rt.length > 10) {
+      const scopes = normalizeScopes(
+        Array.isArray(data?.grantedScopes) && data.grantedScopes.length > 0
+          ? data.grantedScopes
+          : data?.scope || ''
+      );
+      await persistGrant({ rt, at: Date.now(), scope: scopes.join(' '), grantedScopes: scopes }, id);
+      return true;
+    }
+  } catch {}
   return false;
 }
 
@@ -564,18 +606,16 @@ export function hasRefreshToken(uid?: string | null): boolean {
 export async function clearRefreshGrant(uid?: string | null): Promise<void> {
   const resolved = resolveGrantUid(uid);
   await persistGrant(null, resolved);
-  try {
-    const id = resolved || (await import('./firebase')).auth?.currentUser?.uid;
-    if (id) {
-      const [{ getFirestore, doc, deleteDoc }, { getApps }] = await Promise.all([
-        import('firebase/firestore'),
-        import('firebase/app'),
-      ]);
-      if (getApps().length) {
-        await deleteDoc(doc(getFirestore(getApps()[0]), 'users', id, 'integrations', 'google')).catch(() => {});
+  void (async () => {
+    try {
+      const id = resolved || (await import('./firebase')).auth?.currentUser?.uid;
+      const dbf = id ? await getIntegrationFirestore() : null;
+      if (id && dbf) {
+        const { doc, deleteDoc } = await import('firebase/firestore');
+        await withTimeout(deleteDoc(doc(dbf, 'users', id, 'integrations', 'google')), FIRESTORE_OP_TIMEOUT_MS);
       }
-    }
-  } catch {}
+    } catch {}
+  })();
 }
 
 // ---- Silent refresh (single-flight so parallel syncs share one request) ----
@@ -600,7 +640,7 @@ export function refreshGoogleAccessToken(force = false): Promise<boolean> {
         const age = getGoogleTokenAgeMs();
         if (current && (age === null || age < REFRESH_EARLY_MS)) return true;
       }
-      const res = await fetch('/api/auth/google/refresh', {
+      const res = await fetchWithTimeout('/api/auth/google/refresh', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refresh_token: grant.rt, scope: grant.scope }),
@@ -729,12 +769,13 @@ async function finalizeGrantedSession(params: {
   refreshToken?: string;
 }): Promise<string[]> {
   const existingScopes = params.includeGranted ? getGrantedScopes(params.uid) : [];
+  // Prefer Google's authoritative scope list from the token/exchange response so
+  // hasFeatureAccess never claims permissions the active access token lacks.
   const mergedScopes =
     params.grantedScopes.length > 0
-      ? normalizeScopes([...existingScopes, ...params.grantedScopes])
+      ? normalizeScopes(params.grantedScopes)
       : normalizeScopes([...existingScopes, ...params.requestedScopes]);
 
-  setStoredGoogleToken(params.accessToken, params.uid, mergedScopes);
   const existingGrant = readGrantSync(params.uid);
   const rt =
     typeof params.refreshToken === 'string' && params.refreshToken.length > 5
@@ -756,6 +797,7 @@ async function finalizeGrantedSession(params: {
     dispatchScopesUpdated(mergedScopes, params.uid);
   }
 
+  setStoredGoogleToken(params.accessToken, params.uid, mergedScopes);
   markGoogleConnected();
   return mergedScopes;
 }
@@ -819,6 +861,16 @@ async function runGisCodeExchangeDetailed(params: {
   let code = '';
   try {
     code = await new Promise<string>((resolve, reject) => {
+      let settled = false;
+      const finish = (fn: () => void) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(watchdog);
+        fn();
+      };
+      const watchdog = setTimeout(() => {
+        finish(() => reject(Object.assign(new Error(t('gauth_popup_closed')), { dismissed: true })));
+      }, GIS_POPUP_TIMEOUT_MS);
       try {
         const config: Record<string, any> = {
           client_id: clientId,
@@ -828,12 +880,12 @@ async function runGisCodeExchangeDetailed(params: {
           ux_mode: 'popup',
           callback: (resp: any) => {
             if (typeof resp?.scope === 'string') codeCallbackScope = resp.scope;
-            if (resp?.code) resolve(resp.code);
-            else if (resp?.error) reject(Object.assign(new Error(String(resp.error)), { type: resp.error }));
-            else reject(Object.assign(new Error(t('gauth_popup_closed')), { dismissed: true }));
+            if (resp?.code) finish(() => resolve(resp.code));
+            else if (resp?.error) finish(() => reject(Object.assign(new Error(String(resp.error)), { type: resp.error })));
+            else finish(() => reject(Object.assign(new Error(t('gauth_popup_closed')), { dismissed: true })));
           },
           error_callback: (err: any) => {
-            reject(err || new Error(t('gauth_permission_failed')));
+            finish(() => reject(err || new Error(t('gauth_permission_failed'))));
           },
         };
         if (params.prompt) config.prompt = params.prompt;
@@ -841,7 +893,7 @@ async function runGisCodeExchangeDetailed(params: {
         const client = (window as any).google.accounts.oauth2.initCodeClient(config);
         client.requestCode();
       } catch (e) {
-        reject(e);
+        finish(() => reject(e));
       }
     });
   } catch (e: any) {
@@ -852,7 +904,7 @@ async function runGisCodeExchangeDetailed(params: {
   }
   if (!code) return { status: 'dismissed' };
 
-  const res = await fetch('/api/auth/google/exchange', {
+  const res = await fetchWithTimeout('/api/auth/google/exchange', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -907,6 +959,16 @@ async function runGisTokenClientDetailed(params: {
 
   try {
     const tokenResp = await new Promise<{ accessToken: string; scopeStr: string }>((resolve, reject) => {
+      let settled = false;
+      const finish = (fn: () => void) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(watchdog);
+        fn();
+      };
+      const watchdog = setTimeout(() => {
+        finish(() => reject(Object.assign(new Error(t('gauth_popup_closed')), { dismissed: true })));
+      }, GIS_POPUP_TIMEOUT_MS);
       try {
         const config: Record<string, any> = {
           client_id: clientId,
@@ -915,22 +977,22 @@ async function runGisTokenClientDetailed(params: {
           prompt: params.prompt || 'consent',
           callback: (resp: any) => {
             if (resp?.access_token) {
-              resolve({ accessToken: resp.access_token, scopeStr: String(resp.scope || '') });
+              finish(() => resolve({ accessToken: resp.access_token, scopeStr: String(resp.scope || '') }));
             } else if (resp?.error) {
-              reject(Object.assign(new Error(String(resp.error)), { type: resp.error }));
+              finish(() => reject(Object.assign(new Error(String(resp.error)), { type: resp.error })));
             } else {
-              reject(Object.assign(new Error(t('gauth_popup_closed')), { dismissed: true }));
+              finish(() => reject(Object.assign(new Error(t('gauth_popup_closed')), { dismissed: true })));
             }
           },
           error_callback: (err: any) => {
-            reject(err || new Error(t('gauth_permission_failed')));
+            finish(() => reject(err || new Error(t('gauth_permission_failed'))));
           },
         };
         if (loginHint) config.login_hint = loginHint;
         const client = (window as any).google.accounts.oauth2.initTokenClient(config);
         client.requestAccessToken({ prompt: params.prompt || 'consent' });
       } catch (e) {
-        reject(e);
+        finish(() => reject(e));
       }
     });
 

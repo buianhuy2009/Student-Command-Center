@@ -6,6 +6,12 @@
     <description>Plain-English updates to StudentOS — what changed and why it matters for studying.</description>
     <language>en-us</language>
     <item>
+      <title>v2.20.1 — Instant Google Connect Exit &amp; Accurate Gmail, Classroom, and Drive Loading</title>
+      <link>https://sutdent-command-center.vercel.app/?changelog=2.20.1</link>
+      <pubDate>Sun, 15 Nov 2026 12:04:06 GMT</pubDate>
+      <description>StudentOS v2.20.1 prevents the Google permission modal from freezing after consent returns, keeps X/Not now/Esc always responsive, and fixes Gmail, Google Classroom, and Drive loading and error reporting after granting access.</description>
+    </item>
+    <item>
       <title>v2.20.0 — Reliable Google Services Sign-In, Modern Flat Workspace &amp; 6 Light/Dark Palettes</title>
       <link>https://sutdent-command-center.vercel.app/?changelog=2.20.0</link>
       <pubDate>Sun, 15 Nov 2026 11:05:00 GMT</pubDate>
