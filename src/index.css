@@ -20,7 +20,8 @@
   --bg-subtle: #EFECE4;
   --bg-hover: #E5E0D5;
 
-  /* Borders (1px neutral; --border-strong >= 3:1 across all light surfaces) */
+  /* Borders (1px neutral; --border-hairline for quiet internal dividers, --border-strong >= 3:1) */
+  --border-hairline: #E6E2D8;
   --border-default: #CFC9BC;
   --border-strong: #8A8273;
 
@@ -103,7 +104,8 @@
   --bg-subtle: #242934;
   --bg-hover: #2D3340;
 
-  --border-default: #3D4556;
+  --border-hairline: #272D38;
+  --border-default: #363E4E;
   --border-strong: #69758F;
 
   --text-primary: #F1F3F5;
@@ -133,6 +135,92 @@
   --shadow-card-hover: 0 2px 6px rgba(0, 0, 0, 0.4), 0 16px 32px -10px rgba(0, 0, 0, 0.48);
 }
 
+/* Light Preset: Nordic Studio (Cool Alabaster & Cobalt) */
+:root[data-theme="nordic"] {
+  color-scheme: light;
+  --bg-canvas: #F6F8FA;
+  --bg-surface: #FFFFFF;
+  --bg-raised: #FFFFFF;
+  --bg-subtle: #EDF1F6;
+  --bg-hover: #E3E9F1;
+  --border-hairline: #E2E8F0;
+  --border-default: #CBD5E1;
+  --border-strong: #64748B;
+  --text-primary: #0F172A;
+  --text-secondary: #334155;
+  --text-muted: #526074;
+  --accent-fill: #2563EB;
+  --accent-hover: #1D4ED8;
+  --accent-text: #1D4ED8;
+  --accent-soft: #EFF6FF;
+  --accent-border: #93C5FD;
+}
+
+/* Light Preset: Quiet Botanical (Mineral Tint & Forest Sage) */
+:root[data-theme="sage"] {
+  color-scheme: light;
+  --bg-canvas: #F3F6F4;
+  --bg-surface: #FFFFFF;
+  --bg-raised: #FFFFFF;
+  --bg-subtle: #E7EEEA;
+  --bg-hover: #DCE6E0;
+  --border-hairline: #DCE5E0;
+  --border-default: #C4D2CA;
+  --border-strong: #5E7569;
+  --text-primary: #14221B;
+  --text-secondary: #364B40;
+  --text-muted: #50665A;
+  --accent-fill: #2F6F4E;
+  --accent-hover: #24573D;
+  --accent-text: #22543B;
+  --accent-soft: #EBF5EF;
+  --accent-border: #88BEA1;
+}
+
+/* Dark Preset: Linear Obsidian (Deep Carbon & Sky Indigo) */
+.dark[data-theme="obsidian"],
+:root[data-theme="obsidian"] {
+  color-scheme: dark;
+  --bg-canvas: #0D0F13;
+  --bg-surface: #151921;
+  --bg-raised: #1B202B;
+  --bg-subtle: #1B202B;
+  --bg-hover: #242B38;
+  --border-hairline: #232936;
+  --border-default: #30384A;
+  --border-strong: #64708A;
+  --text-primary: #F3F5F9;
+  --text-secondary: #C5CCDB;
+  --text-muted: #8E97AB;
+  --accent-fill: #6366F1;
+  --accent-hover: #4F46E5;
+  --accent-text: #A5B4FC;
+  --accent-soft: #1E1F3B;
+  --accent-border: #43469E;
+}
+
+/* Dark Preset: Deep Evergreen (Restful Forest Slate & Mint) */
+.dark[data-theme="evergreen"],
+:root[data-theme="evergreen"] {
+  color-scheme: dark;
+  --bg-canvas: #0F1614;
+  --bg-surface: #16201D;
+  --bg-raised: #1C2925;
+  --bg-subtle: #1C2925;
+  --bg-hover: #24352F;
+  --border-hairline: #23332E;
+  --border-default: #314740;
+  --border-strong: #5D7C72;
+  --text-primary: #EEF5F2;
+  --text-secondary: #BDD1C9;
+  --text-muted: #88A399;
+  --accent-fill: #059669;
+  --accent-hover: #047857;
+  --accent-text: #6EE7B7;
+  --accent-soft: #122E25;
+  --accent-border: #256D55;
+}
+
 /* High-contrast accessibility mode via semantic tokens (no CSS filter hack) */
 .high-contrast {
   --bg-canvas: #FFFFFF;
@@ -150,7 +238,9 @@
   --accent-text: #8A3316;
 }
 .dark.high-contrast,
-:root[data-theme="midnight"].high-contrast {
+:root[data-theme="midnight"].high-contrast,
+:root[data-theme="obsidian"].high-contrast,
+:root[data-theme="evergreen"].high-contrast {
   --bg-canvas: #0B0D10;
   --bg-surface: #12151B;
   --bg-raised: #1A1E27;

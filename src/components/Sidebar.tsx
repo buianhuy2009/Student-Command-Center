@@ -127,14 +127,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
     if (activeIsInOtherTools) setShowOtherTools(true);
   }, [activeIsInOtherTools]);
 
-  // Shared active/inactive button class: active state combines fill + border + font weight + left accent indicator
+  // Calm Linear/Notion-style borderless nav row: subtle hover surface, crisp active fill + left bar
   const navBtnClasses = (isActive: boolean) =>
-    `w-full rounded-xl flex items-center transition-colors cursor-pointer relative group border ${
-      isExpanded ? 'px-2.5 py-2 justify-between gap-2.5 min-h-[40px]' : 'w-11 h-11 mx-auto justify-center'
+    `w-full rounded-lg flex items-center transition-colors cursor-pointer relative group ${
+      isExpanded ? 'px-2.5 py-1.5 justify-between gap-2.5 min-h-[36px]' : 'w-10 h-10 mx-auto justify-center'
     } ${
       isActive
-        ? 'bg-[var(--accent-soft)] border-[var(--accent-border)] text-[var(--accent-text)] font-bold shadow-xs'
-        : 'bg-[var(--bg-surface)]/75 hover:bg-[var(--bg-surface)] border-[var(--border-default)] hover:border-[var(--border-strong)] text-[var(--text-primary)] font-medium'
+        ? 'bg-[var(--accent-soft)] text-[var(--accent-text)] font-semibold'
+        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]/70 font-medium'
     }`;
 
   const renderCollapsedTooltip = (label: string) =>
@@ -152,34 +152,30 @@ export const Sidebar: React.FC<SidebarProps> = ({
       aria-label={t('side_primary_nav')}
       data-tour="sidebar"
       role="navigation"
-      className={`h-screen shrink-0 bg-[var(--bg-subtle)] border-r border-[var(--border-default)] flex flex-col transition-all duration-200 z-30 select-none ${
-        isExpanded ? 'w-60 p-3' : 'w-16 p-2'
+      className={`h-screen shrink-0 bg-[var(--bg-subtle)]/65 border-r border-[var(--border-hairline)] flex flex-col transition-all duration-200 z-30 select-none ${
+        isExpanded ? 'w-60 px-2.5 py-3' : 'w-16 p-2'
       }`}
     >
       {/* Brand Header */}
-      <div className="flex items-center justify-between pb-3 border-b border-[var(--border-default)] mb-2.5 shrink-0">
+      <div className="flex items-center justify-between pb-2.5 border-b border-[var(--border-hairline)] mb-2 shrink-0">
         <button
           type="button"
           onClick={() => onSelectTab('dashboard')}
-          className={`flex items-center gap-2.5 min-w-0 p-1 rounded-xl transition-colors cursor-pointer text-left border ${
-            activeTab === 'dashboard'
-              ? 'border-[var(--accent-border)] bg-[var(--accent-soft)]'
-              : 'border-transparent hover:bg-[var(--bg-surface)]/70'
-          }`}
+          className="flex items-center gap-2.5 min-w-0 px-1.5 py-1 rounded-lg hover:bg-[var(--bg-hover)]/60 transition-colors cursor-pointer text-left"
           title={t('side_go_dashboard')}
         >
           <div
-            className="w-8 h-8 bg-[var(--accent-fill)] rounded-lg flex items-center justify-center text-white font-extrabold text-sm shrink-0"
+            className="w-7 h-7 bg-[var(--accent-fill)] rounded-lg flex items-center justify-center text-white font-bold text-xs shrink-0 shadow-xs"
             aria-hidden="true"
           >
             S
           </div>
           {isExpanded && (
             <div className="min-w-0">
-              <h1 className="text-sm font-extrabold text-[var(--text-primary)] tracking-tight truncate leading-tight">
+              <h1 className="text-[13px] font-bold text-[var(--text-primary)] tracking-tight truncate leading-tight">
                 StudentOS
               </h1>
-              <p className="text-[10px] text-[var(--text-muted)] font-mono truncate">{t('side_subtitle')}</p>
+              <p className="text-[10px] text-[var(--text-muted)] truncate">{t('side_subtitle')}</p>
             </div>
           )}
         </button>
@@ -188,7 +184,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <button
             type="button"
             onClick={onToggleExpand}
-            className="p-2 rounded-lg hover:bg-[var(--bg-surface)] border border-transparent hover:border-[var(--border-default)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center"
+            className="p-1.5 rounded-lg hover:bg-[var(--bg-hover)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer min-h-[32px] min-w-[32px] flex items-center justify-center"
             title={t('side_collapse')}
             aria-label={t('side_collapse')}
           >
@@ -198,7 +194,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       {/* Scrollable Workspace List */}
-      <div className="flex-1 overflow-y-auto min-h-0 space-y-3.5 pr-0.5">
+      <div className="flex-1 overflow-y-auto min-h-0 space-y-4 pr-0.5">
         {/* Explicit Home / Dashboard Item (always reachable) */}
         <div>
           <button
@@ -209,12 +205,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
             title={t('app_tab_dashboard')}
           >
             {activeTab === 'dashboard' && isExpanded && (
-              <span className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-[var(--accent-fill)]" aria-hidden="true" />
+              <span className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r-full bg-[var(--accent-fill)]" aria-hidden="true" />
             )}
             <div className="flex items-center gap-2.5 min-w-0">
               <AppLogo id="dashboard" size="sm" />
               {isExpanded && (
-                <span className="text-xs truncate leading-tight">{t('app_tab_dashboard')}</span>
+                <span className="text-[13px] truncate leading-tight">{t('app_tab_dashboard')}</span>
               )}
             </div>
             {renderCollapsedTooltip(t('app_tab_dashboard'))}
@@ -227,6 +223,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             const isActive = activeTab === m.id;
             const count = ('badgeKey' in m && m.badgeKey && (badges as any)[m.badgeKey]) || 0;
             const itemLabel = t(m.labelKey);
+            const itemDesc = t(m.descKey);
             return (
               <button
                 type="button"
@@ -234,19 +231,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 onClick={() => onSelectTab(m.id)}
                 aria-current={isActive ? 'page' : undefined}
                 data-tour-tab={m.id}
-                title={itemLabel}
+                title={`${itemLabel} — ${itemDesc}`}
                 className={navBtnClasses(isActive)}
               >
                 {isActive && isExpanded && (
-                  <span className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-[var(--accent-fill)]" aria-hidden="true" />
+                  <span className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r-full bg-[var(--accent-fill)]" aria-hidden="true" />
                 )}
                 <div className="flex items-center gap-2.5 min-w-0">
                   {i < 3 ? (
                     <span
-                      className={`w-7 h-7 shrink-0 rounded-lg border text-[11px] font-extrabold flex items-center justify-center ${
+                      className={`w-6 h-6 shrink-0 rounded-md text-[11px] font-bold tabular-nums flex items-center justify-center ${
                         isActive
-                          ? 'bg-[var(--accent-fill)] border-[var(--accent-fill)] text-white'
-                          : 'bg-[var(--accent-soft)] border-[var(--accent-border)] text-[var(--accent-text)]'
+                          ? 'bg-[var(--accent-fill)] text-white'
+                          : 'bg-[var(--bg-surface)] text-[var(--text-muted)] border border-[var(--border-hairline)]'
                       }`}
                     >
                       {i + 1}
@@ -255,20 +252,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     <AppLogo id={m.id} size="sm" />
                   )}
                   {isExpanded && (
-                    <div className="text-left min-w-0">
-                      <div className="text-xs truncate leading-tight">{itemLabel}</div>
-                      <div className={`text-[10px] truncate ${isActive ? 'text-[var(--accent-text)] opacity-85' : 'text-[var(--text-muted)]'}`}>
-                        {t(m.descKey)}
-                      </div>
-                    </div>
+                    <span className="text-[13px] truncate leading-tight">{itemLabel}</span>
                   )}
                 </div>
                 {count > 0 && (
                   <span
                     className={
                       isExpanded
-                        ? 'px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-[var(--accent-fill)] text-white shrink-0'
-                        : 'absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-[var(--accent-fill)] ring-2 ring-[var(--bg-subtle)]'
+                        ? 'px-1.5 py-0.5 text-[10px] font-semibold tabular-nums rounded-full bg-[var(--accent-fill)] text-white shrink-0'
+                        : 'absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[var(--accent-fill)] ring-2 ring-[var(--bg-subtle)]'
                     }
                   >
                     {isExpanded ? (count > 99 ? '99+' : count) : null}
@@ -282,7 +274,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Pinned Apps */}
         <NavSection title={t('side_pinned')} isExpanded={isExpanded}>
-          <div className="space-y-1">
+          <div className="space-y-0.5">
             {pinnedApps.length === 0 ? (
               isExpanded && (
                 <div className="text-[11px] text-[var(--text-muted)] px-2 py-1.5 italic">
@@ -306,32 +298,27 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       aria-current={isActive ? 'page' : undefined}
                       data-tour-tab={app.id}
                       className={navBtnClasses(isActive)}
-                      title={metaLabel}
+                      title={`${metaLabel} — ${metaDesc}`}
                     >
                       {isActive && isExpanded && (
-                        <span className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-[var(--accent-fill)]" aria-hidden="true" />
+                        <span className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r-full bg-[var(--accent-fill)]" aria-hidden="true" />
                       )}
                       <div className="flex items-center gap-2.5 min-w-0">
                         <AppLogo id={app.id} size="sm" />
                         {isExpanded && (
-                          <div className="text-left min-w-0">
-                            <div className="text-xs truncate leading-tight">{metaLabel}</div>
-                            <div className={`text-[10px] truncate ${isActive ? 'text-[var(--accent-text)] opacity-85' : 'text-[var(--text-muted)]'}`}>
-                              {metaDesc}
-                            </div>
-                          </div>
+                          <span className="text-[13px] truncate leading-tight">{metaLabel}</span>
                         )}
                       </div>
                       {isExpanded ? (
                         hasBadge ? (
-                          <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-[var(--accent-fill)] text-white shrink-0">
+                          <span className="px-1.5 py-0.5 text-[10px] font-semibold tabular-nums rounded-full bg-[var(--accent-fill)] text-white shrink-0">
                             {badgeCount > 99 ? '99+' : badgeCount}
                           </span>
                         ) : null
                       ) : (
                         <>
                           {hasBadge && (
-                            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full ring-2 ring-[var(--bg-subtle)] bg-[var(--accent-fill)]" />
+                            <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full ring-2 ring-[var(--bg-subtle)] bg-[var(--accent-fill)]" />
                           )}
                           {renderCollapsedTooltip(metaLabel)}
                         </>
@@ -341,7 +328,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       <button
                         type="button"
                         onClick={() => onUnpinApp(app.id)}
-                        className="absolute right-2 opacity-0 group-hover/item:opacity-100 focus:opacity-100 p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] bg-[var(--bg-surface)] rounded cursor-pointer transition-opacity"
+                        className="absolute right-1.5 opacity-0 group-hover/item:opacity-100 focus:opacity-100 p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] bg-[var(--bg-surface)] rounded-md cursor-pointer transition-opacity"
                         title={t('side_unpin')}
                         aria-label={`${t('side_unpin')} ${metaLabel}`}
                       >
@@ -421,12 +408,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
         )}
 
         {/* App Store Launcher */}
-        <div className="pt-1 relative group/add">
+        <div className="pt-0.5 relative group/add">
           <button
             type="button"
             onClick={onOpenAppStore}
-            className={`w-full rounded-xl flex items-center transition-colors cursor-pointer border border-dashed border-[var(--border-strong)] hover:border-[var(--accent-fill)] bg-transparent hover:bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] ${
-              isExpanded ? 'px-3 py-2 gap-2 text-xs font-semibold min-h-[40px]' : 'w-11 h-11 mx-auto justify-center'
+            className={`w-full rounded-lg flex items-center transition-colors cursor-pointer hover:bg-[var(--bg-hover)]/70 text-[var(--text-muted)] hover:text-[var(--text-primary)] ${
+              isExpanded ? 'px-2.5 py-1.5 gap-2.5 text-[13px] font-medium min-h-[36px]' : 'w-10 h-10 mx-auto justify-center'
             }`}
             title={t('side_open_store')}
           >
@@ -438,15 +425,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       {/* Bottom Controls: Theme Toggle, Expand, Account */}
-      <div className="pt-2.5 border-t border-[var(--border-default)] shrink-0 space-y-1.5" ref={userMenuRef}>
+      <div className="pt-2.5 border-t border-[var(--border-hairline)] shrink-0 space-y-1" ref={userMenuRef}>
         <button
           type="button"
           onClick={onToggleDarkMode}
           title={darkMode ? t('side_to_light') : t('side_to_dark')}
           aria-label={darkMode ? t('side_to_light') : t('side_to_dark')}
           aria-pressed={darkMode}
-          className={`rounded-xl flex items-center transition-colors cursor-pointer border border-[var(--border-default)] hover:border-[var(--border-strong)] bg-[var(--bg-surface)]/75 hover:bg-[var(--bg-surface)] text-[var(--text-primary)] ${
-            isExpanded ? 'w-full px-3 py-2 gap-2.5 text-xs font-semibold min-h-[40px]' : 'w-11 h-11 mx-auto justify-center'
+          className={`rounded-lg flex items-center transition-colors cursor-pointer hover:bg-[var(--bg-hover)]/70 text-[var(--text-secondary)] hover:text-[var(--text-primary)] ${
+            isExpanded ? 'w-full px-2.5 py-1.5 gap-2.5 text-xs font-medium min-h-[36px]' : 'w-10 h-10 mx-auto justify-center'
           }`}
         >
           {darkMode ? <Sun className="w-4 h-4 shrink-0" strokeWidth={1.75} /> : <Moon className="w-4 h-4 shrink-0" strokeWidth={1.75} />}
@@ -456,13 +443,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
               className={`ml-auto w-8 h-[18px] rounded-full p-[2px] border transition-colors shrink-0 ${
                 darkMode
                   ? 'bg-[var(--accent-fill)] border-[var(--accent-fill)]'
-                  : 'bg-[var(--bg-subtle)] border-[var(--border-strong)]'
+                  : 'bg-[var(--bg-surface)] border-[var(--border-strong)]'
               }`}
               aria-hidden="true"
             >
               <span
-                className={`block w-3 h-3 rounded-full bg-white shadow-xs transition-transform ${
-                  darkMode ? 'translate-x-[14px]' : ''
+                className={`block w-3 h-3 rounded-full shadow-xs transition-transform ${
+                  darkMode ? 'translate-x-[14px] bg-white' : 'bg-[var(--text-muted)]'
                 }`}
               />
             </span>
@@ -473,7 +460,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <button
             type="button"
             onClick={onToggleExpand}
-            className="w-11 h-11 mx-auto rounded-xl bg-[var(--bg-surface)]/75 hover:bg-[var(--bg-surface)] text-[var(--text-primary)] flex items-center justify-center transition-colors cursor-pointer border border-[var(--border-default)] hover:border-[var(--border-strong)]"
+            className="w-10 h-10 mx-auto rounded-lg hover:bg-[var(--bg-hover)]/70 text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center justify-center transition-colors cursor-pointer"
             title={t('side_expand')}
             aria-label={t('side_expand')}
           >
@@ -484,8 +471,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <button
           type="button"
           onClick={onOpenSettings}
-          className={`w-full flex items-center rounded-xl cursor-pointer bg-[var(--bg-surface)]/75 hover:bg-[var(--bg-surface)] transition-colors border border-[var(--border-default)] hover:border-[var(--border-strong)] ${
-            isExpanded ? 'gap-2.5 justify-start p-2 min-h-[44px]' : 'w-11 h-11 mx-auto justify-center p-0'
+          className={`w-full flex items-center rounded-lg cursor-pointer hover:bg-[var(--bg-hover)]/70 transition-colors ${
+            isExpanded ? 'gap-2.5 justify-start px-2 py-1.5 min-h-[42px]' : 'w-10 h-10 mx-auto justify-center p-0'
           }`}
           title={t('side_account')}
         >

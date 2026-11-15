@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 // Per-uid persistence: Canvas settings + Google token vault survive
 // logout/relogin/reload and never leak across accounts.
@@ -191,5 +191,101 @@ describe('refresh grant per-uid isolation', () => {
     fb.setActiveGoogleUid('test-uid-nobody-000');
     ga.__resetGrantCacheForTests();
     expect(ga.hasRefreshToken()).toBe(false);
+  });
+});
+
+describe('Google OAuth consent retry & Tier 2 fallback', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    if (typeof window !== 'undefined') {
+      delete (window as any).google;
+    }
+  });
+
+  it('resolves fallback Google Client ID from Firebase applet config', async () => {
+    const ga = await import('./googleAuth');
+    expect(ga.getGoogleOAuthClientId()).toMatch(/\.apps\.googleusercontent\.com$/);
+  });
+
+  it('always re-prompts consent after user dismissal and falls back cleanly to GIS tokenClient when server OAuth is disabled', async () => {
+    const ga = await import('./googleAuth');
+    const tokenCalls: Array<{ prompt?: string; scope?: string }> = [];
+    let attempt = 0;
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: any) => {
+        const url = String(input);
+        if (url.includes('/api/health')) {
+          return {
+            ok: true,
+            status: 200,
+            json: async () => ({ ok: true, hasGoogleOAuth: false }),
+          } as Response;
+        }
+        return { ok: false, status: 404, json: async () => ({}) } as Response;
+      })
+    );
+
+    if (typeof window === 'undefined') {
+      (globalThis as any).window = globalThis;
+    }
+    (window as any).google = {
+      accounts: {
+        oauth2: {
+          initCodeClient: vi.fn(),
+          initTokenClient: vi.fn((cfg: any) => ({
+            requestAccessToken: (override: any) => {
+              attempt += 1;
+              tokenCalls.push({ prompt: override?.prompt, scope: cfg.scope });
+              if (attempt === 1) {
+                cfg.error_callback?.({ type: 'popup_closed', message: 'User closed consent popup' });
+              } else {
+                cfg.callback?.({
+                  access_token: 'ya29.retry-granted-token',
+                  scope: cfg.scope,
+                });
+              }
+            },
+          })),
+        },
+      },
+    };
+
+    await ga.preloadGoogleOAuthReadiness();
+
+    const first = await ga.requestFeaturePermissionDetailed('classroom');
+    expect(first.status).toBe('dismissed');
+
+    // Pressing Connect a second time must never lock out the consent prompt
+    const second = await ga.requestFeaturePermissionDetailed('classroom');
+    expect(second.status).toBe('granted');
+    if (second.status === 'granted') {
+      expect(second.mode).toBe('gis_token');
+    }
+    expect(tokenCalls.length).toBe(2);
+    expect(tokenCalls[0].prompt).toBe('consent');
+    expect(tokenCalls[1].prompt).toBe('consent');
+  });
+});
+
+describe('Light & Dark theme presets', () => {
+  it('stores independent light and dark preset choices across mode switches', async () => {
+    const themeSvc = await import('./theme');
+    themeSvc.setTheme('sage');
+    expect(themeSvc.getTheme()).toBe('sage');
+
+    // Switching to dark uses default dark preset initially
+    themeSvc.syncDarkToTheme(true);
+    expect(themeSvc.isDarkTheme(themeSvc.getTheme())).toBe(true);
+
+    // Choose obsidian in dark mode, then toggle back to light -> restores sage
+    themeSvc.setTheme('obsidian');
+    themeSvc.syncDarkToTheme(false);
+    expect(themeSvc.getTheme()).toBe('sage');
+
+    // Toggle dark back on -> restores obsidian
+    themeSvc.syncDarkToTheme(true);
+    expect(themeSvc.getTheme()).toBe('obsidian');
   });
 });

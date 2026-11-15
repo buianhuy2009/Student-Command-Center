@@ -217,11 +217,11 @@ export const GoogleSyncHubModal: React.FC<GoogleSyncHubModalProps> = ({
       }}
     >
       <div
-        className="relative w-full max-w-2xl bg-[var(--bg-raised)] text-[var(--text-primary)] border border-[var(--border-default)] rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+        className="relative w-full max-w-2xl bg-[var(--bg-raised)] text-[var(--text-primary)] border border-[var(--border-default)] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="p-6 pb-4 border-b border-[var(--border-default)] flex items-center justify-between bg-[var(--bg-surface)]">
+        <div className="px-6 py-4 border-b border-[var(--border-hairline)] flex items-center justify-between bg-[var(--bg-surface)]">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-11 h-11 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-default)] flex items-center justify-center shadow-xs shrink-0">
               <AppLogo id="drive" size="sm" />
@@ -264,7 +264,7 @@ export const GoogleSyncHubModal: React.FC<GoogleSyncHubModalProps> = ({
         </div>
 
         {/* Info Banner */}
-        <div className="px-6 py-3 bg-[var(--accent-soft)] border-b border-[var(--accent-border)] flex flex-wrap items-center justify-between gap-3">
+        <div className="px-6 py-3 bg-[var(--accent-soft)] border-b border-[var(--border-hairline)] flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2 text-xs font-semibold text-[var(--text-primary)]">
             <Sparkles className="w-4 h-4 text-[var(--accent-text)] shrink-0" />
             <span>
@@ -299,14 +299,14 @@ export const GoogleSyncHubModal: React.FC<GoogleSyncHubModalProps> = ({
           )}
         </div>
 
-        {/* Per-Feature Connection Cards */}
-        <div className="p-6 overflow-y-auto space-y-3">
+        {/* Per-Feature Connection List */}
+        <div className="overflow-y-auto divide-y divide-[var(--border-hairline)] bg-[var(--bg-surface)]">
           {services.map((svc) => {
             const isThisConnecting = connectingFeature === svc.id;
             return (
               <div
                 key={svc.id}
-                className="p-4 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-default)] flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-all hover:border-[var(--accent-border)]/40 hover:shadow-xs"
+                className="px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors hover:bg-[var(--bg-hover)]/45"
               >
                 <div className="flex items-start sm:items-center gap-3 min-w-0">
                   <AppLogo id={svc.appId} size="md" />
@@ -387,7 +387,7 @@ export const GoogleSyncHubModal: React.FC<GoogleSyncHubModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-[var(--border-default)] bg-[var(--bg-surface)] flex items-center justify-between gap-3 text-xs text-[var(--text-secondary)]">
+        <div className="px-6 py-3.5 border-t border-[var(--border-hairline)] bg-[var(--bg-subtle)]/40 flex items-center justify-between gap-3 text-xs text-[var(--text-secondary)]">
           <div className="flex items-center gap-2">
             <Clock className="w-3.5 h-3.5 text-[var(--accent-text)] shrink-0" />
             <span>

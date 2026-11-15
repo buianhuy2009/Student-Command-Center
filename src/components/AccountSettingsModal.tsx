@@ -48,7 +48,15 @@ import {
   getClientGroqApiKey,
   setClientGroqApiKey,
 } from '../services/gemini';
-import { getTheme, setTheme } from '../services/theme';
+import {
+  getTheme,
+  setTheme,
+  LIGHT_THEMES,
+  DARK_THEMES,
+  THEME_META,
+  isDarkTheme,
+  type ThemeId,
+} from '../services/theme';
 import {
   maskApiKey,
   getGeminiKeyMeta,
@@ -86,11 +94,6 @@ const DENSITY_OPTIONS = [
   { id: 'compact', labelKey: 'settings_density_compact' },
   { id: 'comfortable', labelKey: 'settings_density_comfortable' },
   { id: 'spacious', labelKey: 'settings_density_spacious' },
-] as const;
-
-const PALETTE_OPTIONS = [
-  { id: 'linen', nameKey: 'settings_palette_light', color: 'bg-[#FAF9F5] text-[#141413] border-[#E8E6DC]', accent: 'bg-[var(--accent-fill)]' },
-  { id: 'midnight', nameKey: 'settings_palette_dark', color: 'bg-[#141413] text-[#F5F4ED] border-[#2C2B27]', accent: 'bg-[var(--accent-fill)]' },
 ] as const;
 
 const SHORTCUT_ITEMS = [
@@ -235,14 +238,11 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
   const [showCanvasToken, setShowCanvasToken] = useState(false);
   const [canvasSaveMsg, setCanvasSaveMsg] = useState('');
 
-  // UI Density & Themes — strict two-mode palette: Warm Cream light / Dark Charcoal dark
+  // UI Density & Themes — independent curated Light & Dark presets
   const [density, setDensity] = useState<'compact' | 'comfortable' | 'spacious'>(() => {
     return (localStorage.getItem('scc_ui_density_v1') as any) || 'comfortable';
   });
-  const [colorTheme, setColorTheme] = useState<string>(() => {
-    const theme = getTheme();
-    return theme === 'midnight' ? 'midnight' : 'linen';
-  });
+  const [colorTheme, setColorTheme] = useState<ThemeId>(() => getTheme());
   const [autoSystemTheme, setAutoSystemTheme] = useState<boolean>(() => {
     return localStorage.getItem('scc_auto_system_theme_v1') === 'true';
   });
@@ -318,13 +318,16 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
     document.documentElement.setAttribute('data-density', newDensity);
   };
 
-  const handleThemeChange = (newTheme: string) => {
-    const next = newTheme === 'midnight' ? 'midnight' : 'linen';
-    setColorTheme(next);
-    setTheme(next as any);
-    // Keep the Dark/Light toggle in sync — single source of truth
-    setDarkMode(next === 'midnight');
+  const handleThemeChange = (newTheme: ThemeId) => {
+    setColorTheme(newTheme);
+    setTheme(newTheme);
+    // Keep the Dark/Light toggle in sync while preserving selected preset per mode
+    setDarkMode(isDarkTheme(newTheme));
   };
+
+  useEffect(() => {
+    setColorTheme(getTheme());
+  }, [darkMode, isOpen]);
 
   const handleAutoSystemThemeChange = (val: boolean) => {
     setAutoSystemTheme(val);
@@ -436,16 +439,16 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
     <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 sm:p-6 animate-in fade-in duration-200">
       <div className="bg-[var(--bg-raised)] rounded-3xl max-w-4xl w-full h-[620px] max-h-[90vh] flex border border-[var(--border-default)] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150">
         
-        {/* LEFT PANE: Categorized Sidebar matching uploaded reference */}
-        <div className="w-60 shrink-0 bg-[var(--bg-subtle)] border-r border-[var(--border-default)] flex flex-col justify-between p-4 select-none">
-          <div className="space-y-4">
+        {/* LEFT PANE: Categorized Sidebar */}
+        <div className="w-60 shrink-0 bg-[var(--bg-subtle)] border-r border-[var(--border-hairline)] flex flex-col justify-between p-4 select-none">
+          <div className="space-y-3">
             <div className="px-2 pt-1">
               <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
                 {t('settings')}
               </span>
             </div>
 
-            <nav className="space-y-1">
+            <nav className="space-y-0.5">
               {NAV_ITEMS.map((item) => {
                 const Icon = item.icon;
                 const isActive = activeSection === item.id;
@@ -453,9 +456,9 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                   <button
                     key={item.id}
                     onClick={() => setActiveSection(item.id)}
-                    className={`w-full px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2.5 transition-colors cursor-pointer text-left ${
+                    className={`w-full px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-2.5 transition-colors cursor-pointer text-left ${
                       isActive
-                        ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-xs border border-[var(--border-default)]'
+                        ? 'bg-[var(--bg-surface)] text-[var(--text-primary)]'
                         : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]'
                     }`}
                   >
@@ -467,9 +470,9 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
             </nav>
           </div>
 
-          {/* User Account Card at Bottom of Dialog Sidebar */}
-          <div className="pt-3 border-t border-[var(--border-default)]">
-            <div className="flex items-center gap-2.5 p-2 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-default)]">
+          {/* User Account Row at Bottom of Dialog Sidebar */}
+          <div className="pt-3 border-t border-[var(--border-hairline)]">
+            <div className="flex items-center gap-2.5 px-1.5 py-1">
               {user ? (
                 <div className="w-8 h-8 rounded-lg bg-[var(--accent-fill)] text-white flex items-center justify-center font-bold text-xs shrink-0 overflow-hidden">
                   {user.photoURL ? (
@@ -499,7 +502,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
         <div className="flex-1 flex flex-col min-w-0 bg-[var(--bg-surface)]">
           
           {/* Header with Title and Close X */}
-          <div className="px-8 py-6 border-b border-[var(--border-default)] flex items-center justify-between">
+          <div className="px-8 py-5 border-b border-[var(--border-hairline)] flex items-center justify-between">
             <div>
               <h2 className="text-lg font-bold text-[var(--text-primary)]">
                 {t(currentNavItem.labelKey)}
@@ -523,115 +526,126 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
 
             {/* SECTION 1: GENERAL */}
             {activeSection === 'general' && (
-              <div className="space-y-4">
-                <div className="space-y-3">
+              <div className="space-y-5">
+                <div className="space-y-2">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
                     {t('execution_session')}
                   </span>
 
-                  {/* Setting Card: Auto Sync */}
-                  <div className="p-4 bg-[var(--bg-subtle)] rounded-2xl border border-[var(--border-default)] flex items-center justify-between gap-3">
-                    <div>
-                      <div className="text-xs font-bold text-[var(--text-primary)]">
-                        {t('bg_refresh_title')}
-                      </div>
-                      <div className="text-[11px] text-[var(--text-muted)]">
-                        {t('bg_refresh_sub')}
-                      </div>
-                    </div>
-                    <button
-                      onClick={onRefreshAll}
-                      disabled={isRefreshing}
-                      className="px-3.5 py-1.5 bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--accent-fill)] text-[var(--text-primary)] rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
-                    >
-                      <RefreshCw className={`w-3.5 h-3.5 text-[var(--accent-fill)] ${isRefreshing ? 'animate-spin' : ''}`} />
-                      <span>{isRefreshing ? t('syncing') : t('sync_now')}</span>
-                    </button>
-                  </div>
-
-                  {/* Setting Card: Language — whole-app VI/EN toggle */}
-                  <div className="p-4 bg-[var(--bg-subtle)] rounded-2xl border border-[var(--border-default)] flex items-center justify-between gap-3">
-                    <div>
-                      <div className="text-xs font-bold text-[var(--text-primary)]">
-                        {t('language_title')}
-                      </div>
-                      <div className="text-[11px] text-[var(--text-muted)]">
-                        {t('language_sub')}
-                      </div>
-                    </div>
-                    <LanguageToggle />
-                  </div>
-
-                  {/* Setting Card: Help & updates (tour + changelog merged — one row, not two) */}
-                  {(onOpenTour || onOpenChangelog) && (
-                    <div className="p-4 bg-[var(--bg-subtle)] rounded-2xl border border-[var(--border-default)] flex items-center justify-between gap-3">
+                  <div className="rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-subtle)]/40 divide-y divide-[var(--border-hairline)]">
+                    {/* Auto Sync */}
+                    <div className="px-4 py-3.5 flex items-center justify-between gap-3">
                       <div>
                         <div className="text-xs font-bold text-[var(--text-primary)]">
-                          {t('help_updates_title')}
+                          {t('bg_refresh_title')}
                         </div>
                         <div className="text-[11px] text-[var(--text-muted)]">
-                          {t('help_updates_sub')}
+                          {t('bg_refresh_sub')}
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        {onOpenTour && (
-                          <button
-                            onClick={() => {
-                              onClose();
-                              onOpenTour();
-                            }}
-                            className="px-3.5 py-1.5 bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--accent-fill)] text-[var(--text-primary)] rounded-xl text-xs font-bold transition-colors cursor-pointer"
-                          >
-                            {t('launch_tour')}
-                          </button>
-                        )}
-                        {onOpenChangelog && (
-                          <button
-                            onClick={() => {
-                              onClose();
-                              onOpenChangelog();
-                            }}
-                            className="px-3.5 py-1.5 bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--accent-fill)] text-[var(--text-primary)] rounded-xl text-xs font-bold transition-colors cursor-pointer"
-                          >
-                            {t('view_changelog')}
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Setting Card: User Avatar Selection — Ember neutrals, single terracotta active */}
-                  <div className="p-4 bg-[var(--bg-subtle)] rounded-2xl border border-[var(--border-default)] space-y-3">
-                    <div>
-                      <div className="text-xs font-bold text-[var(--text-primary)]">
-                        {t('avatar_title')}
-                      </div>
-                      <div className="text-[11px] text-[var(--text-muted)]">
-                        {t('avatar_sub')}
-                      </div>
+                      <button
+                        onClick={onRefreshAll}
+                        disabled={isRefreshing}
+                        className="px-3 py-1.5 bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--accent-fill)] text-[var(--text-primary)] rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
+                      >
+                        <RefreshCw className={`w-3.5 h-3.5 text-[var(--accent-fill)] ${isRefreshing ? 'animate-spin' : ''}`} />
+                        <span>{isRefreshing ? t('syncing') : t('sync_now')}</span>
+                      </button>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-2">
-                      {AVATAR_OPTIONS.map((av) => (
-                        <button
-                          key={av.id}
-                          type="button"
-                          onClick={() => handleSelectAvatar(av.id)}
-                          className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                            avatarUrl === av.id
-                              ? 'bg-[var(--accent-fill)] text-white border-[var(--accent-fill)] shadow-xs'
-                              : 'bg-[var(--bg-surface)] border-[var(--border-default)] text-[var(--text-primary)] hover:border-[var(--accent-fill)]'
-                          }`}
-                        >
-                          <div className={`w-2.5 h-2.5 rounded-full ${av.bg}`} />
-                          <span>{t(av.labelKey)}</span>
-                        </button>
-                      ))}
+                    {/* Language — whole-app VI/EN toggle */}
+                    <div className="px-4 py-3.5 flex items-center justify-between gap-3">
+                      <div>
+                        <div className="text-xs font-bold text-[var(--text-primary)]">
+                          {t('language_title')}
+                        </div>
+                        <div className="text-[11px] text-[var(--text-muted)]">
+                          {t('language_sub')}
+                        </div>
+                      </div>
+                      <LanguageToggle />
+                    </div>
+
+                    {/* Help & updates */}
+                    {(onOpenTour || onOpenChangelog) && (
+                      <div className="px-4 py-3.5 flex items-center justify-between gap-3">
+                        <div>
+                          <div className="text-xs font-bold text-[var(--text-primary)]">
+                            {t('help_updates_title')}
+                          </div>
+                          <div className="text-[11px] text-[var(--text-muted)]">
+                            {t('help_updates_sub')}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          {onOpenTour && (
+                            <button
+                              onClick={() => {
+                                onClose();
+                                onOpenTour();
+                              }}
+                              className="px-3 py-1.5 bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--accent-fill)] text-[var(--text-primary)] rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+                            >
+                              {t('launch_tour')}
+                            </button>
+                          )}
+                          {onOpenChangelog && (
+                            <button
+                              onClick={() => {
+                                onClose();
+                                onOpenChangelog();
+                              }}
+                              className="px-3 py-1.5 bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--accent-fill)] text-[var(--text-primary)] rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+                            >
+                              {t('view_changelog')}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* User Avatar Selection */}
+                    <div className="px-4 py-3.5 space-y-2.5">
+                      <div>
+                        <div className="text-xs font-bold text-[var(--text-primary)]">
+                          {t('avatar_title')}
+                        </div>
+                        <div className="text-[11px] text-[var(--text-muted)]">
+                          {t('avatar_sub')}
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2">
+                        {AVATAR_OPTIONS.map((av) => {
+                          const isSelected = avatarUrl === av.id;
+                          return (
+                            <button
+                              key={av.id}
+                              type="button"
+                              onClick={() => handleSelectAvatar(av.id)}
+                              className={`px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer ${
+                                isSelected
+                                  ? 'bg-[var(--accent-fill)] text-white border-[var(--accent-fill)]'
+                                  : 'bg-[var(--bg-surface)] border-[var(--border-default)] text-[var(--text-primary)] hover:border-[var(--accent-fill)]'
+                              }`}
+                            >
+                              <span
+                                className={`w-2.5 h-2.5 rounded-full shrink-0 ${
+                                  isSelected ? 'bg-white/95 ring-1 ring-white/40' : av.bg
+                                }`}
+                              />
+                              <span>{t(av.labelKey)}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
+                </div>
 
-                  {/* Setting Card: Start Fresh / Semester Reset */}
-                  <div className="p-4 bg-[var(--bg-subtle)] rounded-2xl border border-[var(--border-default)] flex items-center justify-between">
+                <div className="rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-subtle)]/40 divide-y divide-[var(--border-hairline)]">
+                  {/* Start Fresh / Semester Reset */}
+                  <div className="px-4 py-3.5 flex items-center justify-between gap-3">
                     <div>
                       <div className="text-xs font-bold text-[var(--text-primary)]">
                         {t('semester_reset_title')}
@@ -642,14 +656,14 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                     </div>
                     <button
                       onClick={() => setShowSemesterResetModal(true)}
-                      className="px-3.5 py-1.5 bg-[var(--bg-surface)] border border-[var(--status-err-border)] text-[var(--status-err-text)] rounded-xl text-xs font-bold hover:bg-[var(--status-err-bg)] transition-colors cursor-pointer"
+                      className="px-3 py-1.5 bg-[var(--bg-surface)] border border-[var(--status-err-border)] text-[var(--status-err-text)] rounded-lg text-xs font-semibold hover:bg-[var(--status-err-bg)] transition-colors cursor-pointer shrink-0"
                     >
                       {t('semester_reset_btn')}
                     </button>
                   </div>
 
-                  {/* Setting Card: Local Storage Reset */}
-                  <div className="p-4 bg-[var(--bg-subtle)] rounded-2xl border border-[var(--border-default)] flex items-center justify-between">
+                  {/* Local Storage Reset */}
+                  <div className="px-4 py-3.5 flex items-center justify-between gap-3">
                     <div>
                       <div className="text-xs font-bold text-[var(--text-primary)]">
                         {t('clear_cache_title')}
@@ -664,7 +678,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                         localStorage.removeItem('scc_email_alerts_v3');
                         alert(t('settings_cache_cleared_alert'));
                       }}
-                      className="px-3.5 py-1.5 bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--status-err-border)] hover:text-[var(--status-err-text)] text-[var(--text-secondary)] rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                      className="px-3 py-1.5 bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--status-err-border)] hover:text-[var(--status-err-text)] text-[var(--text-secondary)] rounded-lg text-xs font-semibold transition-colors cursor-pointer shrink-0"
                     >
                       {t('clear_cache_btn')}
                     </button>
@@ -676,7 +690,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
             {/* SECTION 2: MODELS & AI KEYS */}
             {activeSection === 'models' && (
               <div className="space-y-4">
-                <div className="p-3.5 bg-[var(--status-ok-bg)] rounded-2xl border border-[var(--status-ok-border)] flex items-start gap-2.5 text-xs text-[var(--status-ok-text)]">
+                <div className="px-4 py-3 bg-[var(--status-ok-bg)] rounded-xl border border-[var(--status-ok-border)] flex items-start gap-2.5 text-xs text-[var(--status-ok-text)]">
                   <ShieldCheck className="w-4 h-4 text-[var(--status-ok-text)] shrink-0 mt-0.5" />
                   <div>
                     <span className="font-bold block mb-0.5">{t('settings_backup_banner_title')}</span>
@@ -684,8 +698,9 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                   </div>
                 </div>
 
-                {/* Gemini Key */}
-                <div className="p-4 bg-[var(--bg-subtle)] rounded-2xl border border-[var(--border-default)] space-y-3">
+                <div className="rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-subtle)]/40 divide-y divide-[var(--border-hairline)]">
+                  {/* Gemini Key */}
+                  <div className="p-4 space-y-3">
                   <div className="flex items-center justify-between">
                     <div>
                       <label className="text-xs font-bold text-[var(--text-primary)] block">
@@ -758,10 +773,10 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                       <span>{isTestingGemini ? t('settings_gemini_testing') : t('settings_gemini_test_btn')}</span>
                     </button>
                   </div>
-                </div>
+                  </div>
 
-                {/* Groq Key */}
-                <div className="p-4 bg-[var(--bg-subtle)] rounded-2xl border border-[var(--border-default)] space-y-3">
+                  {/* Groq Key */}
+                  <div className="p-4 space-y-3">
                   <div className="flex items-center justify-between">
                     <div>
                       <label className="text-xs font-bold text-[var(--text-primary)] block">
@@ -820,9 +835,10 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                       )}
                     </label>
                   </div>
+                  </div>
                 </div>
 
-                <div className="flex justify-end pt-2">
+                <div className="flex justify-end pt-1">
                   <button
                     onClick={handleSaveKeys}
                     className="px-5 py-2 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer"
@@ -836,8 +852,9 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
             {/* SECTION 3: CONNECTIONS (unified keys + domains manager) */}
             {activeSection === 'sync' && (
               <div className="space-y-4">
-                {/* AI Keys — masked display + edit + expiry (same localStorage keys as Models tab) */}
-                <div className="p-4 bg-[var(--bg-subtle)] rounded-2xl border border-[var(--border-default)] space-y-3">
+                <div className="rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-subtle)]/40 divide-y divide-[var(--border-hairline)]">
+                  {/* AI Keys — masked display + edit + expiry (same localStorage keys as Models tab) */}
+                  <div className="p-4 space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="text-xs font-bold text-[var(--text-primary)]">
                       {t('settings_keys_title')}
@@ -917,10 +934,10 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                       {t('settings_save_ai_keys')}
                     </button>
                   </div>
-                </div>
+                  </div>
 
-                {/* Canvas domain + token — canonical saveCanvasSettings keys */}
-                <div className="p-4 bg-[var(--bg-subtle)] rounded-2xl border border-[var(--border-default)] space-y-3">
+                  {/* Canvas domain + token — canonical saveCanvasSettings keys */}
+                  <div className="p-4 space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="text-xs font-bold text-[var(--text-primary)]">
                       {t('settings_canvas_title')}
@@ -972,10 +989,10 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                   <div className="text-[11px] text-[var(--text-muted)]">
                     {t('settings_canvas_note')}
                   </div>
-                </div>
+                  </div>
 
-                {/* Google Sign-In & Per-Feature Tool Connections */}
-                <div className="p-4 bg-[var(--bg-subtle)] rounded-2xl border border-[var(--border-default)] space-y-3">
+                  {/* Google Sign-In & Per-Feature Tool Connections */}
+                  <div className="p-4 space-y-3">
                   <div className="flex items-center justify-between gap-3 flex-wrap">
                     <div>
                       <div className="text-xs font-bold text-[var(--text-primary)]">
@@ -1065,11 +1082,12 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                     </div>
                   </div>
                 </div>
+              </div>
 
                 {/* Google Sheets URL */}
                 {sheetUrl && (
-                  <div className="p-4 bg-[var(--bg-subtle)] rounded-2xl border border-[var(--border-default)] flex items-center justify-between">
-                    <div>
+                  <div className="p-4 bg-[var(--bg-subtle)]/40 rounded-xl border border-[var(--border-hairline)] flex items-center justify-between gap-3">
+                    <div className="min-w-0">
                       <div className="text-xs font-bold text-[var(--text-primary)]">
                         {t('settings_master_sheet_title')}
                       </div>
@@ -1081,7 +1099,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                       href={sheetUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="px-3.5 py-1.5 bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--accent-fill)] text-[var(--text-primary)] rounded-xl text-xs font-bold flex items-center gap-1 transition-colors"
+                      className="px-3.5 py-1.5 bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--accent-fill)] text-[var(--text-primary)] rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors shrink-0"
                     >
                       <span>{t('settings_open_sheet')}</span>
                       <ExternalLink className="w-3 h-3" />
@@ -1090,7 +1108,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                 )}
 
                 {/* Friendly privacy reassurance */}
-                <div className="p-3.5 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-default)] text-[11px] text-[var(--text-secondary)] leading-relaxed">
+                <div className="px-4 py-3 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-hairline)] text-[11px] text-[var(--text-secondary)] leading-relaxed">
                   {t('settings_google_privacy_note')}
                 </div>
               </div>
@@ -1099,200 +1117,283 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
             {/* SECTION 4: APPEARANCE */}
             {activeSection === 'appearance' && (
               <div className="space-y-4">
-                {/* Interface Density Toggle */}
-                <div className="p-4 bg-[var(--bg-subtle)] rounded-2xl border border-[var(--border-default)] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div>
-                    <div className="text-xs font-bold text-[var(--text-primary)]">
-                      {t('settings_density_title')}
-                    </div>
-                    <div className="text-[11px] text-[var(--text-muted)]">
-                      {t('settings_density_sub')}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1 p-1 bg-[var(--bg-surface)] rounded-xl border border-[var(--border-default)] shrink-0">
-                    {DENSITY_OPTIONS.map((d) => (
-                      <button
-                        key={d.id}
-                        onClick={() => handleDensityChange(d.id)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                          density === d.id
-                            ? 'bg-[var(--accent-fill)] text-white shadow-xs'
-                            : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-                        }`}
-                      >
-                        {t(d.labelKey)}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Color Theme Palette Selector — strict two-mode palette */}
-                <div className="p-4 bg-[var(--bg-subtle)] rounded-2xl border border-[var(--border-default)] space-y-3">
-                  <div className="flex items-center justify-between">
+                <div className="rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-subtle)]/40 divide-y divide-[var(--border-hairline)]">
+                  {/* Interface Density Toggle */}
+                  <div className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
                       <div className="text-xs font-bold text-[var(--text-primary)]">
-                        {t('settings_palette_title')}
+                        {t('settings_density_title')}
                       </div>
                       <div className="text-[11px] text-[var(--text-muted)]">
-                        {t('settings_palette_sub')}
+                        {t('settings_density_sub')}
                       </div>
                     </div>
-                    <span className="text-[10px] font-mono font-bold text-[var(--accent-fill)] uppercase">
-                      {colorTheme === 'midnight' ? t('settings_dark_btn') : t('settings_light_btn')}
-                    </span>
+                    <div className="flex items-center gap-1 p-1 bg-[var(--bg-surface)] rounded-xl border border-[var(--border-hairline)] shrink-0">
+                      {DENSITY_OPTIONS.map((d) => (
+                        <button
+                          key={d.id}
+                          onClick={() => handleDensityChange(d.id)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                            density === d.id
+                              ? 'bg-[var(--accent-fill)] text-white shadow-xs'
+                              : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                          }`}
+                        >
+                          {t(d.labelKey)}
+                        </button>
+                      ))}
+                    </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2">
-                    {PALETTE_OPTIONS.map((palette) => (
+                  {/* Color Theme Palette Selector — 3 Light + 3 Dark curated presets */}
+                  <div className="p-4 space-y-4">
+                    <div className="flex items-center justify-between gap-2">
+                      <div>
+                        <div className="text-xs font-bold text-[var(--text-primary)]">
+                          {t('settings_palette_title')}
+                        </div>
+                        <div className="text-[11px] text-[var(--text-muted)]">
+                          {t('settings_palette_sub')}
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-mono font-bold text-[var(--accent-text)] uppercase px-2 py-0.5 rounded-md bg-[var(--accent-subtle)]">
+                        {t(THEME_META[colorTheme].labelKey)}
+                      </span>
+                    </div>
+
+                    {/* Light Mode Presets */}
+                    <div className="space-y-2">
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5">
+                        <Sun className="w-3 h-3" />
+                        <span>{t('settings_palette_light_group')}</span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        {LIGHT_THEMES.map((id) => {
+                          const meta = THEME_META[id];
+                          const active = colorTheme === id;
+                          return (
+                            <button
+                              key={id}
+                              type="button"
+                              onClick={() => handleThemeChange(id)}
+                              className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-2 ${
+                                active
+                                  ? 'border-[var(--accent-fill)] ring-2 ring-[var(--accent-fill)]/35 bg-[var(--bg-surface)]'
+                                  : 'border-[var(--border-default)] bg-[var(--bg-surface)] hover:border-[var(--border-strong)]'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-1.5">
+                                  <span
+                                    className="w-4 h-4 rounded-full border border-black/10 shrink-0"
+                                    style={{ backgroundColor: meta.bg }}
+                                  />
+                                  <span
+                                    className="w-3 h-3 rounded-full shrink-0"
+                                    style={{ backgroundColor: meta.accent }}
+                                  />
+                                </div>
+                                {active && (
+                                  <span className="w-2 h-2 rounded-full bg-[var(--accent-fill)]" aria-hidden="true" />
+                                )}
+                              </div>
+                              <div>
+                                <div className="text-xs font-bold text-[var(--text-primary)] truncate">
+                                  {t(meta.labelKey)}
+                                </div>
+                                <div className="text-[10px] text-[var(--text-muted)] truncate">
+                                  {t(meta.descKey)}
+                                </div>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Dark Mode Presets */}
+                    <div className="space-y-2">
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5">
+                        <Moon className="w-3 h-3" />
+                        <span>{t('settings_palette_dark_group')}</span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        {DARK_THEMES.map((id) => {
+                          const meta = THEME_META[id];
+                          const active = colorTheme === id;
+                          return (
+                            <button
+                              key={id}
+                              type="button"
+                              onClick={() => handleThemeChange(id)}
+                              className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-2 ${
+                                active
+                                  ? 'border-[var(--accent-fill)] ring-2 ring-[var(--accent-fill)]/35 bg-[var(--bg-surface)]'
+                                  : 'border-[var(--border-default)] bg-[var(--bg-surface)] hover:border-[var(--border-strong)]'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-1.5">
+                                  <span
+                                    className="w-4 h-4 rounded-full border border-white/15 shrink-0"
+                                    style={{ backgroundColor: meta.bg }}
+                                  />
+                                  <span
+                                    className="w-3 h-3 rounded-full shrink-0"
+                                    style={{ backgroundColor: meta.accent }}
+                                  />
+                                </div>
+                                {active && (
+                                  <span className="w-2 h-2 rounded-full bg-[var(--accent-fill)]" aria-hidden="true" />
+                                )}
+                              </div>
+                              <div>
+                                <div className="text-xs font-bold text-[var(--text-primary)] truncate">
+                                  {t(meta.labelKey)}
+                                </div>
+                                <div className="text-[10px] text-[var(--text-muted)] truncate">
+                                  {t(meta.descKey)}
+                                </div>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Dark / Light Toggle */}
+                  <div className="p-4 flex items-center justify-between gap-3">
+                    <div>
+                      <div className="text-xs font-bold text-[var(--text-primary)]">
+                        {t('settings_mode_title')}
+                      </div>
+                      <div className="text-[11px] text-[var(--text-muted)]">
+                        {t('settings_mode_sub')}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 p-1 bg-[var(--bg-surface)] rounded-xl border border-[var(--border-hairline)] shrink-0">
                       <button
-                        key={palette.id}
-                        onClick={() => handleThemeChange(palette.id)}
-                        className={`p-2.5 rounded-xl border text-left text-xs font-bold transition-all cursor-pointer flex flex-col justify-between h-16 ${
-                          palette.color
-                        } ${
-                          colorTheme === palette.id
-                            ? 'ring-2 ring-[var(--accent-fill)] scale-[1.02] shadow-xs'
-                            : 'opacity-80 hover:opacity-100'
+                        onClick={() => setDarkMode(false)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+                          !darkMode ? 'bg-[var(--accent-fill)] text-white shadow-xs' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
                         }`}
                       >
-                        <div className={`w-3 h-3 rounded-full ${palette.accent}`} />
-                        <span className="text-[11px] truncate">{t(palette.nameKey)}</span>
+                        <Sun className="w-3.5 h-3.5" />
+                        <span>{t('settings_light_btn')}</span>
                       </button>
-                    ))}
+                      <button
+                        onClick={() => setDarkMode(true)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+                          darkMode ? 'bg-[var(--accent-fill)] text-white shadow-xs' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                        }`}
+                      >
+                        <Moon className="w-3.5 h-3.5" />
+                        <span>{t('settings_dark_btn')}</span>
+                      </button>
+                    </div>
                   </div>
-                </div>
 
-                {/* Dark / Light Toggle */}
-                <div className="p-4 bg-[var(--bg-subtle)] rounded-2xl border border-[var(--border-default)] flex items-center justify-between">
-                  <div>
-                    <div className="text-xs font-bold text-[var(--text-primary)]">
-                      {t('settings_mode_title')}
+                  {/* Auto-Follow System Theme */}
+                  <div className="p-4 flex items-center justify-between gap-3">
+                    <div>
+                      <div className="text-xs font-bold text-[var(--text-primary)]">
+                        {t('settings_auto_theme_title')}
+                      </div>
+                      <div className="text-[11px] text-[var(--text-muted)]">
+                        {t('settings_auto_theme_sub')}
+                      </div>
                     </div>
-                    <div className="text-[11px] text-[var(--text-muted)]">
-                      {t('settings_mode_sub')}
-                    </div>
+                    <input
+                      type="checkbox"
+                      checked={autoSystemTheme}
+                      aria-label={t('settings_auto_theme_title')}
+                      onChange={(e) => handleAutoSystemThemeChange(e.target.checked)}
+                      className="w-4 h-4 rounded text-[var(--accent-fill)] focus:ring-[var(--accent-fill)] cursor-pointer"
+                    />
                   </div>
-                  <div className="flex items-center gap-1.5 p-1 bg-[var(--bg-surface)] rounded-xl border border-[var(--border-default)]">
-                    <button
-                      onClick={() => setDarkMode(false)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                        !darkMode ? 'bg-[var(--accent-fill)] text-white shadow-xs' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-                      }`}
-                    >
-                      <Sun className="w-3.5 h-3.5" />
-                      <span>{t('settings_light_btn')}</span>
-                    </button>
-                    <button
-                      onClick={() => setDarkMode(true)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                        darkMode ? 'bg-[var(--accent-fill)] text-white shadow-xs' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-                      }`}
-                    >
-                      <Moon className="w-3.5 h-3.5" />
-                      <span>{t('settings_dark_btn')}</span>
-                    </button>
-                  </div>
-                </div>
 
-                {/* Auto-Follow System Theme */}
-                <div className="p-4 bg-[var(--bg-subtle)] rounded-2xl border border-[var(--border-default)] flex items-center justify-between">
-                  <div>
-                    <div className="text-xs font-bold text-[var(--text-primary)]">
-                      {t('settings_auto_theme_title')}
+                  {/* Reduced Motion */}
+                  <div className="p-4 flex items-center justify-between gap-3">
+                    <div>
+                      <div className="text-xs font-bold text-[var(--text-primary)]">
+                        {t('settings_reduced_motion_title')}
+                      </div>
+                      <div className="text-[11px] text-[var(--text-muted)]">
+                        {t('settings_reduced_motion_sub')}
+                      </div>
                     </div>
-                    <div className="text-[11px] text-[var(--text-muted)]">
-                      {t('settings_auto_theme_sub')}
-                    </div>
+                    <input
+                      type="checkbox"
+                      checked={reducedMotion}
+                      aria-label={t('settings_reduced_motion_title')}
+                      onChange={(e) => setReducedMotion(e.target.checked)}
+                      className="w-4 h-4 rounded text-[var(--accent-fill)] focus:ring-[var(--accent-fill)] cursor-pointer"
+                    />
                   </div>
-                  <input
-                    type="checkbox"
-                    checked={autoSystemTheme}
-                    aria-label={t('settings_auto_theme_title')}
-                    onChange={(e) => handleAutoSystemThemeChange(e.target.checked)}
-                    className="w-4 h-4 rounded text-[var(--accent-fill)] focus:ring-[var(--accent-fill)] cursor-pointer"
-                  />
-                </div>
 
-                {/* Reduced Motion */}
-                <div className="p-4 bg-[var(--bg-subtle)] rounded-2xl border border-[var(--border-default)] flex items-center justify-between">
-                  <div>
-                    <div className="text-xs font-bold text-[var(--text-primary)]">
-                      {t('settings_reduced_motion_title')}
+                  {/* High Contrast */}
+                  <div className="p-4 flex items-center justify-between gap-3">
+                    <div>
+                      <div className="text-xs font-bold text-[var(--text-primary)]">
+                        {t('settings_high_contrast_title')}
+                      </div>
+                      <div className="text-[11px] text-[var(--text-muted)]">
+                        {t('settings_high_contrast_sub')}
+                      </div>
                     </div>
-                    <div className="text-[11px] text-[var(--text-muted)]">
-                      {t('settings_reduced_motion_sub')}
-                    </div>
+                    <input
+                      type="checkbox"
+                      checked={highContrast}
+                      aria-label={t('settings_high_contrast_title')}
+                      onChange={(e) => setHighContrast(e.target.checked)}
+                      className="w-4 h-4 rounded text-[var(--accent-fill)] focus:ring-[var(--accent-fill)] cursor-pointer"
+                    />
                   </div>
-                  <input
-                    type="checkbox"
-                    checked={reducedMotion}
-                    aria-label={t('settings_reduced_motion_title')}
-                    onChange={(e) => setReducedMotion(e.target.checked)}
-                    className="w-4 h-4 rounded text-[var(--accent-fill)] focus:ring-[var(--accent-fill)] cursor-pointer"
-                  />
-                </div>
 
-                {/* High Contrast */}
-                <div className="p-4 bg-[var(--bg-subtle)] rounded-2xl border border-[var(--border-default)] flex items-center justify-between">
-                  <div>
-                    <div className="text-xs font-bold text-[var(--text-primary)]">
-                      {t('settings_high_contrast_title')}
+                  {/* NASA APOD Atmospheric Wallpaper */}
+                  <div className="p-4 space-y-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div>
+                        <div className="text-xs font-bold text-[var(--text-primary)]">
+                          {t('nasa_title')}
+                        </div>
+                        <div className="text-[11px] text-[var(--text-muted)]">
+                          {t('settings_nasa_sub')}
+                        </div>
+                        <div className="text-[10px] text-[var(--text-muted)]">{t('dash_image_credit')}</div>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={enableNasaApod}
+                        onChange={(e) => handleToggleNasaApod(e.target.checked)}
+                        aria-label={t('settings_aria_nasa_toggle')}
+                        className="w-6 h-6 min-w-[44px] min-h-[44px] rounded text-[var(--accent-fill)] focus:ring-[var(--accent-fill)] cursor-pointer"
+                      />
                     </div>
-                    <div className="text-[11px] text-[var(--text-muted)]">
-                      {t('settings_high_contrast_sub')}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={handleTestNasa}
+                        disabled={nasaTestState === 'testing'}
+                        className="px-3 py-2 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-lg text-[11px] font-semibold text-[var(--text-primary)] hover:border-[var(--accent-fill)] min-h-[40px] cursor-pointer disabled:opacity-60"
+                      >
+                        {nasaTestState === 'testing' ? t('settings_nasa_testing') : t('settings_nasa_test')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleClearNasaCache}
+                        className="px-3 py-2 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-lg text-[11px] font-semibold text-[var(--text-primary)] hover:border-[var(--accent-fill)] min-h-[40px] cursor-pointer"
+                      >
+                        {t('settings_nasa_clear_cache')}
+                      </button>
+                      {nasaTestState === 'ok' && <span className="text-[11px] font-bold text-emerald-600" role="status">{t('settings_nasa_status_ok')}</span>}
+                      {nasaTestState === 'fail' && <span className="text-[11px] font-bold text-rose-600" role="status">{t('dash_apod_error')}</span>}
                     </div>
+                    {enableNasaApod && nasaPreview && nasaPreview.mediaType === 'image' && (
+                      <img src={nasaPreview.url} alt={nasaPreview.title || t('nasa_title')} loading="lazy" decoding="async" referrerPolicy="no-referrer" className="w-full h-24 object-cover rounded-lg border border-[var(--border-hairline)]" />
+                    )}
                   </div>
-                  <input
-                    type="checkbox"
-                    checked={highContrast}
-                    aria-label={t('settings_high_contrast_title')}
-                    onChange={(e) => setHighContrast(e.target.checked)}
-                    className="w-4 h-4 rounded text-[var(--accent-fill)] focus:ring-[var(--accent-fill)] cursor-pointer"
-                  />
-                </div>
-
-                {/* NASA APOD Atmospheric Wallpaper */}
-                <div className="p-4 bg-[var(--bg-subtle)] rounded-2xl border border-[var(--border-default)] space-y-3">
-                  <div className="flex items-center justify-between gap-2">
-                  <div>
-                    <div className="text-xs font-bold text-[var(--text-primary)]">
-                      {t('nasa_title')}
-                    </div>
-                    <div className="text-[11px] text-[var(--text-muted)]">
-                      {t('settings_nasa_sub')}
-                    </div>
-                    <div className="text-[10px] text-[var(--text-muted)]">{t('dash_image_credit')}</div>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={enableNasaApod}
-                    onChange={(e) => handleToggleNasaApod(e.target.checked)}
-                    aria-label={t('settings_aria_nasa_toggle')}
-                    className="w-6 h-6 min-w-[44px] min-h-[44px] rounded text-[var(--accent-fill)] focus:ring-[var(--accent-fill)] cursor-pointer"
-                  />
-                  </div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <button
-                      type="button"
-                      onClick={handleTestNasa}
-                      disabled={nasaTestState === 'testing'}
-                      className="px-3 py-2 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl text-[11px] font-bold text-[var(--text-primary)] hover:border-[var(--accent-fill)] min-h-[44px] cursor-pointer disabled:opacity-60"
-                    >
-                      {nasaTestState === 'testing' ? t('settings_nasa_testing') : t('settings_nasa_test')}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleClearNasaCache}
-                      className="px-3 py-2 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl text-[11px] font-bold text-[var(--text-primary)] hover:border-[var(--accent-fill)] min-h-[44px] cursor-pointer"
-                    >
-                      {t('settings_nasa_clear_cache')}
-                    </button>
-                    {nasaTestState === 'ok' && <span className="text-[11px] font-bold text-emerald-600" role="status">{t('settings_nasa_status_ok')}</span>}
-                    {nasaTestState === 'fail' && <span className="text-[11px] font-bold text-rose-600" role="status">{t('dash_apod_error')}</span>}
-                  </div>
-                  {enableNasaApod && nasaPreview && nasaPreview.mediaType === 'image' && (
-                    <img src={nasaPreview.url} alt={nasaPreview.title || t('nasa_title')} loading="lazy" decoding="async" referrerPolicy="no-referrer" className="w-full h-24 object-cover rounded-xl border border-[var(--border-default)]" />
-                  )}
                 </div>
               </div>
             )}

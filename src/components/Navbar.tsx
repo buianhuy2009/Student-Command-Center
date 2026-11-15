@@ -81,7 +81,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   return (
     <header
       role="banner"
-      className="sticky top-0 h-12 bg-[var(--bg-surface)] border-b border-[var(--border-default)] px-3 sm:px-5 flex items-center justify-between gap-2 z-20 shrink-0 select-none"
+      className="sticky top-0 h-12 bg-[var(--bg-canvas)]/90 backdrop-blur-md border-b border-[var(--border-hairline)] px-3 sm:px-5 flex items-center justify-between gap-2 z-20 shrink-0 select-none"
     >
       {/* LEFT: Mobile nav trigger + clear active workspace breadcrumb */}
       <div className="flex items-center gap-2 min-w-0">
@@ -101,15 +101,15 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button
             type="button"
             onClick={() => window.dispatchEvent(new CustomEvent('scc-navigate', { detail: 'dashboard' }))}
-            className="hidden sm:inline-flex font-semibold text-[var(--text-muted)] hover:text-[var(--accent-text)] transition-colors cursor-pointer shrink-0"
+            className="hidden sm:inline-flex font-medium text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer shrink-0"
             aria-label={t('side_go_dashboard')}
           >
             StudentOS
           </button>
-          <span className="hidden sm:inline text-[var(--border-strong)]" aria-hidden="true">/</span>
+          <span className="hidden sm:inline text-[var(--text-muted)]/50" aria-hidden="true">/</span>
           <span
             aria-current="page"
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[var(--accent-soft)] border border-[var(--accent-border)] text-[var(--accent-text)] font-bold truncate max-w-[160px] sm:max-w-[240px]"
+            className="inline-flex items-center gap-1.5 px-1.5 py-0.5 rounded-md text-[var(--text-primary)] font-semibold truncate max-w-[160px] sm:max-w-[240px]"
           >
             <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-fill)] shrink-0" aria-hidden="true" />
             <span className="truncate">{resolvedTabLabel}</span>
@@ -123,14 +123,14 @@ export const Navbar: React.FC<NavbarProps> = ({
           type="button"
           onClick={onOpenCommandPalette}
           data-tour="search"
-          className="w-full bg-[var(--bg-subtle)] border border-[var(--border-strong)] hover:border-[var(--accent-fill)] rounded-lg py-1.5 px-2.5 sm:px-3 text-xs flex items-center justify-between gap-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer group"
+          className="w-full bg-[var(--bg-subtle)]/75 hover:bg-[var(--bg-subtle)] border border-[var(--border-hairline)] hover:border-[var(--border-default)] rounded-lg py-1.5 px-2.5 sm:px-3 text-xs flex items-center justify-between gap-2 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer group"
         >
           <div className="flex items-center gap-2 min-w-0">
-            <Search className="w-3.5 h-3.5 text-[var(--text-muted)] group-hover:text-[var(--accent-text)] transition-colors shrink-0" strokeWidth={1.75} />
+            <Search className="w-3.5 h-3.5 text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors shrink-0" strokeWidth={1.75} />
             <span className="hidden sm:inline truncate">{t('search_or_jump')}</span>
             <span className="sm:hidden truncate">{t('search')}</span>
           </div>
-          <kbd className="hidden sm:inline text-[10px] font-mono font-semibold bg-[var(--bg-surface)] px-1.5 py-0.5 rounded border border-[var(--border-default)] text-[var(--text-muted)] shrink-0">
+          <kbd className="hidden sm:inline text-[10px] font-mono font-medium bg-[var(--bg-surface)] px-1.5 py-0.5 rounded border border-[var(--border-hairline)] text-[var(--text-muted)] shrink-0">
             {platformKey}
           </kbd>
         </button>
@@ -146,10 +146,10 @@ export const Navbar: React.FC<NavbarProps> = ({
             id="btn-nav-google-sync"
             data-tour="sync"
             onClick={onOpenGoogleSync}
-            className={`px-2.5 py-1.5 text-xs font-semibold rounded-lg border transition-colors flex items-center gap-1.5 cursor-pointer ${
+            className={`px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-colors flex items-center gap-1.5 cursor-pointer ${
               isGoogleConnected
                 ? 'bg-[var(--status-ok-bg)] text-[var(--status-ok-text)] border-[var(--status-ok-border)]'
-                : 'bg-[var(--bg-subtle)] text-[var(--text-secondary)] border-[var(--border-strong)] hover:border-[var(--accent-fill)] hover:text-[var(--text-primary)]'
+                : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-hairline)] hover:border-[var(--border-default)] hover:text-[var(--text-primary)]'
             }`}
             title={t('nav_google_connections')}
           >
@@ -169,7 +169,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           className={`px-2.5 py-1.5 text-xs font-semibold rounded-lg border transition-colors flex items-center gap-1.5 cursor-pointer ${
             isAiChatOpen
               ? 'bg-[var(--accent-fill)] border-[var(--accent-fill)] text-white'
-              : 'bg-[var(--accent-soft)] border-[var(--accent-border)] text-[var(--accent-text)] hover:bg-[var(--accent-fill)] hover:border-[var(--accent-fill)] hover:text-white'
+              : 'bg-[var(--accent-soft)] border-[var(--accent-border)]/70 text-[var(--accent-text)] hover:bg-[var(--accent-fill)] hover:border-[var(--accent-fill)] hover:text-white'
           }`}
           title={t('nav_ai_coach_title')}
         >

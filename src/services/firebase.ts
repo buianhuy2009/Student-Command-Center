@@ -2,6 +2,7 @@ import { initializeApp, getApps, getApp } from 'firebase/app';
 import {
   getAuth,
   signInWithPopup,
+  reauthenticateWithPopup,
   signInWithRedirect,
   GoogleAuthProvider,
   onAuthStateChanged,
@@ -12,6 +13,11 @@ import {
   getRedirectResult,
 } from 'firebase/auth';
 import rawFirebaseConfig from '../../firebase-applet-config.json';
+
+export const defaultFirebaseOAuthClientId: string =
+  typeof (rawFirebaseConfig as any)?.oAuthClientId === 'string'
+    ? (rawFirebaseConfig as any).oAuthClientId.trim()
+    : '';
 import { t } from './i18n';
 
 // Support Vite client-side environment variable overrides for custom deployments (like Vercel)
@@ -676,6 +682,94 @@ export const signInWithGoogle = async (
 export const signInWithGoogleBasic = async (): Promise<{ user: User; accessToken: string } | null> => {
   return signInWithGoogle({ requestWorkspace: false });
 };
+
+export type FirebaseFeaturePopupResult =
+  | { status: 'granted'; accessToken: string; grantedScopes: string[]; uid: string | null }
+  | { status: 'dismissed' }
+  | { status: 'popup_blocked' }
+  | { status: 'error'; code?: string; message: string };
+
+/**
+ * Tier-3 incremental Google feature authorization through Firebase Auth popup.
+ * Forces interactive consent when requested so a prior Cancel/Deny never locks
+ * future retries, and verifies exact granted scopes via Google tokeninfo.
+ */
+export async function requestFirebaseFeaturePopupScopes(
+  scopes: string[],
+  options: { loginHint?: string; forceConsent?: boolean } = {}
+): Promise<FirebaseFeaturePopupResult> {
+  if (!scopes.length) return { status: 'error', message: 'No scopes specified' };
+  const scopeProvider = new GoogleAuthProvider();
+  scopes.forEach((s) => scopeProvider.addScope(s));
+  const customParams: Record<string, string> = {
+    include_granted_scopes: 'true',
+    prompt: options.forceConsent !== false ? 'consent' : 'select_account',
+  };
+  if (options.loginHint) customParams.login_hint = options.loginHint;
+  scopeProvider.setCustomParameters(customParams);
+
+  try {
+    isSigningIn = true;
+    try { await setPersistence(auth, browserLocalPersistence); } catch {}
+    let result: any;
+    try {
+      result = auth.currentUser
+        ? await reauthenticateWithPopup(auth.currentUser, scopeProvider)
+        : await signInWithPopup(auth, scopeProvider);
+    } catch (reauthErr: any) {
+      if (reauthErr?.code === 'auth/user-mismatch' || reauthErr?.code === 'auth/no-current-user') {
+        result = await signInWithPopup(auth, scopeProvider);
+      } else {
+        throw reauthErr;
+      }
+    }
+    const credential = GoogleAuthProvider.credentialFromResult(result);
+    const accessToken = credential?.accessToken || '';
+    const uid: string | null = result?.user?.uid || auth.currentUser?.uid || null;
+    if (!accessToken) {
+      return { status: 'error', message: t('fb_err_no_access_token') };
+    }
+
+    // Verify which granular scopes Google actually granted to this token.
+    let grantedScopes = [...scopes];
+    try {
+      const infoRes = await fetch(
+        `https://oauth2.googleapis.com/tokeninfo?access_token=${encodeURIComponent(accessToken)}`
+      );
+      if (infoRes.ok) {
+        const info = await infoRes.json().catch(() => null);
+        if (info && typeof info.scope === 'string') {
+          grantedScopes = info.scope.split(/\s+/).map((s: string) => s.trim()).filter(Boolean);
+        }
+      }
+    } catch {
+      // Fallback to requested list if tokeninfo lookup is offline
+    }
+
+    if (uid) setActiveGoogleUid(uid);
+    return { status: 'granted', accessToken, grantedScopes, uid };
+  } catch (err: any) {
+    const code = String(err?.code || '');
+    const msg = String(err?.message || '');
+    if (
+      code === 'auth/popup-closed-by-user' ||
+      code === 'auth/cancelled-popup-request' ||
+      code === 'auth/user-cancelled' ||
+      /popup-closed-by-user|cancelled-popup-request|user-cancelled/i.test(msg)
+    ) {
+      return { status: 'dismissed' };
+    }
+    if (code === 'auth/popup-blocked' || /popup-blocked/i.test(msg)) {
+      return { status: 'popup_blocked' };
+    }
+    if (code === 'auth/access-denied' || /access_denied/i.test(msg)) {
+      return { status: 'dismissed' };
+    }
+    return { status: 'error', code, message: msg || t('gauth_connect_failed') };
+  } finally {
+    isSigningIn = false;
+  }
+}
 
 export const signInWithGmail = async (): Promise<{ user: User; accessToken: string } | null> => {
   return signInWithGoogle({ requestWorkspace: true, includeGmail: true });

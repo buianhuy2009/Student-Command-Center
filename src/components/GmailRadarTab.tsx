@@ -216,7 +216,7 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
     try {
       const uid = auth?.currentUser?.uid || undefined;
       const loginHint = auth?.currentUser?.email || undefined;
-      const fresh = await requestFeaturePermission('gmail', { loginHint, uid }).catch(() => null);
+      const fresh = await requestFeaturePermission('gmail', { loginHint, uid });
       if (fresh) {
         setLiveConnected(true);
         try {
@@ -224,7 +224,7 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
         } catch {}
       }
     } catch {
-      // Manual fallback stays visible; no toast spam from auto paths.
+      // Manual fallback stays visible; click Connect anytime to retry consent.
     } finally {
       setRestoring(false);
     }

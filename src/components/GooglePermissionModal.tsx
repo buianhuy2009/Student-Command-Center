@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { X, CheckCircle2, ShieldCheck, Ban, ArrowRight, Loader2 } from 'lucide-react';
 import { AppLogo } from './AppLogo';
-import type { GoogleFeature } from '../services/googleAuth';
+import { preloadGoogleOAuthReadiness, type GoogleFeature } from '../services/googleAuth';
 import { useT } from '../services/i18n';
 
 export interface GooglePermissionModalProps {
@@ -71,6 +71,7 @@ export const GooglePermissionModal: React.FC<GooglePermissionModalProps> = ({
 
   useEffect(() => {
     if (!isOpen) return;
+    preloadGoogleOAuthReadiness();
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && !isConnecting) {
         onCancel();

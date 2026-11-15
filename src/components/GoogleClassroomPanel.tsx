@@ -195,7 +195,7 @@ export const GoogleClassroomPanel: React.FC<GoogleClassroomPanelProps> = ({
         <div className="flex items-center justify-between pb-3 border-b border-[var(--border-default)]">
           <h3 className="font-bold text-[var(--text-primary)] text-xs uppercase tracking-wider flex items-center gap-2">
             <BookOpen className="w-3.5 h-3.5 text-emerald-600" />
-            <span>{t('classroom_coursework_heading', { count: assignments.length })}</span>
+            <span>{t('classroom_coursework_heading', { count: isGoogleConnected ? assignments.length : 0 })}</span>
           </h3>
         </div>
 

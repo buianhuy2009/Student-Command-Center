@@ -6,6 +6,12 @@
     <description>Plain-English updates to StudentOS — what changed and why it matters for studying.</description>
     <language>en-us</language>
     <item>
+      <title>v2.20.0 — Reliable Google Services Sign-In, Modern Flat Workspace &amp; 6 Light/Dark Palettes</title>
+      <link>https://sutdent-command-center.vercel.app/?changelog=2.20.0</link>
+      <pubDate>Sun, 15 Nov 2026 11:05:00 GMT</pubDate>
+      <description>StudentOS v2.20.0 fixes single-service Google OAuth consent prompts with resilient multi-tier fallbacks and retryable consent, flattens nested dashboard borders into a clean hairline design, and adds 6 independent Light and Dark color palettes.</description>
+    </item>
+    <item>
       <title>v2.19.0 — Calmer Paper &amp; Slate Design, On-Demand Google Permissions &amp; 15-App Study Suite</title>
       <link>https://sutdent-command-center.vercel.app/?changelog=2.19.0</link>
       <pubDate>Sat, 14 Nov 2026 12:30:00 GMT</pubDate>

@@ -98,7 +98,8 @@ import {
   refreshGoogleAccessToken,
   hasRefreshToken,
   hasFeatureAccess,
-  requestFeaturePermission,
+  requestFeaturePermissionDetailed,
+  preloadGoogleOAuthReadiness,
   hydrateRefreshGrant,
   clearGoogleGrant,
   type GoogleFeature,
@@ -314,9 +315,6 @@ export default function App() {
     } catch {}
     syncDarkToTheme(v);
     setDarkModeState(v);
-    try {
-      document.querySelector('meta[name="theme-color"]')?.setAttribute('content', v ? '#14171C' : '#F7F6F2');
-    } catch {}
   }, []);
 
   const toggleDarkMode = useCallback(() => {
@@ -343,7 +341,6 @@ export default function App() {
       }
       const isDarkNow = document.documentElement.classList.contains('dark');
       setDarkModeState(isDarkNow);
-      document.querySelector('meta[name="theme-color"]')?.setAttribute('content', isDarkNow ? '#14171C' : '#F7F6F2');
     } catch (e) {
       console.error('Theme init error:', e);
     }
@@ -1357,6 +1354,7 @@ export default function App() {
       authUidRef.current = uid;
       if (uid) {
         setActiveGoogleUid(uid);
+        preloadGoogleOAuthReadiness();
         // Swap Canvas to this account's bundle immediately (sync layer).
         if (uidChanged) {
           try {
@@ -2374,28 +2372,62 @@ export default function App() {
           setActiveGoogleUid(signedIn.user.uid);
         }
 
-        const token = await requestFeaturePermission(feature, {
-          loginHint: activeUser.email || undefined,
-          uid: activeUser.uid || undefined,
-        });
-
-        if (!token) {
-          addToast({
-            type: 'info',
-            title: t('app_toast_perm_denied_title'),
-            message: t('app_toast_perm_denied_msg'),
-            duration: 5000,
-          });
-          return;
-        }
-
-        setGoogleToken(token);
-        setScopeRevision((n) => n + 1);
+        // Reset any previous error state so retrying after an earlier Cancel/Deny starts clean.
         if (feature === 'calendar') setCalendarError(null);
         if (feature === 'gmail') setEmailError(null);
         if (feature === 'sheets') setSheetError(null);
         if (feature === 'drive') setDriveError(null);
         if (feature === 'classroom') setClassroomError(null);
+
+        const perm = await requestFeaturePermissionDetailed(feature, {
+          loginHint: activeUser.email || undefined,
+          uid: activeUser.uid || undefined,
+          forceConsent: true,
+        });
+
+        if (perm.status === 'dismissed') {
+          addToast({
+            type: 'info',
+            title: t('app_toast_perm_dismissed_title'),
+            message: t('app_toast_perm_dismissed_msg'),
+            duration: 5000,
+          });
+          return;
+        }
+
+        if (perm.status === 'partial_scopes') {
+          addToast({
+            type: 'warning',
+            title: t('app_toast_perm_partial_title'),
+            message: t('app_toast_perm_partial_msg'),
+            duration: 6500,
+          });
+          return;
+        }
+
+        if (perm.status === 'popup_blocked') {
+          addToast({
+            type: 'warning',
+            title: t('app_toast_popup_blocked_title'),
+            message: t('app_toast_popup_blocked_msg'),
+            duration: 7500,
+            retryLabel: t('app_toast_troubleshoot_btn'),
+            onRetry: () => setOauthGuideModalOpen(true),
+          } as any);
+          return;
+        }
+
+        if (perm.status !== 'granted') {
+          handleSignInFailure(
+            new Error(perm.message || t('gauth_connect_failed')),
+            feature === 'gmail' ? 'gmail' : 'workspace'
+          );
+          return;
+        }
+
+        const token = perm.accessToken;
+        setGoogleToken(token);
+        setScopeRevision((n) => n + 1);
 
         try {
           await hydrateRefreshGrant(activeUser.uid);
@@ -2413,10 +2445,14 @@ export default function App() {
           sheets: t('app_feature_sheets'),
           classroom: t('app_feature_cls'),
         };
+        const accountLabel = activeUser.email || activeUser.displayName || t('app_your_account');
         addToast({
           type: 'success',
           title: t('app_toast_feature_connected', { feature: labelMap[feature] }),
-          message: t('app_toast_feature_ready', { name: activeUser.email || activeUser.displayName || t('app_your_account') }),
+          message:
+            perm.mode === 'offline'
+              ? t('app_toast_feature_ready', { name: accountLabel })
+              : t('app_toast_feature_session_ready', { name: accountLabel }),
         });
       } catch (err: any) {
         handleSignInFailure(err, feature === 'gmail' ? 'gmail' : 'workspace');
@@ -3376,7 +3412,7 @@ export default function App() {
                       emailAlerts={allAlerts}
                       isLoadingEvents={isLoadingEvents}
                       canvasCount={canvasAssignments.filter((c) => !c.isCompleted).length}
-                      classroomCount={classroomAssignments.filter((c) => !c.isCompleted).length}
+                      classroomCount={hasClassroomAccess ? classroomAssignments.filter((c) => !c.isCompleted).length : 0}
                     />
                     {/* Demoted secondary card: collapsible + dismissible, never blocks greeting/Today Plan */}
                     <OnboardingChecklist

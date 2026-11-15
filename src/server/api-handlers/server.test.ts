@@ -24,6 +24,8 @@ import handleExtractSubtasks from "./gemini/extract-subtasks.js";
 import handleEstimateEffort from "./gemini/estimate-effort.js";
 import handleSuggestStudySlots from "./gemini/suggest-study-slots.js";
 import handleGenerate from "./gemini/generate.js";
+import handleHealth from "./health.js";
+import { resolveServerGoogleOAuthConfig } from "./auth/google/oauthConfig.js";
 
 function createMockRes() {
   const headers: Record<string, string> = {};
@@ -347,6 +349,47 @@ describe("Server models & unified API surface", () => {
       ]) {
         expect(frameSrc).not.toContain(removed);
       }
+    });
+  });
+
+  describe("Google OAuth server config & health readiness", () => {
+    const prevViteClientId = process.env.VITE_GOOGLE_CLIENT_ID;
+    const prevServerClientId = process.env.GOOGLE_CLIENT_ID;
+    const prevSecret = process.env.GOOGLE_CLIENT_SECRET;
+
+    afterEach(() => {
+      if (prevViteClientId === undefined) delete process.env.VITE_GOOGLE_CLIENT_ID;
+      else process.env.VITE_GOOGLE_CLIENT_ID = prevViteClientId;
+      if (prevServerClientId === undefined) delete process.env.GOOGLE_CLIENT_ID;
+      else process.env.GOOGLE_CLIENT_ID = prevServerClientId;
+      if (prevSecret === undefined) delete process.env.GOOGLE_CLIENT_SECRET;
+      else process.env.GOOGLE_CLIENT_SECRET = prevSecret;
+    });
+
+    it("falls back to firebase-applet-config.json oAuthClientId and gates isConfigured on GOOGLE_CLIENT_SECRET", async () => {
+      delete process.env.VITE_GOOGLE_CLIENT_ID;
+      delete process.env.GOOGLE_CLIENT_ID;
+      delete process.env.GOOGLE_CLIENT_SECRET;
+
+      const withoutSecret = resolveServerGoogleOAuthConfig();
+      expect(withoutSecret.clientId).toMatch(/\.apps\.googleusercontent\.com$/);
+      expect(withoutSecret.clientSecret).toBe("");
+      expect(withoutSecret.isConfigured).toBe(false);
+
+      const healthOff = createMockRes();
+      await handleHealth({ method: "GET", headers: {} }, healthOff);
+      expect(healthOff.statusCode).toBe(200);
+      expect(healthOff.body.hasGoogleOAuth).toBe(false);
+
+      process.env.GOOGLE_CLIENT_SECRET = "GOCSPX-test-only-never-real";
+      const withSecret = resolveServerGoogleOAuthConfig();
+      expect(withSecret.isConfigured).toBe(true);
+
+      const healthOn = createMockRes();
+      await handleHealth({ method: "GET", headers: {} }, healthOn);
+      expect(healthOn.statusCode).toBe(200);
+      expect(healthOn.body.hasGoogleOAuth).toBe(true);
+      expect(JSON.stringify(healthOn.body)).not.toContain("GOCSPX-test-only-never-real");
     });
   });
 });

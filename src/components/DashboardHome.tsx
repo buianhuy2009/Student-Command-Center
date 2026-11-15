@@ -397,7 +397,7 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
             <button
               type="button"
               onClick={() => onNavigateWorkspace('canvas')}
-              className="px-4 py-2.5 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs cursor-pointer min-h-[40px]"
+              className="px-3.5 py-2 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-xs cursor-pointer min-h-[36px] transition-colors"
             >
               <span>{t('dash_enter_lms')}</span>
               <ArrowRight className="w-3.5 h-3.5" strokeWidth={2} aria-hidden="true" />
@@ -406,7 +406,7 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
           <button
             type="button"
             onClick={() => onNavigateWorkspace('pomodoro')}
-            className="px-3.5 py-2.5 bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] border border-[var(--border-default)] hover:border-[var(--border-strong)] rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer min-h-[40px]"
+            className="px-3 py-2 bg-[var(--bg-surface)] hover:bg-[var(--bg-subtle)] text-[var(--text-primary)] border border-[var(--border-hairline)] hover:border-[var(--border-default)] rounded-lg text-xs font-medium flex items-center gap-1.5 cursor-pointer min-h-[36px] transition-colors"
           >
             <Timer className="w-3.5 h-3.5 text-[var(--accent-text)]" aria-hidden="true" />
             <span>{t('app_tab_pomodoro')}</span>
@@ -415,7 +415,7 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
             <button
               type="button"
               onClick={onOpenStudyPlan}
-              className="px-3.5 py-2.5 bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] border border-[var(--border-default)] hover:border-[var(--border-strong)] rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer min-h-[40px]"
+              className="px-3 py-2 bg-[var(--bg-surface)] hover:bg-[var(--bg-subtle)] text-[var(--text-primary)] border border-[var(--border-hairline)] hover:border-[var(--border-default)] rounded-lg text-xs font-medium flex items-center gap-1.5 cursor-pointer min-h-[36px] transition-colors"
             >
               <Sparkles className="w-3.5 h-3.5 text-[var(--accent-text)]" aria-hidden="true" />
               <span>{t('plan_title')}</span>
@@ -427,31 +427,31 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
       {/* (a) Hero Focus Strip — Next Deadline */}
       {nextDeadline && nextDeadlineInfo && (
         <div
-          className={`w-full flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3 rounded-2xl border shadow-card ${
+          className={`w-full flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 px-4 py-2.5 rounded-xl border ${
             nextDeadlineInfo.isOverdue
-              ? 'border-[var(--status-err-border)] bg-[var(--status-err-bg)]'
-              : 'border-[var(--accent-border)] bg-[var(--bg-surface)]'
+              ? 'border-[var(--status-err-border)]/70 bg-[var(--status-err-bg)]/70'
+              : 'border-[var(--border-default)] bg-[var(--bg-surface)]'
           }`}
         >
-          <div className="flex items-center gap-2.5 min-w-0 text-xs sm:text-sm">
+          <div className="flex items-center gap-2.5 min-w-0 text-xs sm:text-[13px]">
             <span
-              className={`h-2.5 w-2.5 rounded-full shrink-0 ${
+              className={`h-2 w-2 rounded-full shrink-0 ${
                 nextDeadlineInfo.isOverdue ? 'bg-[var(--status-err-text)]' : 'bg-[var(--accent-fill)]'
               }`}
               aria-hidden="true"
             />
-            <span className="font-bold text-[var(--text-primary)] shrink-0">{t('dash_next_up')}</span>
+            <span className="font-semibold text-[var(--text-secondary)] shrink-0">{t('dash_next_up')}</span>
             <span className="font-semibold text-[var(--text-primary)] truncate">{nextDeadline.assignmentName}</span>
             {nextDeadline.subject && (
-              <span className="text-[11px] text-[var(--text-muted)] truncate hidden sm:inline">• {nextDeadline.subject}</span>
+              <span className="text-xs text-[var(--text-muted)] truncate hidden sm:inline">· {nextDeadline.subject}</span>
             )}
           </div>
           <div className="flex items-center justify-between sm:justify-end gap-2.5 shrink-0">
             <span
-              className={`text-xs font-bold px-2.5 py-1 rounded-full border ${
+              className={`text-[11px] font-semibold tabular-nums px-2 py-0.5 rounded-md ${
                 nextDeadlineInfo.isOverdue
-                  ? 'bg-[var(--bg-surface)] border-[var(--status-err-border)] text-[var(--status-err-text)]'
-                  : 'bg-[var(--accent-soft)] border-[var(--accent-border)] text-[var(--accent-text)]'
+                  ? 'bg-[var(--bg-surface)] text-[var(--status-err-text)] border border-[var(--status-err-border)]/60'
+                  : 'bg-[var(--accent-soft)] text-[var(--accent-text)]'
               }`}
             >
               {formatDeadline(nextDeadlineInfo)}
@@ -459,7 +459,7 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
             <button
               type="button"
               onClick={() => onNavigateWorkspace('tracker')}
-              className="px-3 py-1.5 rounded-xl bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white text-xs font-bold transition-colors min-h-[34px] cursor-pointer"
+              className="px-2.5 py-1 rounded-lg bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white text-xs font-semibold transition-colors min-h-[30px] cursor-pointer"
             >
               {t('view')}
             </button>
@@ -469,16 +469,16 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
 
       {/* (b) Compact Schedule & Tasks Overview */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
-        {/* Left: Compact Tasks Overview */}
+        {/* Left: Clean Hairline Assignment List */}
         <section
           aria-label={t('app_tab_tracker')}
-          className="lg:col-span-7 bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-4 sm:p-5 shadow-card space-y-3"
+          className="lg:col-span-7 bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] overflow-hidden"
         >
-          <div className="flex items-center justify-between gap-2">
+          <div className="px-4 py-3 border-b border-[var(--border-hairline)] flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
-              <h2 className="text-sm font-extrabold text-[var(--text-primary)] truncate">{t('app_tab_tracker')}</h2>
+              <h2 className="text-sm font-bold text-[var(--text-primary)] truncate">{t('app_tab_tracker')}</h2>
               {pendingAssignments.length > 0 && (
-                <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-[var(--bg-subtle)] text-[var(--text-secondary)] border border-[var(--border-default)]">
+                <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold tabular-nums bg-[var(--bg-subtle)] text-[var(--text-secondary)]">
                   {pendingAssignments.length}
                 </span>
               )}
@@ -486,210 +486,223 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
             <button
               type="button"
               onClick={() => onNavigateWorkspace('tracker')}
-              className="text-xs font-bold text-[var(--accent-text)] hover:underline underline-offset-4 flex items-center gap-1 cursor-pointer shrink-0"
+              className="text-xs font-semibold text-[var(--accent-text)] hover:underline underline-offset-4 flex items-center gap-1 cursor-pointer shrink-0"
             >
               <span>{t('dash_open_tracker')}</span>
               <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
             </button>
           </div>
 
-          {pendingAssignments.length > 0 ? (
-            <div className="space-y-3">
-              {overdueTasks.length > 0 && (
-                <div className="space-y-1.5">
-                  <h3 className="text-[10px] font-bold uppercase tracking-wider text-[var(--status-err-text)]">
-                    {t('overdue')} • {overdueTasks.length}
-                  </h3>
-                  {overdueTasks.slice(0, 2).map((a) => (
-                    <div
-                      key={a.id}
-                      className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-[var(--status-err-bg)] border border-[var(--status-err-border)] text-xs"
-                    >
-                      <div className="flex items-center gap-2 min-w-0">
-                        {onToggleAssignment ? (
-                          <button
-                            type="button"
-                            onClick={() => onToggleAssignment(a.id)}
-                            aria-label={`${t('mark_done')}: ${a.assignmentName}`}
-                            className="text-[var(--status-err-text)] hover:opacity-80 cursor-pointer shrink-0"
-                          >
-                            <Circle className="w-4 h-4" />
-                          </button>
-                        ) : (
-                          <span className="w-2 h-2 rounded-full bg-[var(--status-err-text)] shrink-0" />
-                        )}
-                        <span className="font-semibold text-[var(--text-primary)] truncate">{a.assignmentName}</span>
-                      </div>
-                      <span className="text-[11px] text-[var(--status-err-text)] font-medium shrink-0">
-                        {a.subject} • {a.dueDate}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {dueTodayTasks.length > 0 && (
-                <div className="space-y-1.5">
-                  <h3 className="text-[10px] font-bold uppercase tracking-wider text-[var(--status-warn-text)]">
-                    {t('due_today')} • {dueTodayTasks.length}
-                  </h3>
-                  {dueTodayTasks.slice(0, 2).map((a) => (
-                    <div
-                      key={a.id}
-                      className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-[var(--status-warn-bg)] border border-[var(--status-warn-border)] text-xs"
-                    >
-                      <div className="flex items-center gap-2 min-w-0">
-                        {onToggleAssignment ? (
-                          <button
-                            type="button"
-                            onClick={() => onToggleAssignment(a.id)}
-                            aria-label={`${t('mark_done')}: ${a.assignmentName}`}
-                            className="text-[var(--status-warn-text)] hover:opacity-80 cursor-pointer shrink-0"
-                          >
-                            <Circle className="w-4 h-4" />
-                          </button>
-                        ) : (
-                          <span className="w-2 h-2 rounded-full bg-[var(--status-warn-text)] shrink-0" />
-                        )}
-                        <span className="font-semibold text-[var(--text-primary)] truncate">{a.assignmentName}</span>
-                      </div>
-                      <span className="text-[11px] text-[var(--status-warn-text)] font-medium shrink-0">
-                        {a.subject} • {t('today')}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <div className="space-y-1.5">
-                <h3 className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5">
-                  <Clock className="w-3 h-3 text-[var(--accent-text)]" aria-hidden="true" />
-                  <span>{t('upcoming')}</span>
-                </h3>
-                {upcomingTasks.slice(0, 3).map((a) => (
-                  <div
-                    key={a.id}
-                    className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-[var(--bg-subtle)] border border-[var(--border-default)] text-xs"
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      {onToggleAssignment ? (
-                        <button
-                          type="button"
-                          onClick={() => onToggleAssignment(a.id)}
-                          aria-label={`${t('mark_done')}: ${a.assignmentName}`}
-                          className="text-[var(--text-muted)] hover:text-[var(--accent-text)] cursor-pointer shrink-0"
+          <div className="p-4">
+            {pendingAssignments.length > 0 ? (
+              <div className="space-y-4">
+                {overdueTasks.length > 0 && (
+                  <div>
+                    <h3 className="text-[10px] font-bold uppercase tracking-wider text-[var(--status-err-text)] mb-1.5 flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[var(--status-err-text)]" aria-hidden="true" />
+                      {t('overdue')} · <span className="tabular-nums">{overdueTasks.length}</span>
+                    </h3>
+                    <div className="divide-y divide-[var(--border-hairline)]">
+                      {overdueTasks.slice(0, 3).map((a) => (
+                        <div
+                          key={a.id}
+                          className="flex items-center justify-between gap-3 py-2 px-1.5 rounded-lg hover:bg-[var(--status-err-bg)]/45 transition-colors text-xs"
                         >
-                          <Circle className="w-4 h-4" />
-                        </button>
-                      ) : (
-                        <span
-                          className={`w-2 h-2 rounded-full shrink-0 ${
-                            a.priority === 'High'
-                              ? 'bg-[var(--status-err-text)]'
-                              : a.priority === 'Med'
-                                ? 'bg-[var(--status-warn-border)]'
-                                : 'bg-[var(--status-ok-border)]'
-                          }`}
-                        />
-                      )}
-                      <span className="font-semibold text-[var(--text-primary)] truncate">{a.assignmentName}</span>
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            {onToggleAssignment ? (
+                              <button
+                                type="button"
+                                onClick={() => onToggleAssignment(a.id)}
+                                aria-label={`${t('mark_done')}: ${a.assignmentName}`}
+                                className="text-[var(--status-err-text)] hover:opacity-80 cursor-pointer shrink-0"
+                              >
+                                <Circle className="w-4 h-4" />
+                              </button>
+                            ) : (
+                              <span className="w-2 h-2 rounded-full bg-[var(--status-err-text)] shrink-0" />
+                            )}
+                            <span className="font-medium text-[var(--text-primary)] truncate">{a.assignmentName}</span>
+                          </div>
+                          <span className="text-[11px] text-[var(--status-err-text)] font-medium shrink-0 tabular-nums">
+                            {a.subject} · {a.dueDate}
+                          </span>
+                        </div>
+                      ))}
                     </div>
-                    <span className="text-[11px] text-[var(--text-secondary)] shrink-0 flex items-center gap-1.5">
-                      <span>
-                        {a.subject}
-                        {a.dueDate ? ` • ${t('tracker_due')} ${a.dueDate}` : ''}
-                      </span>
-                      {a.priority === 'High' && (
-                        <span className="px-1.5 py-0.5 rounded bg-[var(--status-err-bg)] text-[var(--status-err-text)] border border-[var(--status-err-border)] text-[9px] font-bold">
-                          {t('dash_high_badge')}
-                        </span>
-                      )}
-                    </span>
                   </div>
-                ))}
-                {upcomingTasks.length === 0 && overdueTasks.length === 0 && dueTodayTasks.length === 0 && (
-                  <p className="text-xs text-[var(--text-muted)] italic">{t('dash_all_caught_up')}</p>
                 )}
+
+                {dueTodayTasks.length > 0 && (
+                  <div>
+                    <h3 className="text-[10px] font-bold uppercase tracking-wider text-[var(--status-warn-text)] mb-1.5 flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[var(--status-warn-text)]" aria-hidden="true" />
+                      {t('due_today')} · <span className="tabular-nums">{dueTodayTasks.length}</span>
+                    </h3>
+                    <div className="divide-y divide-[var(--border-hairline)]">
+                      {dueTodayTasks.slice(0, 2).map((a) => (
+                        <div
+                          key={a.id}
+                          className="flex items-center justify-between gap-3 py-2 px-1.5 rounded-lg hover:bg-[var(--status-warn-bg)]/45 transition-colors text-xs"
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            {onToggleAssignment ? (
+                              <button
+                                type="button"
+                                onClick={() => onToggleAssignment(a.id)}
+                                aria-label={`${t('mark_done')}: ${a.assignmentName}`}
+                                className="text-[var(--status-warn-text)] hover:opacity-80 cursor-pointer shrink-0"
+                              >
+                                <Circle className="w-4 h-4" />
+                              </button>
+                            ) : (
+                              <span className="w-2 h-2 rounded-full bg-[var(--status-warn-text)] shrink-0" />
+                            )}
+                            <span className="font-medium text-[var(--text-primary)] truncate">{a.assignmentName}</span>
+                          </div>
+                          <span className="text-[11px] text-[var(--status-warn-text)] font-medium shrink-0">
+                            {a.subject} · {t('today')}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <h3 className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] mb-1.5 flex items-center gap-1.5">
+                    <Clock className="w-3 h-3 text-[var(--accent-text)]" aria-hidden="true" />
+                    <span>{t('upcoming')}</span>
+                  </h3>
+                  {upcomingTasks.length > 0 ? (
+                    <div className="divide-y divide-[var(--border-hairline)]">
+                      {upcomingTasks.slice(0, 3).map((a) => (
+                        <div
+                          key={a.id}
+                          className="flex items-center justify-between gap-3 py-2 px-1.5 rounded-lg hover:bg-[var(--bg-subtle)]/65 transition-colors text-xs"
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            {onToggleAssignment ? (
+                              <button
+                                type="button"
+                                onClick={() => onToggleAssignment(a.id)}
+                                aria-label={`${t('mark_done')}: ${a.assignmentName}`}
+                                className="text-[var(--text-muted)] hover:text-[var(--accent-text)] cursor-pointer shrink-0"
+                              >
+                                <Circle className="w-4 h-4" />
+                              </button>
+                            ) : (
+                              <span
+                                className={`w-2 h-2 rounded-full shrink-0 ${
+                                  a.priority === 'High'
+                                    ? 'bg-[var(--status-err-text)]'
+                                    : a.priority === 'Med'
+                                      ? 'bg-[var(--status-warn-border)]'
+                                      : 'bg-[var(--status-ok-border)]'
+                                }`}
+                              />
+                            )}
+                            <span className="font-medium text-[var(--text-primary)] truncate">{a.assignmentName}</span>
+                          </div>
+                          <span className="text-[11px] text-[var(--text-muted)] shrink-0 flex items-center gap-1.5 tabular-nums">
+                            <span>
+                              {a.subject}
+                              {a.dueDate ? ` · ${a.dueDate}` : ''}
+                            </span>
+                            {a.priority === 'High' && (
+                              <span className="w-1.5 h-1.5 rounded-full bg-[var(--status-err-text)]" title={t('dash_high_badge')} />
+                            )}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    overdueTasks.length === 0 && dueTodayTasks.length === 0 && (
+                      <p className="text-xs text-[var(--text-muted)] italic py-1">{t('dash_all_caught_up')}</p>
+                    )
+                  )}
+                </div>
               </div>
-            </div>
-          ) : (
-            <EmptyAssignments
-              onImportCanvas={() => onNavigateWorkspace('canvas')}
-              onCreate={() => onNavigateWorkspace('tracker')}
-            />
-          )}
+            ) : (
+              <EmptyAssignments
+                onImportCanvas={() => onNavigateWorkspace('canvas')}
+                onCreate={() => onNavigateWorkspace('tracker')}
+              />
+            )}
+          </div>
         </section>
 
-        {/* Right: Compact Schedule Overview */}
+        {/* Right: Clean Hairline Schedule Overview */}
         <section
           aria-label={t('radar_timeline')}
-          className="lg:col-span-5 bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-4 sm:p-5 shadow-card space-y-3"
+          className="lg:col-span-5 bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] overflow-hidden"
         >
-          <div className="flex items-center justify-between gap-2">
+          <div className="px-4 py-3 border-b border-[var(--border-hairline)] flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
               <Calendar className="w-4 h-4 text-[var(--accent-text)] shrink-0" aria-hidden="true" />
-              <h2 className="text-sm font-extrabold text-[var(--text-primary)] truncate">{t('radar_timeline')}</h2>
+              <h2 className="text-sm font-bold text-[var(--text-primary)] truncate">{t('radar_timeline')}</h2>
             </div>
             <button
               type="button"
               onClick={() => onNavigateWorkspace('radar')}
-              className="text-xs font-bold text-[var(--accent-text)] hover:underline underline-offset-4 flex items-center gap-1 cursor-pointer shrink-0"
+              className="text-xs font-semibold text-[var(--accent-text)] hover:underline underline-offset-4 flex items-center gap-1 cursor-pointer shrink-0"
             >
               <span>{t('app_tab_radar')}</span>
               <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
             </button>
           </div>
 
-          {isLoadingEvents ? (
-            <div className="space-y-2" role="status" aria-label={t('radar_syncing')}>
-              <div className="scc-skeleton h-10" />
-              <div className="scc-skeleton h-10" />
-              <div className="scc-skeleton h-10" />
-            </div>
-          ) : compactEvents.length > 0 ? (
-            <div className="space-y-2">
-              {compactEvents.map((ev) => (
-                <div
-                  key={ev.id}
-                  className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-[var(--bg-subtle)] border border-[var(--border-default)] text-xs"
-                >
-                  <div className="min-w-0">
-                    <div className="font-semibold text-[var(--text-primary)] truncate">{ev.summary}</div>
-                    {ev.location && (
-                      <div className="text-[11px] text-[var(--text-muted)] truncate">{ev.location}</div>
-                    )}
+          <div className="p-4">
+            {isLoadingEvents ? (
+              <div className="space-y-2" role="status" aria-label={t('radar_syncing')}>
+                <div className="scc-skeleton h-9" />
+                <div className="scc-skeleton h-9" />
+                <div className="scc-skeleton h-9" />
+              </div>
+            ) : compactEvents.length > 0 ? (
+              <div className="divide-y divide-[var(--border-hairline)]">
+                {compactEvents.map((ev) => (
+                  <div
+                    key={ev.id}
+                    className="flex items-center justify-between gap-3 py-2.5 px-1 rounded-lg hover:bg-[var(--bg-subtle)]/55 transition-colors text-xs"
+                  >
+                    <div className="min-w-0">
+                      <div className="font-medium text-[var(--text-primary)] truncate">{ev.summary}</div>
+                      {ev.location && (
+                        <div className="text-[11px] text-[var(--text-muted)] truncate">{ev.location}</div>
+                      )}
+                    </div>
+                    <span className="text-[11px] font-mono font-semibold text-[var(--accent-text)] bg-[var(--accent-soft)] px-2 py-0.5 rounded-md shrink-0 tabular-nums">
+                      {formatEventTime(ev)}
+                    </span>
                   </div>
-                  <span className="text-[11px] font-mono font-bold text-[var(--accent-text)] bg-[var(--accent-soft)] border border-[var(--accent-border)] px-2 py-0.5 rounded-full shrink-0">
-                    {formatEventTime(ev)}
-                  </span>
-                </div>
-              ))}
-            </div>
-          ) : !isGoogleConnected ? (
-            <div className="p-3.5 rounded-xl bg-[var(--bg-subtle)] border border-[var(--border-default)] space-y-2.5 text-xs">
-              <p className="text-[var(--text-secondary)] leading-relaxed">{t('radar_disconnected_hint')}</p>
-              {onConnectGoogle && (
+                ))}
+              </div>
+            ) : !isGoogleConnected ? (
+              <div className="py-3 space-y-3 text-xs">
+                <p className="text-[var(--text-secondary)] leading-relaxed">{t('radar_disconnected_hint')}</p>
+                {onConnectGoogle && (
+                  <button
+                    type="button"
+                    onClick={onConnectGoogle}
+                    className="px-3.5 py-2 rounded-lg bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white text-xs font-semibold cursor-pointer min-h-[34px] transition-colors"
+                  >
+                    {t('radar_connect_cal')}
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="py-3 space-y-2 text-xs">
+                <p className="font-medium text-[var(--text-secondary)]">{t('radar_no_commit')}</p>
                 <button
                   type="button"
-                  onClick={onConnectGoogle}
-                  className="px-3.5 py-2 rounded-xl bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white text-xs font-bold cursor-pointer min-h-[36px]"
+                  onClick={() => onNavigateWorkspace('radar')}
+                  className="text-xs font-semibold text-[var(--accent-text)] hover:underline underline-offset-4 cursor-pointer"
                 >
-                  {t('radar_connect_cal')}
+                  {t('radar_schedule_45')} →
                 </button>
-              )}
-            </div>
-          ) : (
-            <div className="p-3.5 rounded-xl bg-[var(--bg-subtle)] border border-[var(--border-default)] space-y-2 text-xs">
-              <p className="font-semibold text-[var(--text-primary)]">{t('radar_no_commit')}</p>
-              <button
-                type="button"
-                onClick={() => onNavigateWorkspace('radar')}
-                className="text-xs font-bold text-[var(--accent-text)] hover:underline underline-offset-4 cursor-pointer"
-              >
-                {t('radar_schedule_45')} →
-              </button>
-            </div>
-          )}
+              </div>
+            )}
+          </div>
         </section>
       </div>
 

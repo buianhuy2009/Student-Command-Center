@@ -1,4 +1,5 @@
 import { applyApiCors } from "../../cors.js";
+import { resolveServerGoogleOAuthConfig } from "./oauthConfig.js";
 
 // POST /api/auth/google/exchange — trade a GIS authorization `code` for tokens.
 // The client_secret never leaves the server: the browser only ever sees the
@@ -11,9 +12,8 @@ export default async function handler(req, res) {
   try {
     const { code, redirect_uri, scope: fallbackScope } = req.body || {};
     if (!code) return res.status(400).json({ error: "Missing authorization code" });
-    const clientId = process.env.VITE_GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID || "";
-    const clientSecret = process.env.GOOGLE_CLIENT_SECRET || "";
-    if (!clientId || !clientSecret) {
+    const { clientId, clientSecret, isConfigured } = resolveServerGoogleOAuthConfig();
+    if (!isConfigured) {
       return res.status(500).json({ error: "OAuth not configured on server (missing client id/secret)" });
     }
     const params = new URLSearchParams({
