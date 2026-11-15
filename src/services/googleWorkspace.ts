@@ -124,13 +124,24 @@ export function parseGoogleApiResponseError(
       );
     }
 
-    // Detect insufficient OAuth scopes
+    // Detect insufficient OAuth scopes (case-insensitive across top-level message, err.errors[], and RPC details[])
+    const lowerMsg = msg.toLowerCase();
+    const hasInsufficientEntry =
+      (Array.isArray(err?.errors) &&
+        err.errors.some((entry: { reason?: string; message?: string }) =>
+          /insufficient|ACCESS_TOKEN_SCOPE_INSUFFICIENT/i.test(`${entry?.reason ?? ''} ${entry?.message ?? ''}`)
+        )) ||
+      (Array.isArray(details) &&
+        details.some((entry: { reason?: string }) =>
+          /insufficient|ACCESS_TOKEN_SCOPE_INSUFFICIENT/i.test(String(entry?.reason ?? ''))
+        ));
     const isScopeError =
       status === 403 &&
-      (msg.includes('insufficient') ||
+      (hasInsufficientEntry ||
+        lowerMsg.includes('insufficient') ||
         msg.includes('ACCESS_TOKEN_SCOPE_INSUFFICIENT') ||
-        msg.includes('insufficientPermissions') ||
-        msg.includes('insufficient authentication scopes'));
+        lowerMsg.includes('insufficientpermissions') ||
+        lowerMsg.includes('insufficient authentication scopes'));
 
     if (isScopeError) {
       return makeGoogleError(t('gw_needs_permission', { service: defaultServiceName }), 403, {
@@ -409,7 +420,7 @@ export async function fetchAcademicEmails(
 
     if (!listRes.ok) {
       const errBody = await listRes.text();
-      if (listRes.status === 403 && (errBody.includes('insufficient') || errBody.includes('ACCESS_TOKEN_SCOPE_INSUFFICIENT'))) {
+      if (listRes.status === 403 && /insufficient|ACCESS_TOKEN_SCOPE_INSUFFICIENT/i.test(errBody)) {
         throw makeGoogleError(t('gw_gmail_needs_permission'), 403, { isInsufficientScope: true });
       }
       throw parseGoogleApiResponseError(listRes.status, errBody, 'Gmail', 'gmail.googleapis.com');
@@ -418,14 +429,28 @@ export async function fetchAcademicEmails(
     const listData = await listRes.json();
     const messages = listData.messages || [];
 
-    const detailedEmails: EmailMessage[] = await Promise.all(
-      messages.map(async (msg: { id: string; threadId: string }) => {
+    const detailedEmails: (EmailMessage | null)[] = [];
+    let firstDetailError: unknown = null;
+    const DETAIL_BATCH_SIZE = 8;
+    for (let i = 0; i < messages.length; i += DETAIL_BATCH_SIZE) {
+      const batch = messages.slice(i, i + DETAIL_BATCH_SIZE);
+      const batchResults = await Promise.all(
+      batch.map(async (msg: { id: string; threadId: string }) => {
         try {
           const detailRes = await fetch(
             `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=full`,
             { headers: { Authorization: `Bearer ${token}` } }
           );
-          if (!detailRes.ok) return null;
+          if (!detailRes.ok) {
+            const detailErrBody = await detailRes.text().catch(() => '');
+            if (!firstDetailError) {
+              firstDetailError =
+                detailRes.status === 403 && /insufficient|ACCESS_TOKEN_SCOPE_INSUFFICIENT/i.test(detailErrBody)
+                  ? makeGoogleError(t('gw_gmail_needs_permission'), 403, { isInsufficientScope: true })
+                  : parseGoogleApiResponseError(detailRes.status, detailErrBody, 'Gmail', 'gmail.googleapis.com');
+            }
+            return null;
+          }
           const data = await detailRes.json();
 
           const headers = data.payload?.headers || [];
@@ -452,12 +477,20 @@ export async function fetchAcademicEmails(
             labelIds: Array.isArray(data.labelIds) ? data.labelIds : [],
           };
         } catch (e) {
+          if (!firstDetailError) firstDetailError = e;
           return null;
         }
       })
-    );
+      );
+      detailedEmails.push(...batchResults);
+    }
 
-    return detailedEmails.filter((m): m is EmailMessage => m !== null);
+    const validEmails = detailedEmails.filter((m): m is EmailMessage => m !== null);
+    if (messages.length > 0 && validEmails.length === 0 && firstDetailError) {
+      throw firstDetailError;
+    }
+
+    return validEmails;
   } catch (error) {
     console.error('Error in fetchAcademicEmails:', error);
     throw error;

@@ -372,7 +372,7 @@ export const setStoredGoogleToken = (token: string, uid?: string | null, scopes?
       }
       persistTokenToIDB(token);
       import('./db').then(({ db }) => db.preferences.put({ key: 'google_token_acquired_at', value: String(Date.now()) }).catch(()=>{}));
-      window.dispatchEvent(new CustomEvent('scc-google-token-updated', { detail: { token, scopes } }));
+      window.dispatchEvent(new CustomEvent('scc-google-token-updated', { detail: { token, scopes, uid: owner } }));
     } catch {}
   }
 };
@@ -745,14 +745,21 @@ export async function requestFirebaseFeaturePopupScopes(
     // Verify which granular scopes Google actually granted to this token.
     let grantedScopes = [...scopes];
     try {
-      const infoRes = await fetch(
-        `https://oauth2.googleapis.com/tokeninfo?access_token=${encodeURIComponent(accessToken)}`
-      );
-      if (infoRes.ok) {
-        const info = await infoRes.json().catch(() => null);
-        if (info && typeof info.scope === 'string') {
-          grantedScopes = info.scope.split(/\s+/).map((s: string) => s.trim()).filter(Boolean);
+      const infoController = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      const infoTimer = infoController ? setTimeout(() => infoController.abort(), 5000) : null;
+      try {
+        const infoRes = await fetch(
+          `https://oauth2.googleapis.com/tokeninfo?access_token=${encodeURIComponent(accessToken)}`,
+          { signal: infoController?.signal }
+        );
+        if (infoRes.ok) {
+          const info = await infoRes.json().catch(() => null);
+          if (info && typeof info.scope === 'string') {
+            grantedScopes = info.scope.split(/\s+/).map((s: string) => s.trim()).filter(Boolean);
+          }
         }
+      } finally {
+        if (infoTimer) clearTimeout(infoTimer);
       }
     } catch {
       // Fallback to requested list if tokeninfo lookup is offline

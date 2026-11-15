@@ -188,11 +188,26 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
             }
           } catch {}
           try {
-            onRefreshEmails(true);
+            onRefreshEmails(false);
           } catch {}
+        } else {
+          setLiveConnected(false);
+          if (rawEmails.length === 0) {
+            try {
+              onRefreshEmails(false);
+            } catch {}
+          }
         }
       } catch {
-        // Silent fallback to the manual Connect button.
+        // Trigger parent loader when empty so disconnected state surfaces cleanly.
+        if (!cancelled) {
+          setLiveConnected(false);
+          if (rawEmails.length === 0) {
+            try {
+              onRefreshEmails(false);
+            } catch {}
+          }
+        }
       } finally {
         if (!cancelled) setRestoring(false);
       }
@@ -236,8 +251,9 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
       return;
     }
     setSwitching(true);
+    setSpamActionError(null);
     try {
-      const token = await signInWithAccountSelect({ feature: 'gmail' }).catch(() => null);
+      const token = await signInWithAccountSelect({ feature: 'gmail' });
       if (token) {
         setLiveConnected(true);
         try {
@@ -254,11 +270,15 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
           }
         } catch {}
         try {
-          onRefreshEmails(true);
+          onRefreshEmails(false);
         } catch {}
       }
-    } catch {
-      // Dismissals stay silent; the current session is untouched.
+    } catch (err: any) {
+      // Dismissals stay silent; real OAuth errors surface in the alert banner.
+      const msg = String(err?.message || '');
+      if (msg && !/dismiss|cancel|closed/i.test(msg)) {
+        setSpamActionError(msg);
+      }
     } finally {
       setSwitching(false);
     }

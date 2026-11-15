@@ -138,6 +138,7 @@ export async function fetchAllClassroomAssignments(token: string): Promise<Canva
 
     const assignments: CanvasAssignment[] = [];
     let fatalError: unknown = null;
+    let firstCourseError: unknown = null;
 
     await Promise.all(
       courses.map(async (course) => {
@@ -167,6 +168,9 @@ export async function fetchAllClassroomAssignments(token: string): Promise<Canva
           });
         } catch (e: any) {
           console.warn(`Could not load coursework for course ${course.id}:`, e);
+          if (!firstCourseError) {
+            firstCourseError = e;
+          }
           if (!fatalError && (e?.status === 401 || e?.isInsufficientScope || e?.isServiceDisabled)) {
             fatalError = e;
           }
@@ -174,8 +178,8 @@ export async function fetchAllClassroomAssignments(token: string): Promise<Canva
       })
     );
 
-    if (assignments.length === 0 && fatalError) {
-      throw fatalError;
+    if (assignments.length === 0 && (fatalError || firstCourseError)) {
+      throw fatalError || firstCourseError;
     }
 
     return assignments;

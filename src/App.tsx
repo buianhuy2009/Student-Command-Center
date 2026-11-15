@@ -772,6 +772,7 @@ export default function App() {
   const isSyncingRef = useRef(false);
   const pendingFullSyncRef = useRef(false);
   const connectAttemptRef = useRef(0);
+  const isConnectingOAuthRef = useRef(false);
 
   // Master Sheet metadata
   const [masterSheetId, setMasterSheetId] = useState<string | undefined>();
@@ -1372,15 +1373,16 @@ export default function App() {
         tokenHydrationRef.current = hydrateGoogleTokenForUser(uid).then(async (restored) => {
           const cur = restored ?? getStoredGoogleToken();
           setGoogleToken(cur);
+          if (!hasRefreshToken(uid)) {
+            await hydrateRefreshGrant(uid).catch(() => false);
+          }
           if (!getValidGoogleToken()) {
             try {
-              const has = await hydrateRefreshGrant(uid);
-              if (has) {
-                const t = await ensureFreshGoogleToken();
-                if (t) setGoogleToken(t);
-              }
+              const t = await ensureFreshGoogleToken(uid);
+              if (t) setGoogleToken(t);
             } catch {}
           }
+          setScopeRevision((n) => n + 1);
         }).catch(() => {
           setGoogleToken(getStoredGoogleToken());
         }).finally(() => {
@@ -1412,6 +1414,30 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
+  /** Shared handler when feature scopes exist but no valid/refreshable access token could be obtained. */
+  const handleMissingGoogleToken = useCallback(
+    (
+      setError: (msg: string | null) => void,
+      setApiInfo: ((info: ApiEnablementInfo | null) => void) | null,
+      disconnectedMsg: string,
+      syncTitle: string,
+      isSilent: boolean
+    ) => {
+      setGoogleToken(getStoredGoogleToken());
+      setScopeRevision((n) => n + 1);
+      setApiInfo?.(null);
+      setError(disconnectedMsg);
+      if (!isSilent) {
+        addToast({
+          type: 'warning',
+          title: syncTitle,
+          message: disconnectedMsg,
+        });
+      }
+    },
+    [addToast]
+  );
+
   /** Shared Google API loader failure handler: preserves working features on 401 when refresh grant exists and revokes only the failing scope on 403 insufficient scope. */
   const handleGoogleLoaderFailure = useCallback(
     async (
@@ -1434,8 +1460,9 @@ export default function App() {
       const is401 = err?.status === 401 || /401|expired|hết hạn/i.test(msg);
       if (is401) {
         if (!hasRefreshToken(authUidRef.current)) {
-          await clearGoogleGrant();
+          await clearGoogleGrant(authUidRef.current);
           setGoogleToken(null);
+          setScopeRevision((n) => n + 1);
         }
         setError(defaults.disconnectedMsg);
         return;
@@ -1484,11 +1511,15 @@ export default function App() {
       setCalendarApiInfo(null);
       return;
     }
-    const token = await ensureFreshGoogleToken();
+    const token = await ensureFreshGoogleToken(authUidRef.current);
     if (!token) {
-      if (!isDemoModeRef.current) setCalendarEvents([]);
-      setCalendarError(null);
-      setCalendarApiInfo(null);
+      handleMissingGoogleToken(
+        setCalendarError,
+        setCalendarApiInfo,
+        t('app_err_cal_disconnected'),
+        t('app_toast_cal_sync'),
+        isSilent
+      );
       return;
     }
 
@@ -1511,7 +1542,7 @@ export default function App() {
       const is401 = err?.status === 401 || /401|expired|hết hạn/i.test(err?.message || '');
       if (is401 && !_retried) {
         // One transparent renewal + retry — the user never sees expiry.
-        if (await refreshGoogleAccessToken(true)) {
+        if (await refreshGoogleAccessToken(true, authUidRef.current)) {
           return loadCalendarEvents(isSilent, true);
         }
       }
@@ -1534,7 +1565,7 @@ export default function App() {
     } finally {
       if (!isSilent) setIsLoadingEvents(false);
     }
-  }, [handleGoogleLoaderFailure, t]);
+  }, [handleGoogleLoaderFailure, handleMissingGoogleToken, t]);
 
   // Fetch Academic Emails & Summarize with Gemini (runs ONLY when Gmail permission is granted)
   const loadEmailsAndAlerts = useCallback(async (isSilent = false, forceResort = false, options?: FetchEmailOptions, _retried = false) => {
@@ -1547,14 +1578,15 @@ export default function App() {
       setGmailApiInfo(null);
       return;
     }
-    const token = await ensureFreshGoogleToken();
+    const token = await ensureFreshGoogleToken(authUidRef.current);
     if (!token) {
-      if (!isDemoModeRef.current) {
-        setRawEmails([]);
-        setEmailAlerts([]);
-      }
-      setEmailError(null);
-      setGmailApiInfo(null);
+      handleMissingGoogleToken(
+        setEmailError,
+        setGmailApiInfo,
+        t('app_err_gmail_disconnected'),
+        t('app_toast_gmail_sync'),
+        isSilent
+      );
       return;
     }
 
@@ -1626,7 +1658,7 @@ export default function App() {
       console.error('Email fetch error:', err);
       const is401 = err?.status === 401 || /401|expired|hết hạn/i.test(err?.message || '');
       if (is401 && !_retried) {
-        if (await refreshGoogleAccessToken(true)) {
+        if (await refreshGoogleAccessToken(true, authUidRef.current)) {
           return loadEmailsAndAlerts(isSilent, forceResort, options, true);
         }
       }
@@ -1649,7 +1681,7 @@ export default function App() {
     } finally {
       if (!isSilent) setIsLoadingEmails(false);
     }
-  }, [handleGoogleLoaderFailure, t]);
+  }, [handleGoogleLoaderFailure, handleMissingGoogleToken, t]);
 
   // Fetch Master Sheet Assignments (runs ONLY when Google Sheets permission is granted)
   const loadSheetAssignments = useCallback(async (isSilent = false, _retried = false) => {
@@ -1658,10 +1690,15 @@ export default function App() {
       setSheetApiInfo(null);
       return;
     }
-    const token = await ensureFreshGoogleToken();
+    const token = await ensureFreshGoogleToken(authUidRef.current);
     if (!token) {
-      setSheetError(null);
-      setSheetApiInfo(null);
+      handleMissingGoogleToken(
+        setSheetError,
+        setSheetApiInfo,
+        t('app_err_sheet_disconnected'),
+        t('app_toast_sheet_sync'),
+        isSilent
+      );
       return;
     }
 
@@ -1707,7 +1744,7 @@ export default function App() {
       const is401 = err?.status === 401 || /401|expired|hết hạn/i.test(err?.message || '');
       if (is401 && !_retried) {
         // One transparent renewal + retry — the user never sees expiry.
-        if (await refreshGoogleAccessToken(true)) {
+        if (await refreshGoogleAccessToken(true, authUidRef.current)) {
           return loadSheetAssignments(isSilent, true);
         }
       }
@@ -1730,7 +1767,7 @@ export default function App() {
     } finally {
       if (!isSilent) setIsLoadingAssignments(false);
     }
-  }, [handleGoogleLoaderFailure, t]);
+  }, [handleGoogleLoaderFailure, handleMissingGoogleToken, t]);
 
   // Fetch Recent Files (runs ONLY when Google Drive permission is granted)
   const loadRecentFiles = useCallback(async (isSilent = false, _retried = false) => {
@@ -1740,11 +1777,15 @@ export default function App() {
       setDriveApiInfo(null);
       return;
     }
-    const token = await ensureFreshGoogleToken();
+    const token = await ensureFreshGoogleToken(authUidRef.current);
     if (!token) {
-      if (!isDemoModeRef.current) setRecentFiles([]);
-      setDriveError(null);
-      setDriveApiInfo(null);
+      handleMissingGoogleToken(
+        setDriveError,
+        setDriveApiInfo,
+        t('app_err_drive_disconnected'),
+        t('app_toast_drive_sync'),
+        isSilent
+      );
       return;
     }
 
@@ -1760,7 +1801,7 @@ export default function App() {
       const is401 = err?.status === 401 || /401|expired|hết hạn/i.test(err?.message || '');
       if (is401 && !_retried) {
         // One transparent renewal + retry — the user never sees expiry.
-        if (await refreshGoogleAccessToken(true)) {
+        if (await refreshGoogleAccessToken(true, authUidRef.current)) {
           return loadRecentFiles(isSilent, true);
         }
       }
@@ -1782,7 +1823,7 @@ export default function App() {
     } finally {
       if (!isSilent) setIsLoadingFiles(false);
     }
-  }, [handleGoogleLoaderFailure, t]);
+  }, [handleGoogleLoaderFailure, handleMissingGoogleToken, t]);
 
   // Classroom announcements → same AI reader as Gmail. Re-read only when the post set changes.
   const loadClassroomAnnouncements = useCallback(async (token: string) => {
@@ -1847,10 +1888,15 @@ export default function App() {
       setClassroomApiInfo(null);
       return;
     }
-    const token = await ensureFreshGoogleToken();
+    const token = await ensureFreshGoogleToken(authUidRef.current);
     if (!token) {
-      setClassroomError(null);
-      setClassroomApiInfo(null);
+      handleMissingGoogleToken(
+        setClassroomError,
+        setClassroomApiInfo,
+        t('app_err_cls_disconnected'),
+        t('app_toast_cls_sync'),
+        isSilent
+      );
       return;
     }
 
@@ -1869,7 +1915,7 @@ export default function App() {
       console.error('Classroom fetch error:', err);
       const is401 = err?.status === 401 || /401|expired|hết hạn/i.test(err?.message || '');
       if (is401 && !_retried) {
-        if (await refreshGoogleAccessToken(true)) {
+        if (await refreshGoogleAccessToken(true, authUidRef.current)) {
           return loadClassroomData(isSilent, true);
         }
       }
@@ -1891,7 +1937,7 @@ export default function App() {
     } finally {
       if (!isSilent) setIsLoadingClassroom(false);
     }
-  }, [handleGoogleLoaderFailure, t]);
+  }, [handleGoogleLoaderFailure, handleMissingGoogleToken, t]);
 
   // Fetch Canvas assignments (Zero fake data)
   // NOTE: accepts an optional settings override so Save & Sync in CanvasSyncTab
@@ -2235,7 +2281,7 @@ export default function App() {
       const updated = e.detail?.token ?? getStoredGoogleToken();
       setGoogleToken(updated);
       setScopeRevision((n) => n + 1);
-      if (updated && !isHydratingAuthRef.current) {
+      if (updated && !isHydratingAuthRef.current && !isConnectingOAuthRef.current) {
         runFullSync(false);
       }
     };
@@ -2397,6 +2443,7 @@ export default function App() {
   const connectGoogleFeature = useCallback(
     async (feature: GoogleFeature, afterConnect?: () => Promise<void> | void) => {
       const attemptId = ++connectAttemptRef.current;
+      isConnectingOAuthRef.current = true;
       setConnectingFeature(feature);
       setIsLoggingIn(true);
       try {
@@ -2414,6 +2461,7 @@ export default function App() {
             return;
           }
           activeUser = signedIn.user;
+          authUidRef.current = signedIn.user.uid;
           setUser(signedIn.user);
           setIsDemoMode(false);
           setActiveGoogleUid(signedIn.user.uid);
@@ -2501,21 +2549,26 @@ export default function App() {
               : t('app_toast_feature_session_ready', { name: accountLabel }),
         });
 
-        // Sync in the background after modal has closed so slow network never traps the UI.
-        void (afterConnect ? afterConnect() : syncFeatureByKey(feature));
+        // Sync the target feature cleanly first, then quietly refresh any sibling connected services.
+        isConnectingOAuthRef.current = false;
+        void (async () => {
+          await (afterConnect ? afterConnect() : syncFeatureByKey(feature));
+          void runFullSync(true);
+        })();
       } catch (err: any) {
         if (attemptId === connectAttemptRef.current) {
           setPermissionPrompt(null);
           handleSignInFailure(err, feature === 'gmail' ? 'gmail' : 'workspace');
         }
       } finally {
+        isConnectingOAuthRef.current = false;
         if (attemptId === connectAttemptRef.current) {
           setConnectingFeature(null);
           setIsLoggingIn(false);
         }
       }
     },
-    [user, addToast, handleSignInFailure, syncFeatureByKey, t]
+    [user, addToast, handleSignInFailure, syncFeatureByKey, runFullSync, t]
   );
 
   const confirmPermissionPrompt = async () => {
@@ -2534,6 +2587,7 @@ export default function App() {
     // (Unlike logout, the next sign-in starts blank for this account.)
     await clearGoogleGrant(user?.uid || null);
     setGoogleToken(null);
+    setScopeRevision((n) => n + 1);
     setCalendarEvents([]);
     setEmailAlerts([]);
     setRawEmails([]);
@@ -3355,6 +3409,7 @@ export default function App() {
                     onExtractAssignment={handleExtractAssignment}
                     isGoogleConnected={hasGmailAccess}
                     onConnectGoogle={() => promptConnectFeature('gmail', () => loadEmailsAndAlerts(false))}
+                    onDisconnectGoogle={handleDisconnectGoogle}
                     connectedEmail={user?.email || null}
                     emailError={emailError}
                     gmailApiInfo={gmailApiInfo}

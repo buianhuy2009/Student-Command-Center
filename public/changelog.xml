@@ -6,6 +6,12 @@
     <description>Plain-English updates to StudentOS — what changed and why it matters for studying.</description>
     <language>en-us</language>
     <item>
+      <title>v2.20.2 — Multi-Service Google OAuth Consent &amp; Honest Sync Diagnostics</title>
+      <link>https://sutdent-command-center.vercel.app/?changelog=2.20.2</link>
+      <pubDate>Sun, 15 Nov 2026 12:31:34 GMT</pubDate>
+      <description>StudentOS v2.20.2 keeps previously authorized Google services when connecting new ones, clears broken refresh grants instead of showing false connected states with 0 items, and surfaces Gmail/Classroom permission and fetch errors clearly.</description>
+    </item>
+    <item>
       <title>v2.20.1 — Instant Google Connect Exit &amp; Accurate Gmail, Classroom, and Drive Loading</title>
       <link>https://sutdent-command-center.vercel.app/?changelog=2.20.1</link>
       <pubDate>Sun, 15 Nov 2026 12:04:06 GMT</pubDate>

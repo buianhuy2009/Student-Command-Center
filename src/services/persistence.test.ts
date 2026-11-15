@@ -414,3 +414,218 @@ describe('Google Workspace & Classroom API error surfacing', () => {
     expect(ga.hasFeatureAccess('classroom')).toBe(false);
   });
 });
+
+describe('google oauth multi-service consent & error surfacing', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it('requests accumulated scopes across Gmail and Classroom so connecting one keeps the other', async () => {
+    const ga = await import('./googleAuth');
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: any) => {
+        const url = String(input);
+        if (url.includes('/api/health')) {
+          return {
+            ok: true,
+            status: 200,
+            json: async () => ({ ok: true, hasGoogleOAuth: false }),
+          } as Response;
+        }
+        return { ok: false, status: 404, json: async () => ({}) } as Response;
+      })
+    );
+
+    if (typeof window === 'undefined') {
+      (globalThis as any).window = globalThis;
+    }
+    const requestedScopes: string[] = [];
+    (window as any).google = {
+      accounts: {
+        oauth2: {
+          initCodeClient: vi.fn(),
+          initTokenClient: vi.fn((cfg: any) => {
+            requestedScopes.push(String(cfg.scope || ''));
+            return {
+              requestAccessToken: () => {
+                // Simulate Google echoing back whatever scopes were requested this turn.
+                cfg.callback?.({
+                  access_token: `ya29.multi-${requestedScopes.length}`,
+                  scope: String(cfg.scope || ''),
+                });
+              },
+            };
+          }),
+        },
+      },
+    };
+
+    await ga.preloadGoogleOAuthReadiness();
+    const gmailRes = await ga.requestFeaturePermissionDetailed('gmail');
+    expect(gmailRes.status).toBe('granted');
+    expect(ga.hasFeatureAccess('gmail')).toBe(true);
+
+    const clsRes = await ga.requestFeaturePermissionDetailed('classroom');
+    expect(clsRes.status).toBe('granted');
+    expect(requestedScopes[1]).toContain('https://www.googleapis.com/auth/gmail.readonly');
+    expect(requestedScopes[1]).toContain('https://www.googleapis.com/auth/classroom.courses.readonly');
+    expect(ga.hasFeatureAccess('gmail')).toBe(true);
+    expect(ga.hasFeatureAccess('classroom')).toBe(true);
+  });
+
+  it('falls back cleanly to Tier 2 GIS token client when /api/auth/google/exchange fails with 400', async () => {
+    const ga = await import('./googleAuth');
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: any) => {
+        const url = String(input);
+        if (url.includes('/api/health')) {
+          return {
+            ok: true,
+            status: 200,
+            json: async () => ({ ok: true, hasGoogleOAuth: true }),
+          } as Response;
+        }
+        if (url.includes('/api/auth/google/exchange')) {
+          return {
+            ok: false,
+            status: 400,
+            json: async () => ({ error: 'redirect_uri_mismatch' }),
+          } as Response;
+        }
+        return { ok: false, status: 404, json: async () => ({}) } as Response;
+      })
+    );
+
+    if (typeof window === 'undefined') {
+      (globalThis as any).window = globalThis;
+    }
+    const tokenCalls: any[] = [];
+    (window as any).google = {
+      accounts: {
+        oauth2: {
+          initCodeClient: vi.fn((cfg: any) => ({
+            requestCode: () => cfg.callback?.({ code: 'auth-code-fallback' }),
+          })),
+          initTokenClient: vi.fn((cfg: any) => {
+            tokenCalls.push(cfg);
+            return {
+              requestAccessToken: () =>
+                cfg.callback?.({
+                  access_token: 'ya29.tier2-fallback',
+                  scope: ga.FEATURE_SCOPES.gmail.join(' '),
+                }),
+            };
+          }),
+        },
+      },
+    };
+
+    await ga.preloadGoogleOAuthReadiness();
+    const res = await ga.requestFeaturePermissionDetailed('gmail');
+    expect(res.status).toBe('granted');
+    expect(tokenCalls).toHaveLength(1);
+    expect(ga.hasFeatureAccess('gmail')).toBe(true);
+  });
+
+  it('clears broken refresh grants on 400/500 refresh failures instead of staying zombie connected', async () => {
+    const fb = await import('./firebase');
+    const ga = await import('./googleAuth');
+
+    for (const status of [400, 500]) {
+      ga.__resetGrantCacheForTests();
+      fb.__resetTokenMemoryForTests();
+      fb.setActiveGoogleUid(UID_A);
+      // Seed an expired access token + broken refresh grant + scopes just like a stale persisted session.
+      fb.setStoredGoogleToken('ya29.expired-token', UID_A);
+      const staleAt = String(Date.now() - 2 * 60 * 60 * 1000);
+      for (const k of ['google_token_acquired_at', `google_token_acquired_at__${UID_A}`]) {
+        localStorage.setItem(k, staleAt);
+        sessionStorage.setItem(k, staleAt);
+      }
+      localStorage.setItem(
+        `scc_google_refresh_v1__${UID_A}`,
+        JSON.stringify({
+          rt: '1//broken-refresh-token',
+          at: Date.now() - 2 * 60 * 60 * 1000,
+          scope: ga.FEATURE_SCOPES.gmail.join(' '),
+          grantedScopes: [...ga.FEATURE_SCOPES.gmail],
+        })
+      );
+      localStorage.setItem(`scc_google_scopes_v1__${UID_A}`, JSON.stringify(ga.FEATURE_SCOPES.gmail));
+      expect(ga.hasRefreshToken(UID_A)).toBe(true);
+      expect(ga.isConnected(UID_A)).toBe(true);
+
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async (input: any) => {
+          const url = String(input);
+          if (url.includes('/api/auth/google/refresh')) {
+            return {
+              ok: false,
+              status,
+              json: async () => ({
+                error: status === 500 ? 'Google OAuth client credentials are not configured' : 'unauthorized_client',
+              }),
+            } as Response;
+          }
+          return { ok: false, status: 404, json: async () => ({}) } as Response;
+        })
+      );
+
+      const token = await ga.ensureFreshGoogleToken(UID_A);
+      expect(token).toBeNull();
+      expect(ga.hasRefreshToken(UID_A)).toBe(false);
+      expect(ga.isConnected(UID_A)).toBe(false);
+      expect(ga.hasFeatureAccess('gmail', UID_A)).toBe(false);
+    }
+  });
+
+  it('detects mixed-case Insufficient Permission and throws when all email detail fetches fail', async () => {
+    const gw = await import('./googleWorkspace');
+    const err = gw.parseGoogleApiResponseError(
+      403,
+      JSON.stringify({
+        error: {
+          message: 'Insufficient Permission',
+          errors: [{ reason: 'insufficientPermissions', message: 'Insufficient Permission' }],
+        },
+      }),
+      'Gmail',
+      'gmail.googleapis.com'
+    );
+    expect(err.status).toBe(403);
+    expect((err as any).isInsufficientScope).toBe(true);
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: any) => {
+        const url = String(input);
+        if (url.includes('/messages?')) {
+          return {
+            ok: true,
+            status: 200,
+            json: async () => ({ messages: [{ id: 'm1', threadId: 't1' }] }),
+          } as unknown as Response;
+        }
+        return {
+          ok: false,
+          status: 403,
+          text: async () =>
+            JSON.stringify({
+              error: { message: 'Request had insufficient authentication scopes.' },
+            }),
+        } as unknown as Response;
+      })
+    );
+
+    await expect(gw.fetchAcademicEmails('ya29.bad-scope')).rejects.toMatchObject({
+      status: 403,
+      isInsufficientScope: true,
+    });
+  });
+});

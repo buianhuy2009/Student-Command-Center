@@ -2096,6 +2096,14 @@ export const vi = {
   changelog_sidebar_title: "Lịch sử phiên bản",
   changelog_whats_new: "Có gì mới",
 
+  changelog_r_2_20_2_t: "Cấp quyền Google đa dịch vụ liên tục & Báo trạng thái đồng bộ trung thực",
+  changelog_r_2_20_2_h1: "Khi kết nối thêm Gmail, Google Classroom, Calendar, Drive hoặc Sheets, các dịch vụ đã cấp quyền trước đó luôn được giữ nguyên thay vì bị ghi đè",
+  changelog_r_2_20_2_h2: "Phiên Google hết hạn hoặc lỗi làm mới được dọn sạch tự động — Hộp thư trường học và Classroom sẽ báo cần kết nối lại thay vì hiện 'Đã kết nối' nhưng 0 mục",
+  changelog_r_2_20_2_h3: "Lỗi tải nội dung Gmail và lỗi thiếu quyền không còn bị ẩn sau màn hình trống",
+  changelog_r_2_20_2_d1: "Giữ quyền cộng dồn & dự phòng OAuth mượt mà: cập nhật googleAuth để giữ nguyên các scope dịch vụ đang hoạt động khi xin thêm quyền mới qua cả 3 tầng OAuth và tự chuyển sang tầng dự phòng nếu trao đổi mã thất bại.",
+  changelog_r_2_20_2_d2: "Trạng thái kết nối trung thực: tự xóa refresh grant hỏng khi gặp lỗi 400/500, truyền đúng UID tài khoản khi làm mới token, nối nút Ngắt kết nối cho Hộp thư và hiển thị thông báo rõ ràng thay vì im lặng khi thiếu token.",
+  changelog_r_2_20_2_d3: "Báo lỗi chuẩn cho Gmail & Classroom: nhận diện lỗi thiếu quyền 403 không phân biệt hoa/thường, chia nhóm tải chi tiết Gmail theo lô và ném lỗi khi toàn bộ chi tiết thư hoặc bài tập Classroom tải thất bại.",
+
   changelog_r_2_20_1_t: "Đóng nhanh hộp thoại kết nối Google & Tải chuẩn Gmail, Classroom và Drive",
   changelog_r_2_20_1_h1: "Cửa sổ cấp quyền Google tự đóng ngay khi nhận quyền và không bao giờ kẹt ở 'Đang mở Google...' (luôn thoát được bằng Esc, X hoặc Để sau)",
   changelog_r_2_20_1_h2: "Gmail, Google Classroom và Drive đồng bộ ngay sau khi cấp quyền và báo rõ nếu thiếu quyền hoặc API chưa bật",

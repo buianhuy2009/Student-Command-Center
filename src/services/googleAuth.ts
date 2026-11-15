@@ -527,7 +527,7 @@ if (typeof window !== 'undefined') {
         return;
       }
       if (detail?.scopes) {
-        recordGrantedScopes(detail.scopes);
+        recordGrantedScopes(detail.scopes, detail.uid);
       }
     });
   } catch {}
@@ -627,11 +627,21 @@ let inflightRefresh: Promise<boolean> | null = null;
  * Returns true when a usable access token is stored afterwards.
  * Revoked/invalid grants are forgotten and report false (caller reconnects).
  */
-export function refreshGoogleAccessToken(force = false): Promise<boolean> {
+async function invalidateBrokenRefreshGrant(uid: string | null): Promise<void> {
+  await clearRefreshGrant(uid);
+  if (!getValidGoogleToken()) {
+    try {
+      const { clearStoredGoogleToken } = await import('./firebase');
+      clearStoredGoogleToken(uid);
+    } catch {}
+  }
+}
+
+export function refreshGoogleAccessToken(force = false, explicitUid?: string | null): Promise<boolean> {
   if (inflightRefresh) return inflightRefresh;
   inflightRefresh = (async () => {
     try {
-      const uid = resolveGrantUid();
+      const uid = resolveGrantUid(explicitUid);
       const grant = readGrantSync(uid);
       if (!grant?.rt) return false;
       if (!force) {
@@ -646,8 +656,13 @@ export function refreshGoogleAccessToken(force = false): Promise<boolean> {
         body: JSON.stringify({ refresh_token: grant.rt, scope: grant.scope }),
       });
       const data = await res.json().catch(() => ({}));
-      if (res.status === 401 || data?.error === 'refresh_revoked') {
-        await clearRefreshGrant(uid);
+      if (res.status === 500 && /not configured/i.test(String(data?.error || ''))) {
+        cachedServerOAuthSupport = false;
+        await invalidateBrokenRefreshGrant(uid);
+        return false;
+      }
+      if (res.status === 401 || res.status === 400 || data?.error === 'refresh_revoked') {
+        await invalidateBrokenRefreshGrant(uid);
         return false;
       }
       if (!res.ok || !data?.access_token) return false;
@@ -685,24 +700,25 @@ export function refreshGoogleAccessToken(force = false): Promise<boolean> {
  * one is missing, expired, or within ~5 minutes of expiring. Returns null only
  * when there is no grant at all (or the grant was revoked).
  */
-export async function ensureFreshGoogleToken(): Promise<string | null> {
+export async function ensureFreshGoogleToken(explicitUid?: string | null): Promise<string | null> {
   try {
+    const uid = resolveGrantUid(explicitUid);
     const current = getValidGoogleToken();
     const age = getGoogleTokenAgeMs();
     if (current && (age === null || age < REFRESH_EARLY_MS)) return current;
     if (current && age !== null && age >= REFRESH_EARLY_MS) {
       // Aging token: try to renew, but the current one still works meanwhile.
-      const ok = await refreshGoogleAccessToken(true);
-      return ok ? getStoredGoogleToken() || current : current;
+      const ok = await refreshGoogleAccessToken(true, uid);
+      return ok ? getValidGoogleToken() || current : current;
     }
     // Missing/expired: refresh is the only path (no nagging reconnect UI).
-    if (hasRefreshToken()) {
-      const ok = await refreshGoogleAccessToken(true);
-      if (ok) return getStoredGoogleToken();
+    if (hasRefreshToken(uid)) {
+      const ok = await refreshGoogleAccessToken(true, uid);
+      if (ok) return getValidGoogleToken() || getStoredGoogleToken();
     }
     return current;
   } catch {
-    return getStoredGoogleToken();
+    return getValidGoogleToken();
   }
 }
 
@@ -807,6 +823,7 @@ type GisInteractiveOutcome =
   | { status: 'dismissed' }
   | { status: 'popup_blocked'; message: string }
   | { status: 'server_unconfigured'; message: string }
+  | { status: 'exchange_failed'; message: string }
   | { status: 'gis_failed'; message: string };
 
 async function ensureGisReady(): Promise<boolean> {
@@ -904,22 +921,33 @@ async function runGisCodeExchangeDetailed(params: {
   }
   if (!code) return { status: 'dismissed' };
 
-  const res = await fetchWithTimeout('/api/auth/google/exchange', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      code,
-      redirect_uri: 'postmessage',
-      scope: codeCallbackScope || requestedScopes.join(' '),
-    }),
-  });
+  let res: Response;
+  try {
+    res = await fetchWithTimeout('/api/auth/google/exchange', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        code,
+        redirect_uri: 'postmessage',
+        scope: codeCallbackScope || requestedScopes.join(' '),
+      }),
+    });
+  } catch (err: any) {
+    return {
+      status: 'exchange_failed',
+      message: String(err?.message || t('gauth_connect_failed')),
+    };
+  }
   const data = await res.json().catch(() => ({}));
   if (res.status === 500 && /not configured/i.test(String(data?.error || ''))) {
     cachedServerOAuthSupport = false;
     return { status: 'server_unconfigured', message: String(data.error) };
   }
   if (!res.ok || !data?.access_token) {
-    throw new Error(data?.error || t('gauth_connect_failed'));
+    return {
+      status: 'exchange_failed',
+      message: String(data?.error || t('gauth_connect_failed')),
+    };
   }
 
   const mergedScopes = await finalizeGrantedSession({
@@ -958,6 +986,7 @@ async function runGisTokenClientDetailed(params: {
   if (!gisLoaded) return { status: 'gis_failed', message: t('gauth_window_open_failed') };
 
   try {
+    const promptValue = params.prompt !== undefined ? params.prompt : 'consent';
     const tokenResp = await new Promise<{ accessToken: string; scopeStr: string }>((resolve, reject) => {
       let settled = false;
       const finish = (fn: () => void) => {
@@ -974,7 +1003,7 @@ async function runGisTokenClientDetailed(params: {
           client_id: clientId,
           scope: requestedScopes.join(' '),
           include_granted_scopes: includeGranted,
-          prompt: params.prompt || 'consent',
+          prompt: promptValue,
           callback: (resp: any) => {
             if (resp?.access_token) {
               finish(() => resolve({ accessToken: resp.access_token, scopeStr: String(resp.scope || '') }));
@@ -990,7 +1019,7 @@ async function runGisTokenClientDetailed(params: {
         };
         if (loginHint) config.login_hint = loginHint;
         const client = (window as any).google.accounts.oauth2.initTokenClient(config);
-        client.requestAccessToken({ prompt: params.prompt || 'consent' });
+        client.requestAccessToken({ prompt: promptValue });
       } catch (e) {
         finish(() => reject(e));
       }
@@ -1012,6 +1041,17 @@ async function runGisTokenClientDetailed(params: {
   }
 }
 
+function collectActiveFeatureScopes(uid?: string | null): string[] {
+  const features: GoogleFeature[] = ['calendar', 'gmail', 'drive', 'sheets', 'classroom'];
+  const out: string[] = [];
+  for (const f of features) {
+    if (hasFeatureAccess(f, uid)) {
+      out.push(...FEATURE_SCOPES[f]);
+    }
+  }
+  return normalizeScopes(out);
+}
+
 async function runGisCodeExchange(params: {
   scopes: string[];
   prompt?: string;
@@ -1022,46 +1062,77 @@ async function runGisCodeExchange(params: {
   const outcome = await runGisCodeExchangeDetailed(params);
   if (outcome.status === 'ok') return { accessToken: outcome.accessToken, scopes: outcome.scopes };
   if (outcome.status === 'dismissed') return null;
-  if (outcome.status === 'server_unconfigured') {
-    const fallback = await runGisTokenClientDetailed({ ...params, prompt: params.prompt || 'consent' });
-    if (fallback.status === 'ok') return { accessToken: fallback.accessToken, scopes: fallback.scopes };
-    if (fallback.status === 'dismissed') return null;
-    throw new Error(fallback.message || t('gauth_connect_failed'));
+
+  const { uid, loginHint } = resolveCurrentUserContextSync(params.uid, params.loginHint);
+  const tier2Prompt = outcome.status === 'exchange_failed' ? '' : params.prompt || 'consent';
+  const fallback = await runGisTokenClientDetailed({ ...params, prompt: tier2Prompt });
+  if (fallback.status === 'ok') return { accessToken: fallback.accessToken, scopes: fallback.scopes };
+  if (fallback.status === 'dismissed') return null;
+
+  const t3 = await requestFirebaseFeaturePopupScopes(params.scopes, {
+    loginHint,
+    forceConsent: params.prompt !== 'none' && params.prompt !== '',
+  });
+  if (t3.status === 'granted') {
+    const merged = await finalizeGrantedSession({
+      accessToken: t3.accessToken,
+      grantedScopes: t3.grantedScopes,
+      requestedScopes: params.scopes,
+      uid: t3.uid || uid,
+      includeGranted: params.includeGrantedScopes !== false,
+    });
+    return { accessToken: t3.accessToken, scopes: merged };
   }
-  throw new Error(outcome.message || t('gauth_permission_failed'));
+  if (t3.status === 'dismissed') return null;
+  const t3Msg =
+    t3.status === 'error'
+      ? t3.message
+      : t3.status === 'popup_blocked'
+      ? t('gauth_window_open_failed')
+      : undefined;
+  const fallbackMsg = 'message' in fallback ? fallback.message : undefined;
+  const outcomeMsg = 'message' in outcome ? outcome.message : undefined;
+  throw new Error(t3Msg || fallbackMsg || outcomeMsg || t('gauth_permission_failed'));
 }
 
 /**
  * Multi-tier per-feature Google authorization:
  * 1. Always sends interactive `prompt: 'consent'` so a past Cancel/Deny never locks retries.
- * 2. Tier 1: GIS `initCodeClient` + server `/exchange` when `hasGoogleOAuth` is enabled.
- * 3. Tier 2: GIS `initTokenClient` (no server secret required).
- * 4. Tier 3: Firebase Auth incremental popup (`reauthenticateWithPopup` / `signInWithPopup`) when GIS fails/is blocked.
+ * 2. Requests any already-connected feature scopes alongside the newly requested feature so
+ *    granting Classroom after Gmail (or vice versa) never drops earlier permissions.
+ * 3. Tier 1: GIS `initCodeClient` + server `/exchange` when `hasGoogleOAuth` is enabled.
+ * 4. Tier 2: GIS `initTokenClient` (falls back seamlessly on server unconfigured/exchange/GIS error).
+ * 5. Tier 3: Firebase Auth incremental popup (`reauthenticateWithPopup` / `signInWithPopup`).
  */
 export async function requestFeaturePermissionDetailed(
   feature: GoogleFeature,
   opts: { loginHint?: string; uid?: string; forceConsent?: boolean } = {}
 ): Promise<FeaturePermissionResult> {
-  const scopes = FEATURE_SCOPES[feature];
-  if (!scopes?.length) {
+  const requiredScopes = FEATURE_SCOPES[feature];
+  if (!requiredScopes?.length) {
     return { status: 'unconfigured', message: `Unknown Google feature: ${feature}` };
   }
 
   const { uid, loginHint } = resolveCurrentUserContextSync(opts.uid, opts.loginHint);
+  const carriedScopes = collectActiveFeatureScopes(uid);
+  const requestScopes = normalizeScopes([...carriedScopes, ...requiredScopes]);
   const prompt = opts.forceConsent === false ? undefined : 'consent';
   let mode: 'offline' | 'gis_token' | 'firebase_popup' = 'offline';
   let grantedOutcome: { accessToken: string; scopes: string[] } | null = null;
+  let t1Status: GisInteractiveOutcome['status'] | null = null;
+  let lastErrorMessage = '';
 
   try {
     // Only run Tier 1 when server exchange is configured (or unknown yet).
     if (cachedServerOAuthSupport !== false) {
       const t1 = await runGisCodeExchangeDetailed({
-        scopes,
+        scopes: requestScopes,
         prompt,
         loginHint,
         uid,
         includeGrantedScopes: true,
       });
+      t1Status = t1.status;
       if (t1.status === 'ok') {
         grantedOutcome = { accessToken: t1.accessToken, scopes: t1.scopes };
         mode = 'offline';
@@ -1069,16 +1140,17 @@ export async function requestFeaturePermissionDetailed(
         return { status: 'dismissed' };
       } else if (t1.status === 'popup_blocked') {
         return { status: 'popup_blocked', message: t1.message };
-      } else if (t1.status === 'server_unconfigured') {
-        // Server lacks secret — fall through seamlessly to Tier 2/3 below.
+      } else {
+        lastErrorMessage = t1.message;
       }
     }
 
-    // Tier 2: Browser-only GIS TokenClient (if Tier 1 was skipped or server lacked secret)
-    if (!grantedOutcome && cachedServerOAuthSupport === false) {
+    // Tier 2: Browser-only GIS TokenClient (skipped server secret, exchange error, or GIS code fallback)
+    if (!grantedOutcome) {
+      const tier2Prompt = t1Status === 'exchange_failed' ? '' : prompt || 'consent';
       const t2 = await runGisTokenClientDetailed({
-        scopes,
-        prompt: prompt || 'consent',
+        scopes: requestScopes,
+        prompt: tier2Prompt,
         loginHint,
         uid,
         includeGrantedScopes: true,
@@ -1090,12 +1162,14 @@ export async function requestFeaturePermissionDetailed(
         return { status: 'dismissed' };
       } else if (t2.status === 'popup_blocked') {
         return { status: 'popup_blocked', message: t2.message };
+      } else if (t2.message) {
+        lastErrorMessage = t2.message;
       }
     }
 
     // Tier 3: Firebase Auth incremental popup (covers blocked gsi/client or origin mismatch)
     if (!grantedOutcome) {
-      const t3 = await requestFirebaseFeaturePopupScopes(scopes, {
+      const t3 = await requestFirebaseFeaturePopupScopes(requestScopes, {
         loginHint,
         forceConsent: opts.forceConsent !== false,
       });
@@ -1103,7 +1177,7 @@ export async function requestFeaturePermissionDetailed(
         const merged = await finalizeGrantedSession({
           accessToken: t3.accessToken,
           grantedScopes: t3.grantedScopes,
-          requestedScopes: scopes,
+          requestedScopes: requestScopes,
           uid: t3.uid || uid,
           includeGranted: true,
         });
@@ -1114,11 +1188,11 @@ export async function requestFeaturePermissionDetailed(
       } else if (t3.status === 'popup_blocked') {
         return { status: 'popup_blocked' };
       } else {
-        return { status: 'error', message: t3.message, code: t3.code };
+        return { status: 'error', message: t3.message || lastErrorMessage, code: t3.code };
       }
     }
 
-    const missingScopes = scopes.filter((s) => !grantedOutcome!.scopes.includes(s));
+    const missingScopes = requiredScopes.filter((s) => !grantedOutcome!.scopes.includes(s));
     if (missingScopes.length > 0) {
       return {
         status: 'partial_scopes',
@@ -1339,9 +1413,9 @@ export async function trySilentRestore(
     void hydrated;
   } catch {}
   try {
-    const refreshed = await refreshGoogleAccessToken(true);
+    const refreshed = await refreshGoogleAccessToken(true, opts.uid);
     if (refreshed) {
-      const token = getStoredGoogleToken();
+      const token = getValidGoogleToken() || getStoredGoogleToken();
       if (token) {
         markGoogleConnected();
         return token;
@@ -1354,7 +1428,7 @@ export async function trySilentRestore(
     await loadGisScript().catch(() => {});
     const existingScopes = getGrantedScopes(opts.uid);
     const scopes = opts.feature
-      ? FEATURE_SCOPES[opts.feature]
+      ? normalizeScopes([...existingScopes, ...FEATURE_SCOPES[opts.feature]])
       : opts.scopes?.length
       ? opts.scopes
       : existingScopes.length > 0

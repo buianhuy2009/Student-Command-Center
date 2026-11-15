@@ -2095,6 +2095,14 @@ export const en = {
   changelog_sidebar_title: "Version History",
   changelog_whats_new: "What's New",
 
+  changelog_r_2_20_2_t: "Multi-Service Google OAuth Consent & Honest Sync Diagnostics",
+  changelog_r_2_20_2_h1: "Connecting Gmail, Google Classroom, Calendar, Drive, and Sheets now keeps all your previously granted services active instead of overwriting earlier permissions",
+  changelog_r_2_20_2_h2: "Expired or broken Google sessions are cleared automatically so School Inbox and Classroom never look connected while silently showing 0 items",
+  changelog_r_2_20_2_h3: "Gmail detail fetch errors and mixed-case permission failures now surface clear reconnect prompts instead of hiding behind an empty inbox",
+  changelog_r_2_20_2_d1: "Cumulative Scope Preservation & Tier Fallback: updated googleAuth so requesting a new Google service retains previously granted active scopes across offline code exchange, GIS token popup, and Firebase popup fallbacks, and falls back smoothly if OAuth code exchange fails.",
+  changelog_r_2_20_2_d2: "Honest Token & Error Surfacing: cleared broken 400/500 refresh grants automatically, wired UID-scoped token checks and explicit disconnect handling in School Inbox, and replaced silent empty-token bailouts across all five Google loaders with clear reconnect prompts while keeping cached items.",
+  changelog_r_2_20_2_d3: "Gmail & Classroom Error Propagation: made 403 insufficient-scope detection case-insensitive, batched Gmail message detail requests, and propagated total detail/coursework fetch failures instead of returning 0 Messages or 0 Assignments.",
+
   changelog_r_2_20_1_t: "Instant Google Connect Exit & Accurate Gmail, Classroom, and Drive Loading",
   changelog_r_2_20_1_h1: "Google permission popup now closes immediately when access returns and never traps you on 'Opening Google...'",
   changelog_r_2_20_1_h2: "Gmail, Google Classroom, and Drive now sync immediately after consent and clearly report API or permission issues",
