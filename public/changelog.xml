@@ -6,6 +6,12 @@
     <description>Plain-English updates to StudentOS — what changed and why it matters for studying.</description>
     <language>en-us</language>
     <item>
+      <title>v2.20.4 — Single-Popup Google Sign-In &amp; Direct Firebase Auth Consent</title>
+      <link>https://sutdent-command-center.vercel.app/?changelog=2.20.4</link>
+      <pubDate>Sun, 15 Nov 2026 15:01:43 GMT</pubDate>
+      <description>StudentOS v2.20.4 restores direct Firebase Auth popup sign-in as the primary consent flow, consolidates signed-out feature connections into a single popup, and hardens scope preservation and refresh race guards so Gmail, Classroom, Drive, Calendar, and Sheets connect and load reliably.</description>
+    </item>
+    <item>
       <title>v2.20.3 — Resilient Google OAuth Popup Completion &amp; Accurate Checkbox Verification</title>
       <link>https://sutdent-command-center.vercel.app/?changelog=2.20.3</link>
       <pubDate>Sun, 15 Nov 2026 14:33:56 GMT</pubDate>

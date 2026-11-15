@@ -2099,6 +2099,14 @@ export const en = {
   changelog_sidebar_title: "Version History",
   changelog_whats_new: "What's New",
 
+  changelog_r_2_20_4_t: "Single-Popup Google Sign-In & Direct Firebase Auth Consent",
+  changelog_r_2_20_4_h1: "Connecting Gmail, Google Classroom, Calendar, Drive, or Sheets now uses one reliable Google popup that completes Google's warning and permission checkboxes without premature cancellations",
+  changelog_r_2_20_4_h2: "Connecting a tool before signing in now opens a single Google popup instead of two chained windows, preventing false 'Failed to grant permissions' and 'Missing Permission Checkboxes' errors",
+  changelog_r_2_20_4_h3: "Redirect sign-in fallback, account switching, and background session refreshes now keep your newly granted service permissions intact",
+  changelog_r_2_20_4_d1: "Firebase Auth Primary Transport: routed requestFeaturePermissionDetailed and signInWithAccountSelect through Firebase Auth signInWithPopup first (keeping GIS as fallback), avoiding Chrome COOP same-origin disconnects on Google's oauth/v3/warning screen.",
+  changelog_r_2_20_4_d2: "Single-Gesture Connect & Scope Matching: removed the double-popup sign-in step in App.tsx so unauthenticated clicks open one popup directly, preserved fallback scopes on empty tokeninfo responses, and added broad-to-granular Google scope equivalence checks.",
+  changelog_r_2_20_4_d3: "Race-Safe Refresh & Redirect Flows: added grantSequence guards against in-flight 400 /refresh errors wiping newer popup grants, paused stale auth hydration while connecting, and preserved requested feature scopes across signInWithRedirectFlow and consumeRedirectResult.",
+
   changelog_r_2_20_3_t: "Resilient Google OAuth Popup Completion & Accurate Checkbox Verification",
   changelog_r_2_20_3_h1: "Google's Continue / unverified-app screen no longer cancels sign-in before you finish approving, and completing it in the open window connects automatically",
   changelog_r_2_20_3_h2: "Connecting Google Classroom and Gmail after ticking all permission boxes no longer triggers false 'Missing Permission Checkboxes' warnings",

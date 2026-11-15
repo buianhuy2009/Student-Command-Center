@@ -2,7 +2,6 @@ import { initializeApp, getApps, getApp } from 'firebase/app';
 import {
   getAuth,
   signInWithPopup,
-  reauthenticateWithPopup,
   signInWithRedirect,
   GoogleAuthProvider,
   onAuthStateChanged,
@@ -688,85 +687,96 @@ export const signInWithGoogleBasic = async (): Promise<{ user: User; accessToken
 };
 
 export type FirebaseFeaturePopupResult =
-  | { status: 'granted'; accessToken: string; grantedScopes: string[]; uid: string | null }
+  | { status: 'granted'; accessToken: string; grantedScopes: string[]; uid: string | null; user?: User | null }
   | { status: 'dismissed' }
   | { status: 'popup_blocked' }
   | { status: 'error'; code?: string; message: string };
 
+const REDIRECT_PENDING_KEY = 'scc_pending_redirect_oauth_v1';
+
+async function lookupTokenGrantedScopes(accessToken: string, fallbackScopes: string[]): Promise<string[]> {
+  let grantedScopes = [...fallbackScopes];
+  try {
+    const infoController = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const infoTimer = infoController ? setTimeout(() => infoController.abort(), 5000) : null;
+    try {
+      const infoRes = await fetch(
+        `https://oauth2.googleapis.com/tokeninfo?access_token=${encodeURIComponent(accessToken)}`,
+        { signal: infoController?.signal }
+      );
+      if (infoRes.ok) {
+        const info = await infoRes.json().catch(() => null);
+        if (info && typeof info.scope === 'string' && info.scope.trim().length > 0) {
+          grantedScopes = info.scope.split(/\s+/).map((s: string) => s.trim()).filter(Boolean);
+        }
+      }
+    } finally {
+      if (infoTimer) clearTimeout(infoTimer);
+    }
+  } catch {
+    // Fallback to requested list if tokeninfo lookup is offline
+  }
+  return grantedScopes;
+}
+
 /**
- * Tier-3 incremental Google feature authorization through Firebase Auth popup.
- * Forces interactive consent when requested so a prior Cancel/Deny never locks
- * future retries, and verifies exact granted scopes via Google tokeninfo.
+ * Primary interactive per-feature Google authorization via Firebase Auth popup.
+ * Mirrors the classic `signInWithPopup` transport (firebaseapp.com/__/auth/handler)
+ * so Chrome's COOP headers on Google's unverified-app screen never sever the popup
+ * or cancel consent mid-flow, and a single popup signs in + grants scopes at once.
  */
 export async function requestFirebaseFeaturePopupScopes(
   scopes: string[],
-  options: { loginHint?: string; forceConsent?: boolean } = {}
+  options: { loginHint?: string; forceConsent?: boolean; selectAccount?: boolean } = {}
 ): Promise<FirebaseFeaturePopupResult> {
   if (!scopes.length) return { status: 'error', message: 'No scopes specified' };
   const scopeProvider = new GoogleAuthProvider();
   scopes.forEach((s) => scopeProvider.addScope(s));
   const customParams: Record<string, string> = {
     include_granted_scopes: 'true',
-    prompt: options.forceConsent !== false ? 'consent' : 'select_account',
+    prompt: options.selectAccount
+      ? options.forceConsent !== false
+        ? 'select_account consent'
+        : 'select_account'
+      : options.forceConsent !== false
+      ? 'consent'
+      : 'select_account',
   };
-  if (options.loginHint) customParams.login_hint = options.loginHint;
+  if (options.loginHint && !options.selectAccount) {
+    customParams.login_hint = options.loginHint;
+  }
   scopeProvider.setCustomParameters(customParams);
 
   try {
     isSigningIn = true;
-    try { await setPersistence(auth, browserLocalPersistence); } catch {}
-    let result: any;
+    // Persistence is already configured on startup; keep this non-blocking so
+    // `signInWithPopup` runs inside the original click gesture without popup blocks.
+    void setPersistence(auth, browserLocalPersistence).catch(() => {});
     const POPUP_TIMEOUT_MS = 90000;
-    const runPopup = async () => {
-      try {
-        return auth.currentUser
-          ? await reauthenticateWithPopup(auth.currentUser, scopeProvider)
-          : await signInWithPopup(auth, scopeProvider);
-      } catch (reauthErr: any) {
-        if (reauthErr?.code === 'auth/user-mismatch' || reauthErr?.code === 'auth/no-current-user') {
-          return await signInWithPopup(auth, scopeProvider);
-        }
-        throw reauthErr;
-      }
-    };
-    result = await Promise.race([
-      runPopup(),
+    const result: any = await Promise.race([
+      signInWithPopup(auth, scopeProvider),
       new Promise((_res, rej) =>
         setTimeout(() => rej(Object.assign(new Error(t('fb_err_timeout')), { code: 'auth/timeout' })), POPUP_TIMEOUT_MS)
       ),
     ]);
     const credential = GoogleAuthProvider.credentialFromResult(result);
     const accessToken = credential?.accessToken || '';
-    const uid: string | null = result?.user?.uid || auth.currentUser?.uid || null;
+    const resolvedUser: User | null = result?.user || auth.currentUser || null;
+    const uid: string | null = resolvedUser?.uid || null;
     if (!accessToken) {
       return { status: 'error', message: t('fb_err_no_access_token') };
     }
 
     // Verify which granular scopes Google actually granted to this token.
-    let grantedScopes = [...scopes];
-    try {
-      const infoController = typeof AbortController !== 'undefined' ? new AbortController() : null;
-      const infoTimer = infoController ? setTimeout(() => infoController.abort(), 5000) : null;
-      try {
-        const infoRes = await fetch(
-          `https://oauth2.googleapis.com/tokeninfo?access_token=${encodeURIComponent(accessToken)}`,
-          { signal: infoController?.signal }
-        );
-        if (infoRes.ok) {
-          const info = await infoRes.json().catch(() => null);
-          if (info && typeof info.scope === 'string') {
-            grantedScopes = info.scope.split(/\s+/).map((s: string) => s.trim()).filter(Boolean);
-          }
-        }
-      } finally {
-        if (infoTimer) clearTimeout(infoTimer);
-      }
-    } catch {
-      // Fallback to requested list if tokeninfo lookup is offline
-    }
+    const grantedScopes = await lookupTokenGrantedScopes(accessToken, scopes);
 
     if (uid) setActiveGoogleUid(uid);
-    return { status: 'granted', accessToken, grantedScopes, uid };
+    try {
+      if (typeof localStorage !== 'undefined' && resolvedUser?.email) {
+        localStorage.setItem('scc_google_email_v1', resolvedUser.email);
+      }
+    } catch {}
+    return { status: 'granted', accessToken, grantedScopes, uid, user: resolvedUser };
   } catch (err: any) {
     const code = String(err?.code || '');
     const msg = String(err?.message || '');
@@ -800,36 +810,96 @@ export const signInWithGmail = async (): Promise<{ user: User; accessToken: stri
  * here — call consumeRedirectResult() on the next load to finish the job.
  */
 export const signInWithRedirectFlow = async (
-  options: { requestWorkspace?: boolean; includeGmail?: boolean } = { requestWorkspace: false }
+  options: { requestWorkspace?: boolean; includeGmail?: boolean; feature?: string; scopes?: string[] } = {
+    requestWorkspace: false,
+  }
 ): Promise<void> => {
-  const requestWorkspace = Boolean(options?.requestWorkspace);
-  const targetProvider = !requestWorkspace
-    ? basicProvider
-    : options?.includeGmail
-    ? workspaceProvider
-    : coreWorkspaceProvider;
+  const customScopes = Array.isArray(options?.scopes) ? options.scopes.filter(Boolean) : [];
+  let targetProvider: GoogleAuthProvider;
+  let pendingScopes: string[] = [];
+
+  if (customScopes.length > 0) {
+    targetProvider = new GoogleAuthProvider();
+    customScopes.forEach((s) => targetProvider.addScope(s));
+    targetProvider.setCustomParameters({
+      include_granted_scopes: 'true',
+      prompt: 'consent',
+    });
+    pendingScopes = customScopes;
+  } else {
+    const requestWorkspace = Boolean(options?.requestWorkspace);
+    targetProvider = !requestWorkspace
+      ? basicProvider
+      : options?.includeGmail
+      ? workspaceProvider
+      : coreWorkspaceProvider;
+    pendingScopes = requestWorkspace
+      ? options?.includeGmail
+        ? WORKSPACE_SCOPES
+        : CORE_WORKSPACE_SCOPES
+      : [];
+  }
+
+  try {
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.setItem(
+        REDIRECT_PENDING_KEY,
+        JSON.stringify({ feature: options?.feature || null, scopes: pendingScopes })
+      );
+    }
+  } catch {}
   try { await setPersistence(auth, browserLocalPersistence); } catch {}
   await signInWithRedirect(auth, targetProvider);
 };
 
-let redirectResultPromise: Promise<{ user: User; accessToken: string } | null> | null = null;
+export interface ConsumedRedirectResult {
+  user: User;
+  accessToken: string;
+  grantedScopes: string[];
+  feature?: string | null;
+}
+
+let redirectResultPromise: Promise<ConsumedRedirectResult | null> | null = null;
+
+/** @internal Test-only: reset memoized redirect result promise. */
+export function __resetRedirectResultForTests() {
+  redirectResultPromise = null;
+}
 
 /**
- * Finish a redirect sign-in after Google returns to the app. Returns the user +
- * workspace token (if granted) or null when this load was not a redirect return.
+ * Finish a redirect sign-in after Google returns to the app. Returns the user,
+ * workspace token (if granted), and verified scopes, or null when not a redirect return.
  * Memoized per page load so repeated calls (e.g. React StrictMode) consume once cleanly.
  */
-export const consumeRedirectResult = async (): Promise<{ user: User; accessToken: string } | null> => {
+export const consumeRedirectResult = async (): Promise<ConsumedRedirectResult | null> => {
   if (!redirectResultPromise) {
     redirectResultPromise = (async () => {
       try {
+        let pendingFeature: string | null = null;
+        let pendingScopes: string[] = [];
+        try {
+          if (typeof sessionStorage !== 'undefined') {
+            const raw = sessionStorage.getItem(REDIRECT_PENDING_KEY);
+            sessionStorage.removeItem(REDIRECT_PENDING_KEY);
+            if (raw) {
+              const parsed = JSON.parse(raw);
+              if (typeof parsed?.feature === 'string' && parsed.feature) pendingFeature = parsed.feature;
+              if (Array.isArray(parsed?.scopes)) pendingScopes = parsed.scopes.filter((s: unknown) => typeof s === 'string');
+            }
+          }
+        } catch {}
+
         const result = await getRedirectResult(auth);
         if (!result?.user) return null;
         const credential = GoogleAuthProvider.credentialFromResult(result);
         const uid: string | null = result.user?.uid || null;
         if (uid) setActiveGoogleUid(uid);
-        if (credential?.accessToken) setStoredGoogleToken(credential.accessToken, uid);
-        return { user: result.user, accessToken: credential?.accessToken || '' };
+        const accessToken = credential?.accessToken || '';
+        const grantedScopes = accessToken ? await lookupTokenGrantedScopes(accessToken, pendingScopes) : [];
+        if (accessToken) {
+          setStoredGoogleToken(accessToken, uid, grantedScopes.length ? grantedScopes : undefined);
+        }
+        return { user: result.user, accessToken, grantedScopes, feature: pendingFeature };
       } catch {
         return null;
       }

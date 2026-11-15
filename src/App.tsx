@@ -99,6 +99,10 @@ import {
   hasRefreshToken,
   hasFeatureAccess,
   FEATURE_SCOPES,
+  getGrantedScopes,
+  markGoogleConnected,
+  normalizeScopes,
+  recordGrantedScopes,
   removeGrantedScopes,
   requestFeaturePermissionDetailed,
   onLateGooglePermissionGranted,
@@ -774,6 +778,7 @@ export default function App() {
   const pendingFullSyncRef = useRef(false);
   const connectAttemptRef = useRef(0);
   const isConnectingOAuthRef = useRef(false);
+  const syncFeatureByKeyRef = useRef<((feature: GoogleFeature) => Promise<void>) | null>(null);
   const pendingLateFeatureRef = useRef<{
     feature: GoogleFeature;
     afterConnect?: () => Promise<void> | void;
@@ -925,6 +930,7 @@ export default function App() {
   const [shortcutsModalOpen, setShortcutsModalOpen] = useState(false);
   const [deploymentModalOpen, setDeploymentModalOpen] = useState(false);
   const [oauthGuideModalOpen, setOauthGuideModalOpen] = useState(false);
+  const [oauthRetryFeature, setOauthRetryFeature] = useState<GoogleFeature | null>(null);
   const [oauthDiagnosis, setOauthDiagnosis] = useState<SignInDiagnosis | null>(null);
   const [googleSyncHubOpen, setGoogleSyncHubOpen] = useState(false);
 
@@ -1375,20 +1381,34 @@ export default function App() {
         // Restore this account's Google token bundle, then cross-device grant.
         // Track promise so useEffect([user]) waits for hydration before runFullSync.
         isHydratingAuthRef.current = true;
-        tokenHydrationRef.current = hydrateGoogleTokenForUser(uid).then(async (restored) => {
-          const cur = restored ?? getStoredGoogleToken();
-          setGoogleToken(cur);
-          if (!hasRefreshToken(uid)) {
-            await hydrateRefreshGrant(uid).catch(() => false);
-          }
-          if (!getValidGoogleToken()) {
-            try {
-              const t = await ensureFreshGoogleToken(uid);
-              if (t) setGoogleToken(t);
-            } catch {}
-          }
-          setScopeRevision((n) => n + 1);
-        }).catch(() => {
+        tokenHydrationRef.current = (
+          isConnectingOAuthRef.current
+            ? Promise.resolve().then(() => {
+                const valid = getValidGoogleToken();
+                if (valid) setGoogleToken(valid);
+                setScopeRevision((n) => n + 1);
+              })
+            : hydrateGoogleTokenForUser(uid).then(async (restored) => {
+                if (isConnectingOAuthRef.current) {
+                  const valid = getValidGoogleToken();
+                  if (valid) setGoogleToken(valid);
+                  setScopeRevision((n) => n + 1);
+                  return;
+                }
+                const cur = getValidGoogleToken() ?? restored ?? getStoredGoogleToken();
+                setGoogleToken(cur);
+                if (!hasRefreshToken(uid)) {
+                  await hydrateRefreshGrant(uid).catch(() => false);
+                }
+                if (!isConnectingOAuthRef.current && !getValidGoogleToken()) {
+                  try {
+                    const t = await ensureFreshGoogleToken(uid);
+                    if (t && !isConnectingOAuthRef.current) setGoogleToken(t);
+                  } catch {}
+                }
+                setScopeRevision((n) => n + 1);
+              })
+        ).catch(() => {
           setGoogleToken(getStoredGoogleToken());
         }).finally(() => {
           isHydratingAuthRef.current = false;
@@ -2224,14 +2244,26 @@ export default function App() {
       try {
         const resumed = await consumeRedirectResult();
         if (!resumed) return;
+        authUidRef.current = resumed.user.uid;
         setUser(resumed.user);
         setIsDemoMode(false);
         setOauthGuideModalOpen(false);
+        setOauthRetryFeature(null);
         setActiveGoogleUid(resumed.user.uid);
+        if (resumed.grantedScopes?.length) {
+          recordGrantedScopes(resumed.grantedScopes, resumed.user.uid);
+        }
         if (resumed.accessToken) {
+          markGoogleConnected();
           setGoogleToken(resumed.accessToken);
+          setScopeRevision((n) => n + 1);
           try { await hydrateRefreshGrant(resumed.user.uid); } catch {}
-          await runFullSync(false);
+          if (resumed.feature && resumed.feature in FEATURE_SCOPES && syncFeatureByKeyRef.current) {
+            await syncFeatureByKeyRef.current(resumed.feature as GoogleFeature);
+            void runFullSync(true);
+          } else {
+            await runFullSync(false);
+          }
           addToast({
             type: 'success',
             title: t('app_toast_signed_in_title'),
@@ -2359,13 +2391,24 @@ export default function App() {
   }, [addToast, t]);
 
   // Popup-hostile browsers: full-page redirect to Google and back (basic sign-in only)
-  const handleRedirectSignIn = useCallback(async (requestWorkspace = false) => {
+  const handleRedirectSignIn = useCallback(async (requestWorkspace = false, feature?: GoogleFeature | null) => {
     setIsLoggingIn(true);
     try {
       addToast({ type: 'info', title: t('app_toast_redirect_title'), message: t('app_toast_redirect_msg') });
-      await signInWithRedirectFlow({ requestWorkspace });
+      await signInWithRedirectFlow({
+        requestWorkspace,
+        ...(feature
+          ? {
+              feature,
+              scopes: normalizeScopes([
+                ...getGrantedScopes(authUidRef.current),
+                ...FEATURE_SCOPES[feature],
+              ]),
+            }
+          : {}),
+      });
     } catch (err: any) {
-      handleSignInFailure(err, 'workspace');
+      handleSignInFailure(err, feature === 'gmail' ? 'gmail' : 'workspace');
     } finally {
       setIsLoggingIn(false);
     }
@@ -2445,6 +2488,8 @@ export default function App() {
     }
   };
 
+  syncFeatureByKeyRef.current = syncFeatureByKey;
+
   const connectGoogleFeature = useCallback(
     async (feature: GoogleFeature, afterConnect?: () => Promise<void> | void) => {
       const attemptId = ++connectAttemptRef.current;
@@ -2452,26 +2497,6 @@ export default function App() {
       setConnectingFeature(feature);
       setIsLoggingIn(true);
       try {
-        let activeUser = user;
-        if (!activeUser) {
-          const signedIn = await signInWithGoogle({ requestWorkspace: false });
-          if (attemptId !== connectAttemptRef.current) return;
-          if (!signedIn?.user) {
-            addToast({
-              type: 'info',
-              title: t('app_toast_signin_cancel_title'),
-              message: t('app_toast_signin_cancel_msg'),
-              duration: 4500,
-            });
-            return;
-          }
-          activeUser = signedIn.user;
-          authUidRef.current = signedIn.user.uid;
-          setUser(signedIn.user);
-          setIsDemoMode(false);
-          setActiveGoogleUid(signedIn.user.uid);
-        }
-
         // Reset any previous error state so retrying after an earlier Cancel/Deny starts clean.
         if (feature === 'calendar') { setCalendarError(null); setCalendarApiInfo(null); }
         if (feature === 'gmail') { setEmailError(null); setGmailApiInfo(null); }
@@ -2480,9 +2505,11 @@ export default function App() {
         if (feature === 'classroom') { setClassroomError(null); setClassroomApiInfo(null); }
 
         pendingLateFeatureRef.current = { feature, afterConnect };
+        // Firebase Auth popup (`__/auth/handler`) handles both initial sign-in and feature
+        // consent in a single user-activated popup even when the user is currently signed out.
         const perm = await requestFeaturePermissionDetailed(feature, {
-          loginHint: activeUser.email || undefined,
-          uid: activeUser.uid || undefined,
+          loginHint: user?.email || undefined,
+          uid: user?.uid || undefined,
           forceConsent: true,
         });
 
@@ -2537,6 +2564,7 @@ export default function App() {
 
         if (perm.status === 'popup_blocked') {
           pendingLateFeatureRef.current = null;
+          setOauthRetryFeature(feature);
           addToast({
             type: 'warning',
             title: t('app_toast_popup_blocked_title'),
@@ -2550,6 +2578,7 @@ export default function App() {
 
         if (perm.status !== 'granted') {
           pendingLateFeatureRef.current = null;
+          setOauthRetryFeature(feature);
           handleSignInFailure(
             new Error(perm.message || t('gauth_connect_failed')),
             feature === 'gmail' ? 'gmail' : 'workspace'
@@ -2557,7 +2586,15 @@ export default function App() {
           return;
         }
 
+        setOauthRetryFeature(null);
         pendingLateFeatureRef.current = null;
+        const resolvedUser = perm.user || user;
+        if (resolvedUser?.uid) {
+          authUidRef.current = resolvedUser.uid;
+          setUser(resolvedUser);
+          setIsDemoMode(false);
+          setActiveGoogleUid(resolvedUser.uid);
+        }
         const token = perm.accessToken;
         setGoogleToken(token);
         setScopeRevision((n) => n + 1);
@@ -2569,7 +2606,8 @@ export default function App() {
           sheets: t('app_feature_sheets'),
           classroom: t('app_feature_cls'),
         };
-        const accountLabel = activeUser.email || activeUser.displayName || t('app_your_account');
+        const accountLabel =
+          resolvedUser?.email || resolvedUser?.displayName || t('app_your_account');
         addToast({
           type: 'success',
           title: t('app_toast_feature_connected', { feature: labelMap[feature] }),
@@ -2588,6 +2626,7 @@ export default function App() {
       } catch (err: any) {
         if (attemptId === connectAttemptRef.current) {
           setPermissionPrompt(null);
+          setOauthRetryFeature(feature);
           handleSignInFailure(err, feature === 'gmail' ? 'gmail' : 'workspace');
         }
       } finally {
@@ -3221,15 +3260,23 @@ export default function App() {
         {oauthGuideModalOpen && (
         <OAuthGuideModal
           isOpen={oauthGuideModalOpen}
-          onClose={() => { setOauthGuideModalOpen(false); setOauthDiagnosis(null); }}
-          onRetryWorkspaceSignIn={() => handleGoogleSignIn(false)}
+          onClose={() => { setOauthGuideModalOpen(false); setOauthDiagnosis(null); setOauthRetryFeature(null); }}
+          onRetryWorkspaceSignIn={() => {
+            const retryFeature = oauthRetryFeature;
+            setOauthGuideModalOpen(false);
+            if (retryFeature) {
+              void connectGoogleFeature(retryFeature);
+            } else {
+              void handleGoogleSignIn(false);
+            }
+          }}
           onBasicSignIn={() => handleGoogleSignIn(false)}
           isLoggingIn={isLoggingIn}
           projectId=""
           userEmail=""
           diagnosis={oauthDiagnosis}
           onRunDiagnostics={diagnoseSignInEnvironment}
-          onRedirectSignIn={() => handleRedirectSignIn(false)}
+          onRedirectSignIn={() => handleRedirectSignIn(false, oauthRetryFeature)}
         />
         )}
         {privacyOpen && (
@@ -3832,15 +3879,23 @@ export default function App() {
       {oauthGuideModalOpen && (
       <OAuthGuideModal
         isOpen={oauthGuideModalOpen}
-        onClose={() => { setOauthGuideModalOpen(false); setOauthDiagnosis(null); }}
-        onRetryWorkspaceSignIn={() => handleGoogleSignIn(false)}
+        onClose={() => { setOauthGuideModalOpen(false); setOauthDiagnosis(null); setOauthRetryFeature(null); }}
+        onRetryWorkspaceSignIn={() => {
+          const retryFeature = oauthRetryFeature;
+          setOauthGuideModalOpen(false);
+          if (retryFeature) {
+            void connectGoogleFeature(retryFeature);
+          } else {
+            void handleGoogleSignIn(false);
+          }
+        }}
         onBasicSignIn={handleBasicSignIn}
         isLoggingIn={isLoggingIn}
         projectId=""
         userEmail={user?.email || ''}
         diagnosis={oauthDiagnosis}
         onRunDiagnostics={diagnoseSignInEnvironment}
-        onRedirectSignIn={() => handleRedirectSignIn(false)}
+        onRedirectSignIn={() => handleRedirectSignIn(false, oauthRetryFeature)}
       />
       )}
 

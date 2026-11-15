@@ -254,11 +254,11 @@ describe('Google OAuth consent retry & Tier 2 fallback', () => {
 
     await ga.preloadGoogleOAuthReadiness();
 
-    const first = await ga.requestFeaturePermissionDetailed('classroom');
+    const first = await ga.requestFeaturePermissionDetailed('classroom', { preferGis: true });
     expect(first.status).toBe('dismissed');
 
     // Pressing Connect a second time must never lock out the consent prompt
-    const second = await ga.requestFeaturePermissionDetailed('classroom');
+    const second = await ga.requestFeaturePermissionDetailed('classroom', { preferGis: true });
     expect(second.status).toBe('granted');
     if (second.status === 'granted') {
       expect(second.mode).toBe('gis_token');
@@ -407,7 +407,7 @@ describe('Google Workspace & Classroom API error surfacing', () => {
     };
 
     await ga.preloadGoogleOAuthReadiness();
-    const res = await ga.requestFeaturePermissionDetailed('gmail');
+    const res = await ga.requestFeaturePermissionDetailed('gmail', { preferGis: true });
     expect(res.status).toBe('granted');
     expect(ga.hasFeatureAccess('gmail')).toBe(true);
     // Stale classroom scope must not linger when Google returned only gmail scope
@@ -464,11 +464,11 @@ describe('google oauth multi-service consent & error surfacing', () => {
     };
 
     await ga.preloadGoogleOAuthReadiness();
-    const gmailRes = await ga.requestFeaturePermissionDetailed('gmail');
+    const gmailRes = await ga.requestFeaturePermissionDetailed('gmail', { preferGis: true });
     expect(gmailRes.status).toBe('granted');
     expect(ga.hasFeatureAccess('gmail')).toBe(true);
 
-    const clsRes = await ga.requestFeaturePermissionDetailed('classroom');
+    const clsRes = await ga.requestFeaturePermissionDetailed('classroom', { preferGis: true });
     expect(clsRes.status).toBe('granted');
     expect(requestedScopes[1]).toContain('https://www.googleapis.com/auth/gmail.readonly');
     expect(requestedScopes[1]).toContain('https://www.googleapis.com/auth/classroom.courses.readonly');
@@ -526,7 +526,7 @@ describe('google oauth multi-service consent & error surfacing', () => {
     };
 
     await ga.preloadGoogleOAuthReadiness();
-    const res = await ga.requestFeaturePermissionDetailed('gmail');
+    const res = await ga.requestFeaturePermissionDetailed('gmail', { preferGis: true });
     expect(res.status).toBe('granted');
     expect(tokenCalls).toHaveLength(1);
     expect(ga.hasFeatureAccess('gmail')).toBe(true);
@@ -689,7 +689,7 @@ describe('google oauth multi-service consent & error surfacing', () => {
     };
 
     await ga.preloadGoogleOAuthReadiness();
-    const res = await ga.requestFeaturePermissionDetailed('classroom');
+    const res = await ga.requestFeaturePermissionDetailed('classroom', { preferGis: true });
     expect(res.status).toBe('granted');
     expect(promptsSeen).toEqual(['', 'consent']);
     expect(ga.hasFeatureAccess('classroom')).toBe(true);
@@ -737,7 +737,7 @@ describe('google oauth multi-service consent & error surfacing', () => {
     const unsubscribe = ga.onLateGooglePermissionGranted((evt) => lateGrants.push(evt));
 
     await ga.preloadGoogleOAuthReadiness();
-    const initial = await ga.requestFeaturePermissionDetailed('gmail');
+    const initial = await ga.requestFeaturePermissionDetailed('gmail', { preferGis: true });
     expect(initial.status).toBe('dismissed');
 
     // User subsequently clicks Continue & Allow inside the still-open popup

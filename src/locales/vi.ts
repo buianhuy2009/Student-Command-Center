@@ -2100,6 +2100,14 @@ export const vi = {
   changelog_sidebar_title: "Lịch sử phiên bản",
   changelog_whats_new: "Có gì mới",
 
+  changelog_r_2_20_4_t: "Đăng nhập Google một cửa sổ & Cấp quyền trực tiếp qua Firebase Auth",
+  changelog_r_2_20_4_h1: "Kết nối Gmail, Google Classroom, Calendar, Drive hoặc Sheets giờ mở trực tiếp một cửa sổ Google ổn định, hoàn tất màn hình cảnh báo và các ô cấp quyền mà không bị ngắt sớm",
+  changelog_r_2_20_4_h2: "Bấm Kết nối khi chưa đăng nhập sẽ mở một cửa sổ duy nhất thay vì hai cửa sổ nối tiếp, loại bỏ lỗi báo nhầm 'Chưa cấp quyền' và 'Thiếu ô quyền bắt buộc'",
+  changelog_r_2_20_4_h3: "Luồng chuyển hướng dự phòng, đổi tài khoản và làm mới phiên nền đều giữ nguyên toàn bộ quyền dịch vụ bạn vừa cấp",
+  changelog_r_2_20_4_d1: "Ưu tiên luồng Firebase Auth: chuyển requestFeaturePermissionDetailed và signInWithAccountSelect sang dùng trực tiếp Firebase Auth signInWithPopup (giữ GIS làm dự phòng) để tránh lỗi Chrome COOP same-origin trên trang oauth/v3/warning của Google.",
+  changelog_r_2_20_4_d2: "Kết nối một chạm & Đối chiếu quyền chuẩn: gộp bước đăng nhập và xin quyền dịch vụ trong App.tsx vào cùng một popup theo thao tác bấm, giữ fallback scope khi tokeninfo trả về rỗng và hỗ trợ đối chiếu quyền rộng tương đương.",
+  changelog_r_2_20_4_d3: "Chống xung đột làm mới & Luồng chuyển hướng: thêm bộ đếm grantSequence để lỗi /refresh 400 đang chạy dở không xóa mất phiên popup mới cấp, tạm hoãn khôi phục token cũ khi đang kết nối và lưu giữ scope theo từng dịch vụ qua signInWithRedirectFlow / consumeRedirectResult.",
+
   changelog_r_2_20_3_t: "Cấp quyền Google ổn định qua popup & Kiểm tra đủ ô quyền chính xác",
   changelog_r_2_20_3_h1: "Cửa sổ cảnh báo 'Tiếp tục' / ứng dụng chưa xác minh của Google không còn bị báo hủy sớm khi bạn chưa bấm xong, và vẫn tự kết nối ngay khi bạn hoàn tất",
   changelog_r_2_20_3_h2: "Khi bạn đã tích đủ tất cả các ô quyền cho Google Classroom hoặc Gmail, hệ thống sẽ không còn báo nhầm 'Thiếu quyền bắt buộc'",
