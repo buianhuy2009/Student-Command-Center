@@ -60,6 +60,10 @@ export default defineConfig(() => {
       },
     },
     server: {
+      headers: {
+        // Match Google Identity Services requirement so Chrome preserves popup.closed / postMessage.
+        'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
+      },
       // Proxy /api to the express server (server.ts) so Canvas proxy + Gemini
       // endpoints work when running bare `vite` (dev:vite) without it on :3000.
       proxy: {

@@ -6,6 +6,12 @@
     <description>Plain-English updates to StudentOS — what changed and why it matters for studying.</description>
     <language>en-us</language>
     <item>
+      <title>v2.20.3 — Resilient Google OAuth Popup Completion &amp; Accurate Checkbox Verification</title>
+      <link>https://sutdent-command-center.vercel.app/?changelog=2.20.3</link>
+      <pubDate>Sun, 15 Nov 2026 14:33:56 GMT</pubDate>
+      <description>StudentOS v2.20.3 configures Cross-Origin-Opener-Policy for Google OAuth popups, recovers permission grants if Chrome interrupts popup tracking during Google's unverified-app screen, and prevents silent Tier 2 fallback tokens from triggering false missing-checkbox errors.</description>
+    </item>
+    <item>
       <title>v2.20.2 — Multi-Service Google OAuth Consent &amp; Honest Sync Diagnostics</title>
       <link>https://sutdent-command-center.vercel.app/?changelog=2.20.2</link>
       <pubDate>Sun, 15 Nov 2026 12:31:34 GMT</pubDate>

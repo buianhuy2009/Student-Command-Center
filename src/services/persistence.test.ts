@@ -628,4 +628,128 @@ describe('google oauth multi-service consent & error surfacing', () => {
       isInsufficientScope: true,
     });
   });
+
+  it('does not falsely return partial_scopes when silent Tier 2 (prompt="") omits new scopes after /exchange failure, and retries interactively with consent', async () => {
+    vi.resetModules();
+    localStorage.clear();
+    const ga = await import('./googleAuth');
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: any) => {
+        const url = String(input);
+        if (url.includes('/api/health')) {
+          return {
+            ok: true,
+            status: 200,
+            json: async () => ({ ok: true, hasGoogleOAuth: true }),
+          } as Response;
+        }
+        if (url.includes('/api/auth/google/exchange')) {
+          return {
+            ok: false,
+            status: 400,
+            json: async () => ({ error: 'invalid_client' }),
+          } as Response;
+        }
+        return { ok: false, status: 404, json: async () => ({}) } as Response;
+      })
+    );
+
+    if (typeof window === 'undefined') {
+      (globalThis as any).window = globalThis;
+    }
+    const promptsSeen: string[] = [];
+    (window as any).google = {
+      accounts: {
+        oauth2: {
+          initCodeClient: vi.fn((cfg: any) => ({
+            requestCode: () => cfg.callback?.({ code: 'auth-code-1' }),
+          })),
+          initTokenClient: vi.fn((cfg: any) => ({
+            requestAccessToken: (override: any) => {
+              const usedPrompt = String(override?.prompt ?? cfg.prompt ?? '');
+              promptsSeen.push(usedPrompt);
+              if (usedPrompt === '') {
+                // Silent Tier 2 returns only basic profile scopes -> must trigger interactive consent retry
+                cfg.callback?.({
+                  access_token: 'ya29.silent-basic-only',
+                  scope: 'openid email profile',
+                });
+              } else {
+                cfg.callback?.({
+                  access_token: 'ya29.interactive-classroom',
+                  scope: ga.FEATURE_SCOPES.classroom.join(' '),
+                });
+              }
+            },
+          })),
+        },
+      },
+    };
+
+    await ga.preloadGoogleOAuthReadiness();
+    const res = await ga.requestFeaturePermissionDetailed('classroom');
+    expect(res.status).toBe('granted');
+    expect(promptsSeen).toEqual(['', 'consent']);
+    expect(ga.hasFeatureAccess('classroom')).toBe(true);
+  });
+
+  it('recovers background completion via onLateGooglePermissionGranted if Chrome COOP triggers premature popup_closed', async () => {
+    vi.resetModules();
+    localStorage.clear();
+    const ga = await import('./googleAuth');
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: any) => {
+        const url = String(input);
+        if (url.includes('/api/health')) {
+          return {
+            ok: true,
+            status: 200,
+            json: async () => ({ ok: true, hasGoogleOAuth: false }),
+          } as Response;
+        }
+        return { ok: false, status: 404, json: async () => ({}) } as Response;
+      })
+    );
+
+    if (typeof window === 'undefined') {
+      (globalThis as any).window = globalThis;
+    }
+    let capturedCfg: any = null;
+    (window as any).google = {
+      accounts: {
+        oauth2: {
+          initCodeClient: vi.fn(),
+          initTokenClient: vi.fn((cfg: any) => ({
+            requestAccessToken: () => {
+              capturedCfg = cfg;
+              cfg.error_callback?.({ type: 'popup_closed', message: 'Popup window closed' });
+            },
+          })),
+        },
+      },
+    };
+
+    const lateGrants: any[] = [];
+    const unsubscribe = ga.onLateGooglePermissionGranted((evt) => lateGrants.push(evt));
+
+    await ga.preloadGoogleOAuthReadiness();
+    const initial = await ga.requestFeaturePermissionDetailed('gmail');
+    expect(initial.status).toBe('dismissed');
+
+    // User subsequently clicks Continue & Allow inside the still-open popup
+    capturedCfg.callback?.({
+      access_token: 'ya29.late-recovery-gmail',
+      scope: ga.FEATURE_SCOPES.gmail.join(' '),
+    });
+    await new Promise((r) => setTimeout(r, 20));
+    unsubscribe();
+
+    expect(lateGrants).toHaveLength(1);
+    expect(lateGrants[0].accessToken).toBe('ya29.late-recovery-gmail');
+    expect(ga.hasFeatureAccess('gmail')).toBe(true);
+  });
 });

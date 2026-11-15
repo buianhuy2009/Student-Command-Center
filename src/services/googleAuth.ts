@@ -771,10 +771,50 @@ export type FeaturePermissionResult =
       grantedScopes: string[];
     }
   | { status: 'partial_scopes'; missingScopes: string[]; grantedScopes: string[] }
-  | { status: 'dismissed' }
+  | { status: 'dismissed'; popupInterruptedQuickly?: boolean }
   | { status: 'popup_blocked'; message?: string }
   | { status: 'unconfigured'; message: string }
   | { status: 'error'; message: string; code?: string };
+
+export interface LateGoogleGrantEvent {
+  accessToken: string;
+  grantedScopes: string[];
+  mode: 'offline' | 'gis_token';
+}
+
+type LateGrantListener = (event: LateGoogleGrantEvent) => void;
+const lateGrantListeners = new Set<LateGrantListener>();
+const LATE_GRANT_WINDOW_MS = 180_000;
+
+/**
+ * Subscribe to background completion when Chrome COOP causes GIS to report
+ * `popup_closed` while Google's consent window is still open and the user
+ * subsequently finishes approving it.
+ */
+export function onLateGooglePermissionGranted(listener: LateGrantListener): () => void {
+  lateGrantListeners.add(listener);
+  return () => {
+    lateGrantListeners.delete(listener);
+  };
+}
+
+function notifyLateGoogleGrant(event: LateGoogleGrantEvent): void {
+  lateGrantListeners.forEach((fn) => {
+    try {
+      fn(event);
+    } catch {}
+  });
+}
+
+function getMissingScopes(requiredScopes: string[], grantedScopes: string[]): string[] {
+  const grantedSet = new Set(grantedScopes.map((s) => String(s || '').trim()).filter(Boolean));
+  return requiredScopes.filter((s) => !grantedSet.has(String(s || '').trim()));
+}
+
+function isQuickPopupInterrupt(openedAt: number, closedAt = Date.now()): boolean {
+  const elapsedMs = closedAt - openedAt;
+  return elapsedMs >= 25 && elapsedMs < 3500;
+}
 
 async function finalizeGrantedSession(params: {
   accessToken: string;
@@ -820,7 +860,7 @@ async function finalizeGrantedSession(params: {
 
 type GisInteractiveOutcome =
   | { status: 'ok'; accessToken: string; scopes: string[] }
-  | { status: 'dismissed' }
+  | { status: 'dismissed'; popupInterruptedQuickly?: boolean }
   | { status: 'popup_blocked'; message: string }
   | { status: 'server_unconfigured'; message: string }
   | { status: 'exchange_failed'; message: string }
@@ -855,6 +895,66 @@ function classifyGisError(errOrMsg: any): 'dismissed' | 'popup_blocked' | 'gis_f
   return 'gis_failed';
 }
 
+async function exchangeAuthCodeForSession(params: {
+  code: string;
+  codeCallbackScope: string;
+  requestedScopes: string[];
+  uid: string | null;
+  includeGranted: boolean;
+}): Promise<GisInteractiveOutcome> {
+  let res: Response;
+  try {
+    res = await fetchWithTimeout('/api/auth/google/exchange', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        code: params.code,
+        redirect_uri: 'postmessage',
+        scope: params.codeCallbackScope || params.requestedScopes.join(' '),
+      }),
+    });
+  } catch (err: any) {
+    return {
+      status: 'exchange_failed',
+      message: String(err?.message || t('gauth_connect_failed')),
+    };
+  }
+  const data = await res.json().catch(() => ({}));
+  if (res.status === 500 && /not configured/i.test(String(data?.error || ''))) {
+    cachedServerOAuthSupport = false;
+    return { status: 'server_unconfigured', message: String(data.error) };
+  }
+  if (!res.ok || !data?.access_token) {
+    const errDetail = String(data?.details || data?.error || '');
+    if (
+      res.status >= 500 ||
+      res.status === 401 ||
+      /invalid_client|unauthorized_client|redirect_uri_mismatch|deleted_client/i.test(errDetail)
+    ) {
+      cachedServerOAuthSupport = false;
+    }
+    return {
+      status: 'exchange_failed',
+      message: String(data?.error || t('gauth_connect_failed')),
+    };
+  }
+
+  const rawScopeSource =
+    Array.isArray(data.scopes) && data.scopes.length > 0
+      ? data.scopes
+      : data.scope || params.codeCallbackScope;
+  const mergedScopes = await finalizeGrantedSession({
+    accessToken: data.access_token as string,
+    grantedScopes: normalizeScopes(rawScopeSource),
+    requestedScopes: params.requestedScopes,
+    uid: params.uid,
+    includeGranted: params.includeGranted,
+    refreshToken: typeof data.refresh_token === 'string' ? data.refresh_token : undefined,
+  });
+
+  return { status: 'ok', accessToken: data.access_token as string, scopes: mergedScopes };
+}
+
 async function runGisCodeExchangeDetailed(params: {
   scopes: string[];
   prompt?: string;
@@ -879,6 +979,9 @@ async function runGisCodeExchangeDetailed(params: {
   try {
     code = await new Promise<string>((resolve, reject) => {
       let settled = false;
+      let popupStartedAt = Date.now();
+      let dismissedViaPopupClosed = false;
+      let dismissedAt = 0;
       const finish = (fn: () => void) => {
         if (settled) return;
         settled = true;
@@ -897,17 +1000,54 @@ async function runGisCodeExchangeDetailed(params: {
           ux_mode: 'popup',
           callback: (resp: any) => {
             if (typeof resp?.scope === 'string') codeCallbackScope = resp.scope;
+            if (settled) {
+              if (
+                resp?.code &&
+                dismissedViaPopupClosed &&
+                Date.now() - dismissedAt <= LATE_GRANT_WINDOW_MS
+              ) {
+                void exchangeAuthCodeForSession({
+                  code: resp.code,
+                  codeCallbackScope,
+                  requestedScopes,
+                  uid,
+                  includeGranted,
+                }).then((late) => {
+                  if (late.status === 'ok') {
+                    notifyLateGoogleGrant({
+                      accessToken: late.accessToken,
+                      grantedScopes: late.scopes,
+                      mode: 'offline',
+                    });
+                  }
+                });
+              }
+              return;
+            }
             if (resp?.code) finish(() => resolve(resp.code));
             else if (resp?.error) finish(() => reject(Object.assign(new Error(String(resp.error)), { type: resp.error })));
             else finish(() => reject(Object.assign(new Error(t('gauth_popup_closed')), { dismissed: true })));
           },
           error_callback: (err: any) => {
+            if (!settled && classifyGisError(err) === 'dismissed') {
+              dismissedViaPopupClosed = true;
+              dismissedAt = Date.now();
+              finish(() =>
+                reject(
+                  Object.assign(err || new Error(t('gauth_popup_closed')), {
+                    popupInterruptedQuickly: isQuickPopupInterrupt(popupStartedAt, dismissedAt),
+                  })
+                )
+              );
+              return;
+            }
             finish(() => reject(err || new Error(t('gauth_permission_failed'))));
           },
         };
         if (params.prompt) config.prompt = params.prompt;
         if (loginHint) config.login_hint = loginHint;
         const client = (window as any).google.accounts.oauth2.initCodeClient(config);
+        popupStartedAt = Date.now();
         client.requestCode();
       } catch (e) {
         finish(() => reject(e));
@@ -915,51 +1055,21 @@ async function runGisCodeExchangeDetailed(params: {
     });
   } catch (e: any) {
     const kind = classifyGisError(e);
-    if (kind === 'dismissed') return { status: 'dismissed' };
+    if (kind === 'dismissed') {
+      return { status: 'dismissed', popupInterruptedQuickly: Boolean(e?.popupInterruptedQuickly) };
+    }
     if (kind === 'popup_blocked') return { status: 'popup_blocked', message: t('gauth_popup_blocked') };
     return { status: 'gis_failed', message: String(e?.message || e || t('gauth_permission_failed')) };
   }
   if (!code) return { status: 'dismissed' };
 
-  let res: Response;
-  try {
-    res = await fetchWithTimeout('/api/auth/google/exchange', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        code,
-        redirect_uri: 'postmessage',
-        scope: codeCallbackScope || requestedScopes.join(' '),
-      }),
-    });
-  } catch (err: any) {
-    return {
-      status: 'exchange_failed',
-      message: String(err?.message || t('gauth_connect_failed')),
-    };
-  }
-  const data = await res.json().catch(() => ({}));
-  if (res.status === 500 && /not configured/i.test(String(data?.error || ''))) {
-    cachedServerOAuthSupport = false;
-    return { status: 'server_unconfigured', message: String(data.error) };
-  }
-  if (!res.ok || !data?.access_token) {
-    return {
-      status: 'exchange_failed',
-      message: String(data?.error || t('gauth_connect_failed')),
-    };
-  }
-
-  const mergedScopes = await finalizeGrantedSession({
-    accessToken: data.access_token as string,
-    grantedScopes: normalizeScopes(data.scopes || data.scope || codeCallbackScope),
+  return exchangeAuthCodeForSession({
+    code,
+    codeCallbackScope,
     requestedScopes,
     uid,
     includeGranted,
-    refreshToken: typeof data.refresh_token === 'string' ? data.refresh_token : undefined,
   });
-
-  return { status: 'ok', accessToken: data.access_token as string, scopes: mergedScopes };
 }
 
 /**
@@ -972,6 +1082,7 @@ async function runGisTokenClientDetailed(params: {
   loginHint?: string;
   uid?: string | null;
   includeGrantedScopes?: boolean;
+  skipPersist?: boolean;
 }): Promise<GisInteractiveOutcome> {
   if (!isOfflineGrantSupported()) {
     return { status: 'gis_failed', message: t('gauth_window_open_failed') };
@@ -989,6 +1100,9 @@ async function runGisTokenClientDetailed(params: {
     const promptValue = params.prompt !== undefined ? params.prompt : 'consent';
     const tokenResp = await new Promise<{ accessToken: string; scopeStr: string }>((resolve, reject) => {
       let settled = false;
+      let popupStartedAt = Date.now();
+      let dismissedViaPopupClosed = false;
+      let dismissedAt = 0;
       const finish = (fn: () => void) => {
         if (settled) return;
         settled = true;
@@ -1005,6 +1119,29 @@ async function runGisTokenClientDetailed(params: {
           include_granted_scopes: includeGranted,
           prompt: promptValue,
           callback: (resp: any) => {
+            if (settled) {
+              if (
+                resp?.access_token &&
+                dismissedViaPopupClosed &&
+                Date.now() - dismissedAt <= LATE_GRANT_WINDOW_MS
+              ) {
+                const lateScopes = normalizeScopes(String(resp.scope || '') || requestedScopes);
+                void finalizeGrantedSession({
+                  accessToken: resp.access_token,
+                  grantedScopes: lateScopes,
+                  requestedScopes,
+                  uid,
+                  includeGranted,
+                }).then((mergedScopes) => {
+                  notifyLateGoogleGrant({
+                    accessToken: resp.access_token,
+                    grantedScopes: mergedScopes,
+                    mode: 'gis_token',
+                  });
+                });
+              }
+              return;
+            }
             if (resp?.access_token) {
               finish(() => resolve({ accessToken: resp.access_token, scopeStr: String(resp.scope || '') }));
             } else if (resp?.error) {
@@ -1014,20 +1151,38 @@ async function runGisTokenClientDetailed(params: {
             }
           },
           error_callback: (err: any) => {
+            if (!settled && classifyGisError(err) === 'dismissed') {
+              dismissedViaPopupClosed = true;
+              dismissedAt = Date.now();
+              finish(() =>
+                reject(
+                  Object.assign(err || new Error(t('gauth_popup_closed')), {
+                    popupInterruptedQuickly: isQuickPopupInterrupt(popupStartedAt, dismissedAt),
+                  })
+                )
+              );
+              return;
+            }
             finish(() => reject(err || new Error(t('gauth_permission_failed'))));
           },
         };
         if (loginHint) config.login_hint = loginHint;
         const client = (window as any).google.accounts.oauth2.initTokenClient(config);
+        popupStartedAt = Date.now();
         client.requestAccessToken({ prompt: promptValue });
       } catch (e) {
         finish(() => reject(e));
       }
     });
 
+    const resolvedScopes = normalizeScopes(tokenResp.scopeStr || requestedScopes);
+    if (params.skipPersist) {
+      return { status: 'ok', accessToken: tokenResp.accessToken, scopes: resolvedScopes };
+    }
+
     const mergedScopes = await finalizeGrantedSession({
       accessToken: tokenResp.accessToken,
-      grantedScopes: normalizeScopes(tokenResp.scopeStr || requestedScopes),
+      grantedScopes: resolvedScopes,
       requestedScopes,
       uid,
       includeGranted,
@@ -1035,7 +1190,9 @@ async function runGisTokenClientDetailed(params: {
     return { status: 'ok', accessToken: tokenResp.accessToken, scopes: mergedScopes };
   } catch (e: any) {
     const kind = classifyGisError(e);
-    if (kind === 'dismissed') return { status: 'dismissed' };
+    if (kind === 'dismissed') {
+      return { status: 'dismissed', popupInterruptedQuickly: Boolean(e?.popupInterruptedQuickly) };
+    }
     if (kind === 'popup_blocked') return { status: 'popup_blocked', message: t('gauth_popup_blocked') };
     return { status: 'gis_failed', message: String(e?.message || e || t('gauth_permission_failed')) };
   }
@@ -1052,6 +1209,61 @@ function collectActiveFeatureScopes(uid?: string | null): string[] {
   return normalizeScopes(out);
 }
 
+async function runTier2TokenWithSilentRetry(params: {
+  requestScopes: string[];
+  requiredScopes: string[];
+  prompt?: string;
+  loginHint?: string;
+  uid?: string | null;
+  includeGrantedScopes?: boolean;
+  trySilentFirst: boolean;
+}): Promise<GisInteractiveOutcome> {
+  const interactivePrompt = params.prompt || 'consent';
+  if (!params.trySilentFirst) {
+    return runGisTokenClientDetailed({
+      scopes: params.requestScopes,
+      prompt: interactivePrompt,
+      loginHint: params.loginHint,
+      uid: params.uid,
+      includeGrantedScopes: params.includeGrantedScopes,
+    });
+  }
+
+  const silentAttempt = await runGisTokenClientDetailed({
+    scopes: params.requestScopes,
+    prompt: '',
+    loginHint: params.loginHint,
+    uid: params.uid,
+    includeGrantedScopes: params.includeGrantedScopes,
+    skipPersist: true,
+  });
+
+  if (silentAttempt.status !== 'ok') {
+    return silentAttempt;
+  }
+
+  // Only accept the silent Tier 2 token if Google included every required scope.
+  // Never attribute an incomplete silent `prompt: ''` response to unchecked consent boxes.
+  if (getMissingScopes(params.requiredScopes, silentAttempt.scopes).length === 0) {
+    const mergedScopes = await finalizeGrantedSession({
+      accessToken: silentAttempt.accessToken,
+      grantedScopes: silentAttempt.scopes,
+      requestedScopes: params.requestScopes,
+      uid: params.uid ?? null,
+      includeGranted: params.includeGrantedScopes !== false,
+    });
+    return { status: 'ok', accessToken: silentAttempt.accessToken, scopes: mergedScopes };
+  }
+
+  return runGisTokenClientDetailed({
+    scopes: params.requestScopes,
+    prompt: interactivePrompt,
+    loginHint: params.loginHint,
+    uid: params.uid,
+    includeGrantedScopes: params.includeGrantedScopes,
+  });
+}
+
 async function runGisCodeExchange(params: {
   scopes: string[];
   prompt?: string;
@@ -1064,8 +1276,16 @@ async function runGisCodeExchange(params: {
   if (outcome.status === 'dismissed') return null;
 
   const { uid, loginHint } = resolveCurrentUserContextSync(params.uid, params.loginHint);
-  const tier2Prompt = outcome.status === 'exchange_failed' ? '' : params.prompt || 'consent';
-  const fallback = await runGisTokenClientDetailed({ ...params, prompt: tier2Prompt });
+  const requestedScopes = normalizeScopes(params.scopes);
+  const fallback = await runTier2TokenWithSilentRetry({
+    requestScopes: requestedScopes,
+    requiredScopes: requestedScopes,
+    prompt: params.prompt,
+    loginHint,
+    uid,
+    includeGrantedScopes: params.includeGrantedScopes,
+    trySilentFirst: outcome.status === 'exchange_failed',
+  });
   if (fallback.status === 'ok') return { accessToken: fallback.accessToken, scopes: fallback.scopes };
   if (fallback.status === 'dismissed') return null;
 
@@ -1137,7 +1357,10 @@ export async function requestFeaturePermissionDetailed(
         grantedOutcome = { accessToken: t1.accessToken, scopes: t1.scopes };
         mode = 'offline';
       } else if (t1.status === 'dismissed') {
-        return { status: 'dismissed' };
+        return {
+          status: 'dismissed',
+          popupInterruptedQuickly: t1.popupInterruptedQuickly,
+        };
       } else if (t1.status === 'popup_blocked') {
         return { status: 'popup_blocked', message: t1.message };
       } else {
@@ -1147,19 +1370,23 @@ export async function requestFeaturePermissionDetailed(
 
     // Tier 2: Browser-only GIS TokenClient (skipped server secret, exchange error, or GIS code fallback)
     if (!grantedOutcome) {
-      const tier2Prompt = t1Status === 'exchange_failed' ? '' : prompt || 'consent';
-      const t2 = await runGisTokenClientDetailed({
-        scopes: requestScopes,
-        prompt: tier2Prompt,
+      const t2 = await runTier2TokenWithSilentRetry({
+        requestScopes,
+        requiredScopes,
+        prompt,
         loginHint,
         uid,
         includeGrantedScopes: true,
+        trySilentFirst: t1Status === 'exchange_failed',
       });
       if (t2.status === 'ok') {
         grantedOutcome = { accessToken: t2.accessToken, scopes: t2.scopes };
         mode = 'gis_token';
       } else if (t2.status === 'dismissed') {
-        return { status: 'dismissed' };
+        return {
+          status: 'dismissed',
+          popupInterruptedQuickly: t2.popupInterruptedQuickly,
+        };
       } else if (t2.status === 'popup_blocked') {
         return { status: 'popup_blocked', message: t2.message };
       } else if (t2.message) {
@@ -1192,7 +1419,7 @@ export async function requestFeaturePermissionDetailed(
       }
     }
 
-    const missingScopes = requiredScopes.filter((s) => !grantedOutcome!.scopes.includes(s));
+    const missingScopes = getMissingScopes(requiredScopes, grantedOutcome!.scopes);
     if (missingScopes.length > 0) {
       return {
         status: 'partial_scopes',

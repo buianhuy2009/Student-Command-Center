@@ -349,6 +349,9 @@ describe("Server models & unified API surface", () => {
       ]) {
         expect(frameSrc).not.toContain(removed);
       }
+
+      const coop = globalHeaders.find((h: any) => h.key === "Cross-Origin-Opener-Policy")?.value || "";
+      expect(coop).toBe("same-origin-allow-popups");
     });
   });
 

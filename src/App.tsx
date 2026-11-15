@@ -101,6 +101,7 @@ import {
   FEATURE_SCOPES,
   removeGrantedScopes,
   requestFeaturePermissionDetailed,
+  onLateGooglePermissionGranted,
   preloadGoogleOAuthReadiness,
   hydrateRefreshGrant,
   clearGoogleGrant,
@@ -773,6 +774,10 @@ export default function App() {
   const pendingFullSyncRef = useRef(false);
   const connectAttemptRef = useRef(0);
   const isConnectingOAuthRef = useRef(false);
+  const pendingLateFeatureRef = useRef<{
+    feature: GoogleFeature;
+    afterConnect?: () => Promise<void> | void;
+  } | null>(null);
 
   // Master Sheet metadata
   const [masterSheetId, setMasterSheetId] = useState<string | undefined>();
@@ -2474,6 +2479,7 @@ export default function App() {
         if (feature === 'drive') { setDriveError(null); setDriveApiInfo(null); }
         if (feature === 'classroom') { setClassroomError(null); setClassroomApiInfo(null); }
 
+        pendingLateFeatureRef.current = { feature, afterConnect };
         const perm = await requestFeaturePermissionDetailed(feature, {
           loginHint: activeUser.email || undefined,
           uid: activeUser.uid || undefined,
@@ -2489,26 +2495,48 @@ export default function App() {
         setIsLoggingIn(false);
 
         if (perm.status === 'dismissed') {
+          if (!perm.popupInterruptedQuickly) {
+            pendingLateFeatureRef.current = null;
+          }
           addToast({
             type: 'info',
-            title: t('app_toast_perm_dismissed_title'),
-            message: t('app_toast_perm_dismissed_msg'),
-            duration: 5000,
-          });
+            title: perm.popupInterruptedQuickly
+              ? t('app_toast_perm_interrupted_title')
+              : t('app_toast_perm_dismissed_title'),
+            message: perm.popupInterruptedQuickly
+              ? t('app_toast_perm_interrupted_msg')
+              : t('app_toast_perm_dismissed_msg'),
+            duration: perm.popupInterruptedQuickly ? 9500 : 5000,
+            retryLabel: t('app_toast_retry_btn'),
+            onRetry: () => {
+              void connectGoogleFeature(feature, afterConnect);
+            },
+          } as any);
           return;
         }
 
         if (perm.status === 'partial_scopes') {
+          pendingLateFeatureRef.current = null;
+          const missing = perm.missingScopes
+            .map((s) => s.replace(/^https:\/\/www\.googleapis\.com\/auth\//, ''))
+            .join(', ');
           addToast({
             type: 'warning',
             title: t('app_toast_perm_partial_title'),
-            message: t('app_toast_perm_partial_msg'),
-            duration: 6500,
-          });
+            message: missing
+              ? t('app_toast_perm_partial_detail_msg', { missing })
+              : t('app_toast_perm_partial_msg'),
+            duration: 7500,
+            retryLabel: t('app_toast_retry_btn'),
+            onRetry: () => {
+              void connectGoogleFeature(feature, afterConnect);
+            },
+          } as any);
           return;
         }
 
         if (perm.status === 'popup_blocked') {
+          pendingLateFeatureRef.current = null;
           addToast({
             type: 'warning',
             title: t('app_toast_popup_blocked_title'),
@@ -2521,6 +2549,7 @@ export default function App() {
         }
 
         if (perm.status !== 'granted') {
+          pendingLateFeatureRef.current = null;
           handleSignInFailure(
             new Error(perm.message || t('gauth_connect_failed')),
             feature === 'gmail' ? 'gmail' : 'workspace'
@@ -2528,6 +2557,7 @@ export default function App() {
           return;
         }
 
+        pendingLateFeatureRef.current = null;
         const token = perm.accessToken;
         setGoogleToken(token);
         setScopeRevision((n) => n + 1);
@@ -2577,6 +2607,60 @@ export default function App() {
     await connectGoogleFeature(feature, afterConnect);
     setPermissionPrompt(null);
   };
+
+  useEffect(() => {
+    return onLateGooglePermissionGranted((grant) => {
+      const pending = pendingLateFeatureRef.current;
+      pendingLateFeatureRef.current = null;
+      const inferredFeature =
+        pending?.feature ||
+        (['calendar', 'gmail', 'drive', 'sheets', 'classroom'] as GoogleFeature[]).find((f) =>
+          FEATURE_SCOPES[f].every((scope) => grant.grantedScopes.includes(scope))
+        );
+
+      setPermissionPrompt(null);
+      setConnectingFeature(null);
+      setIsLoggingIn(false);
+      setGoogleToken(grant.accessToken);
+      setScopeRevision((n) => n + 1);
+
+      if (inferredFeature) {
+        if (inferredFeature === 'calendar') { setCalendarError(null); setCalendarApiInfo(null); }
+        if (inferredFeature === 'gmail') { setEmailError(null); setGmailApiInfo(null); }
+        if (inferredFeature === 'sheets') { setSheetError(null); setSheetApiInfo(null); }
+        if (inferredFeature === 'drive') { setDriveError(null); setDriveApiInfo(null); }
+        if (inferredFeature === 'classroom') { setClassroomError(null); setClassroomApiInfo(null); }
+      }
+
+      const labelMap: Record<GoogleFeature, string> = {
+        calendar: t('app_feature_cal'),
+        gmail: t('app_feature_gmail'),
+        drive: t('app_feature_drive'),
+        sheets: t('app_feature_sheets'),
+        classroom: t('app_feature_cls'),
+      };
+      const accountLabel = user?.email || user?.displayName || t('app_your_account');
+      if (inferredFeature) {
+        addToast({
+          type: 'success',
+          title: t('app_toast_feature_connected', { feature: labelMap[inferredFeature] }),
+          message:
+            grant.mode === 'offline'
+              ? t('app_toast_feature_ready', { name: accountLabel })
+              : t('app_toast_feature_session_ready', { name: accountLabel }),
+        });
+      }
+
+      void (async () => {
+        if (pending?.afterConnect) {
+          await pending.afterConnect();
+        } else if (inferredFeature) {
+          await syncFeatureByKey(inferredFeature);
+        }
+        void runFullSync(true);
+      })();
+    });
+  }, [addToast, runFullSync, syncFeatureByKey, t, user?.displayName, user?.email]);
 
   const handleBasicSignIn = async () => {
     await handleGoogleSignIn(false);
