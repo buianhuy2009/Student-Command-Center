@@ -1424,6 +1424,86 @@ export default function App() {
           size: '1.5 MB',
         },
       ]);
+
+      setAssignments((prev) =>
+        prev.length > 0
+          ? prev
+          : [
+              {
+                id: 'demo-t1',
+                assignmentName: 'Problem Set 8: Integration by Parts & Series',
+                subject: 'Calculus BC',
+                dueDate: new Date(Date.now() + 86400000 * 1).toISOString().split('T')[0],
+                priority: 'High',
+                status: 'In Progress',
+                source: 'Canvas',
+                notes: 'Problems 14–28 in Chapter 7',
+              },
+              {
+                id: 'demo-t2',
+                assignmentName: 'DBQ Essay: New Deal & Great Depression Policies',
+                subject: 'AP US History',
+                dueDate: new Date(Date.now() + 86400000 * 2).toISOString().split('T')[0],
+                priority: 'High',
+                status: 'Not Started',
+                source: 'Canvas',
+                notes: 'Cite at least 4 primary documents per Mr. Miller rubric',
+              },
+              {
+                id: 'demo-t3',
+                assignmentName: 'Unit 4 Quiz Prep & Office Hours Review',
+                subject: 'AP Physics C',
+                dueDate: new Date(Date.now() + 86400000 * 4).toISOString().split('T')[0],
+                priority: 'Med',
+                status: 'Not Started',
+                source: 'Gmail',
+                notes: 'Dr. Vance office hours tomorrow 3:30 PM (Room 204)',
+              },
+              {
+                id: 'demo-t4',
+                assignmentName: 'Hamlet Act 2 Soliloquy Critical Reflection',
+                subject: 'English Lit',
+                dueDate: new Date(Date.now() - 86400000 * 1).toISOString().split('T')[0],
+                priority: 'Low',
+                status: 'Done',
+                source: 'Canvas',
+                notes: 'Submitted & reviewed',
+              },
+            ]
+      );
+
+      setCalendarEvents((prev) => {
+        if (prev.length > 0) return prev;
+        const today = new Date();
+        const mkTime = (dayOffset: number, h: number, m = 0) => {
+          const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + dayOffset, h, m, 0);
+          return d.toISOString();
+        };
+        return [
+          {
+            id: 'demo-ev-1',
+            summary: 'Calculus BC Problem Set Focus Block',
+            start: { dateTime: mkTime(0, 19, 0) },
+            end: { dateTime: mkTime(0, 20, 0) },
+            description: 'Scheduled study sprint for Chapter 7 integration by parts',
+          },
+          {
+            id: 'demo-ev-2',
+            summary: 'AP Physics Office Hours (Room 204)',
+            start: { dateTime: mkTime(1, 15, 30) },
+            end: { dateTime: mkTime(1, 16, 30) },
+            location: 'Science Wing 204',
+            description: 'Rotational dynamics pre-quiz Q&A with Dr. Vance',
+          },
+          {
+            id: 'demo-ev-3',
+            summary: 'AP US History DBQ Drafting Session',
+            start: { dateTime: mkTime(1, 19, 30) },
+            end: { dateTime: mkTime(1, 21, 0) },
+            description: 'Outline thesis + annotate primary sources 1–7',
+          },
+        ];
+      });
     }
   }, [isDemoMode, user]);
 
@@ -2070,6 +2150,10 @@ export default function App() {
       : '';
     const isApiConfigured = Boolean(apiToken && apiDomain);
     if (!feedUrl && !isApiConfigured) {
+      if (isDemoModeRef.current && !authUidRef.current && !settingsOverride) {
+        setCanvasError(null);
+        return;
+      }
       setCanvasAssignments([]);
       // If user saved a custom URL but no token yet, explain what's missing
       // instead of silently showing an empty tab.

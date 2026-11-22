@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { ShieldCheck, Trash2, LogOut, ChevronDown } from 'lucide-react';
+import { ShieldCheck, Trash2, LogOut, ChevronDown, X } from 'lucide-react';
 import { useT } from '../services/i18n';
 
 const FEATURE_PERMISSIONS = [
@@ -53,7 +53,7 @@ export const PrivacyModal: React.FC<{ onClose: () => void; onRevoke: () => void;
 
   return (
     <div
-      className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 p-4"
+      className="fixed inset-0 z-[80] flex items-center justify-center bg-black/65 backdrop-blur-xs p-4 isolate"
       role="dialog"
       aria-modal="true"
       aria-label={t('privacy_dialog_aria')}
@@ -61,13 +61,28 @@ export const PrivacyModal: React.FC<{ onClose: () => void; onRevoke: () => void;
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="w-full max-w-lg rounded-3xl p-5 sm:p-6 space-y-4 max-h-[88vh] overflow-y-auto bg-[var(--bg-raised)] text-[var(--text-primary)] border border-[var(--border-default)] shadow-2xl">
-        <h2 className="text-base font-extrabold flex items-center gap-2"><ShieldCheck className="w-5 h-5 text-[var(--accent-text)]" /> {t('privacy_title')}</h2>
-        <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
-          {t('privacy_intro')}
-        </p>
+      <div className="w-full max-w-lg rounded-3xl max-h-[88vh] flex flex-col overflow-hidden bg-[var(--bg-surface)] text-[var(--text-primary)] border border-[var(--border-default)] shadow-2xl">
+        <div className="px-5 sm:px-6 pt-5 pb-3.5 border-b border-[var(--border-hairline)] bg-[var(--bg-surface)] flex items-center justify-between gap-3 shrink-0">
+          <h2 className="text-base font-extrabold flex items-center gap-2">
+            <ShieldCheck className="w-5 h-5 text-[var(--accent-text)] shrink-0" />
+            <span>{t('privacy_title')}</span>
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label={t('common_close')}
+            className="p-2 rounded-xl text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
 
-        <div className="space-y-2">
+        <div className="flex-1 overflow-y-auto px-5 sm:px-6 py-4 space-y-4">
+          <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+            {t('privacy_intro')}
+          </p>
+
+          <div className="space-y-2">
           <Section title={t('privacy_sec_perms')} defaultOpen>
             <ul className="space-y-2">
               {FEATURE_PERMISSIONS.map((p) => (
@@ -135,18 +150,19 @@ export const PrivacyModal: React.FC<{ onClose: () => void; onRevoke: () => void;
               <li>{t('privacy_parent_4')}</li>
             </ul>
           </Section>
+          </div>
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          <button type="button" onClick={onRevoke} className="px-4 py-2.5 text-xs font-bold rounded-xl border border-[var(--border-default)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] min-h-[44px] inline-flex items-center gap-1 cursor-pointer">
+        <div className="px-5 sm:px-6 py-3.5 border-t border-[var(--border-hairline)] bg-[var(--bg-subtle)] flex flex-wrap items-center gap-2 shrink-0">
+          <button type="button" onClick={onRevoke} className="px-4 py-2.5 text-xs font-bold rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] min-h-[44px] inline-flex items-center gap-1 cursor-pointer">
             <LogOut className="w-3.5 h-3.5" /> {t('privacy_disconnect_btn')}
           </button>
           {!confirming
-            ? <button type="button" onClick={() => setConfirming(true)} className="px-4 py-2.5 text-xs font-bold rounded-xl border border-[var(--status-err-border)] text-[var(--status-err-text)] hover:bg-[var(--status-err-bg)] min-h-[44px] inline-flex items-center gap-1 cursor-pointer"><Trash2 className="w-3.5 h-3.5" /> {t('privacy_delete_btn')}</button>
+            ? <button type="button" onClick={() => setConfirming(true)} className="px-4 py-2.5 text-xs font-bold rounded-xl border border-[var(--status-err-border)] bg-[var(--bg-surface)] text-[var(--status-err-text)] hover:bg-[var(--status-err-bg)] min-h-[44px] inline-flex items-center gap-1 cursor-pointer"><Trash2 className="w-3.5 h-3.5" /> {t('privacy_delete_btn')}</button>
             : (
               <>
                 <button type="button" onClick={async () => { await onDeleteAll(); onClose(); }} className="px-4 py-2.5 text-xs font-bold rounded-xl bg-[var(--status-err-border)] hover:bg-[var(--status-err-text)] text-white min-h-[44px] cursor-pointer">{t('privacy_delete_confirm')}</button>
-                <button type="button" onClick={() => setConfirming(false)} className="px-4 py-2.5 text-xs font-bold rounded-xl border border-[var(--border-default)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] min-h-[44px] cursor-pointer">{t('common_cancel')}</button>
+                <button type="button" onClick={() => setConfirming(false)} className="px-4 py-2.5 text-xs font-bold rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] min-h-[44px] cursor-pointer">{t('common_cancel')}</button>
               </>
             )}
           <button type="button" onClick={onClose} className="px-4 py-2.5 text-xs font-bold text-white rounded-xl min-h-[44px] ml-auto cursor-pointer bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)]">{t('common_done')}</button>
