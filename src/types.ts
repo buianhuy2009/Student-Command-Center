@@ -119,6 +119,8 @@ export interface SchoolFile {
   iconLink?: string;
   size?: string;
   sharedWithMe?: boolean;
+  origin?: 'drive' | 'drive_link' | 'local';
+  localDataUrl?: string;
 }
 
 export interface CanvasAssignment {

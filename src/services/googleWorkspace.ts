@@ -1346,3 +1346,174 @@ export async function shareGoogleDriveFile(token: string, fileId: string, emailA
 
   return res.json();
 }
+
+/**
+ * Parse a Google Drive / Docs / Sheets / Slides URL or raw file ID.
+ */
+export function parseGoogleDriveLink(urlOrId: string): {
+  fileId: string;
+  mimeType: string;
+  webViewLink: string;
+  defaultName: string;
+} | null {
+  const raw = (urlOrId || '').trim();
+  if (!raw) return null;
+
+  let fileId = '';
+  let mimeType = 'application/vnd.google-apps.file';
+  let defaultName = 'Google Drive File';
+
+  const docMatch = raw.match(/docs\.google\.com\/document\/d\/([a-zA-Z0-9_-]+)/);
+  const sheetMatch = raw.match(/docs\.google\.com\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+  const slideMatch = raw.match(/docs\.google\.com\/presentation\/d\/([a-zA-Z0-9_-]+)/);
+  const driveFileMatch = raw.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?id=)([a-zA-Z0-9_-]+)/);
+  const idParamMatch = raw.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+
+  if (docMatch) {
+    fileId = docMatch[1];
+    mimeType = 'application/vnd.google-apps.document';
+    defaultName = 'Google Doc';
+  } else if (sheetMatch) {
+    fileId = sheetMatch[1];
+    mimeType = 'application/vnd.google-apps.spreadsheet';
+    defaultName = 'Google Sheet';
+  } else if (slideMatch) {
+    fileId = slideMatch[1];
+    mimeType = 'application/vnd.google-apps.presentation';
+    defaultName = 'Google Slides';
+  } else if (driveFileMatch) {
+    fileId = driveFileMatch[1];
+  } else if (idParamMatch) {
+    fileId = idParamMatch[1];
+  } else if (/^[a-zA-Z0-9_-]{16,64}$/.test(raw)) {
+    fileId = raw;
+  }
+
+  if (!fileId) return null;
+  const webViewLink = /^https?:\/\//i.test(raw)
+    ? raw
+    : `https://drive.google.com/file/d/${fileId}/view`;
+
+  return { fileId, mimeType, webViewLink, defaultName };
+}
+
+/**
+ * Upload a local file from the student's device directly to their Google Drive
+ * (works under least-privilege `drive.file` scope).
+ */
+export async function uploadFileToGoogleDrive(
+  token: string,
+  file: File
+): Promise<SchoolFile> {
+  const metadata = {
+    name: file.name || 'Uploaded File',
+    mimeType: file.type || 'application/octet-stream',
+  };
+  const form = new FormData();
+  form.append(
+    'metadata',
+    new Blob([JSON.stringify(metadata)], { type: 'application/json' })
+  );
+  form.append('file', file);
+
+  const res = await fetch(
+    'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,mimeType,modifiedTime,webViewLink,iconLink,size',
+    {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: form,
+    }
+  );
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw parseGoogleApiResponseError(res.status, text, 'Google Drive Upload', 'drive.googleapis.com');
+  }
+
+  const f = await res.json();
+  return {
+    id: f.id,
+    name: f.name || file.name,
+    mimeType: f.mimeType || file.type || 'application/octet-stream',
+    modifiedTime: f.modifiedTime || new Date().toISOString(),
+    webViewLink: f.webViewLink || `https://drive.google.com/file/d/${f.id}/view`,
+    iconLink: f.iconLink,
+    size: f.size || String(file.size),
+    origin: 'drive',
+  };
+}
+
+/**
+ * Best-effort metadata lookup for a Drive file ID when accessible to the app.
+ */
+export async function fetchDriveFileMetadata(
+  token: string,
+  fileId: string
+): Promise<SchoolFile | null> {
+  try {
+    const res = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?fields=id,name,mimeType,modifiedTime,webViewLink,iconLink,size`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    if (!res.ok) return null;
+    const f = await res.json();
+    return {
+      id: f.id,
+      name: f.name || 'Google Drive File',
+      mimeType: f.mimeType || 'application/vnd.google-apps.file',
+      modifiedTime: f.modifiedTime || new Date().toISOString(),
+      webViewLink: f.webViewLink || `https://drive.google.com/file/d/${f.id}/view`,
+      iconLink: f.iconLink,
+      size: f.size,
+      origin: 'drive',
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Create a new blank Google Doc or Google Sheet inside the student's Drive.
+ */
+export async function createBlankGoogleFile(
+  token: string,
+  kind: 'doc' | 'sheet',
+  title: string
+): Promise<SchoolFile> {
+  const mimeType =
+    kind === 'sheet'
+      ? 'application/vnd.google-apps.spreadsheet'
+      : 'application/vnd.google-apps.document';
+  const res = await fetch(
+    'https://www.googleapis.com/drive/v3/files?fields=id,name,mimeType,modifiedTime,webViewLink,iconLink',
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        name: title.trim() || (kind === 'sheet' ? 'Untitled Sheet' : 'Untitled Document'),
+        mimeType,
+      }),
+    }
+  );
+  if (!res.ok) {
+    const text = await res.text();
+    throw parseGoogleApiResponseError(res.status, text, 'Google Drive API', 'drive.googleapis.com');
+  }
+  const f = await res.json();
+  const fallbackLink =
+    kind === 'sheet'
+      ? `https://docs.google.com/spreadsheets/d/${f.id}/edit`
+      : `https://docs.google.com/document/d/${f.id}/edit`;
+  return {
+    id: f.id,
+    name: f.name || title,
+    mimeType: f.mimeType || mimeType,
+    modifiedTime: f.modifiedTime || new Date().toISOString(),
+    webViewLink: f.webViewLink || fallbackLink,
+    iconLink: f.iconLink,
+    origin: 'drive',
+  };
+}
