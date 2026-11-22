@@ -158,7 +158,7 @@ function findCollisionFreeStudySlots(params: {
 }
 
 const resolveRadarMode = (mode?: 'agenda' | 'planner' | 'schedule'): 'agenda' | 'planner' =>
-  mode === 'planner' ? 'planner' : 'agenda';
+  mode === 'agenda' ? 'agenda' : 'planner';
 
 export const DailyRadarTab: React.FC<DailyRadarTabProps> = ({
   events,
@@ -382,17 +382,6 @@ export const DailyRadarTab: React.FC<DailyRadarTabProps> = ({
           <div className="inline-flex items-center p-1 rounded-xl bg-[var(--bg-subtle)] border border-[var(--border-default)]">
             <button
               type="button"
-              onClick={() => setViewMode('agenda')}
-              className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
-                viewMode === 'agenda'
-                  ? 'bg-[var(--accent-fill)] text-white shadow-2xs'
-                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-              }`}
-            >
-              {t('radar_tab_agenda')}
-            </button>
-            <button
-              type="button"
               onClick={() => setViewMode('planner')}
               className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors cursor-pointer flex items-center gap-1 ${
                 viewMode === 'planner'
@@ -402,6 +391,17 @@ export const DailyRadarTab: React.FC<DailyRadarTabProps> = ({
             >
               <Sparkles className="w-3 h-3" />
               <span>{t('radar_tab_planner')}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('agenda')}
+              className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+                viewMode === 'agenda'
+                  ? 'bg-[var(--accent-fill)] text-white shadow-2xs'
+                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+              }`}
+            >
+              {t('radar_tab_agenda')}
             </button>
           </div>
 

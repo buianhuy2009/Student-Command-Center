@@ -702,11 +702,18 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
   meetings,
 }) => {
   const { lang, t, formatDate, formatTime } = useT();
+  const [demoActive, setDemoActive] = useState(false);
   const days = useMemo(() => next7Days(), []);
-  const harvested = useMemo(
-    () => harvestTasks(assignments || [], canvasAssignments || [], classroomAssignments, emailAlerts),
-    [assignments, canvasAssignments, classroomAssignments, emailAlerts, lang],
-  );
+  const harvested = useMemo(() => {
+    const effectiveAssignments = demoActive && (!assignments || assignments.length === 0)
+      ? [
+          { id: 'demo-p1', subject: 'Toán', assignmentName: 'Ôn tập phương trình bậc hai', dueDate: days[3], priority: 'High' as const, status: 'Not Started' as const, estimatedMinutes: 90 },
+          { id: 'demo-p2', subject: 'Hoá học', assignmentName: 'Bài tập phản ứng oxi hoá', dueDate: days[4], priority: 'Med' as const, status: 'Not Started' as const, estimatedMinutes: 60 },
+          { id: 'demo-p3', subject: 'Tiếng Anh', assignmentName: 'Writing Essay Draft', dueDate: days[5], priority: 'Low' as const, status: 'Not Started' as const, estimatedMinutes: 60 },
+        ]
+      : assignments || [];
+    return harvestTasks(effectiveAssignments, canvasAssignments || [], classroomAssignments, emailAlerts);
+  }, [demoActive, assignments, canvasAssignments, classroomAssignments, emailAlerts, days, lang]);
   const tasks = harvested.tasks;
   const undated = harvested.undated;
   const busySpans = useMemo(
@@ -1097,30 +1104,57 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
   const renderPending = (where: 'chat' | 'regen') => {
     if (!pending || pending.origin !== where || phase) return null;
     const n = pending.diff.length;
+    const lockedCount = (plan?.blocks || []).filter((b) => b.locked).length;
     return (
       <div
         role="region"
         aria-label={t('plan_pending_aria')}
         className="rounded-2xl border-2 border-[var(--accent-border)] bg-[var(--accent-soft)] p-4"
       >
-        <p className="flex items-center gap-2 text-sm font-bold text-[var(--text-primary)]">
-          <GitCompare className="h-4 w-4 shrink-0 text-[var(--accent-text)]" aria-hidden="true" />
-          {n === 0 ? t('plan_pending_none') : t(n === 1 ? 'plan_pending_one' : 'plan_pending_other', { count: n })}
-        </p>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="flex items-center gap-2 text-sm font-bold text-[var(--text-primary)]">
+            <GitCompare className="h-4 w-4 shrink-0 text-[var(--accent-text)]" aria-hidden="true" />
+            {n === 0 ? t('plan_pending_none') : t(n === 1 ? 'plan_pending_one' : 'plan_pending_other', { count: n })}
+          </p>
+          {lockedCount > 0 && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-[var(--bg-surface)] px-2.5 py-0.5 text-[10px] font-bold text-[var(--accent-text)] border border-[var(--accent-border)]">
+              <Lock className="h-3 w-3" aria-hidden="true" />
+              {t('plan_locked_kept', { count: lockedCount })}
+            </span>
+          )}
+        </div>
         {n > 0 && (
-          <ul className="mt-2 space-y-1">
+          <ul className="mt-2.5 space-y-1.5">
             {pending.diff.slice(0, 12).map((d, i) => (
               <li
                 key={i}
-                className={`break-words text-xs leading-relaxed ${
-                  d.type === 'added'
-                    ? 'text-[var(--status-ok-text)]'
-                    : d.type === 'removed'
-                      ? 'text-rose-700 dark:text-rose-300'
-                      : 'text-[var(--text-secondary)]'
-                }`}
+                className="rounded-xl bg-[var(--bg-surface)]/85 border border-[var(--border-hairline)] px-3 py-2 text-xs leading-relaxed"
               >
-                {diffLine(d)}
+                {d.type === 'moved' && d.before && d.after ? (
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2">
+                    <span className="text-[var(--text-muted)] line-through">
+                      <strong className="font-semibold no-underline mr-1">{t('plan_before_label')}:</strong>
+                      {describeBlock(d.before, lang)}
+                    </span>
+                    <span className="hidden sm:inline text-[var(--accent-text)] font-bold">→</span>
+                    <span className="text-[var(--text-primary)] font-semibold">
+                      <strong className="text-[var(--accent-text)] mr-1">{t('plan_after_label')}:</strong>
+                      {weekdayLabel(d.after.dayISO, lang)} {hhmm(d.after.startMin)}–{hhmm(d.after.endMin)}
+                    </span>
+                  </div>
+                ) : (
+                  <span
+                    className={`break-words font-medium ${
+                      d.type === 'added'
+                        ? 'text-[var(--status-ok-text)]'
+                        : d.type === 'removed'
+                          ? 'text-[var(--status-err-text)]'
+                          : 'text-[var(--text-secondary)]'
+                    }`}
+                  >
+                    {diffLine(d)}
+                  </span>
+                )}
               </li>
             ))}
             {n > 12 && <li className="text-xs text-[var(--text-muted)]">{t('plan_more_count', { count: n - 12 })}</li>}
@@ -1134,7 +1168,7 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
             <button
               type="button"
               onClick={applyPending}
-              className="rounded-xl bg-[var(--accent-fill)] px-4 py-2 text-xs font-bold text-white transition hover:bg-[var(--accent-hover)]"
+              className="rounded-xl bg-[var(--accent-fill)] px-4 py-2 text-xs font-bold text-white transition hover:bg-[var(--accent-hover)] cursor-pointer"
             >
               {t('plan_apply_btn')}
             </button>
@@ -1142,7 +1176,7 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
           <button
             type="button"
             onClick={discardPending}
-            className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] px-4 py-2 text-xs font-bold text-[var(--text-muted)] transition hover:border-[var(--accent-border)] hover:bg-[var(--bg-hover)]"
+            className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] px-4 py-2 text-xs font-bold text-[var(--text-secondary)] transition hover:border-[var(--accent-border)] hover:bg-[var(--bg-hover)] cursor-pointer"
           >
             {n > 0 ? t('plan_keep_current_btn') : t('close')}
           </button>
@@ -1283,6 +1317,14 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
             <p className="mt-1 max-w-sm text-xs leading-relaxed text-[var(--text-muted)]">
               {t('plan_nothing_dated_s')}
             </p>
+            <button
+              type="button"
+              onClick={() => setDemoActive(true)}
+              className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] px-4 py-2 text-xs font-bold text-white transition-colors cursor-pointer"
+            >
+              <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />
+              <span>{t('plan_demo_btn')}</span>
+            </button>
           </div>
           {!hasMeetingFeed && (
             <p className="mt-4 flex items-start gap-2 text-xs leading-relaxed text-[var(--text-muted)]">
@@ -1315,13 +1357,22 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
             </div>
           </div>
           <div className="flex shrink-0 flex-wrap items-center gap-2">
+            {demoActive && (
+              <button
+                type="button"
+                onClick={() => setDemoActive(false)}
+                className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-[var(--accent-border)] bg-[var(--accent-soft)] px-3 py-2 text-xs font-bold text-[var(--accent-text)] cursor-pointer"
+              >
+                {t('plan_demo_exit')}
+              </button>
+            )}
             {history.length > 0 && (
               <button
                 type="button"
                 onClick={undoLast}
                 disabled={phase !== null}
                 aria-label={t('plan_undo_aria')}
-                className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-[var(--border-default)] bg-white px-3 py-2 text-xs font-bold text-[var(--text-muted)] transition hover:border-[var(--accent-border)] hover:text-[var(--accent-text)] disabled:cursor-not-allowed disabled:opacity-60   "
+                className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] px-3 py-2 text-xs font-bold text-[var(--text-secondary)] transition hover:border-[var(--accent-border)] hover:text-[var(--accent-text)] disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
               >
                 <Undo2 className="h-4 w-4" aria-hidden="true" />
                 {t('plan_undo_btn')}
@@ -1447,10 +1498,10 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
                     role="tab"
                     aria-selected={active}
                     onClick={() => setSelectedDay(day)}
-                    className={`flex min-w-[64px] flex-1 flex-col items-center gap-0.5 rounded-2xl border px-2 py-2 text-xs font-bold transition ${
+                    className={`flex min-w-[64px] flex-1 flex-col items-center gap-0.5 rounded-2xl border px-2 py-2 text-xs font-bold transition cursor-pointer ${
                       active
                         ? 'border-[var(--accent-fill)] bg-[var(--accent-fill)] text-white shadow-sm'
-                        : 'border-[var(--border-default)] bg-white text-[var(--text-muted)] hover:border-[var(--accent-border)]   '
+                        : 'border-[var(--border-default)] bg-[var(--bg-surface)] text-[var(--text-muted)] hover:border-[var(--accent-border)]'
                     }`}
                   >
                     <span className="text-[10px] font-semibold uppercase tracking-wide opacity-80">
@@ -1781,7 +1832,7 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
             placeholder={t('plan_chat_ph')}
             autoComplete="off"
             disabled={phase !== null}
-            className="min-w-0 flex-1 rounded-xl border border-[var(--border-default)] bg-white px-3 py-2.5 text-sm text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)] focus:border-[var(--accent-fill)] focus:ring-2 focus:ring-[var(--accent-fill)]/30   "
+            className="min-w-0 flex-1 rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] px-3 py-2.5 text-sm text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)] focus:border-[var(--accent-fill)] focus:ring-2 focus:ring-[var(--accent-fill)]/30"
           />
           <button
             type="submit"
