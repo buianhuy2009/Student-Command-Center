@@ -1,4 +1,5 @@
 import React from 'react';
+import { Menu, X, Search } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
 import { Navbar } from '../components/Navbar';
 import { ErrorBoundary } from '../components/ErrorBoundary';
@@ -31,7 +32,7 @@ export const Shell: React.FC<ShellProps> = ({
   const { hidden, ...navRest } = navbarProps;
 
   return (
-    <div className="h-screen max-h-screen overflow-hidden bg-[var(--bg-canvas)] text-[var(--text-primary)] flex flex-col font-sans selection:bg-[var(--accent-fill)] selection:text-white">
+    <div className="h-dvh max-h-dvh overflow-hidden bg-[var(--bg-canvas)] text-[var(--text-primary)] flex flex-col font-sans selection:bg-[var(--accent-fill)] selection:text-white">
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[100] bg-[var(--accent-fill)] text-white px-3 py-1.5 rounded-lg text-xs font-bold border border-[var(--border-strong)]"
@@ -87,7 +88,7 @@ export const Shell: React.FC<ShellProps> = ({
 
         {/* Right Main Column */}
         <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-[var(--bg-canvas)]">
-          {!hidden && !isZen && (
+          {!hidden && !isZen ? (
             <ErrorBoundary
               fallback={
                 <header className="h-12 bg-[var(--bg-surface)] border-b border-[var(--border-default)] px-4 sm:px-6 flex items-center justify-between z-20 text-xs font-semibold text-[var(--text-muted)]">
@@ -107,7 +108,36 @@ export const Shell: React.FC<ShellProps> = ({
                 onToggleMobileNav={onMobileNavChange ? () => onMobileNavChange(!mobileNavOpen) : undefined}
               />
             </ErrorBoundary>
-          )}
+          ) : hidden && !isZen ? (
+            <header className="md:hidden h-12 bg-[var(--bg-canvas)]/90 backdrop-blur-md border-b border-[var(--border-hairline)] px-3 flex items-center justify-between gap-2 shrink-0 z-20">
+              <div className="flex items-center gap-2 min-w-0">
+                {onMobileNavChange && (
+                  <button
+                    type="button"
+                    onClick={() => onMobileNavChange(!mobileNavOpen)}
+                    aria-label={t('app_toggle_nav_aria')}
+                    aria-expanded={mobileNavOpen}
+                    className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border-default)] text-[var(--text-primary)] cursor-pointer shrink-0"
+                  >
+                    {mobileNavOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+                  </button>
+                )}
+                <span className="text-xs font-semibold text-[var(--text-primary)] truncate">
+                  {navRest.activeTabLabel ?? t('nav_default_tab')}
+                </span>
+              </div>
+              {navRest.onOpenCommandPalette && (
+                <button
+                  type="button"
+                  onClick={navRest.onOpenCommandPalette}
+                  aria-label={t('search')}
+                  className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border-hairline)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer shrink-0"
+                >
+                  <Search className="w-4 h-4" />
+                </button>
+              )}
+            </header>
+          ) : null}
 
           {subBanner}
 

@@ -9,6 +9,10 @@ import {
   Sun,
   Moon,
   User as UserIcon,
+  Search,
+  Sparkles,
+  LogOut,
+  LogIn,
 } from 'lucide-react';
 import { AppLogo } from './AppLogo';
 import { APP_CATALOG } from './AppStoreModal';
@@ -56,6 +60,9 @@ interface SidebarProps {
   onOpenSettings: () => void;
   onOpenAppStore: () => void;
   onOpenShortcuts: () => void;
+  onOpenSearch?: () => void;
+  onToggleAiChat?: () => void;
+  isAiChatOpen?: boolean;
   onToggleDarkMode: () => void;
   darkMode: boolean;
   pinnedAppIds: string[];
@@ -76,8 +83,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isExpanded,
   onToggleExpand,
   user,
+  onSignIn,
+  onSignOut,
   onOpenSettings,
   onOpenAppStore,
+  onOpenSearch,
+  onToggleAiChat,
+  isAiChatOpen = false,
   onToggleDarkMode,
   darkMode,
   pinnedAppIds = [],
@@ -152,7 +164,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       aria-label={t('side_primary_nav')}
       data-tour="sidebar"
       role="navigation"
-      className={`h-screen shrink-0 bg-[var(--bg-subtle)]/65 border-r border-[var(--border-hairline)] flex flex-col transition-all duration-200 z-30 select-none ${
+      className={`h-dvh shrink-0 bg-[var(--bg-subtle)]/65 border-r border-[var(--border-hairline)] flex flex-col transition-all duration-200 z-30 select-none ${
         isExpanded ? 'w-60 px-2.5 py-3' : 'w-16 p-2'
       }`}
     >
@@ -192,6 +204,59 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </button>
         )}
       </div>
+
+      {/* Quick Utilities: Search & AI Coach (always accessible even when top bar is hidden) */}
+      {(onOpenSearch || onToggleAiChat) && (
+        <div className="mb-2.5 space-y-1 shrink-0">
+          {onOpenSearch && (
+            <button
+              type="button"
+              onClick={onOpenSearch}
+              data-tour="search"
+              title={t('search_or_jump')}
+              className={`w-full rounded-lg flex items-center transition-colors cursor-pointer relative group ${
+                isExpanded
+                  ? 'px-2.5 py-1.5 justify-between gap-2 bg-[var(--bg-surface)]/80 hover:bg-[var(--bg-surface)] border border-[var(--border-hairline)] text-[var(--text-muted)] hover:text-[var(--text-primary)] min-h-[34px]'
+                  : 'w-10 h-9 mx-auto justify-center bg-[var(--bg-surface)]/70 hover:bg-[var(--bg-surface)] border border-[var(--border-hairline)] text-[var(--text-secondary)]'
+              }`}
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <Search className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75} />
+                {isExpanded && <span className="text-xs truncate">{t('search_or_jump')}</span>}
+              </div>
+              {isExpanded && (
+                <kbd className="text-[10px] font-mono bg-[var(--bg-subtle)] px-1.5 py-0.5 rounded border border-[var(--border-hairline)] text-[var(--text-muted)] shrink-0">
+                  ⌘K
+                </kbd>
+              )}
+              {renderCollapsedTooltip(t('search_or_jump'))}
+            </button>
+          )}
+
+          {onToggleAiChat && (
+            <button
+              type="button"
+              onClick={onToggleAiChat}
+              data-tour="coach"
+              aria-pressed={isAiChatOpen}
+              title={t('nav_ai_coach_title')}
+              className={`w-full rounded-lg flex items-center transition-colors cursor-pointer relative group ${
+                isExpanded ? 'px-2.5 py-1.5 justify-between gap-2 min-h-[36px]' : 'w-10 h-9 mx-auto justify-center'
+              } ${
+                isAiChatOpen
+                  ? 'bg-[var(--accent-fill)] text-white font-semibold'
+                  : 'bg-[var(--accent-soft)]/70 text-[var(--accent-text)] hover:bg-[var(--accent-soft)] font-semibold'
+              }`}
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <Sparkles className="w-4 h-4 shrink-0" strokeWidth={1.75} />
+                {isExpanded && <span className="text-xs truncate">{t('nav_ai_coach')}</span>}
+              </div>
+              {renderCollapsedTooltip(t('nav_ai_coach'))}
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Scrollable Workspace List */}
       <div className="flex-1 overflow-y-auto min-h-0 space-y-4 pr-0.5">
@@ -468,43 +533,67 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </button>
         )}
 
-        <button
-          type="button"
-          onClick={onOpenSettings}
-          className={`w-full flex items-center rounded-lg cursor-pointer hover:bg-[var(--bg-hover)]/70 transition-colors ${
-            isExpanded ? 'gap-2.5 justify-start px-2 py-1.5 min-h-[42px]' : 'w-10 h-10 mx-auto justify-center p-0'
-          }`}
-          title={t('side_account')}
-        >
+        <div className={`flex items-center ${isExpanded ? 'gap-1' : 'flex-col gap-1'}`}>
+          <button
+            type="button"
+            onClick={onOpenSettings}
+            className={`flex-1 flex items-center rounded-lg cursor-pointer hover:bg-[var(--bg-hover)]/70 transition-colors min-w-0 ${
+              isExpanded ? 'gap-2.5 justify-start px-2 py-1.5 min-h-[42px]' : 'w-10 h-10 mx-auto justify-center p-0'
+            }`}
+            title={t('side_account')}
+          >
+            {user ? (
+              <div className="w-8 h-8 rounded-lg bg-[var(--accent-soft)] border border-[var(--accent-border)] flex items-center justify-center text-xs font-bold text-[var(--accent-text)] overflow-hidden shrink-0">
+                {user.photoURL ? (
+                  <img
+                    src={user.photoURL}
+                    alt={user.displayName || t('side_guest')}
+                    className="w-full h-full object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  (user.displayName || user.email || 'S').slice(0, 2).toUpperCase()
+                )}
+              </div>
+            ) : (
+              <div className="w-8 h-8 rounded-lg bg-[var(--accent-soft)] border border-[var(--accent-border)] text-[var(--accent-text)] flex items-center justify-center text-xs font-bold shrink-0">
+                <UserIcon className="w-4 h-4" strokeWidth={1.75} />
+              </div>
+            )}
+            {isExpanded && (
+              <div className="min-w-0 flex-1 text-left">
+                <div className="text-xs font-bold text-[var(--text-primary)] truncate leading-tight">
+                  {user ? user.displayName || user.email?.split('@')[0] : t('side_guest')}
+                </div>
+                <div className="text-[10px] text-[var(--text-muted)] truncate">
+                  {user ? user.email : t('side_click_settings')}
+                </div>
+              </div>
+            )}
+          </button>
+
           {user ? (
-            <div className="w-8 h-8 rounded-lg bg-[var(--accent-soft)] border border-[var(--accent-border)] flex items-center justify-center text-xs font-bold text-[var(--accent-text)] overflow-hidden shrink-0">
-              {user.photoURL ? (
-                <img
-                  src={user.photoURL}
-                  alt={user.displayName || t('side_guest')}
-                  className="w-full h-full object-cover"
-                  referrerPolicy="no-referrer"
-                />
-              ) : (
-                (user.displayName || user.email || 'S').slice(0, 2).toUpperCase()
-              )}
-            </div>
+            <button
+              type="button"
+              onClick={onSignOut}
+              title={t('settings_google_signout_btn')}
+              aria-label={t('settings_google_signout_btn')}
+              className="w-9 h-9 rounded-lg flex items-center justify-center text-[var(--text-muted)] hover:text-rose-600 dark:hover:text-rose-400 hover:bg-[var(--bg-hover)] transition-colors cursor-pointer shrink-0"
+            >
+              <LogOut className="w-4 h-4" strokeWidth={1.75} />
+            </button>
           ) : (
-            <div className="w-8 h-8 rounded-lg bg-[var(--accent-soft)] border border-[var(--accent-border)] text-[var(--accent-text)] flex items-center justify-center text-xs font-bold shrink-0">
-              <UserIcon className="w-4 h-4" strokeWidth={1.75} />
-            </div>
+            <button
+              type="button"
+              onClick={onSignIn}
+              title={t('settings_google_signin_btn')}
+              aria-label={t('settings_google_signin_btn')}
+              className="w-9 h-9 rounded-lg flex items-center justify-center text-[var(--accent-text)] hover:bg-[var(--accent-soft)] transition-colors cursor-pointer shrink-0"
+            >
+              <LogIn className="w-4 h-4" strokeWidth={1.75} />
+            </button>
           )}
-          {isExpanded && (
-            <div className="min-w-0 flex-1 text-left">
-              <div className="text-xs font-bold text-[var(--text-primary)] truncate leading-tight">
-                {user ? user.displayName || user.email?.split('@')[0] : t('side_guest')}
-              </div>
-              <div className="text-[10px] text-[var(--text-muted)] truncate">
-                {user ? user.email : t('side_click_settings')}
-              </div>
-            </div>
-          )}
-        </button>
+        </div>
       </div>
     </aside>
   );

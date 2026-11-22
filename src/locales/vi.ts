@@ -3378,4 +3378,16 @@ export const vi = {
   coach_mode_hint_professor: 'Phân tích chuyên sâu hơn qua Gemini.',
   coach_mode_hint_fast: 'Phản hồi siêu nhanh định tuyến tới Groq.',
 
+  // Layout mode & relocated settings/sidebar controls
+  settings_account_card_title: 'Phiên tài khoản',
+  settings_account_signed_in: 'Đang đăng nhập với {email}',
+  settings_account_signed_out: 'Đang dùng chế độ khách lưu trên máy.',
+  settings_google_tools_shortcut_title: 'Công cụ Google & Đồng bộ',
+  settings_google_tools_shortcut_sub: 'Quản lý quyền kết nối Gmail, Lịch, Drive, Sheets và Google Classroom.',
+  settings_google_tools_shortcut_btn: 'Mở Công cụ Google',
+  settings_layout_mode_title: 'Chế độ giao diện',
+  settings_layout_mode_sub: 'Chế độ Dịu mắt (Calm) ẩn thanh trên rối mắt và mở trang chủ nhẹ nhàng. Cổ điển (Classic) khôi phục thanh trên và bảng điều khiển đầy đủ.',
+  settings_layout_calm: 'Dịu mắt (Mặc định)',
+  settings_layout_classic: 'Cổ điển',
+
 } satisfies Record<TranslationKey, string>;

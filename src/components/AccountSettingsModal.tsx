@@ -67,6 +67,7 @@ import {
 } from '../services/gemini/providers';
 import { loadCanvasSettings, saveCanvasSettings } from '../services/canvas';
 import { hasFeatureAccess, type GoogleFeature } from '../services/googleAuth';
+import { getLayoutMode, setLayoutMode, type LayoutMode } from '../services/layoutMode';
 import { useT } from '../services/i18n';
 import { LanguageToggle } from './LanguageToggle';
 import { CURRENT_VERSION } from './ChangelogModal';
@@ -243,6 +244,11 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
     return (localStorage.getItem('scc_ui_density_v1') as any) || 'comfortable';
   });
   const [colorTheme, setColorTheme] = useState<ThemeId>(() => getTheme());
+  const [layoutMode, setLayoutModeState] = useState<LayoutMode>(() => getLayoutMode());
+  const handleLayoutModeChange = (mode: LayoutMode) => {
+    setLayoutModeState(mode);
+    setLayoutMode(mode);
+  };
   const [autoSystemTheme, setAutoSystemTheme] = useState<boolean>(() => {
     return localStorage.getItem('scc_auto_system_theme_v1') === 'true';
   });
@@ -436,16 +442,24 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
   const currentNavItem = NAV_ITEMS.find((n) => n.id === activeSection) || NAV_ITEMS[0];
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 sm:p-6 animate-in fade-in duration-200">
-      <div className="bg-[var(--bg-raised)] rounded-3xl max-w-4xl w-full h-[620px] max-h-[90vh] flex border border-[var(--border-default)] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 bg-[var(--bg-canvas)] flex flex-col md:flex-row z-50 animate-in fade-in duration-150 overflow-hidden">
+      <div className="flex-1 flex flex-col md:flex-row min-w-0 min-h-0 bg-[var(--bg-canvas)]">
         
-        {/* LEFT PANE: Categorized Sidebar */}
-        <div className="w-60 shrink-0 bg-[var(--bg-subtle)] border-r border-[var(--border-hairline)] flex flex-col justify-between p-4 select-none">
-          <div className="space-y-3">
-            <div className="px-2 pt-1">
+        {/* LEFT PANE: Categorized Sidebar (desktop) */}
+        <div className="hidden md:flex w-64 shrink-0 bg-[var(--bg-subtle)]/70 border-r border-[var(--border-hairline)] flex-col justify-between p-5 select-none">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between px-2 pt-1">
               <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
                 {t('settings')}
               </span>
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label={t('close')}
+                className="p-1.5 rounded-lg text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
 
             <nav className="space-y-0.5">
@@ -458,7 +472,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                     onClick={() => setActiveSection(item.id)}
                     className={`w-full px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-2.5 transition-colors cursor-pointer text-left ${
                       isActive
-                        ? 'bg-[var(--bg-surface)] text-[var(--text-primary)]'
+                        ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-2xs'
                         : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]'
                     }`}
                   >
@@ -470,8 +484,8 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
             </nav>
           </div>
 
-          {/* User Account Row at Bottom of Dialog Sidebar */}
-          <div className="pt-3 border-t border-[var(--border-hairline)]">
+          {/* User Account & Sign Out Row at Bottom of Fullscreen Sidebar */}
+          <div className="pt-3 border-t border-[var(--border-hairline)] space-y-2">
             <div className="flex items-center gap-2.5 px-1.5 py-1">
               {user ? (
                 <div className="w-8 h-8 rounded-lg bg-[var(--accent-fill)] text-white flex items-center justify-center font-bold text-xs shrink-0 overflow-hidden">
@@ -482,7 +496,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                   )}
                 </div>
               ) : (
-                <div className="w-8 h-8 rounded-lg bg-[var(--bg-subtle)] text-[var(--text-muted)] flex items-center justify-center font-bold text-xs shrink-0">
+                <div className="w-8 h-8 rounded-lg bg-[var(--bg-surface)] text-[var(--text-muted)] flex items-center justify-center font-bold text-xs shrink-0">
                   <UserIcon className="w-4 h-4" />
                 </div>
               )}
@@ -495,19 +509,39 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                 </div>
               </div>
             </div>
+            {user ? (
+              <button
+                type="button"
+                onClick={() => { onLogout(); onClose(); }}
+                className="w-full px-3 py-2 rounded-lg border border-[var(--status-err-border)] bg-[var(--bg-surface)] text-[var(--status-err-text)] hover:opacity-90 text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>{t('settings_google_signout_btn')}</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={onGoogleSignIn}
+                disabled={isLoggingIn}
+                className="w-full px-3 py-2 rounded-lg bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                <span>{t('settings_google_signin_btn')}</span>
+              </button>
+            )}
           </div>
         </div>
 
         {/* RIGHT PANE: Detail Settings Content */}
-        <div className="flex-1 flex flex-col min-w-0 bg-[var(--bg-surface)]">
+        <div className="flex-1 flex flex-col min-w-0 min-h-0 bg-[var(--bg-canvas)]">
           
           {/* Header with Title and Close X */}
-          <div className="px-8 py-5 border-b border-[var(--border-hairline)] flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-bold text-[var(--text-primary)]">
+          <div className="px-4 sm:px-8 py-4 border-b border-[var(--border-hairline)] bg-[var(--bg-surface)]/80 backdrop-blur-xs flex items-center justify-between gap-3 shrink-0">
+            <div className="min-w-0">
+              <h2 className="text-base sm:text-lg font-bold text-[var(--text-primary)] truncate">
                 {t(currentNavItem.labelKey)}
               </h2>
-              <p className="text-xs text-[var(--text-muted)] mt-0.5">
+              <p className="text-xs text-[var(--text-muted)] mt-0.5 truncate">
                 {t(currentNavItem.subKey)}
               </p>
             </div>
@@ -515,18 +549,107 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
             <button
               onClick={onClose}
               aria-label={t('close')}
-              className="p-2 rounded-xl text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+              className="px-3 py-1.5 rounded-xl bg-[var(--bg-subtle)] border border-[var(--border-hairline)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4" />
+              <span className="hidden sm:inline">{t('close')}</span>
             </button>
           </div>
 
+          {/* Mobile Section Navigation Pills */}
+          <div className="md:hidden px-4 py-2 border-b border-[var(--border-hairline)] bg-[var(--bg-subtle)]/50 flex items-center gap-1.5 overflow-x-auto shrink-0">
+            {NAV_ITEMS.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeSection === item.id;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setActiveSection(item.id)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 whitespace-nowrap cursor-pointer shrink-0 ${
+                    isActive
+                      ? 'bg-[var(--accent-fill)] text-white'
+                      : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] border border-[var(--border-hairline)]'
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  <span>{t(item.labelKey)}</span>
+                </button>
+              );
+            })}
+          </div>
+
           {/* Section Body */}
-          <div className="flex-1 overflow-y-auto px-8 py-6 space-y-6">
+          <div className="flex-1 overflow-y-auto px-4 sm:px-8 py-6">
+            <div className="max-w-3xl mx-auto space-y-6">
 
             {/* SECTION 1: GENERAL */}
             {activeSection === 'general' && (
               <div className="space-y-5">
+                {/* Account Session & Sign Out */}
+                <div className="rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-surface)] px-4 py-3.5 flex flex-wrap items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="text-xs font-bold text-[var(--text-primary)]">
+                      {t('settings_account_card_title')}
+                    </div>
+                    <div className="text-[11px] text-[var(--text-muted)] truncate">
+                      {user
+                        ? t('settings_account_signed_in', { email: user.email || user.displayName || '' })
+                        : t('settings_account_signed_out')}
+                    </div>
+                  </div>
+                  {user ? (
+                    <button
+                      type="button"
+                      onClick={() => { onLogout(); onClose(); }}
+                      className="px-3.5 py-1.5 rounded-lg border border-[var(--status-err-border)] bg-[var(--status-err-bg)] text-[var(--status-err-text)] hover:opacity-90 text-xs font-semibold flex items-center gap-1.5 cursor-pointer shrink-0"
+                    >
+                      <LogOut className="w-3.5 h-3.5" />
+                      <span>{t('settings_google_signout_btn')}</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={onGoogleSignIn}
+                      disabled={isLoggingIn}
+                      className="px-3.5 py-1.5 rounded-lg bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer shrink-0"
+                    >
+                      <LogIn className="w-3.5 h-3.5" />
+                      <span>{t('settings_google_signin_btn')}</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* Google Tools & Sync Shortcut */}
+                {onOpenGoogleSyncHub && (
+                  <div className="rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-surface)] px-4 py-3.5 flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <div className="text-xs font-bold text-[var(--text-primary)]">
+                        {t('settings_google_tools_shortcut_title')}
+                      </div>
+                      <div className="text-[11px] text-[var(--text-muted)]">
+                        {t('settings_google_tools_shortcut_sub')}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setActiveSection('sync')}
+                        className="px-3 py-1.5 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border-default)] hover:border-[var(--accent-fill)] text-xs font-semibold text-[var(--text-primary)] cursor-pointer"
+                      >
+                        {t('settings_nav_sync')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { onClose(); onOpenGoogleSyncHub(); }}
+                        className="px-3 py-1.5 rounded-lg bg-[var(--accent-soft)] border border-[var(--accent-border)] text-[var(--accent-text)] text-xs font-semibold cursor-pointer"
+                      >
+                        {t('settings_google_tools_shortcut_btn')}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
                     {t('execution_session')}
@@ -1118,6 +1241,42 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
             {activeSection === 'appearance' && (
               <div className="space-y-4">
                 <div className="rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-subtle)]/40 divide-y divide-[var(--border-hairline)]">
+                  {/* Interface Layout Mode: Calm vs Classic */}
+                  <div className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <div className="text-xs font-bold text-[var(--text-primary)]">
+                        {t('settings_layout_mode_title')}
+                      </div>
+                      <div className="text-[11px] text-[var(--text-muted)] max-w-md">
+                        {t('settings_layout_mode_sub')}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 p-1 bg-[var(--bg-surface)] rounded-xl border border-[var(--border-hairline)] shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => handleLayoutModeChange('calm')}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                          layoutMode === 'calm'
+                            ? 'bg-[var(--accent-fill)] text-white shadow-xs'
+                            : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                        }`}
+                      >
+                        {t('settings_layout_calm')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleLayoutModeChange('classic')}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                          layoutMode === 'classic'
+                            ? 'bg-[var(--accent-fill)] text-white shadow-xs'
+                            : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                        }`}
+                      >
+                        {t('settings_layout_classic')}
+                      </button>
+                    </div>
+                  </div>
+
                   {/* Interface Density Toggle */}
                   <div className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
@@ -1552,6 +1711,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
               </div>
             )}
 
+            </div>
           </div>
         </div>
       </div>

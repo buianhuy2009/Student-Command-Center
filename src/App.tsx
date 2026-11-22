@@ -12,6 +12,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { useBadgeCounts } from './hooks/useBadgeCounts';
 import { useDebouncedCallback } from './hooks/useDebouncedCallback';
 import { initTheme, setTheme, syncDarkToTheme } from './services/theme';
+import { getLayoutMode, LAYOUT_MODE_EVENT, type LayoutMode } from './services/layoutMode';
 import { useT } from './services/i18n';
 // Chunk-resilient lazy(): after a fresh deploy the service worker can serve a
 // stale index.html that references rotated chunk filenames → dynamic import()
@@ -704,6 +705,15 @@ export default function App() {
 
   // Zen Focus Mode (Distraction-Free Experience)
   const [zenFocusMode, setZenFocusMode] = useState<boolean>(false);
+  const [layoutMode, setLayoutModeState] = useState<LayoutMode>(() => getLayoutMode());
+  useEffect(() => {
+    const onLayout = (e: any) => {
+      const next = e?.detail === 'classic' || e?.detail === 'calm' ? e.detail : getLayoutMode();
+      setLayoutModeState(next);
+    };
+    window.addEventListener(LAYOUT_MODE_EVENT, onLayout);
+    return () => window.removeEventListener(LAYOUT_MODE_EVENT, onLayout);
+  }, []);
 
   // Zen Focus: opt-in fullscreen (respects user preference, iOS-safe, Esc to exit)
   useEffect(() => {
@@ -3460,6 +3470,9 @@ export default function App() {
           onOpenSettings: () => setAccountSettingsOpen(true),
           onOpenAppStore: () => setAppStoreOpen(true),
           onOpenShortcuts: () => setShortcutsModalOpen(true),
+          onOpenSearch: () => setCommandPaletteOpen(true),
+          onToggleAiChat: () => setAiChatOpen((v) => !v),
+          isAiChatOpen: aiChatOpen,
           onToggleDarkMode: toggleDarkMode,
           darkMode,
           pinnedAppIds,
@@ -3474,6 +3487,7 @@ export default function App() {
           },
         }}
         navbarProps={{
+          hidden: layoutMode === 'calm',
           activeTabLabel: t(TAB_LABEL_KEYS[activeTab] || 'nav_default_tab'),
           onOpenCommandPalette: () => setCommandPaletteOpen(true),
           onToggleAiChat: () => setAiChatOpen(!aiChatOpen),

@@ -3386,6 +3386,18 @@ export const en = {
   coach_mode_hint_professor: 'Deeper university-level reasoning powered by Gemini.',
   coach_mode_hint_fast: 'Rapid concise answers routed to Groq.',
 
+  // Layout mode & relocated settings/sidebar controls
+  settings_account_card_title: 'Account session',
+  settings_account_signed_in: 'Signed in as {email}',
+  settings_account_signed_out: 'Using local guest session on this device.',
+  settings_google_tools_shortcut_title: 'Google Tools & Sync',
+  settings_google_tools_shortcut_sub: 'Connect or manage Gmail, Calendar, Drive, Sheets & Classroom permissions.',
+  settings_google_tools_shortcut_btn: 'Open Google Tools',
+  settings_layout_mode_title: 'Workspace layout mode',
+  settings_layout_mode_sub: 'Calm mode hides top-bar clutter and opens a peaceful homepage. Classic restores the compact top bar and full command dashboard.',
+  settings_layout_calm: 'Calm (Default)',
+  settings_layout_classic: 'Classic',
+
 } as const;
 
 export type TranslationKey = keyof typeof en;
