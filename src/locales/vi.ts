@@ -3390,4 +3390,15 @@ export const vi = {
   settings_layout_calm: 'Dịu mắt (Mặc định)',
   settings_layout_classic: 'Cổ điển',
 
+  // Calm Dashboard Home
+  dash_calm_intention_prompt: 'Hít thở sâu — chạm để đặt một mục tiêu nhẹ nhàng cho hôm nay.',
+  dash_calm_card_focus_title: 'Trạm Tập Trung',
+  dash_calm_card_focus_desc: 'Bắt đầu một phiên học yên tĩnh theo nhịp độ của bạn.',
+  dash_calm_card_rhythm_title: 'Kế hoạch học tập',
+  dash_calm_card_rhythm_desc: 'Xem nhịp học hôm nay và tùy chỉnh nhẹ nhàng.',
+  dash_calm_card_coach_title: 'AI Study Coach',
+  dash_calm_card_coach_desc: 'Thảo luận bài khó hoặc phác thảo ghi chú cùng trợ lý AI.',
+  dash_calm_link_tasks: 'Bài tập & hạn nộp',
+  dash_switch_to_classic: 'Chuyển sang giao diện Cổ điển',
+
 } satisfies Record<TranslationKey, string>;

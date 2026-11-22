@@ -24,6 +24,7 @@ import { EmptyAssignments } from './EmptyState';
 import { MainFlowCard, isCanvasHidden } from './MainFlowCard';
 import { APP_CATALOG, loadPinnedAppIds } from './AppStoreModal';
 import { AppLogo } from './AppLogo';
+import { setLayoutMode, type LayoutMode } from '../services/layoutMode';
 import { useT } from '../services/i18n';
 
 const LOCAL_STORAGE_NAME_KEY = 'scc_user_preferred_name';
@@ -37,6 +38,8 @@ interface DashboardHomeProps {
   onOpenQuickDraft?: any;
   onOpenAiSuite?: any;
   onOpenAppStore?: () => void;
+  onOpenAiCoach?: () => void;
+  layoutMode?: LayoutMode;
   user?: User | null;
   isGoogleConnected?: boolean;
   isGmailConnected?: boolean;
@@ -57,6 +60,8 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
   onToggleAssignment,
   onNavigateWorkspace,
   onOpenAppStore,
+  onOpenAiCoach,
+  layoutMode = 'calm',
   user,
   isGoogleConnected = false,
   isGmailConnected,
@@ -304,6 +309,241 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
 
   const { enabled: apodEnabled, apod: nasaApod, loading: apodLoading, error: apodError, reload: reloadApod } = useNasaApod();
   const [apodExpanded, setApodExpanded] = useState(false);
+
+  if (layoutMode === 'calm') {
+    const VIBE_CHIPS: { id: VibeType; label: string }[] = [
+      { id: 'focus', label: t('dash_vibe_focus') },
+      { id: 'calm', label: t('dash_vibe_calm') },
+      { id: 'creative', label: t('dash_vibe_creative') },
+      { id: 'recharge', label: t('dash_vibe_recharge') },
+    ];
+
+    return (
+      <div className="w-full max-w-4xl mx-auto px-4 sm:px-8 py-10 sm:py-14 space-y-10 text-left animate-in fade-in duration-300">
+        {/* Calming Welcome Header */}
+        <header className="space-y-4">
+          <div className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-widest">
+            {todayFormattedDate}
+          </div>
+
+          {isEditingName ? (
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={nameInput}
+                onChange={(e) => setNameInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSaveName()}
+                className="px-3 py-1.5 text-2xl sm:text-4xl font-bold bg-[var(--bg-surface)] border border-[var(--accent-fill)] rounded-xl text-[var(--text-primary)] max-w-xs"
+                autoFocus
+              />
+              <button
+                type="button"
+                onClick={handleSaveName}
+                aria-label={t('common_save')}
+                className="p-2.5 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-xl cursor-pointer min-h-[40px]"
+              >
+                <Check className="w-4 h-4" strokeWidth={2} />
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2.5 min-w-0">
+              <h1 className="text-3xl sm:text-4xl font-bold text-[var(--text-primary)] tracking-tight leading-tight truncate">
+                {greetingPrefix}, <span>{studentName}</span>
+              </h1>
+              <button
+                type="button"
+                onClick={() => {
+                  setNameInput(studentName);
+                  setIsEditingName(true);
+                }}
+                className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-colors shrink-0 cursor-pointer"
+                aria-label={t('dash_edit_name')}
+                title={t('dash_edit_name')}
+              >
+                <Edit2 className="w-3.5 h-3.5" strokeWidth={1.75} />
+              </button>
+            </div>
+          )}
+
+          {/* Soft Daily Intention */}
+          <div>
+            {isEditingIntention ? (
+              <div className="flex items-center gap-2 max-w-md">
+                <input
+                  type="text"
+                  value={intentionInput}
+                  onChange={(e) => setIntentionInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSaveIntention()}
+                  placeholder={t('dash_intention_ph')}
+                  className="w-full px-3 py-1.5 text-sm bg-[var(--bg-surface)] border border-[var(--accent-fill)] rounded-xl text-[var(--text-primary)]"
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  onClick={handleSaveIntention}
+                  aria-label={t('common_save')}
+                  className="p-2 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-lg cursor-pointer shrink-0"
+                >
+                  <Check className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setIntentionInput(dailyIntention);
+                  setIsEditingIntention(true);
+                }}
+                className="text-sm sm:text-base text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer text-left"
+                title={t('dash_intention_title')}
+              >
+                {dailyIntention ? `"${dailyIntention}"` : t('dash_calm_intention_prompt')}
+              </button>
+            )}
+          </div>
+
+          {/* Gentle Study Vibe Selector */}
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            {VIBE_CHIPS.map((vibe) => (
+              <button
+                key={vibe.id}
+                type="button"
+                onClick={() => handleSelectVibe(vibe.id)}
+                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors cursor-pointer border ${
+                  selectedVibe === vibe.id
+                    ? 'bg-[var(--accent-soft)] text-[var(--accent-text)] border-[var(--accent-border)]'
+                    : 'bg-[var(--bg-surface)]/70 text-[var(--text-muted)] border-[var(--border-hairline)] hover:text-[var(--text-primary)]'
+                }`}
+              >
+                {vibe.label}
+              </button>
+            ))}
+          </div>
+        </header>
+
+        {/* Quiet Reflection Quote */}
+        <section className="rounded-2xl bg-[var(--bg-subtle)]/45 border border-[var(--border-hairline)] px-6 py-5 flex items-start justify-between gap-4">
+          <div className="space-y-1.5 min-w-0">
+            <blockquote className="text-base sm:text-lg font-serif italic text-[var(--text-primary)] leading-relaxed">
+              &ldquo;{quote.quote}&rdquo;
+            </blockquote>
+            <cite className="text-xs text-[var(--text-muted)] not-italic block">
+              — {quote.author}
+            </cite>
+          </div>
+          <button
+            type="button"
+            onClick={handleShuffleQuote}
+            className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface)] transition-colors cursor-pointer shrink-0"
+            title={t('dash_another_quote')}
+            aria-label={t('dash_another_quote')}
+          >
+            <Shuffle className="w-4 h-4" />
+          </button>
+        </section>
+
+        {/* 3 Airy Invitations — Calm Starting Paths Without Stress */}
+        <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <button
+            type="button"
+            onClick={() => onNavigateWorkspace('pomodoro')}
+            className="p-5 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-hairline)] hover:border-[var(--border-default)] text-left space-y-2.5 transition-colors cursor-pointer group"
+          >
+            <div className="w-9 h-9 rounded-xl bg-[var(--accent-soft)] text-[var(--accent-text)] flex items-center justify-center">
+              <Timer className="w-4 h-4" strokeWidth={1.75} />
+            </div>
+            <div className="text-sm font-semibold text-[var(--text-primary)] group-hover:text-[var(--accent-text)] transition-colors">
+              {t('dash_calm_card_focus_title')}
+            </div>
+            <p className="text-xs text-[var(--text-muted)] leading-relaxed">
+              {t('dash_calm_card_focus_desc')}
+            </p>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onNavigateWorkspace('radar')}
+            className="p-5 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-hairline)] hover:border-[var(--border-default)] text-left space-y-2.5 transition-colors cursor-pointer group"
+          >
+            <div className="w-9 h-9 rounded-xl bg-[var(--status-ok-bg)] text-[var(--status-ok-text)] flex items-center justify-center">
+              <Calendar className="w-4 h-4" strokeWidth={1.75} />
+            </div>
+            <div className="text-sm font-semibold text-[var(--text-primary)] group-hover:text-[var(--accent-text)] transition-colors">
+              {t('dash_calm_card_rhythm_title')}
+            </div>
+            <p className="text-xs text-[var(--text-muted)] leading-relaxed">
+              {t('dash_calm_card_rhythm_desc')}
+            </p>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => (onOpenAiCoach ? onOpenAiCoach() : onNavigateWorkspace('notes-markdown'))}
+            className="p-5 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-hairline)] hover:border-[var(--border-default)] text-left space-y-2.5 transition-colors cursor-pointer group"
+          >
+            <div className="w-9 h-9 rounded-xl bg-[var(--status-info-bg)] text-[var(--status-info-text)] flex items-center justify-center">
+              <Sparkles className="w-4 h-4" strokeWidth={1.75} />
+            </div>
+            <div className="text-sm font-semibold text-[var(--text-primary)] group-hover:text-[var(--accent-text)] transition-colors">
+              {t('dash_calm_card_coach_title')}
+            </div>
+            <p className="text-xs text-[var(--text-muted)] leading-relaxed">
+              {t('dash_calm_card_coach_desc')}
+            </p>
+          </button>
+        </section>
+
+        {/* Quiet Quick Links & Mode Switch */}
+        <footer className="pt-4 border-t border-[var(--border-hairline)] flex flex-wrap items-center justify-between gap-3 text-xs text-[var(--text-muted)]">
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={() => onNavigateWorkspace('tracker')}
+              className="hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+            >
+              {t('dash_calm_link_tasks')}
+            </button>
+            <span aria-hidden="true">·</span>
+            <button
+              type="button"
+              onClick={() => onNavigateWorkspace('gmail')}
+              className="hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+            >
+              {t('side_flow_gmail_t')}
+            </button>
+            <span aria-hidden="true">·</span>
+            <button
+              type="button"
+              onClick={() => onNavigateWorkspace('notes-markdown')}
+              className="hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+            >
+              {t('app_tab_notes')}
+            </button>
+            {onOpenAppStore && (
+              <>
+                <span aria-hidden="true">·</span>
+                <button
+                  type="button"
+                  onClick={onOpenAppStore}
+                  className="hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+                >
+                  {t('side_app_store')}
+                </button>
+              </>
+            )}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setLayoutMode('classic')}
+            className="text-[11px] text-[var(--text-muted)] hover:text-[var(--accent-text)] underline underline-offset-4 cursor-pointer"
+          >
+            {t('dash_switch_to_classic')}
+          </button>
+        </footer>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 py-5 sm:py-6 space-y-5 text-left animate-in fade-in duration-200">

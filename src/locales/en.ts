@@ -3398,6 +3398,17 @@ export const en = {
   settings_layout_calm: 'Calm (Default)',
   settings_layout_classic: 'Classic',
 
+  // Calm Dashboard Home
+  dash_calm_intention_prompt: 'Take a breath — tap to set a gentle intention for today.',
+  dash_calm_card_focus_title: 'Focus Station',
+  dash_calm_card_focus_desc: 'Start one quiet study session at your own pace.',
+  dash_calm_card_rhythm_title: 'Weekly Study Plan',
+  dash_calm_card_rhythm_desc: 'View today’s calm rhythm and adjust blocks anytime.',
+  dash_calm_card_coach_title: 'AI Study Coach',
+  dash_calm_card_coach_desc: 'Talk through a tricky concept or brainstorm notes.',
+  dash_calm_link_tasks: 'Assignments & due',
+  dash_switch_to_classic: 'Switch to Classic view',
+
 } as const;
 
 export type TranslationKey = keyof typeof en;

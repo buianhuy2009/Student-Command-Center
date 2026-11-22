@@ -3742,6 +3742,8 @@ export default function App() {
                         setAiSuiteOpen(true);
                       }}
                       onOpenAppStore={() => setAppStoreOpen(true)}
+                      onOpenAiCoach={() => setAiChatOpen(true)}
+                      layoutMode={layoutMode}
                       user={user}
                       isGoogleConnected={isGoogleConnected}
                       isGmailConnected={hasGmailAccess}
@@ -3754,13 +3756,14 @@ export default function App() {
                       canvasCount={canvasAssignments.filter((c) => !c.isCompleted).length}
                       classroomCount={hasClassroomAccess ? classroomAssignments.filter((c) => !c.isCompleted).length : 0}
                     />
-                    {/* Demoted secondary card: collapsible + dismissible, never blocks greeting/Today Plan */}
+                    {layoutMode === 'classic' && (
                     <OnboardingChecklist
                       onConnectCanvas={()=>handleTabTransition('canvas')}
                       onConnectGoogle={()=>setGoogleSyncHubOpen(true)}
                       onCreateTask={()=>handleTabTransition('tracker')}
                       onStartPomodoro={()=>{ handleTabTransition('pomodoro'); setZenFocusMode(true); }}
                     />
+                    )}
                   </div>
                 )}
               </div>
