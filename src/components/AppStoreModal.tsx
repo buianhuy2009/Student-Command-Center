@@ -7,7 +7,6 @@ import {
   CheckCircle2,
   Download,
   ExternalLink,
-  Star,
   Zap,
   Layers,
   Award,
@@ -469,8 +468,7 @@ export const AppStoreModal: React.FC<AppStoreModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center sm:p-5 select-none animate-in fade-in duration-150"
-      onClick={onClose}
+      className="fixed inset-0 z-50 bg-[var(--bg-canvas)] text-[var(--text-primary)] flex flex-col overflow-hidden select-none animate-in fade-in duration-150"
     >
       <div
         ref={dialogRef}
@@ -478,11 +476,10 @@ export const AppStoreModal: React.FC<AppStoreModalProps> = ({
         role="dialog"
         aria-modal="true"
         aria-label={t('store_aria_dialog')}
-        onClick={(e) => e.stopPropagation()}
-        className="w-full h-full sm:max-w-6xl sm:h-[90vh] sm:rounded-3xl bg-[var(--bg-canvas)] text-[var(--text-primary)] border border-[var(--border-default)] shadow-card-hover flex flex-col overflow-hidden outline-none"
+        className="w-full h-full bg-[var(--bg-canvas)] text-[var(--text-primary)] flex flex-col overflow-hidden outline-none"
       >
         {/* Top Header Bar */}
-        <header className="h-16 px-5 sm:px-8 border-b border-[var(--border-default)] flex items-center justify-between gap-4 bg-[var(--bg-surface)] shrink-0">
+        <header className="h-16 px-4 sm:px-8 border-b border-[var(--border-hairline)] flex items-center justify-between gap-4 bg-[var(--bg-subtle)]/60 shrink-0">
           <div className="flex items-center gap-3 min-w-0">
             {viewingApp ? (
               <button
@@ -555,19 +552,14 @@ export const AppStoreModal: React.FC<AppStoreModalProps> = ({
                         {t(viewingApp.nameKey)}
                       </h2>
                       {viewingApp.badgeKey && (
-                        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[var(--accent-soft)] text-[var(--accent-text)] border border-[var(--accent-border)]">
+                        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[var(--bg-subtle)] text-[var(--text-secondary)] border border-[var(--border-hairline)]">
                           {t(viewingApp.badgeKey)}
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-[var(--text-secondary)]">
+                    <p className="text-xs text-[var(--text-muted)]">
                       {viewingApp.developer} • {t(CATEGORY_KEY_MAP[viewingApp.category])}
                     </p>
-                    <div className="flex items-center gap-1.5 text-xs font-bold text-[var(--text-muted)] pt-0.5">
-                      <Star className="w-3.5 h-3.5 text-[var(--status-warn-border)] fill-current" aria-hidden="true" />
-                      <span className="text-[var(--text-primary)]">{viewingApp.rating.toFixed(1)}</span>
-                      <span className="text-[11px] font-medium">• {t(CATEGORY_KEY_MAP[viewingApp.category])} • {viewingApp.developer}</span>
-                    </div>
                   </div>
                 </div>
 
@@ -576,10 +568,10 @@ export const AppStoreModal: React.FC<AppStoreModalProps> = ({
                   <button
                     type="button"
                     onClick={() => onTogglePinApp(viewingApp.id)}
-                    className={`flex-1 md:flex-initial px-4 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-colors cursor-pointer border min-h-[42px] ${
+                    className={`flex-1 md:flex-initial px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer border min-h-[42px] ${
                       pinnedAppIds.includes(viewingApp.id)
                         ? 'bg-[var(--status-warn-bg)] text-[var(--status-warn-text)] border-[var(--status-warn-border)] hover:opacity-90'
-                        : 'bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] border-[var(--border-default)] hover:border-[var(--accent-border)]'
+                        : 'bg-[var(--bg-subtle)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] border-[var(--border-hairline)] hover:border-[var(--border-default)]'
                     }`}
                   >
                     {pinnedAppIds.includes(viewingApp.id) ? (
@@ -713,7 +705,7 @@ export const AppStoreModal: React.FC<AppStoreModalProps> = ({
                       <p>{t('store_search_empty', { query: searchQuery })}</p>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
                       {searchResults.map((app) => renderAppCard(app))}
                     </div>
                   )}
@@ -722,17 +714,17 @@ export const AppStoreModal: React.FC<AppStoreModalProps> = ({
                 /* CONTINUOUS SMOOTH FLOW: HIGHLIGHTS -> CATEGORIES */
                 <div className="space-y-10 animate-in fade-in duration-150">
                   {/* 1. TOP 8 HIGHLIGHT SECTION */}
-                  <section className="p-5 sm:p-6 rounded-2xl bg-[var(--bg-surface)] border border-[var(--accent-border)] shadow-card space-y-5">
+                  <section className="p-6 sm:p-7 rounded-2xl bg-[var(--bg-subtle)]/55 border border-[var(--border-hairline)] space-y-6">
                     <div className="flex items-start gap-3.5">
-                      <div className="w-10 h-10 rounded-xl bg-[var(--accent-soft)] border border-[var(--accent-border)] text-[var(--accent-text)] flex items-center justify-center shrink-0">
+                      <div className="w-10 h-10 rounded-xl bg-[var(--accent-soft)] text-[var(--accent-text)] flex items-center justify-center shrink-0">
                         <Award className="w-5 h-5" aria-hidden="true" />
                       </div>
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <h2 className="text-base font-extrabold text-[var(--text-primary)]">
+                          <h2 className="text-base font-bold text-[var(--text-primary)]">
                             {t('store_top8_title')}
                           </h2>
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-[var(--accent-fill)] text-white uppercase tracking-wider">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[var(--bg-surface)] border border-[var(--border-hairline)] text-[var(--text-secondary)] uppercase tracking-wider">
                             {t('store_featured')}
                           </span>
                         </div>
@@ -747,83 +739,83 @@ export const AppStoreModal: React.FC<AppStoreModalProps> = ({
                               const courses: string[] = coursesRaw ? JSON.parse(coursesRaw) : [];
                               const hasCourse = courses.join(' ').toLowerCase();
                               if (hasCourse.includes('calculus') || hasCourse.includes('math')) {
-                                return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[var(--status-warn-bg)] text-[var(--status-warn-text)] border border-[var(--status-warn-border)]">{t('store_rec_calc')}</span>;
+                                return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-[var(--bg-surface)] text-[var(--text-secondary)] border border-[var(--border-hairline)]">{t('store_rec_calc')}</span>;
                               }
                               if (hasCourse.includes('chemistry') || hasCourse.includes('chem')) {
-                                return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[var(--status-warn-bg)] text-[var(--status-warn-text)] border border-[var(--status-warn-border)]">{t('store_rec_chem')}</span>;
+                                return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-[var(--bg-surface)] text-[var(--text-secondary)] border border-[var(--border-hairline)]">{t('store_rec_chem')}</span>;
                               }
                               if (hasCourse) {
-                                return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[var(--status-warn-bg)] text-[var(--status-warn-text)] border border-[var(--status-warn-border)]">{t('store_rec_courses', { courses: courses.slice(0, 2).join(', ') })}</span>;
+                                return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-[var(--bg-surface)] text-[var(--text-secondary)] border border-[var(--border-hairline)]">{t('store_rec_courses', { courses: courses.slice(0, 2).join(', ') })}</span>;
                               }
                               try {
                                 const usage = JSON.parse(localStorage.getItem('scc_app_usage_v1') || '{}');
                                 const top = Object.entries(usage).sort((a: any, b: any) => b[1] - a[1])[0];
                                 if (top) {
                                   const topApp = APP_CATALOG.find((a) => a.id === top[0]);
-                                  return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[var(--accent-soft)] text-[var(--accent-text)] border border-[var(--accent-border)]">{t('store_rec_most_used', { app: topApp ? t(topApp.nameKey) : top[0] })}</span>;
+                                  return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-[var(--bg-surface)] text-[var(--text-secondary)] border border-[var(--border-hairline)]">{t('store_rec_most_used', { app: topApp ? t(topApp.nameKey) : top[0] })}</span>;
                                 }
                               } catch {}
-                              return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[var(--bg-subtle)] text-[var(--text-secondary)] border border-[var(--border-default)]">{t('store_rec_starter')}</span>;
+                              return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-[var(--bg-surface)] text-[var(--text-secondary)] border border-[var(--border-hairline)]">{t('store_rec_starter')}</span>;
                             } catch { return null; }
                           })()}
                         </div>
                       </div>
                     </div>
 
-                    {/* 2 Apps Per Row Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                      {top8Highlights.map((app) => renderAppCard(app, true))}
+                    {/* Generous 2/3-Column Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+                      {top8Highlights.map((app) => renderAppCard(app))}
                     </div>
                   </section>
 
                   {/* 2. PLAN SECTION */}
-                  <section className="space-y-3.5">
-                    <div className="flex items-center gap-2.5 pb-2 border-b border-[var(--border-default)]">
+                  <section className="space-y-4">
+                    <div className="flex items-center gap-2.5 pb-2 border-b border-[var(--border-hairline)]">
                       <Layers className="w-4 h-4 text-[var(--accent-text)]" aria-hidden="true" />
                       <h2 className="text-sm font-bold text-[var(--text-primary)]">
                         {t('store_plan_heading')}
                       </h2>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
                       {APP_CATALOG.filter((a) => a.category === 'Plan').map((app) => renderAppCard(app))}
                     </div>
                   </section>
 
                   {/* 3. CREATE SECTION */}
-                  <section className="space-y-3.5">
-                    <div className="flex items-center gap-2.5 pb-2 border-b border-[var(--border-default)]">
+                  <section className="space-y-4">
+                    <div className="flex items-center gap-2.5 pb-2 border-b border-[var(--border-hairline)]">
                       <Palette className="w-4 h-4 text-[var(--accent-text)]" aria-hidden="true" />
                       <h2 className="text-sm font-bold text-[var(--text-primary)]">
                         {t('store_create_heading')}
                       </h2>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
                       {APP_CATALOG.filter((a) => a.category === 'Create').map((app) => renderAppCard(app))}
                     </div>
                   </section>
 
                   {/* 4. LEARN SECTION */}
-                  <section className="space-y-3.5">
-                    <div className="flex items-center gap-2.5 pb-2 border-b border-[var(--border-default)]">
+                  <section className="space-y-4">
+                    <div className="flex items-center gap-2.5 pb-2 border-b border-[var(--border-hairline)]">
                       <Timer className="w-4 h-4 text-[var(--status-ok-text)]" aria-hidden="true" />
                       <h2 className="text-sm font-bold text-[var(--text-primary)]">
                         {t('store_learn_heading')}
                       </h2>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
                       {APP_CATALOG.filter((a) => a.category === 'Learn').map((app) => renderAppCard(app))}
                     </div>
                   </section>
 
                   {/* 5. RESEARCH SECTION */}
-                  <section className="space-y-3.5">
-                    <div className="flex items-center gap-2.5 pb-2 border-b border-[var(--border-default)]">
+                  <section className="space-y-4">
+                    <div className="flex items-center gap-2.5 pb-2 border-b border-[var(--border-hairline)]">
                       <BookOpen className="w-4 h-4 text-[var(--status-info-text)]" aria-hidden="true" />
                       <h2 className="text-sm font-bold text-[var(--text-primary)]">
                         {t('store_research_heading')}
                       </h2>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
                       {APP_CATALOG.filter((a) => a.category === 'Research').map((app) => renderAppCard(app))}
                     </div>
                   </section>
@@ -836,7 +828,7 @@ export const AppStoreModal: React.FC<AppStoreModalProps> = ({
                       {t(CATEGORY_ITEMS.find((c) => c.id === selectedCategory)?.key || 'store_cat_all')} ({categoryApps.length})
                     </h2>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
                     {categoryApps.map((app) => renderAppCard(app))}
                   </div>
                 </div>
@@ -848,33 +840,29 @@ export const AppStoreModal: React.FC<AppStoreModalProps> = ({
     </div>
   );
 
-  function renderAppCard(app: AppStoreItem, isHighlighted = false) {
+  function renderAppCard(app: AppStoreItem) {
     const isPinned = pinnedAppIds.includes(app.id);
 
     return (
       <div
         key={app.id}
-        style={{ contentVisibility: 'auto' as any, containIntrinsicSize: '96px' } as any}
-        className={`bg-[var(--bg-surface)] hover:bg-[var(--bg-raised)] rounded-2xl border p-3.5 shadow-card transition-colors group flex items-center gap-3.5 ${
-          isHighlighted
-            ? 'border-[var(--accent-border)] hover:border-[var(--accent-fill)]'
-            : 'border-[var(--border-default)] hover:border-[var(--border-strong)]'
-        }`}
+        style={{ contentVisibility: 'auto' as any, containIntrinsicSize: '124px' } as any}
+        className="bg-[var(--bg-subtle)]/45 hover:bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-hairline)] hover:border-[var(--border-default)] p-5 transition-colors group flex flex-col justify-between gap-4"
       >
         {/* Accessible app details trigger (avoids nested interactive buttons) */}
         <button
           type="button"
           onClick={() => setViewingApp(app)}
-          className="flex-1 min-w-0 flex items-center gap-3.5 text-left cursor-pointer rounded-xl focus-visible:outline-2 focus-visible:outline-[var(--accent-fill)]"
+          className="flex items-start gap-3.5 text-left cursor-pointer rounded-xl focus-visible:outline-2 focus-visible:outline-[var(--accent-fill)]"
         >
           <AppLogo id={app.id} size="md" className="shrink-0" />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 min-w-0">
-              <h3 className="text-[13px] font-bold text-[var(--text-primary)] group-hover:text-[var(--accent-text)] transition-colors truncate leading-tight">
+              <h3 className="text-sm font-bold text-[var(--text-primary)] group-hover:text-[var(--accent-text)] transition-colors truncate leading-tight">
                 {t(app.nameKey)}
               </h3>
               {app.badgeKey && (
-                <span className="px-1.5 py-px rounded-md text-[9px] font-bold bg-[var(--accent-soft)] text-[var(--accent-text)] border border-[var(--accent-border)] shrink-0 whitespace-nowrap">
+                <span className="px-1.5 py-px rounded-md text-[9px] font-semibold bg-[var(--bg-surface)] text-[var(--text-secondary)] border border-[var(--border-hairline)] shrink-0 whitespace-nowrap">
                   {t(app.badgeKey)}
                 </span>
               )}
@@ -882,16 +870,30 @@ export const AppStoreModal: React.FC<AppStoreModalProps> = ({
             <p className="text-[11px] text-[var(--text-muted)] truncate mt-0.5">
               {t(CATEGORY_KEY_MAP[app.category])} • {app.developer}
             </p>
-            <div className="flex items-center gap-1 mt-1">
-              <Star className="w-3 h-3 text-[var(--status-warn-border)] fill-current shrink-0" aria-hidden="true" />
-              <span className="text-[11px] font-bold text-[var(--text-primary)]">{app.rating.toFixed(1)}</span>
-              <span className="text-[11px] text-[var(--text-secondary)] truncate">— {t(app.descKey)}</span>
-            </div>
+            <p className="text-xs text-[var(--text-secondary)] line-clamp-2 mt-2 leading-relaxed">
+              {t(app.descKey)}
+            </p>
           </div>
         </button>
 
-        {/* Calm Terracotta / Ochre Open & Installed Controls */}
-        <div className="flex flex-col items-center gap-1.5 shrink-0">
+        {/* Calm Open & Pin Controls */}
+        <div className="flex items-center justify-between gap-2 pt-2 border-t border-[var(--border-hairline)] shrink-0">
+          <button
+            type="button"
+            onClick={() => onTogglePinApp(app.id)}
+            className={`text-[11px] font-semibold transition-colors cursor-pointer flex items-center gap-1 px-2.5 py-1 rounded-lg border ${
+              isPinned
+                ? 'bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-hairline)] hover:text-[var(--text-primary)]'
+                : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+            }`}
+          >
+            {isPinned ? (
+              <><CheckCircle2 className="w-3.5 h-3.5 text-[var(--status-ok-text)]" aria-hidden="true" /> {t('store_installed')}</>
+            ) : (
+              <><Pin className="w-3.5 h-3.5" aria-hidden="true" /> {t('store_install')}</>
+            )}
+          </button>
+
           {isPinned ? (
             <button
               type="button"
@@ -899,7 +901,7 @@ export const AppStoreModal: React.FC<AppStoreModalProps> = ({
                 onLaunchApp(app.id);
                 onClose();
               }}
-              className="px-4 py-1.5 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-full text-xs font-extrabold tracking-wide transition-colors shadow-xs cursor-pointer min-w-[76px] min-h-[32px]"
+              className="px-4 py-1.5 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-full text-xs font-semibold transition-colors cursor-pointer min-w-[76px] min-h-[32px]"
             >
               {t('store_open_btn')}
             </button>
@@ -907,26 +909,11 @@ export const AppStoreModal: React.FC<AppStoreModalProps> = ({
             <button
               type="button"
               onClick={() => onTogglePinApp(app.id)}
-              className="px-4 py-1.5 bg-[var(--accent-soft)] hover:bg-[var(--accent-fill)] text-[var(--accent-text)] hover:text-white border border-[var(--accent-border)] rounded-full text-xs font-extrabold tracking-wide transition-colors cursor-pointer min-w-[76px] min-h-[32px]"
+              className="px-4 py-1.5 bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] border border-[var(--border-default)] rounded-full text-xs font-semibold transition-colors cursor-pointer min-w-[76px] min-h-[32px]"
             >
               {t('store_get_btn')}
             </button>
           )}
-          <button
-            type="button"
-            onClick={() => onTogglePinApp(app.id)}
-            className={`text-[10px] font-bold transition-colors cursor-pointer flex items-center gap-1 px-2 py-0.5 rounded-full border ${
-              isPinned
-                ? 'bg-[var(--status-warn-bg)] text-[var(--status-warn-text)] border-[var(--status-warn-border)] hover:opacity-85'
-                : 'border-transparent text-[var(--text-muted)] hover:text-[var(--accent-text)]'
-            }`}
-          >
-            {isPinned ? (
-              <><CheckCircle2 className="w-3 h-3" aria-hidden="true" /> {t('store_installed')}</>
-            ) : (
-              <><Pin className="w-3 h-3" aria-hidden="true" /> {t('store_install')}</>
-            )}
-          </button>
         </div>
       </div>
     );
