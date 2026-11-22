@@ -106,15 +106,15 @@ export const OpenLibraryWorkspace: React.FC = () => {
         </div>
 
         {/* Search Bar */}
-        <form onSubmit={handleSearch} className="flex items-center gap-2">
-          <div className="relative">
+        <form onSubmit={handleSearch} className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          <div className="relative flex-1 sm:flex-initial">
             <Search className="w-4 h-4 text-[var(--text-muted)] absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={t('lib_search_ph')}
-              className="pl-9 pr-4 py-2 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-fill)] w-72"
+              className="pl-9 pr-4 py-2 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-fill)] w-full sm:w-72"
             />
           </div>
 

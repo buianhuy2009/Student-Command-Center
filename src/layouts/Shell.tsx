@@ -148,7 +148,7 @@ export const Shell: React.FC<ShellProps> = ({
           ) : (
             <main
               id="main-content"
-              className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-6 min-h-0"
+              className="flex-1 overflow-y-auto overflow-x-hidden px-3 sm:px-6 lg:px-8 py-4 sm:py-6 min-h-0"
               aria-label={t('shell_content_aria')}
             >
               <ErrorBoundary

@@ -153,11 +153,11 @@ export const ExcalidrawWorkspace: React.FC = () => {
       </div>
 
       {/* Local Canvas */}
-      <div key={reloadKey} className="flex-1 w-full min-h-[550px] rounded-2xl overflow-hidden border border-[var(--border-default)] bg-[var(--bg-surface)] shadow-xs">
-        <div className="w-full h-full min-h-[550px] excalidraw-wrapper">
+      <div key={reloadKey} className="flex-1 w-full min-h-[380px] sm:min-h-[520px] rounded-2xl overflow-hidden border border-[var(--border-default)] bg-[var(--bg-surface)] shadow-xs">
+        <div className="w-full h-full min-h-[380px] sm:min-h-[520px] excalidraw-wrapper">
           <Suspense
             fallback={
-              <div className="w-full h-full min-h-[550px] flex items-center justify-center gap-2 text-xs text-[var(--text-muted)] font-medium bg-[var(--bg-surface)]">
+              <div className="w-full h-full min-h-[380px] sm:min-h-[520px] flex items-center justify-center gap-2 text-xs text-[var(--text-muted)] font-medium bg-[var(--bg-surface)]">
                 <RefreshCw className="w-4 h-4 animate-spin text-[var(--accent-fill)]" />
                 <span>{t('exca_loading')}</span>
               </div>

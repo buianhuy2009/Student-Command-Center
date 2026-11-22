@@ -85,12 +85,12 @@ export const ArxivWorkspace: React.FC = () => {
     <div className="h-full flex flex-col overflow-hidden bg-[var(--bg-canvas)] p-4 sm:p-6 space-y-5 animate-in fade-in select-none">
       
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[var(--border-default)] shrink-0">
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 pb-4 border-b border-[var(--border-default)] shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-rose-500 to-red-600 flex items-center justify-center text-white shadow-xs">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-rose-500 to-red-600 flex items-center justify-center text-white shadow-xs shrink-0">
             <BookOpen className="w-5 h-5" />
           </div>
-          <div>
+          <div className="min-w-0">
             <h2 className="text-base font-bold text-[var(--text-primary)]">
               {t('arxiv_title')}
             </h2>
@@ -101,22 +101,22 @@ export const ArxivWorkspace: React.FC = () => {
         </div>
 
         {/* Search Bar & Category */}
-        <form onSubmit={handleSearch} className="flex items-center gap-2">
-          <div className="relative">
+        <form onSubmit={handleSearch} className="flex flex-wrap items-center gap-2 w-full xl:w-auto">
+          <div className="relative flex-1 sm:flex-initial">
             <Search className="w-4 h-4 text-[var(--text-muted)] absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={t('arxiv_search_ph')}
-              className="pl-9 pr-4 py-2 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-fill)] w-64"
+              className="pl-9 pr-4 py-2 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-fill)] w-full sm:w-64"
             />
           </div>
 
           <select
             value={category}
             onChange={(e) => setCategory(e.target.value)}
-            className="px-3 py-2 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl text-xs font-semibold text-[var(--text-primary)] focus:outline-none cursor-pointer"
+            className="px-3 py-2 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl text-xs font-semibold text-[var(--text-primary)] focus:outline-none cursor-pointer max-w-full"
           >
             {CATEGORIES.map((cat) => (
               <option key={cat.id} value={cat.id}>
@@ -137,10 +137,10 @@ export const ArxivWorkspace: React.FC = () => {
       </div>
 
       {/* Main Grid: Papers List + Detail Abstract */}
-      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-6 overflow-hidden">
+      <div className="flex-1 min-h-0 grid grid-cols-1 xl:grid-cols-12 gap-6 overflow-y-auto xl:overflow-hidden">
         
         {/* Left: Paper Cards List */}
-        <div className="lg:col-span-6 overflow-y-auto space-y-2.5 pr-1">
+        <div className="xl:col-span-6 min-w-0 xl:overflow-y-auto space-y-2.5 pr-1">
           {isLoading ? (
             <div className="py-20 text-center text-[var(--text-muted)] text-xs space-y-2">
               <RefreshCw className="w-7 h-7 text-[var(--accent-text)] animate-spin mx-auto opacity-70" />
@@ -196,7 +196,7 @@ export const ArxivWorkspace: React.FC = () => {
         </div>
 
         {/* Right: Selected Paper Abstract & PDF Viewer Trigger */}
-        <div className="lg:col-span-6 bg-[var(--bg-surface)] rounded-3xl border border-[var(--border-default)] p-6 shadow-xs flex flex-col justify-between overflow-y-auto">
+        <div className="xl:col-span-6 min-w-0 bg-[var(--bg-surface)] rounded-3xl border border-[var(--border-default)] p-5 sm:p-6 shadow-xs flex flex-col justify-between overflow-y-auto">
           {selectedPaper ? (
             <div className="space-y-5">
               <div className="space-y-2 pb-4 border-b border-[var(--border-default)]">

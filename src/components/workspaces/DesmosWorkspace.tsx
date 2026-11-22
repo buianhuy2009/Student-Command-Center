@@ -71,11 +71,11 @@ export const DesmosWorkspace: React.FC<DesmosWorkspaceProps> = ({ mode = 'graphi
       </div>
 
       {/* Full-Bleed Embed Canvas */}
-      <div key={reloadKey} className="flex-1 w-full min-h-[550px] rounded-2xl overflow-hidden border border-[var(--border-default)] bg-[var(--bg-surface)] shadow-xs">
+      <div key={reloadKey} className="flex-1 w-full min-h-[380px] sm:min-h-[520px] rounded-2xl overflow-hidden border border-[var(--border-default)] bg-[var(--bg-surface)] shadow-xs">
         <IframeErrorBoundary
           title={title}
           src={url}
-          className="w-full h-full border-0 min-h-[550px]"
+          className="w-full h-full border-0 min-h-[380px] sm:min-h-[520px]"
         />
       </div>
     </div>

@@ -270,21 +270,21 @@ export const GeoGebraWorkspace: React.FC = () => {
       </div>
 
       {/* Embed */}
-      <div key={`${activeTab}-${reloadKey}`} className="flex-1 w-full min-h-[550px] rounded-2xl overflow-hidden border border-[var(--border-default)] bg-[var(--bg-surface)] shadow-xs">
+      <div key={`${activeTab}-${reloadKey}`} className="flex-1 w-full min-h-[380px] sm:min-h-[520px] rounded-2xl overflow-hidden border border-[var(--border-default)] bg-[var(--bg-surface)] shadow-xs">
         {(phase === 'applet-loading' || phase === 'applet-ready') && (
-          <div className="relative w-full h-full min-h-[550px]">
+          <div className="relative w-full h-full min-h-[380px] sm:min-h-[520px]">
             {phase === 'applet-loading' && (
               <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-[var(--bg-surface)]">
                 <Loader2 className="w-6 h-6 text-[var(--accent-fill)] animate-spin" />
                 <p className="text-xs text-[var(--text-muted)] font-medium">{t('geo_loading', { tool: GEO_LABELS[activeTab] })}</p>
               </div>
             )}
-            <div id={APPLET_CONTAINER_ID} ref={containerRef} className="w-full h-full min-h-[550px]" />
+            <div id={APPLET_CONTAINER_ID} ref={containerRef} className="w-full h-full min-h-[380px] sm:min-h-[520px]" />
           </div>
         )}
 
         {phase === 'iframe' && (
-          <div className="relative w-full h-full min-h-[550px]">
+          <div className="relative w-full h-full min-h-[380px] sm:min-h-[520px]">
             {!iframeLoaded && (
               <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-[var(--bg-surface)]">
                 <Loader2 className="w-6 h-6 text-[var(--accent-fill)] animate-spin" />
@@ -296,14 +296,14 @@ export const GeoGebraWorkspace: React.FC = () => {
               title={t('geo_iframe_title')}
               onLoad={handleIframeLoad}
               onError={() => setPhase('error')}
-              className="w-full h-full border-0 min-h-[550px]"
+              className="w-full h-full border-0 min-h-[380px] sm:min-h-[520px]"
               allowFullScreen
             />
           </div>
         )}
 
         {phase === 'error' && (
-          <div className="flex flex-col items-center justify-center p-6 text-center w-full h-full min-h-[550px] bg-[var(--bg-subtle)]">
+          <div className="flex flex-col items-center justify-center p-6 text-center w-full h-full min-h-[380px] sm:min-h-[520px] bg-[var(--bg-subtle)]">
             <AlertCircle className="w-10 h-10 text-[var(--status-warn-text)] mb-2" />
             <h4 className="text-sm font-bold text-[var(--text-primary)]">
               {t('geo_load_error_title')}

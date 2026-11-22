@@ -288,11 +288,11 @@ export const PhETWorkspace: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex-1 w-full min-h-[550px] rounded-2xl overflow-hidden border border-[var(--border-default)] bg-white shadow-xs">
+          <div className="flex-1 w-full min-h-[380px] sm:min-h-[520px] rounded-2xl overflow-hidden border border-[var(--border-default)] bg-white shadow-xs">
             <IframeErrorBoundary
               title={t(activeSim.titleKey)}
               src={activeSim.url}
-              className="w-full h-full border-0 min-h-[550px]"
+              className="w-full h-full border-0 min-h-[380px] sm:min-h-[520px]"
             />
           </div>
         </div>

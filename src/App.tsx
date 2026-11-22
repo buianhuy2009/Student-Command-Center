@@ -627,6 +627,25 @@ export default function App() {
   }, []);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    const mq = window.matchMedia('(min-width: 768px) and (max-width: 1180px)');
+    const syncCompactSidebar = () => {
+      if (mq.matches) {
+        setIsSidebarExpanded(false);
+      } else if (window.innerWidth > 1180) {
+        try {
+          const saved = localStorage.getItem('scc_sidebar_expanded');
+          setIsSidebarExpanded(saved !== null ? saved === 'true' : true);
+        } catch {
+          setIsSidebarExpanded(true);
+        }
+      }
+    };
+    syncCompactSidebar();
+    mq.addEventListener?.('change', syncCompactSidebar);
+    return () => mq.removeEventListener?.('change', syncCompactSidebar);
+  }, []);
+  useEffect(() => {
     if (mobileNavOpen) document.body.style.overflow = 'hidden';
     else document.body.style.overflow = '';
     return () => { document.body.style.overflow = ''; };

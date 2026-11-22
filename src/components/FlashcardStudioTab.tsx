@@ -592,9 +592,9 @@ Example format:
       )}
 
       {/* Main Studio Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 min-w-0">
         {/* Left: Decks List & Generator (5 cols) */}
-        <div className="lg:col-span-5 space-y-5">
+        <div className="xl:col-span-5 min-w-0 space-y-5">
           {/* AI Generator Form */}
           <section className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-5 shadow-xs">
             <h3 className="text-xs font-bold text-[var(--text-primary)] uppercase tracking-wider flex items-center gap-2 pb-3 border-b border-[var(--border-default)]">
@@ -788,7 +788,7 @@ Example format:
         </div>
 
         {/* Right: Interactive 3D Study Viewer (7 cols) */}
-        <div className="lg:col-span-7">
+        <div className="xl:col-span-7 min-w-0">
           <section className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-6 shadow-xs flex flex-col justify-between h-full min-h-[460px]">
             {displayDeck && currentCard ? (
               <>

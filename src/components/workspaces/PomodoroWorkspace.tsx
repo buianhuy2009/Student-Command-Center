@@ -301,11 +301,11 @@ export const PomodoroWorkspace: React.FC<PomodoroWorkspaceProps> = ({ initialMin
       </div>
 
       {/* 2. Main Dual Panel: Clock + Soundscapes */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 min-w-0">
         
         {/* Left: Pomodoro Clock (7 cols) */}
         <div
-          className="lg:col-span-7 bg-[var(--bg-surface)] rounded-3xl border border-[var(--border-default)] p-8 shadow-xs flex flex-col items-center justify-center space-y-6 text-center"
+          className="xl:col-span-7 min-w-0 bg-[var(--bg-surface)] rounded-3xl border border-[var(--border-default)] p-5 sm:p-8 shadow-xs flex flex-col items-center justify-center space-y-6 text-center"
           tabIndex={0}
           role="group"
           aria-label={t('pom_group_aria')}
@@ -313,7 +313,7 @@ export const PomodoroWorkspace: React.FC<PomodoroWorkspaceProps> = ({ initialMin
         >
           
           {/* Preset Selector */}
-          <div className="flex items-center gap-1.5 bg-[var(--bg-subtle)] p-1.5 rounded-2xl border border-[var(--border-default)]">
+          <div className="flex flex-wrap justify-center items-center gap-1.5 bg-[var(--bg-subtle)] p-1.5 rounded-2xl border border-[var(--border-default)] max-w-full">
             <button
               onClick={() => setPreset('work', 25)}
               className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
@@ -362,7 +362,7 @@ export const PomodoroWorkspace: React.FC<PomodoroWorkspaceProps> = ({ initialMin
               role="timer"
               aria-live="polite"
               aria-label={`${formatTime(timeLeftSeconds)} ${t('pom_aria_remaining')} ${mode === 'work' ? t('focus') : t('pom_break')} ${t('pom_aria_timer')}`}
-              className="text-7xl sm:text-8xl font-mono font-extrabold text-[var(--text-primary)] tracking-tighter"
+              className="text-6xl sm:text-7xl md:text-8xl font-mono font-extrabold text-[var(--text-primary)] tracking-tighter"
             >
               {formatTime(timeLeftSeconds)}
             </div>
@@ -410,7 +410,7 @@ export const PomodoroWorkspace: React.FC<PomodoroWorkspaceProps> = ({ initialMin
         </div>
 
         {/* Right: Ambient Sound Synthesizer & Scratchpad (5 cols) */}
-        <div className="lg:col-span-5 space-y-6">
+        <div className="xl:col-span-5 min-w-0 space-y-6">
           
           {/* Ambient Soundscape Synthesizer */}
           <div className="bg-[var(--bg-surface)] rounded-3xl border border-[var(--border-default)] p-6 shadow-xs space-y-4">
