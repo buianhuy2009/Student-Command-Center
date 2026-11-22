@@ -630,28 +630,102 @@ dialog,
 .landing-float { animation: scc-float-soft 5s ease-in-out infinite; }
 .landing-smooth { scroll-behavior: smooth; }
 
-.reveal {
-  opacity: 0;
-  transform: translateY(14px);
-  transition: opacity 0.5s var(--ease-out-expo), transform 0.5s var(--ease-out-expo);
-}
-.reveal.is-visible { opacity: 1; transform: none; }
-.reveal-lift {
-  transition: opacity 0.5s var(--ease-out-expo), transform 0.24s ease, box-shadow 0.24s ease, border-color 0.24s ease;
-}
-.reveal-lift.is-visible { opacity: 1; transform: none; }
-.reveal-lift.is-visible:hover { transform: translateY(-3px); }
+/* Resilient reveals: never trap content at opacity: 0; enhance with scroll-driven view() */
+.reveal,
+.reveal-lift,
 .reveal-stagger > * {
-  opacity: 0;
-  transform: translateY(12px);
-  transition: opacity 0.45s var(--ease-out-expo), transform 0.45s var(--ease-out-expo), box-shadow 0.24s ease, border-color 0.24s ease;
+  opacity: 1;
+  transform: none;
 }
-.reveal-stagger.is-visible > * { opacity: 1; transform: none; }
-.reveal-stagger.is-visible > *:nth-child(2) { transition-delay: 0.06s; }
-.reveal-stagger.is-visible > *:nth-child(3) { transition-delay: 0.12s; }
-.reveal-stagger.is-visible > *:nth-child(4) { transition-delay: 0.18s; }
-.reveal-stagger.is-visible > *:nth-child(5) { transition-delay: 0.24s; }
-.reveal-stagger.is-visible > *:nth-child(6) { transition-delay: 0.3s; }
+
+@keyframes scc-scroll-enter {
+  entry 0% {
+    opacity: 0.45;
+    transform: translateY(16px);
+  }
+  entry 100%,
+  exit 0% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @supports ((animation-timeline: view()) and (animation-range: entry)) {
+    .landing-scroll-reveal {
+      animation: scc-scroll-enter linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 35%;
+    }
+  }
+}
+
+/* Landing ambient aura frames & vignette masks */
+.landing-aura-warm {
+  background: radial-gradient(circle at 20% 20%, rgba(181, 75, 39, 0.14), transparent 55%),
+    radial-gradient(circle at 85% 75%, rgba(217, 119, 6, 0.12), transparent 55%),
+    var(--bg-surface);
+}
+html.dark .landing-aura-warm {
+  background: radial-gradient(circle at 20% 20%, rgba(217, 108, 67, 0.2), transparent 55%),
+    radial-gradient(circle at 85% 75%, rgba(56, 189, 248, 0.1), transparent 55%),
+    var(--bg-surface);
+}
+.landing-aura-sage {
+  background: radial-gradient(circle at 80% 18%, rgba(22, 101, 52, 0.11), transparent 55%),
+    radial-gradient(circle at 15% 85%, rgba(181, 75, 39, 0.09), transparent 55%),
+    var(--bg-surface);
+}
+html.dark .landing-aura-sage {
+  background: radial-gradient(circle at 80% 18%, rgba(74, 222, 128, 0.13), transparent 55%),
+    radial-gradient(circle at 15% 85%, rgba(217, 108, 67, 0.14), transparent 55%),
+    var(--bg-surface);
+}
+.landing-aura-sky {
+  background: radial-gradient(circle at 22% 20%, rgba(30, 78, 140, 0.12), transparent 55%),
+    radial-gradient(circle at 82% 80%, rgba(181, 75, 39, 0.1), transparent 55%),
+    var(--bg-surface);
+}
+html.dark .landing-aura-sky {
+  background: radial-gradient(circle at 22% 20%, rgba(96, 165, 250, 0.16), transparent 55%),
+    radial-gradient(circle at 82% 80%, rgba(217, 108, 67, 0.14), transparent 55%),
+    var(--bg-surface);
+}
+
+.landing-vignette-mask {
+  -webkit-mask-image: linear-gradient(to bottom, #000 72%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 72%, transparent 100%);
+}
+
+/* Native <dialog> landing modal top-layer entry + scroll containment */
+dialog.landing-dialog:modal {
+  overscroll-behavior: contain;
+  margin: auto;
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  transition: opacity 0.22s var(--ease-out-expo), transform 0.22s var(--ease-out-expo), display 0.22s allow-discrete, overlay 0.22s allow-discrete;
+}
+@starting-style {
+  dialog.landing-dialog:modal {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+}
+dialog.landing-dialog::backdrop {
+  overflow: hidden;
+  overscroll-behavior: contain;
+  background: rgba(14, 16, 22, 0.72);
+  backdrop-filter: blur(8px);
+}
+
+/* Accessible tab non-color indicator */
+.landing-tab[aria-selected="true"]::after {
+  content: "";
+  position: absolute;
+  inset: auto 0.65rem 0;
+  border-block-end: 2.5px solid var(--accent-fill);
+  border-radius: 999px;
+}
 
 /* Tour spotlight */
 .scc-tour-flash {

@@ -1,28 +1,24 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
-  GraduationCap,
-  Layers,
-  Sparkles,
-  Mail,
-  CheckSquare,
-  FileText,
   ArrowRight,
-  ShieldCheck,
-  Sun,
-  Moon,
-  ExternalLink,
-  Zap,
-  CheckCircle2,
-  Play,
-  X,
-  Star,
-  WifiOff,
-  Bot,
   ChevronDown,
+  ExternalLink,
+  GraduationCap,
+  Moon,
+  Play,
+  ShieldCheck,
+  Sparkles,
+  Sun,
+  X,
 } from 'lucide-react';
 import { GoogleIcon } from './GoogleIcon';
-import { useT } from '../services/i18n';
 import { LanguageToggle } from './LanguageToggle';
+import {
+  AmbientParticleCanvas,
+  HeroInteractivePreview,
+  StickyWorkflowExplorer,
+} from './LandingShowcase';
+import { useT } from '../services/i18n';
 
 interface LandingPageProps {
   onSignIn: () => void;
@@ -31,21 +27,6 @@ interface LandingPageProps {
   darkMode: boolean;
   setDarkMode: (val: boolean) => void;
 }
-
-const WHY_CARDS = [
-  { icon: Star, titleKey: 'landing_why_oss_t', descKey: 'landing_why_oss_d', subKey: 'landing_why_oss_sub' },
-  { icon: WifiOff, titleKey: 'landing_why_offline_t', descKey: 'landing_why_offline_d', subKey: 'landing_why_offline_sub' },
-  { icon: Bot, titleKey: 'landing_why_ai_t', descKey: 'landing_why_ai_d', subKey: 'landing_why_ai_sub' },
-] as const;
-
-const FEATURE_CARDS = [
-  { icon: Layers, titleKey: 'landing_card_canvas_t', descKey: 'landing_feat_canvas_d', footKey: 'landing_feat_canvas_foot', tone: 'accent' },
-  { icon: Sparkles, titleKey: 'landing_feat_coach_t', descKey: 'landing_feat_coach_d', footKey: 'landing_feat_coach_foot', tone: 'accent' },
-  { icon: Mail, titleKey: 'landing_feat_gmail_t', descKey: 'landing_feat_gmail_d', footKey: 'landing_feat_gmail_foot', tone: 'ok' },
-  { icon: CheckSquare, titleKey: 'landing_feat_tracker_t', descKey: 'landing_feat_tracker_d', footKey: 'landing_feat_tracker_foot', tone: 'ok' },
-  { icon: FileText, titleKey: 'landing_feat_drive_t', descKey: 'landing_feat_drive_d', footKey: 'landing_feat_drive_foot', tone: 'accent' },
-  { icon: Zap, titleKey: 'landing_feat_docs_t', descKey: 'landing_feat_docs_d', footKey: 'landing_feat_docs_foot', tone: 'accent' },
-] as const;
 
 const HOW_STEPS = [
   { num: '01', titleKey: 'landing_how_1t', descKey: 'landing_how_1d' },
@@ -74,6 +55,17 @@ const PRIVACY_ROWS = [
   ['gmail', 'landing_priv_t_gmail', 'landing_priv_w_gmail', 'landing_priv_a_gmail'],
 ] as const;
 
+const INTEGRATIONS = [
+  'Canvas LMS',
+  'Google Calendar',
+  'Gmail AI',
+  'Google Classroom',
+  'Drive & Sheets',
+  'Gemini Flash',
+  'Desmos & GeoGebra',
+  'Offline PWA',
+] as const;
+
 export const LandingPage: React.FC<LandingPageProps> = ({
   onSignIn,
   onExploreDemo,
@@ -81,101 +73,113 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   darkMode,
   setDarkMode,
 }) => {
-  const [demoOpen, setDemoOpen] = useState(false);
-  const [previewBroken, setPreviewBroken] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
   const { t } = useT();
+  const [motionPaused, setMotionPaused] = useState(false);
+  const [demoModalOpen, setDemoModalOpen] = useState(false);
+  const demoDialogRef = useRef<HTMLDialogElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
-  useEffect(() => {
-    const root = rootRef.current;
-    if (!root || typeof IntersectionObserver === 'undefined') {
-      root?.querySelectorAll('.reveal, .reveal-lift, .reveal-stagger').forEach((el) => el.classList.add('is-visible'));
-      return;
+  const openDemoModal = () => {
+    setDemoModalOpen(true);
+    const dlg = demoDialogRef.current;
+    if (dlg && !dlg.open) {
+      dlg.showModal();
     }
-    const io = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((e) => {
-          if (e.isIntersecting) {
-            e.target.classList.add('is-visible');
-            io.unobserve(e.target);
-          }
-        });
-      },
-      { threshold: 0.1, rootMargin: '0px 0px -6% 0px' }
-    );
-    const els = root.querySelectorAll('.reveal, .reveal-lift, .reveal-stagger');
-    els.forEach((el) => io.observe(el));
-    return () => io.disconnect();
+  };
+
+  const closeDemoModal = () => {
+    const dlg = demoDialogRef.current;
+    if (dlg?.open) dlg.close();
+    videoRef.current?.pause();
+    setDemoModalOpen(false);
+  };
+
+  // Light-dismiss fallback for browsers without <dialog closedby="any">
+  useEffect(() => {
+    const dlg = demoDialogRef.current;
+    if (!dlg) return;
+    let pressedOutside = false;
+    const isOutside = (e: PointerEvent) => {
+      const r = dlg.getBoundingClientRect();
+      return e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom;
+    };
+    const onDown = (e: PointerEvent) => {
+      if (dlg.open) pressedOutside = isOutside(e);
+    };
+    const onUp = (e: PointerEvent) => {
+      if (dlg.open && pressedOutside && isOutside(e)) closeDemoModal();
+      pressedOutside = false;
+    };
+    const onClose = () => {
+      videoRef.current?.pause();
+      setDemoModalOpen(false);
+    };
+    dlg.addEventListener('pointerdown', onDown);
+    dlg.addEventListener('pointerup', onUp);
+    dlg.addEventListener('close', onClose);
+    return () => {
+      dlg.removeEventListener('pointerdown', onDown);
+      dlg.removeEventListener('pointerup', onUp);
+      dlg.removeEventListener('close', onClose);
+    };
   }, []);
 
-  useEffect(() => {
-    if (!demoOpen) return;
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setDemoOpen(false);
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [demoOpen]);
-
   return (
-    <div
-      ref={rootRef}
-      className="min-h-screen w-full max-w-[100vw] overflow-x-clip bg-[var(--bg-canvas)] text-[var(--text-primary)] transition-colors flex flex-col font-sans landing-smooth"
-    >
-      {/* Top Header */}
+    <div className="min-h-screen w-full max-w-[100vw] overflow-x-clip bg-[var(--bg-canvas)] text-[var(--text-primary)] flex flex-col font-sans landing-smooth">
+      {/* Top Sticky Glass Header */}
       <header
         role="banner"
-        className="sticky top-0 z-40 bg-[var(--bg-canvas)]/92 backdrop-blur-md border-b border-[var(--border-default)]"
+        className="sticky top-0 z-40 bg-[var(--bg-canvas)]/88 backdrop-blur-md border-b border-[var(--border-hairline)]"
       >
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2.5 min-w-0">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-3">
+          <a href="#" className="flex items-center gap-2.5 shrink-0">
             <div
-              className="w-9 h-9 bg-[var(--accent-fill)] rounded-xl flex items-center justify-center text-white shrink-0"
+              className="w-8 h-8 bg-[var(--accent-fill)] rounded-xl flex items-center justify-center text-white shrink-0 shadow-xs"
               aria-hidden="true"
             >
-              <GraduationCap className="w-5 h-5" />
+              <GraduationCap className="w-4 h-4" />
             </div>
-            <span className="text-sm sm:text-base font-extrabold tracking-tight text-[var(--text-primary)] truncate">
+            <span className="text-base font-extrabold tracking-tight text-[var(--text-primary)] whitespace-nowrap">
               {t('landing_brand_name')}
             </span>
-          </div>
+          </a>
 
           <nav
             aria-label={t('landing_nav_sections_aria')}
-            className="hidden md:flex items-center gap-1 text-xs font-semibold text-[var(--text-secondary)]"
+            className="hidden md:flex items-center gap-1 text-xs font-semibold text-[var(--text-secondary)] whitespace-nowrap"
           >
             <a
-              href="#features"
-              className="px-3 py-1.5 rounded-lg hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
+              href="#workflow"
+              className="px-3 py-1.5 rounded-full hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] transition-colors whitespace-nowrap"
             >
               {t('landing_nav_features')}
             </a>
             <a
               href="#how"
-              className="px-3 py-1.5 rounded-lg hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
+              className="px-3 py-1.5 rounded-full hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] transition-colors whitespace-nowrap"
             >
               {t('landing_nav_how')}
             </a>
             <a
               href="#faq"
-              className="px-3 py-1.5 rounded-lg hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
+              className="px-3 py-1.5 rounded-full hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] transition-colors whitespace-nowrap"
             >
               {t('landing_nav_faq')}
             </a>
             <a
               href="#privacy"
-              className="px-3 py-1.5 rounded-lg hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
+              className="px-3 py-1.5 rounded-full hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] transition-colors whitespace-nowrap"
             >
               {t('landing_nav_privacy')}
             </a>
           </nav>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <LanguageToggle compact className="hidden sm:inline-flex" />
             <button
               type="button"
               onClick={() => setDarkMode(!darkMode)}
-              className="p-2 rounded-xl border border-transparent hover:border-[var(--border-default)] hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+              className="p-2 rounded-full border border-transparent hover:border-[var(--border-default)] hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
               title={t('landing_toggle_theme')}
               aria-label={t('landing_toggle_theme')}
             >
@@ -189,7 +193,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <button
               type="button"
               onClick={onExploreDemo}
-              className="hidden sm:inline-flex px-3 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] rounded-xl transition-colors cursor-pointer"
+              className="hidden lg:inline-flex px-3.5 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] rounded-full transition-colors cursor-pointer whitespace-nowrap"
             >
               {t('landing_explore')}
             </button>
@@ -198,9 +202,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               type="button"
               onClick={onSignIn}
               disabled={isLoggingIn}
-              className="px-3.5 py-2 bg-[var(--bg-surface)] border border-[var(--border-strong)] hover:bg-[var(--bg-hover)] disabled:opacity-50 text-[var(--text-primary)] rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-colors cursor-pointer"
+              className="px-4 py-2 bg-[var(--text-primary)] hover:opacity-90 disabled:opacity-50 text-[var(--bg-surface)] rounded-full text-xs sm:text-sm font-bold flex items-center gap-2 transition-opacity cursor-pointer whitespace-nowrap"
             >
-              <GoogleIcon className="w-4 h-4 shrink-0" />
+              <GoogleIcon className="w-3.5 h-3.5 shrink-0" />
               <span>{isLoggingIn ? t('landing_connecting') : t('landing_signin')}</span>
             </button>
           </div>
@@ -208,37 +212,44 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       </header>
 
       <main className="flex-1">
-        {/* Hero Section — Calm 2-column rhythm */}
-        <section className="py-12 sm:py-16 lg:py-24">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
-            <div className="lg:col-span-6 space-y-6 text-center lg:text-left">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[var(--accent-soft)] border border-[var(--accent-border)] text-[var(--accent-text)] text-xs font-semibold">
+        {/* Hero — Atmospheric Dot Canvas + Centered Editorial Headline + Interactive Showcase */}
+        <section className="relative overflow-hidden pt-12 sm:pt-16 lg:pt-20 pb-16 sm:pb-24">
+          <AmbientParticleCanvas
+            darkMode={darkMode}
+            paused={motionPaused}
+            onTogglePause={() => setMotionPaused((p) => !p)}
+          />
+
+          <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+            {/* Editorial Header Block */}
+            <div className="max-w-3xl mx-auto text-center space-y-6">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[var(--bg-surface)]/90 backdrop-blur-xs border border-[var(--border-hairline)] text-[var(--accent-text)] text-xs font-semibold shadow-xs">
                 <Sparkles className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
-                <span>{t('landing_badge')}</span>
+                <span>{t('landing_hero_eyebrow')}</span>
               </div>
 
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-[var(--text-primary)] tracking-tight leading-[1.12] text-balance break-words">
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-[var(--text-primary)] tracking-tight leading-[1.06] text-balance">
                 {t('landing_h1_a')}{' '}
-                <span className="text-[var(--accent-text)]">{t('landing_h1_b')}</span>
+                <span className="font-serif italic font-semibold text-[var(--accent-text)]">
+                  {t('landing_h1_b')}
+                </span>
               </h1>
 
-              <p className="text-base sm:text-lg text-[var(--text-secondary)] max-w-xl mx-auto lg:mx-0 leading-relaxed text-balance break-words">
+              <p className="text-base sm:text-lg text-[var(--text-secondary)] max-w-2xl mx-auto leading-relaxed text-balance">
                 {t('landing_sub')}
               </p>
 
-              {/* Primary + Demo CTAs */}
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center lg:justify-start gap-3">
+              {/* Pill CTA Row */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 pt-1">
                 <button
                   id="btn-landing-primary-signup"
                   type="button"
                   onClick={onSignIn}
                   disabled={isLoggingIn}
-                  className="min-h-[48px] px-6 py-3.5 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] disabled:opacity-50 text-white rounded-xl text-sm sm:text-base font-bold flex items-center justify-center gap-2.5 transition-colors cursor-pointer"
+                  className="min-h-[48px] px-7 py-3.5 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] disabled:opacity-50 text-white rounded-full text-sm sm:text-base font-bold flex items-center justify-center gap-2.5 transition-colors cursor-pointer shadow-sm"
                 >
                   <GoogleIcon className="w-4 h-4 shrink-0" />
-                  <span className="truncate">
-                    {isLoggingIn ? t('landing_connecting') : t('landing_signup')}
-                  </span>
+                  <span>{isLoggingIn ? t('landing_connecting') : t('landing_signup')}</span>
                   <ArrowRight className="w-4 h-4 shrink-0" aria-hidden="true" />
                 </button>
 
@@ -246,144 +257,85 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   id="btn-landing-explore-demo"
                   type="button"
                   onClick={onExploreDemo}
-                  className="min-h-[48px] px-5 py-3.5 bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] border border-[var(--border-strong)] rounded-xl text-sm sm:text-base font-semibold transition-colors cursor-pointer inline-flex items-center justify-center"
+                  className="min-h-[48px] px-6 py-3.5 bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] border border-[var(--border-default)] rounded-full text-sm sm:text-base font-semibold transition-colors cursor-pointer inline-flex items-center justify-center"
                 >
-                  <span className="truncate">{t('landing_explore')}</span>
+                  <span>{t('landing_explore')}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={openDemoModal}
+                  className="min-h-[48px] px-5 py-3.5 bg-transparent hover:bg-[var(--bg-surface)]/70 text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-transparent hover:border-[var(--border-hairline)] rounded-full text-sm font-semibold transition-colors cursor-pointer inline-flex items-center justify-center gap-2"
+                >
+                  <Play className="w-4 h-4 text-[var(--accent-text)] shrink-0" aria-hidden="true" />
+                  <span>{t('landing_watch_short')}</span>
                 </button>
               </div>
 
-              <p className="text-xs leading-relaxed text-[var(--text-muted)] max-w-lg mx-auto lg:mx-0">
+              <p className="text-xs leading-relaxed text-[var(--text-muted)] max-w-xl mx-auto">
                 {t('landing_incremental_note')}
               </p>
-
-              {/* Single clean inline trust line */}
-              <ul className="pt-1 flex flex-wrap items-center justify-center lg:justify-start gap-x-5 gap-y-2 text-xs font-medium text-[var(--text-secondary)]">
-                <li className="inline-flex items-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4 text-[var(--status-ok-text)] shrink-0" aria-hidden="true" />
-                  <span>{t('landing_free_oss')}</span>
-                </li>
-                <li className="inline-flex items-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4 text-[var(--status-ok-text)] shrink-0" aria-hidden="true" />
-                  <span>{t('landing_offline')}</span>
-                </li>
-                <li className="inline-flex items-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4 text-[var(--status-ok-text)] shrink-0" aria-hidden="true" />
-                  <span>{t('landing_ai_coach')}</span>
-                </li>
-              </ul>
             </div>
 
-            {/* Clean Visual Preview */}
-            {!previewBroken && (
-              <div className="lg:col-span-6">
-                <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-2 shadow-[var(--shadow-card)]">
-                  <img
-                    src="/screenshot-dashboard.png"
-                    alt={t('landing_hero_img_alt')}
-                    width={1280}
-                    height={720}
-                    fetchPriority="high"
-                    loading="eager"
-                    decoding="async"
-                    className="w-full rounded-xl border border-[var(--border-default)]"
-                    onError={() => setPreviewBroken(true)}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-        </section>
-
-        {/* Calm 3-Pillar Strip */}
-        <section
-          aria-label={t('landing_why_aria')}
-          className="py-10 sm:py-12 border-y border-[var(--border-default)] bg-[var(--bg-subtle)]"
-        >
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 reveal">
-            <h2 className="sr-only">{t('landing_why_title')}</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 reveal-stagger">
-              {WHY_CARDS.map((card) => {
-                const Icon = card.icon;
-                return (
-                  <div key={card.titleKey} className="space-y-2">
-                    <div className="flex items-center gap-2.5">
-                      <Icon className="w-4 h-4 text-[var(--accent-text)] shrink-0" aria-hidden="true" />
-                      <h3 className="text-sm font-bold text-[var(--text-primary)]">{t(card.titleKey)}</h3>
-                      <span className="text-[11px] font-medium text-[var(--text-muted)]">· {t(card.subKey)}</span>
-                    </div>
-                    <p className="text-xs sm:text-sm leading-relaxed text-[var(--text-secondary)]">
-                      {t(card.descKey)}
-                    </p>
-                  </div>
-                );
-              })}
+            {/* Interactive Tabbed Product Showcase */}
+            <div className="max-w-5xl mx-auto">
+              <HeroInteractivePreview darkMode={darkMode} onExploreDemo={onExploreDemo} />
             </div>
           </div>
         </section>
 
-        {/* Features Section */}
-        <section
-          id="features"
-          className="py-16 sm:py-20 bg-[var(--bg-surface)] border-b border-[var(--border-default)] scroll-mt-16"
-        >
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="max-w-2xl mx-auto text-center mb-12 reveal">
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-[var(--text-primary)] tracking-tight">
-                {t('landing_features_title')}
-              </h2>
-              <p className="mt-3 text-sm sm:text-base text-[var(--text-secondary)]">
-                {t('landing_features_sub')}
-              </p>
+        {/* Borderless Integration Ribbon + Two-Tone Thesis */}
+        <section className="py-12 sm:py-16 border-t border-[var(--border-hairline)]">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10 text-center">
+            <div
+              aria-label={t('landing_integrations_aria')}
+              className="flex flex-wrap items-center justify-center gap-2.5"
+            >
+              {INTEGRATIONS.map((tool) => (
+                <span
+                  key={tool}
+                  className="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-[var(--bg-surface)] border border-[var(--border-hairline)] text-[var(--text-secondary)]"
+                >
+                  {tool}
+                </span>
+              ))}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 reveal-stagger">
-              {FEATURE_CARDS.map((feat) => {
-                const Icon = feat.icon;
-                const badgeClass =
-                  feat.tone === 'ok'
-                    ? 'bg-[var(--status-ok-bg)] text-[var(--status-ok-text)] border border-[var(--status-ok-border)]'
-                    : 'bg-[var(--accent-soft)] text-[var(--accent-text)] border border-[var(--accent-border)]';
-                return (
-                  <article
-                    key={feat.titleKey}
-                    className="bg-[var(--bg-canvas)] p-6 rounded-2xl border border-[var(--border-default)] hover:border-[var(--border-strong)] transition-colors flex flex-col justify-between"
-                  >
-                    <div>
-                      <div className={`w-11 h-11 rounded-xl flex items-center justify-center mb-4 ${badgeClass}`}>
-                        <Icon className="w-5 h-5" strokeWidth={1.75} aria-hidden="true" />
-                      </div>
-                      <h3 className="text-base font-bold text-[var(--text-primary)]">{t(feat.titleKey)}</h3>
-                      <p className="text-xs sm:text-sm text-[var(--text-secondary)] mt-2 leading-relaxed">
-                        {t(feat.descKey)}
-                      </p>
-                    </div>
-                    <div className="mt-5 pt-3 border-t border-[var(--border-default)] text-xs font-semibold text-[var(--accent-text)] flex items-center gap-1.5">
-                      <span>{t(feat.footKey)}</span>
-                      <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-
-        {/* How It Works */}
-        <section id="how" className="py-16 sm:py-20 bg-[var(--bg-canvas)] border-b border-[var(--border-default)] scroll-mt-16">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10 reveal">
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-center tracking-tight text-[var(--text-primary)]">
-              {t('landing_how_title')}
+            <h2 className="text-2xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight leading-[1.14] text-balance max-w-4xl mx-auto">
+              <span className="text-[var(--text-primary)]">{t('landing_thesis_a')} </span>
+              <span className="text-[var(--text-muted)] font-semibold">{t('landing_thesis_b')}</span>
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 reveal-stagger">
+          </div>
+        </section>
+
+        {/* Sticky 2-Column Interactive Workflow Explorer */}
+        <StickyWorkflowExplorer />
+
+        {/* 3-Step Quickstart (Architectural Columns) */}
+        <section id="how" className="py-16 sm:py-20 border-t border-[var(--border-hairline)] scroll-mt-20">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+            <div className="max-w-2xl space-y-2">
+              <span className="font-mono text-[11px] font-bold tracking-widest uppercase text-[var(--accent-text)]">
+                QUICKSTART
+              </span>
+              <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[var(--text-primary)]">
+                {t('landing_how_title')}
+              </h2>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {HOW_STEPS.map((step) => (
                 <div
                   key={step.num}
-                  className="p-6 bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] space-y-2.5"
+                  className="landing-scroll-reveal p-6 rounded-3xl bg-[var(--bg-surface)] border border-[var(--border-hairline)] space-y-3"
                 >
-                  <span className="inline-block text-xs font-bold tracking-wider text-[var(--accent-text)]">
-                    {step.num}
-                  </span>
-                  <h3 className="text-sm sm:text-base font-bold text-[var(--text-primary)]">
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-xs font-bold text-[var(--accent-text)]">
+                      STEP {step.num}
+                    </span>
+                    <span className="w-2 h-2 rounded-full bg-[var(--accent-fill)]/70" aria-hidden="true" />
+                  </div>
+                  <h3 className="text-base font-bold text-[var(--text-primary)]">
                     {t(step.titleKey)}
                   </h3>
                   <p className="text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed">
@@ -395,35 +347,45 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </div>
         </section>
 
-        {/* Pricing, FAQ, Comparison & Privacy Disclosures */}
-        <section className="py-16 sm:py-20 bg-[var(--bg-surface)] border-b border-[var(--border-default)]">
-          <div className="max-w-3xl mx-auto px-4 sm:px-6 space-y-10 reveal">
-            {/* Open-Source Pricing Callout */}
+        {/* Pricing, Comparison, FAQ & Privacy (Clean Consolidated Disclosure) */}
+        <section className="py-16 sm:py-20 border-t border-[var(--border-hairline)]">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 space-y-10">
             <div
               id="pricing"
-              className="text-center p-6 bg-[var(--bg-canvas)] rounded-2xl border border-[var(--border-default)] scroll-mt-16 space-y-1.5"
+              className="p-6 sm:p-8 rounded-3xl landing-aura-sage border border-[var(--border-hairline)] flex flex-col sm:flex-row sm:items-center justify-between gap-4 scroll-mt-20"
             >
-              <div className="text-lg font-extrabold text-[var(--text-primary)]">{t('landing_pricing_t')}</div>
-              <p className="text-xs sm:text-sm text-[var(--text-secondary)]">{t('landing_pricing_d')}</p>
+              <div className="space-y-1">
+                <div className="text-lg font-extrabold text-[var(--text-primary)]">{t('landing_pricing_t')}</div>
+                <p className="text-xs sm:text-sm text-[var(--text-secondary)]">{t('landing_pricing_d')}</p>
+              </div>
+              <a
+                href="https://github.com/buianhuy2009/Student-Command-Center"
+                target="_blank"
+                rel="noreferrer"
+                className="shrink-0 px-4 py-2.5 rounded-full bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-strong)] text-xs font-bold text-[var(--text-primary)] inline-flex items-center gap-1.5 transition-colors self-start sm:self-center"
+              >
+                <span>GitHub</span>
+                <ExternalLink className="w-3.5 h-3.5" aria-hidden="true" />
+              </a>
             </div>
 
-            {/* FAQ — Collapsed native <details> disclosures */}
-            <div id="faq" className="space-y-3 scroll-mt-16">
-              <h2 className="text-lg font-extrabold text-[var(--text-primary)]">{t('landing_faq_title')}</h2>
+            {/* FAQ */}
+            <div id="faq" className="space-y-3 scroll-mt-20">
+              <h2 className="text-xl font-extrabold text-[var(--text-primary)]">{t('landing_faq_title')}</h2>
               <div className="space-y-2.5">
                 {FAQ_ITEMS.map((item) => (
                   <details
                     key={item.qKey}
-                    className="group rounded-xl border border-[var(--border-default)] bg-[var(--bg-canvas)] open:border-[var(--border-strong)]"
+                    className="group rounded-2xl border border-[var(--border-hairline)] bg-[var(--bg-surface)] open:border-[var(--border-default)]"
                   >
-                    <summary className="flex items-center justify-between gap-3 px-4 py-3.5 text-xs sm:text-sm font-semibold text-[var(--text-primary)] cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+                    <summary className="flex items-center justify-between gap-3 px-5 py-4 text-xs sm:text-sm font-semibold text-[var(--text-primary)] cursor-pointer list-none [&::-webkit-details-marker]:hidden">
                       <span>{t(item.qKey)}</span>
                       <ChevronDown
                         className="w-4 h-4 text-[var(--text-muted)] shrink-0 transition-transform duration-200 group-open:rotate-180"
                         aria-hidden="true"
                       />
                     </summary>
-                    <p className="px-4 pb-4 text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed border-t border-[var(--border-default)] pt-3">
+                    <p className="px-5 pb-4 text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed border-t border-[var(--border-hairline)] pt-3">
                       {t(item.aKey)}
                     </p>
                   </details>
@@ -431,47 +393,47 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </div>
             </div>
 
-            {/* Secondary Comparison Table — Collapsed native <details> disclosure */}
+            {/* Comparison Disclosure */}
             <details
               id="comparison"
-              className="group rounded-xl border border-[var(--border-default)] bg-[var(--bg-canvas)] open:border-[var(--border-strong)] scroll-mt-16"
+              className="group rounded-2xl border border-[var(--border-hairline)] bg-[var(--bg-surface)] open:border-[var(--border-default)] scroll-mt-20"
             >
-              <summary className="flex items-center justify-between gap-3 px-4 py-3.5 text-xs sm:text-sm font-semibold text-[var(--text-primary)] cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+              <summary className="flex items-center justify-between gap-3 px-5 py-4 text-xs sm:text-sm font-semibold text-[var(--text-primary)] cursor-pointer list-none [&::-webkit-details-marker]:hidden">
                 <span>{t('landing_compare_title')}</span>
                 <ChevronDown
                   className="w-4 h-4 text-[var(--text-muted)] shrink-0 transition-transform duration-200 group-open:rotate-180"
                   aria-hidden="true"
                 />
               </summary>
-              <div className="px-4 pb-4 pt-3 border-t border-[var(--border-default)] overflow-x-auto">
+              <div className="px-5 pb-5 pt-3 border-t border-[var(--border-hairline)] overflow-x-auto">
                 <table className="w-full text-xs border-collapse">
                   <thead>
                     <tr className="bg-[var(--bg-subtle)] text-left text-[var(--text-primary)]">
-                      <th className="p-2.5 border border-[var(--border-default)] font-semibold">
+                      <th className="p-2.5 border border-[var(--border-hairline)] font-semibold">
                         {t('landing_cmp_col_feature')}
                       </th>
-                      <th className="p-2.5 border border-[var(--border-default)] font-semibold">StudentOS</th>
-                      <th className="p-2.5 border border-[var(--border-default)] font-semibold">Notion</th>
-                      <th className="p-2.5 border border-[var(--border-default)] font-semibold">Canvas</th>
-                      <th className="p-2.5 border border-[var(--border-default)] font-semibold">Motion</th>
+                      <th className="p-2.5 border border-[var(--border-hairline)] font-semibold">StudentOS</th>
+                      <th className="p-2.5 border border-[var(--border-hairline)] font-semibold">Notion</th>
+                      <th className="p-2.5 border border-[var(--border-hairline)] font-semibold">Canvas</th>
+                      <th className="p-2.5 border border-[var(--border-hairline)] font-semibold">Motion</th>
                     </tr>
                   </thead>
                   <tbody className="bg-[var(--bg-surface)] text-[var(--text-secondary)]">
                     {COMPARISON_ROWS.map((row) => (
                       <tr key={row.fKey}>
-                        <td className="p-2.5 border border-[var(--border-default)] font-semibold text-[var(--text-primary)]">
+                        <td className="p-2.5 border border-[var(--border-hairline)] font-semibold text-[var(--text-primary)]">
                           {t(row.fKey)}
                         </td>
                         <td
-                          className={`p-2.5 border border-[var(--border-default)] ${
+                          className={`p-2.5 border border-[var(--border-hairline)] ${
                             row.highlight ? 'text-[var(--status-ok-text)] font-medium' : 'font-bold text-[var(--text-primary)]'
                           }`}
                         >
                           {t(row.sKey)}
                         </td>
-                        <td className="p-2.5 border border-[var(--border-default)]">{row.nKey ? t(row.nKey) : '—'}</td>
-                        <td className="p-2.5 border border-[var(--border-default)]">{row.cKey ? t(row.cKey) : '—'}</td>
-                        <td className="p-2.5 border border-[var(--border-default)]">{row.mKey ? t(row.mKey) : '—'}</td>
+                        <td className="p-2.5 border border-[var(--border-hairline)]">{row.nKey ? t(row.nKey) : '—'}</td>
+                        <td className="p-2.5 border border-[var(--border-hairline)]">{row.cKey ? t(row.cKey) : '—'}</td>
+                        <td className="p-2.5 border border-[var(--border-hairline)]">{row.mKey ? t(row.mKey) : '—'}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -479,9 +441,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </div>
             </details>
 
-            {/* Privacy & Permissions — Concise summary + collapsed permissions table */}
-            <div id="privacy" className="space-y-3 pt-2 scroll-mt-16">
-              <div className="flex items-center gap-2 text-sm font-bold text-[var(--text-primary)]">
+            {/* Privacy & Google Scopes */}
+            <div id="privacy" className="space-y-3 pt-2 scroll-mt-20">
+              <div className="flex items-center gap-2 text-base font-extrabold text-[var(--text-primary)]">
                 <ShieldCheck className="w-4 h-4 text-[var(--accent-text)] shrink-0" aria-hidden="true" />
                 <h2>{t('landing_privacy_title')}</h2>
               </div>
@@ -489,25 +451,25 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 {t('landing_priv_intro')}
               </p>
 
-              <details className="group rounded-xl border border-[var(--border-default)] bg-[var(--bg-canvas)] open:border-[var(--border-strong)]">
-                <summary className="flex items-center justify-between gap-3 px-4 py-3 text-xs sm:text-sm font-semibold text-[var(--text-primary)] cursor-pointer list-none [&::-webkit-details-marker]:hidden">
-                  <span>{t('landing_faq_2q')}</span>
+              <details className="group rounded-2xl border border-[var(--border-hairline)] bg-[var(--bg-surface)] open:border-[var(--border-default)]">
+                <summary className="flex items-center justify-between gap-3 px-5 py-4 text-xs sm:text-sm font-semibold text-[var(--text-primary)] cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+                  <span>{t('landing_priv_table_summary')}</span>
                   <ChevronDown
                     className="w-4 h-4 text-[var(--text-muted)] shrink-0 transition-transform duration-200 group-open:rotate-180"
                     aria-hidden="true"
                   />
                 </summary>
-                <div className="px-4 pb-4 pt-3 border-t border-[var(--border-default)] overflow-x-auto">
+                <div className="px-5 pb-5 pt-3 border-t border-[var(--border-hairline)] overflow-x-auto">
                   <table className="w-full text-[11px] sm:text-xs border-collapse">
                     <thead>
                       <tr className="bg-[var(--bg-subtle)] text-left text-[var(--text-primary)]">
-                        <th className="p-2 border border-[var(--border-default)] font-semibold">
+                        <th className="p-2.5 border border-[var(--border-hairline)] font-semibold">
                           {t('landing_priv_col_tool')}
                         </th>
-                        <th className="p-2 border border-[var(--border-default)] font-semibold">
+                        <th className="p-2.5 border border-[var(--border-hairline)] font-semibold">
                           {t('landing_priv_col_why')}
                         </th>
-                        <th className="p-2 border border-[var(--border-default)] font-semibold">
+                        <th className="p-2.5 border border-[var(--border-hairline)] font-semibold">
                           {t('landing_priv_col_ai')}
                         </th>
                       </tr>
@@ -515,11 +477,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                     <tbody className="bg-[var(--bg-surface)] text-[var(--text-secondary)]">
                       {PRIVACY_ROWS.map(([id, toolKey, whyKey, aiKey]) => (
                         <tr key={id}>
-                          <td className="p-2 border border-[var(--border-default)] font-semibold text-[var(--text-primary)]">
+                          <td className="p-2.5 border border-[var(--border-hairline)] font-semibold text-[var(--text-primary)]">
                             {t(toolKey)}
                           </td>
-                          <td className="p-2 border border-[var(--border-default)]">{t(whyKey)}</td>
-                          <td className="p-2 border border-[var(--border-default)]">{t(aiKey)}</td>
+                          <td className="p-2.5 border border-[var(--border-hairline)]">{t(whyKey)}</td>
+                          <td className="p-2.5 border border-[var(--border-hairline)]">{t(aiKey)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -549,65 +511,74 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </div>
         </section>
 
-        {/* Bottom CTA Banner */}
-        <section className="py-14 sm:py-18 bg-[var(--accent-fill)] text-white text-center">
-          <div className="max-w-3xl mx-auto px-4 sm:px-6 space-y-5 reveal">
-            <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">{t('landing_cta_title')}</h2>
-            <p className="text-sm sm:text-base text-white/95 max-w-xl mx-auto leading-relaxed">
-              {t('landing_cta_sub')}
-            </p>
-            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
-              <button
-                type="button"
-                onClick={onSignIn}
-                disabled={isLoggingIn}
-                className="px-7 py-3.5 bg-white text-[#993D1E] hover:bg-[#F7F6F2] disabled:opacity-50 rounded-xl text-sm sm:text-base font-extrabold inline-flex items-center gap-2.5 transition-colors cursor-pointer"
-              >
-                <GraduationCap className="w-5 h-5 text-[#993D1E] shrink-0" aria-hidden="true" />
-                <span>{t('landing_cta_btn')}</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setDemoOpen(true)}
-                className="px-5 py-3.5 bg-transparent border border-white/80 hover:bg-white/15 text-white rounded-xl text-sm font-bold inline-flex items-center gap-2 transition-colors cursor-pointer"
-              >
-                <Play className="w-4 h-4 shrink-0" aria-hidden="true" />
-                <span>{t('landing_watch')}</span>
-              </button>
+        {/* Atmospheric Rounded Dark Showcase CTA */}
+        <section className="px-4 sm:px-6 lg:px-8 pb-16 sm:pb-20">
+          <div className="max-w-6xl mx-auto rounded-3xl bg-[#11141B] text-white border border-white/10 p-8 sm:p-14 lg:p-16 relative overflow-hidden text-center">
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0 opacity-70"
+              style={{
+                background:
+                  'radial-gradient(circle at 25% 20%, rgba(181, 75, 39, 0.32), transparent 55%), radial-gradient(circle at 80% 80%, rgba(96, 165, 250, 0.16), transparent 50%)',
+              }}
+            />
+            <div className="relative z-10 max-w-2xl mx-auto space-y-5">
+              <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-balance">
+                {t('landing_cta_title')}
+              </h2>
+              <p className="text-sm sm:text-base text-slate-300 leading-relaxed">
+                {t('landing_cta_sub')}
+              </p>
+              <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={onSignIn}
+                  disabled={isLoggingIn}
+                  className="w-full sm:w-auto px-7 py-3.5 bg-white text-[#11141B] hover:bg-[#F7F6F2] disabled:opacity-50 rounded-full text-sm sm:text-base font-extrabold inline-flex items-center justify-center gap-2.5 transition-colors cursor-pointer"
+                >
+                  <GraduationCap className="w-5 h-5 text-[#B54B27] shrink-0" aria-hidden="true" />
+                  <span>{t('landing_cta_btn')}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={openDemoModal}
+                  className="w-full sm:w-auto px-6 py-3.5 bg-white/10 hover:bg-white/15 border border-white/25 text-white rounded-full text-sm font-bold inline-flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                >
+                  <Play className="w-4 h-4 shrink-0" aria-hidden="true" />
+                  <span>{t('landing_watch_short')}</span>
+                </button>
+              </div>
             </div>
           </div>
         </section>
       </main>
 
-      {/* Demo Modal */}
-      {demoOpen && (
-        <div
-          className="fixed inset-0 z-50 bg-black/65 backdrop-blur-sm flex items-center justify-center p-4"
-          onClick={() => setDemoOpen(false)}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="demo-modal-title"
-        >
-          <div
-            className="bg-[var(--bg-raised)] text-[var(--text-primary)] border border-[var(--border-default)] rounded-2xl max-w-2xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto shadow-[var(--shadow-card-hover)]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between gap-4">
-              <h3 id="demo-modal-title" className="text-base sm:text-lg font-bold flex items-center gap-2">
-                <Play className="w-5 h-5 text-[var(--accent-text)] shrink-0" aria-hidden="true" />
-                <span>{t('landing_demo_title')}</span>
-              </h3>
-              <button
-                type="button"
-                onClick={() => setDemoOpen(false)}
-                aria-label={t('common_close')}
-                className="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] rounded-xl transition-colors cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="aspect-video bg-black rounded-xl overflow-hidden border border-[var(--border-default)] relative">
+      {/* Native Top-Layer <dialog> Demo Video Modal */}
+      <dialog
+        ref={demoDialogRef}
+        aria-labelledby="demo-modal-title"
+        {...({ closedby: 'any' } as Record<string, string>)}
+        className="landing-dialog w-[calc(100%-2rem)] max-w-3xl rounded-3xl bg-[var(--bg-surface)] text-[var(--text-primary)] border border-[var(--border-default)] p-5 sm:p-6 shadow-2xl"
+      >
+        <div className="space-y-4">
+          <div className="flex items-center justify-between gap-4">
+            <h3 id="demo-modal-title" className="text-base sm:text-lg font-bold flex items-center gap-2">
+              <Play className="w-5 h-5 text-[var(--accent-text)] shrink-0" aria-hidden="true" />
+              <span>{t('landing_demo_title')}</span>
+            </h3>
+            <button
+              type="button"
+              onClick={closeDemoModal}
+              aria-label={t('common_close')}
+              className="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] rounded-full transition-colors cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="aspect-video bg-black rounded-2xl overflow-hidden border border-[var(--border-hairline)]">
+            {demoModalOpen && (
               <video
+                ref={videoRef}
                 src="/demo.mp4"
                 poster="/screenshot-dashboard.png"
                 controls
@@ -615,101 +586,93 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 muted
                 playsInline
                 className="w-full h-full object-cover"
-                onError={(e) => {
-                  (e.currentTarget as HTMLVideoElement).style.display = 'none';
-                  const fb = document.getElementById('demo-fallback');
-                  if (fb) fb.style.display = 'flex';
-                }}
               >
                 {t('landing_demo_unsupported')}
               </video>
-              <div
-                id="demo-fallback"
-                style={{ display: 'none' }}
-                className="absolute inset-0 flex-col items-center justify-center text-center p-6 space-y-3 bg-[var(--bg-subtle)] text-[var(--text-primary)]"
-              >
-                <div className="w-12 h-12 rounded-xl bg-[var(--accent-fill)] text-white flex items-center justify-center">
-                  <Play className="w-5 h-5" aria-hidden="true" />
-                </div>
-                <p className="text-sm font-bold">{t('demo_video_missing')}</p>
-                <p className="text-xs text-[var(--text-secondary)] max-w-md">{t('landing_demo_fallback_desc')}</p>
-                <button
-                  type="button"
-                  onClick={onExploreDemo}
-                  className="mt-2 px-4 py-2 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-xl text-xs font-bold cursor-pointer"
-                >
-                  {t('landing_explore')}
-                </button>
-              </div>
-            </div>
+            )}
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-xs text-[var(--text-muted)]">{t('landing_demo_note')}</p>
+            <button
+              type="button"
+              onClick={() => {
+                closeDemoModal();
+                onExploreDemo();
+              }}
+              className="px-4 py-2 rounded-full bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white text-xs font-bold cursor-pointer"
+            >
+              {t('landing_explore')}
+            </button>
           </div>
         </div>
-      )}
+      </dialog>
 
-      {/* Footer */}
-      <footer className="bg-[var(--bg-surface)] border-t border-[var(--border-default)] py-8">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col gap-4 text-xs text-[var(--text-secondary)]">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <GraduationCap className="w-4 h-4 text-[var(--accent-text)] shrink-0" aria-hidden="true" />
-              <span className="font-semibold text-[var(--text-primary)]">{t('landing_brand_name')}</span>
-              <span className="text-[var(--text-muted)]">{t('landing_footer_tagline')}</span>
+      {/* Clean Directory Footer + Editorial Wordmark */}
+      <footer className="border-t border-[var(--border-hairline)] bg-[var(--bg-surface)] pt-12 pb-6 overflow-hidden">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-8 text-xs text-[var(--text-secondary)]">
+            <div className="md:col-span-5 space-y-3">
+              <div className="flex items-center gap-2">
+                <GraduationCap className="w-4 h-4 text-[var(--accent-text)] shrink-0" aria-hidden="true" />
+                <span className="font-extrabold text-sm text-[var(--text-primary)]">{t('landing_brand_name')}</span>
+                <span className="text-[var(--text-muted)]">{t('landing_footer_tagline')}</span>
+              </div>
+              <p className="text-xs text-[var(--text-muted)] max-w-sm leading-relaxed">
+                {t('landing_sub')}
+              </p>
+              <LanguageToggle />
             </div>
 
-            <div className="flex flex-wrap items-center justify-center gap-4">
-              <a href="/privacy" target="_blank" rel="noopener noreferrer" className="hover:text-[var(--accent-text)] font-medium">
-                {t('landing_footer_privacy')}
-              </a>
-              <a href="/terms" target="_blank" rel="noopener noreferrer" className="hover:text-[var(--accent-text)] font-medium">
-                {t('landing_footer_terms')}
-              </a>
-              <a href="mailto:buianhuy2009@gmail.com" className="hover:text-[var(--accent-text)] font-medium">
-                {t('landing_footer_contact')}
-              </a>
-              <button
-                type="button"
-                onClick={onExploreDemo}
-                className="hover:text-[var(--accent-text)] font-medium cursor-pointer"
-              >
-                {t('landing_explore')}
-              </button>
-              <a
-                href="https://github.com/buianhuy2009/Sutdent-Command-Center"
-                target="_blank"
-                rel="noreferrer"
-                className="hover:text-[var(--accent-text)] font-medium inline-flex items-center gap-1"
-              >
-                <span>GitHub</span>
-                <ExternalLink className="w-3 h-3" aria-hidden="true" />
-              </a>
+            <div className="md:col-span-2 space-y-2.5">
+              <div className="font-bold text-[var(--text-primary)]">{t('landing_footer_col_product')}</div>
+              <ul className="space-y-2">
+                <li><a href="#workflow" className="hover:text-[var(--accent-text)]">{t('landing_nav_features')}</a></li>
+                <li><a href="#how" className="hover:text-[var(--accent-text)]">{t('landing_nav_how')}</a></li>
+                <li><button type="button" onClick={onExploreDemo} className="hover:text-[var(--accent-text)] cursor-pointer">{t('landing_explore')}</button></li>
+                <li><button type="button" onClick={openDemoModal} className="hover:text-[var(--accent-text)] cursor-pointer">{t('landing_watch_short')}</button></li>
+              </ul>
+            </div>
+
+            <div className="md:col-span-2 space-y-2.5">
+              <div className="font-bold text-[var(--text-primary)]">{t('landing_footer_col_resources')}</div>
+              <ul className="space-y-2">
+                <li><a href="#pricing" className="hover:text-[var(--accent-text)]">{t('landing_footer_pricing')}</a></li>
+                <li><a href="#faq" className="hover:text-[var(--accent-text)]">{t('landing_nav_faq')}</a></li>
+                <li><a href="#comparison" className="hover:text-[var(--accent-text)]">{t('landing_footer_comparison')}</a></li>
+                <li>
+                  <a
+                    href="https://github.com/buianhuy2009/Student-Command-Center"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="hover:text-[var(--accent-text)] inline-flex items-center gap-1"
+                  >
+                    <span>GitHub</span>
+                    <ExternalLink className="w-3 h-3" aria-hidden="true" />
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            <div className="md:col-span-3 space-y-2.5">
+              <div className="font-bold text-[var(--text-primary)]">{t('landing_footer_col_legal')}</div>
+              <ul className="space-y-2">
+                <li><a href="/privacy" target="_blank" rel="noopener noreferrer" className="hover:text-[var(--accent-text)]">{t('landing_footer_privacy')}</a></li>
+                <li><a href="/terms" target="_blank" rel="noopener noreferrer" className="hover:text-[var(--accent-text)]">{t('landing_footer_terms')}</a></li>
+                <li><a href="mailto:buianhuy2009@gmail.com" className="hover:text-[var(--accent-text)]">{t('landing_footer_contact')}</a></li>
+              </ul>
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-[var(--border-default)] pt-4">
-            <div className="text-[11px] text-center sm:text-left text-[var(--text-muted)]">
-              {t('landing_footer_copyright')}{' '}
-              <a href="/privacy" target="_blank" rel="noopener noreferrer" className="underline hover:text-[var(--accent-text)]">
-                {t('landing_footer_privacy')}
-              </a>{' '}
-              •{' '}
-              <a href="/terms" target="_blank" rel="noopener noreferrer" className="underline hover:text-[var(--accent-text)]">
-                {t('landing_footer_terms')}
-              </a>{' '}
-              •{' '}
-              <a href="#pricing" className="underline hover:text-[var(--accent-text)]">
-                {t('landing_footer_pricing')}
-              </a>{' '}
-              •{' '}
-              <a href="#faq" className="underline hover:text-[var(--accent-text)]">
-                {t('landing_nav_faq')}
-              </a>{' '}
-              •{' '}
-              <a href="#comparison" className="underline hover:text-[var(--accent-text)]">
-                {t('landing_footer_comparison')}
-              </a>
+          <div className="pt-6 border-t border-[var(--border-hairline)] flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-[var(--text-muted)]">
+            <span>{t('landing_footer_copyright')}</span>
+            <span>Canvas LMS • Google Workspace • Gemini AI</span>
+          </div>
+
+          {/* Oversized Editorial Wordmark */}
+          <div aria-hidden="true" className="pt-2 select-none text-center">
+            <div className="text-[clamp(3.5rem,13vw,9.5rem)] font-serif italic font-semibold leading-none tracking-tight text-[var(--text-primary)]/10">
+              StudentOS
             </div>
-            <LanguageToggle />
           </div>
         </div>
       </footer>
