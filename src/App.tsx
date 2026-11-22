@@ -735,36 +735,6 @@ export default function App() {
     return () => window.removeEventListener(LAYOUT_MODE_EVENT, onLayout);
   }, []);
 
-  // Opt-in Daily Email Report scheduler (GMT+7 hour check once per minute)
-  const dailyReportSendingRef = useRef(false);
-  useEffect(() => {
-    const checkAndSend = async () => {
-      if (dailyReportSendingRef.current) return;
-      const cfg = loadDailyReportConfig(user?.email || '');
-      if (!shouldSendDailyReportNow(cfg)) return;
-      dailyReportSendingRef.current = true;
-      try {
-        const result = await sendDailyReport({
-          config: cfg,
-          assignments,
-          events: calendarEvents,
-          googleAccessToken: googleToken,
-        });
-        if (result.delivered) {
-          saveDailyReportConfig({ ...cfg, lastSentDateGmt7: result.dateStrGmt7 });
-        }
-      } catch {}
-      finally {
-        dailyReportSendingRef.current = false;
-      }
-    };
-    void checkAndSend();
-    const timer = setInterval(() => {
-      void checkAndSend();
-    }, 60_000);
-    return () => clearInterval(timer);
-  }, [user?.email, assignments, calendarEvents, googleToken]);
-
   // Zen Focus: opt-in fullscreen (respects user preference, iOS-safe, Esc to exit)
   useEffect(() => {
     const prefersFullscreen = (() => { try { return localStorage.getItem('scc_zen_auto_fullscreen') === 'true'; } catch { return false; } })();
@@ -798,6 +768,34 @@ export default function App() {
   // tokens renew silently — there is no expiring "session" to warn about.
   // Connected = usable access now, or a refresh grant that can mint one.
   const [googleToken, setGoogleToken] = useState<string | null>(() => getStoredGoogleToken());
+  const dailyReportSendingRef = useRef(false);
+  useEffect(() => {
+    const checkAndSend = async () => {
+      if (dailyReportSendingRef.current) return;
+      const cfg = loadDailyReportConfig(user?.email || '');
+      if (!shouldSendDailyReportNow(cfg)) return;
+      dailyReportSendingRef.current = true;
+      try {
+        const result = await sendDailyReport({
+          config: cfg,
+          assignments,
+          events: calendarEvents,
+          googleAccessToken: googleToken,
+        });
+        if (result.delivered) {
+          saveDailyReportConfig({ ...cfg, lastSentDateGmt7: result.dateStrGmt7 });
+        }
+      } catch {}
+      finally {
+        dailyReportSendingRef.current = false;
+      }
+    };
+    void checkAndSend();
+    const timer = setInterval(() => {
+      void checkAndSend();
+    }, 60_000);
+    return () => clearInterval(timer);
+  }, [user?.email, assignments, calendarEvents, googleToken]);
   const [scopeRevision, setScopeRevision] = useState(0);
   useEffect(() => {
     const bump = () => setScopeRevision((n) => n + 1);
