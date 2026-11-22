@@ -3429,6 +3429,15 @@ export const en = {
   daily_report_err_email: 'Enter a valid email address first.',
   daily_report_err_send: 'Could not send daily report.',
 
+  // Changelog v2.21.0
+  changelog_r_2_21_0_t: 'Calm Workspace, AI Safety Controls, 3-Mode Coach & Daily Reports',
+  changelog_r_2_21_0_h1: 'Calm default home screen, fullscreen Settings & App Store (no fake review stars), and sidebar Sign Out',
+  changelog_r_2_21_0_h2: 'AI extraction & study plan control demos, live Gmail progress, auto Canvas sync, and Drive uploads',
+  changelog_r_2_21_0_h3: 'Teacher/Professor (Gemini) & Fast (Groq) AI Coach modes, GMT+7 daily email reports, and full responsive fixes',
+  changelog_r_2_21_0_d1: 'Open StudentOS to a calm, uncluttered dashboard with top-bar bell noise removed, or toggle back to Classic view anytime in Settings → Appearance.',
+  changelog_r_2_21_0_d2: 'Test AI extraction verification and study-block locking/undo demos directly inside School Inbox and Weekly Plan, sync Canvas completion automatically, and add local files or Drive links in Google Drive.',
+  changelog_r_2_21_0_d3: 'Switch AI Coach between Teacher, Professor, and Fast (Groq), opt in to GMT+7 daily homework/schedule email digests in Settings → General, and resize windows without overlapping note toolbars.',
+
 } as const;
 
 export type TranslationKey = keyof typeof en;

@@ -3421,4 +3421,13 @@ export const vi = {
   daily_report_err_email: 'Vui lòng nhập email hợp lệ trước.',
   daily_report_err_send: 'Không thể gửi báo cáo email.',
 
+  // Changelog v2.21.0
+  changelog_r_2_21_0_t: 'Giao diện Dịu mắt, Kiểm soát AI, Coach 3 chế độ & Báo cáo GMT+7',
+  changelog_r_2_21_0_h1: 'Trang chủ dịu mắt mặc định, Cài đặt & App Store toàn màn hình (bỏ sao ảo) và nút Đăng xuất',
+  changelog_r_2_21_0_h2: 'Demo kiểm soát trích xuất AI & khóa/hoàn tác lịch, tiến độ Gmail thực, đồng bộ Canvas & tải tệp Drive',
+  changelog_r_2_21_0_h3: 'AI Coach 3 chế độ Teacher/Professor (Gemini) & Fast (Groq), email tổng kết GMT+7 và tối ưu Responsive',
+  changelog_r_2_21_0_d1: 'Mở đầu nhẹ nhàng không thanh trên/chuông gây xao nhãng, đồng thời cho phép chuyển về giao diện Cổ điển bất kỳ lúc nào trong Cài đặt → Giao diện.',
+  changelog_r_2_21_0_d2: 'Thử trực tiếp mẫu lỗi trích xuất Gmail và khóa/hoàn tác lịch tuần mẫu; tự đồng bộ hoàn thành Canvas và đính kèm tệp thiết bị hoặc link Drive.',
+  changelog_r_2_21_0_d3: 'Chọn nhanh Teacher, Professor (Gemini) hoặc Fast (Groq) trong AI Coach, đăng ký báo cáo email hằng ngày GMT+7 trong Cài đặt → Chung và sử dụng mượt ở mọi kích thước cửa sổ.',
+
 } satisfies Record<TranslationKey, string>;

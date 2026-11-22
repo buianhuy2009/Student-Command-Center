@@ -6,6 +6,12 @@
     <description>Plain-English updates to StudentOS — what changed and why it matters for studying.</description>
     <language>en-us</language>
     <item>
+      <title>v2.21.0 — Calm Workspace Overhaul, AI Reliability Controls, 3-Mode Coach &amp; GMT+7 Daily Reports</title>
+      <link>https://sutdent-command-center.vercel.app/?changelog=2.21.0</link>
+      <pubDate>Sun, 22 Nov 2026 02:50:00 GMT</pubDate>
+      <description>StudentOS v2.21.0 introduces Calm Mode by default (with Classic fallback), fullscreen Settings and eye-friendly App Store without fake stars, AI extraction &amp; planner safety demos, auto-synced Canvas tasks, Drive file uploads/links, Classroom partial-scope resilience, 3-mode Teacher/Professor/Fast AI Coach, opt-in GMT+7 daily email reports, and full split-screen responsive fixes.</description>
+    </item>
+    <item>
       <title>v2.20.4 — Single-Popup Google Sign-In &amp; Direct Firebase Auth Consent</title>
       <link>https://sutdent-command-center.vercel.app/?changelog=2.20.4</link>
       <pubDate>Sun, 15 Nov 2026 15:01:43 GMT</pubDate>
