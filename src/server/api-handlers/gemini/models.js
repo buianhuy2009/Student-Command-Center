@@ -12,6 +12,11 @@ export const SERVER_MODELS = [
   ),
 ];
 
+export const COACH_MODE_MODELS = {
+  teacher: ["gemini-3.5-flash-lite", "gemini-flash-lite-latest", "gemini-flash-latest"],
+  professor: ["gemini-3.5-flash", "gemini-flash-latest", "gemini-2.5-flash"],
+};
+
 /** Short, key-free error text for logs, error payloads, and the health probe. */
 export function modelError(err) {
   const raw = String((err && err.message) || err || "");

@@ -10,9 +10,19 @@ import {
   ArrowLeft,
 } from 'lucide-react';
 import { MathMarkdown } from './MathMarkdown';
-import { sendStudyAssistantMessage } from '../services/gemini';
+import { AiCoachMode, sendStudyAssistantMessage } from '../services/gemini';
 import { Assignment, CalendarEvent, EmailAlert } from '../types';
 import { useT } from '../services/i18n';
+
+const COACH_MODE_STORAGE_KEY = 'scc_ai_coach_mode_v1';
+
+function loadInitialCoachMode(): AiCoachMode {
+  try {
+    const raw = localStorage.getItem(COACH_MODE_STORAGE_KEY);
+    if (raw === 'professor' || raw === 'fast' || raw === 'teacher') return raw;
+  } catch {}
+  return 'teacher';
+}
 
 interface Message {
   role: 'user' | 'assistant';
@@ -65,9 +75,70 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
   const [inputText, setInputText] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [streamingContent, setStreamingContent] = useState('');
+  const [coachMode, setCoachMode] = useState<AiCoachMode>(loadInitialCoachMode);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { t } = useT();
   const tutorBanner = `💡 ${t('coach_banner')}`;
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(COACH_MODE_STORAGE_KEY, coachMode);
+    } catch {}
+  }, [coachMode]);
+
+  const modeMeta: Record<AiCoachMode, { label: string; provider: string; hint: string }> = {
+    teacher: {
+      label: t('coach_mode_teacher'),
+      provider: t('coach_provider_gemini'),
+      hint: t('coach_mode_hint_teacher'),
+    },
+    professor: {
+      label: t('coach_mode_professor'),
+      provider: t('coach_provider_gemini'),
+      hint: t('coach_mode_hint_professor'),
+    },
+    fast: {
+      label: t('coach_mode_fast'),
+      provider: t('coach_provider_groq'),
+      hint: t('coach_mode_hint_fast'),
+    },
+  };
+
+  const renderModeSelector = (compact = false) => (
+    <div
+      className={`inline-flex items-center rounded-xl border border-[var(--border-default)] bg-[var(--bg-canvas)] p-0.5 ${compact ? 'gap-0.5' : 'gap-1'}`}
+      role="group"
+      aria-label="AI Coach mode"
+    >
+      {(['teacher', 'professor', 'fast'] as AiCoachMode[]).map((modeKey) => {
+        const active = coachMode === modeKey;
+        const info = modeMeta[modeKey];
+        return (
+          <button
+            key={modeKey}
+            type="button"
+            onClick={() => setCoachMode(modeKey)}
+            title={info.hint}
+            aria-pressed={active}
+            className={`${compact ? 'px-2 py-1 text-[10px]' : 'px-2.5 py-1 text-[11px]'} rounded-lg font-semibold transition-colors cursor-pointer flex items-center gap-1 ${
+              active
+                ? 'bg-[var(--accent-fill)] text-white shadow-2xs'
+                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
+            }`}
+          >
+            <span>{info.label}</span>
+            <span
+              className={`text-[9px] font-medium px-1 py-0.2 rounded ${
+                active ? 'bg-white/20 text-white' : 'bg-[var(--bg-sunken)] text-[var(--text-muted)]'
+              }`}
+            >
+              {info.provider}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
   // Persist to Dexie + localStorage via useEffect
   useEffect(() => {
     try {
@@ -115,7 +186,8 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
           events: cappedEvents,
           alerts: cappedAlerts,
           sources: cappedAssignments.map((a) => ({ type: 'canvas', id: a.id })),
-        }
+        },
+        coachMode
       );
 
       for (let i = 0; i < response.length; i += 8) {
@@ -150,7 +222,7 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
     return (
       <div className="flex-1 flex flex-col h-full bg-[var(--bg-canvas)] text-[var(--text-primary)] overflow-hidden animate-in fade-in duration-200">
         {/* Top Bar with Prominent Return Button */}
-        <div className="h-16 px-4 sm:px-6 bg-[var(--bg-surface)] border-b border-[var(--border-default)] flex items-center justify-between shadow-xs shrink-0">
+        <div className="min-h-16 px-4 sm:px-6 py-2 bg-[var(--bg-surface)] border-b border-[var(--border-default)] flex flex-wrap items-center justify-between gap-2 shadow-xs shrink-0">
           <div className="flex items-center gap-3">
             <button
               onClick={onClose}
@@ -171,27 +243,30 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
                   {t('coach_title')}
                 </h3>
                 <p className="text-[10px] text-[var(--text-secondary)]">
-                  {t('coach_sub_full')}
+                  {modeMeta[coachMode].hint}
                 </p>
               </div>
             </div>
           </div>
 
-          <button
-            onClick={() =>
-              setMessages([
-                {
-                  role: 'assistant',
-                  contentKey: 'coach_cleared_full',
-                },
-              ])
-            }
-            className="p-2 text-[var(--text-muted)] hover:text-rose-600 dark:hover:text-rose-400 rounded-xl hover:bg-[var(--bg-hover)] transition-colors cursor-pointer"
-            title={t('coach_clear_title')}
-            aria-label={t('coach_clear_title')}
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-2 flex-wrap">
+            {renderModeSelector(false)}
+            <button
+              onClick={() =>
+                setMessages([
+                  {
+                    role: 'assistant',
+                    contentKey: 'coach_cleared_full',
+                  },
+                ])
+              }
+              className="p-2 text-[var(--text-muted)] hover:text-rose-600 dark:hover:text-rose-400 rounded-xl hover:bg-[var(--bg-hover)] transition-colors cursor-pointer"
+              title={t('coach_clear_title')}
+              aria-label={t('coach_clear_title')}
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         <div className="px-4 sm:px-6 py-2 text-xs font-semibold bg-[var(--accent-soft)] text-[var(--accent-text)] border-b border-[var(--accent-border)] shrink-0">
@@ -357,6 +432,10 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
             <X className="w-4 h-4" />
           </button>
         </div>
+      </div>
+
+      <div className="px-3.5 py-2 bg-[var(--bg-surface)] border-b border-[var(--border-default)] flex items-center justify-between gap-2 shrink-0">
+        {renderModeSelector(true)}
       </div>
 
       <div className="px-3.5 py-1.5 text-[11px] font-semibold bg-[var(--accent-soft)] text-[var(--accent-text)] border-b border-[var(--accent-border)] shrink-0">{tutorBanner}</div>

@@ -3368,4 +3368,14 @@ export const vi = {
   settings_palette_light_group: 'Bảng màu Sáng',
   settings_palette_dark_group: 'Bảng màu Tối',
 
+  // AI Coach modes
+  coach_mode_teacher: 'Teacher',
+  coach_mode_professor: 'Professor',
+  coach_mode_fast: 'Fast',
+  coach_provider_gemini: 'Gemini',
+  coach_provider_groq: 'Groq',
+  coach_mode_hint_teacher: 'Mặc định — hướng dẫn cân bằng qua Gemini.',
+  coach_mode_hint_professor: 'Phân tích chuyên sâu hơn qua Gemini.',
+  coach_mode_hint_fast: 'Phản hồi siêu nhanh định tuyến tới Groq.',
+
 } satisfies Record<TranslationKey, string>;

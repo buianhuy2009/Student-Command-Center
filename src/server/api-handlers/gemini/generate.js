@@ -79,8 +79,13 @@ export async function generateWithModelFallback(params) {
   const ai = getGenAI();
   const errors = [];
   const requested = params?.model;
-  const models =
-    requested && SERVER_MODELS.includes(requested)
+  const candidateModels =
+    Array.isArray(params?.candidateModels) && params.candidateModels.length > 0
+      ? params.candidateModels
+      : null;
+  const models = candidateModels
+    ? candidateModels
+    : requested && SERVER_MODELS.includes(requested)
       ? [requested, ...SERVER_MODELS.filter((m) => m !== requested)]
       : SERVER_MODELS;
 

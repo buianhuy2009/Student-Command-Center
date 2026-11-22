@@ -16,7 +16,7 @@ vi.mock("@google/genai", () => ({
 
 import apiIndexHandler from "../../../api/index.js";
 import { createServerApp } from "../../../server.ts";
-import { SERVER_MODELS } from "./gemini/models.js";
+import { SERVER_MODELS, COACH_MODE_MODELS } from "./gemini/models.js";
 import { resetRateLimitsForTest } from "./gemini/generate.js";
 import handleAssistant from "./gemini/assistant.js";
 import handleQuickDraft from "./gemini/quick-draft.js";
@@ -393,6 +393,60 @@ describe("Server models & unified API surface", () => {
       expect(healthOn.statusCode).toBe(200);
       expect(healthOn.body.hasGoogleOAuth).toBe(true);
       expect(JSON.stringify(healthOn.body)).not.toContain("GOCSPX-test-only-never-real");
+    });
+  });
+
+  describe("AI Coach 3-mode routing", () => {
+    const prevGemini = process.env.GEMINI_API_KEY;
+    const prevGroq = process.env.GROQ_API_KEY;
+    const prevFetch = globalThis.fetch;
+
+    afterEach(() => {
+      if (prevGemini === undefined) delete process.env.GEMINI_API_KEY;
+      else process.env.GEMINI_API_KEY = prevGemini;
+      if (prevGroq === undefined) delete process.env.GROQ_API_KEY;
+      else process.env.GROQ_API_KEY = prevGroq;
+      globalThis.fetch = prevFetch;
+    });
+
+    it("routes Teacher (default) to gemini-3.5-flash-lite and Professor to gemini-3.5-flash", async () => {
+      expect(COACH_MODE_MODELS.teacher[0]).toBe("gemini-3.5-flash-lite");
+      expect(COACH_MODE_MODELS.professor[0]).toBe("gemini-3.5-flash");
+
+      process.env.GEMINI_API_KEY = "AIzaTestOnly";
+      generateContentMock.mockResolvedValue({ text: "Coach reply" });
+
+      const resTeacher = createMockRes();
+      await handleAssistant({ method: "POST", body: { messages: [{ role: "user", content: "Hi" }] } }, resTeacher);
+      expect(resTeacher.statusCode).toBe(200);
+      expect(generateContentMock).toHaveBeenCalledWith(expect.objectContaining({ model: "gemini-3.5-flash-lite" }));
+      expect(resTeacher.body.provider).toBe("gemini");
+
+      generateContentMock.mockClear();
+      const resProf = createMockRes();
+      await handleAssistant({ method: "POST", body: { mode: "professor", messages: [{ role: "user", content: "Explain Eigenvalues" }] } }, resProf);
+      expect(resProf.statusCode).toBe(200);
+      expect(generateContentMock).toHaveBeenCalledWith(expect.objectContaining({ model: "gemini-3.5-flash" }));
+      expect(resProf.body.provider).toBe("gemini");
+    });
+
+    it("routes Fast mode explicitly to Groq", async () => {
+      process.env.GROQ_API_KEY = "gsk_test_only";
+      const fetchSpy = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ choices: [{ message: { content: "Groq fast reply" } }] }),
+      } as any);
+      globalThis.fetch = fetchSpy;
+
+      const resFast = createMockRes();
+      await handleAssistant({ method: "POST", body: { mode: "fast", messages: [{ role: "user", content: "Quick summary" }] } }, resFast);
+      expect(resFast.statusCode).toBe(200);
+      expect(resFast.body).toEqual({ reply: "Groq fast reply", mode: "fast", provider: "groq" });
+      expect(fetchSpy).toHaveBeenCalledWith(
+        "https://api.groq.com/openai/v1/chat/completions",
+        expect.objectContaining({ method: "POST" })
+      );
+      expect(generateContentMock).not.toHaveBeenCalled();
     });
   });
 });

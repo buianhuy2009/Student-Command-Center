@@ -3376,6 +3376,16 @@ export const en = {
   settings_palette_light_group: 'Light mode presets',
   settings_palette_dark_group: 'Dark mode presets',
 
+  // AI Coach modes
+  coach_mode_teacher: 'Teacher',
+  coach_mode_professor: 'Professor',
+  coach_mode_fast: 'Fast',
+  coach_provider_gemini: 'Gemini',
+  coach_provider_groq: 'Groq',
+  coach_mode_hint_teacher: 'Default balanced study guide powered by Gemini.',
+  coach_mode_hint_professor: 'Deeper university-level reasoning powered by Gemini.',
+  coach_mode_hint_fast: 'Rapid concise answers routed to Groq.',
+
 } as const;
 
 export type TranslationKey = keyof typeof en;

@@ -943,14 +943,17 @@ export async function parseNaturalLanguageAssignment(text: string): Promise<Part
   return await postGeminiJsonEndpoint<Partial<Assignment>>('/api/gemini/parse-assignment', { text }, 'Parse assignment API');
 }
 
+export type AiCoachMode = 'teacher' | 'professor' | 'fast';
+
 export async function sendStudyAssistantMessage(
   messages: { role: 'user' | 'assistant'; content: string }[],
-  context?: any
+  context?: any,
+  mode: AiCoachMode = 'teacher'
 ): Promise<string> {
   try {
     const data = await postGeminiJsonEndpoint<{ reply?: string }>(
       '/api/gemini/assistant',
-      { messages, context },
+      { messages, context, mode },
       'Study assistant API'
     );
     if (!data?.reply || !String(data.reply).trim()) {
@@ -958,10 +961,17 @@ export async function sendStudyAssistantMessage(
     }
     return String(data.reply);
   } catch (err) {
+    const historyText = messages.map((m) => `${m.role === 'user' ? 'Student' : 'Coach'}: ${m.content}`).join('\n');
+    const prompt = `Student context:\n${JSON.stringify(context || {}).slice(0, 6000)}\n\nConversation:\n${historyText}`;
+    if (mode === 'fast' && getClientGroqApiKey()) {
+      const reply = await callGroqDirect(prompt, false);
+      if (reply.trim()) return reply.trim();
+    }
     if (getClientGeminiApiKey() || getClientGroqApiKey()) {
-      const historyText = messages.map((m) => `${m.role === 'user' ? 'Student' : 'Coach'}: ${m.content}`).join('\n');
+      const targetModel = mode === 'professor' ? 'gemini-3.5-flash' : 'gemini-3.5-flash-lite';
       const reply = await callGemini({
-        contents: `Student context:\n${JSON.stringify(context || {}).slice(0, 6000)}\n\nConversation:\n${historyText}`,
+        model: targetModel,
+        contents: prompt,
         config: {
           systemInstruction: 'You are Student Command Coach. Be concise, accurate, and give step-by-step hints without doing homework directly.',
         },
