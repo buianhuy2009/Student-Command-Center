@@ -13,6 +13,7 @@ import { useBadgeCounts } from './hooks/useBadgeCounts';
 import { useDebouncedCallback } from './hooks/useDebouncedCallback';
 import { initTheme, setTheme, syncDarkToTheme } from './services/theme';
 import { getLayoutMode, LAYOUT_MODE_EVENT, type LayoutMode } from './services/layoutMode';
+import { loadDailyReportConfig, saveDailyReportConfig, shouldSendDailyReportNow, sendDailyReport } from './services/dailyReport';
 import { useT } from './services/i18n';
 // Chunk-resilient lazy(): after a fresh deploy the service worker can serve a
 // stale index.html that references rotated chunk filenames → dynamic import()
@@ -714,6 +715,36 @@ export default function App() {
     window.addEventListener(LAYOUT_MODE_EVENT, onLayout);
     return () => window.removeEventListener(LAYOUT_MODE_EVENT, onLayout);
   }, []);
+
+  // Opt-in Daily Email Report scheduler (GMT+7 hour check once per minute)
+  const dailyReportSendingRef = useRef(false);
+  useEffect(() => {
+    const checkAndSend = async () => {
+      if (dailyReportSendingRef.current) return;
+      const cfg = loadDailyReportConfig(user?.email || '');
+      if (!shouldSendDailyReportNow(cfg)) return;
+      dailyReportSendingRef.current = true;
+      try {
+        const result = await sendDailyReport({
+          config: cfg,
+          assignments,
+          events: calendarEvents,
+          googleAccessToken: googleToken,
+        });
+        if (result.delivered) {
+          saveDailyReportConfig({ ...cfg, lastSentDateGmt7: result.dateStrGmt7 });
+        }
+      } catch {}
+      finally {
+        dailyReportSendingRef.current = false;
+      }
+    };
+    void checkAndSend();
+    const timer = setInterval(() => {
+      void checkAndSend();
+    }, 60_000);
+    return () => clearInterval(timer);
+  }, [user?.email, assignments, calendarEvents, googleToken]);
 
   // Zen Focus: opt-in fullscreen (respects user preference, iOS-safe, Esc to exit)
   useEffect(() => {
@@ -3804,6 +3835,9 @@ export default function App() {
         deferredPrompt={deferredPrompt}
         onInstallPwa={handleInstallPwa}
         onDismissPwa={handleDismissPwa}
+        assignments={assignments}
+        calendarEvents={calendarEvents}
+        googleAccessToken={googleToken}
       />
       </Suspense>
       )}

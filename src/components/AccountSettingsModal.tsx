@@ -70,6 +70,8 @@ import { hasFeatureAccess, type GoogleFeature } from '../services/googleAuth';
 import { getLayoutMode, setLayoutMode, type LayoutMode } from '../services/layoutMode';
 import { useT } from '../services/i18n';
 import { LanguageToggle } from './LanguageToggle';
+import { DailyReportSettings } from './DailyReportSettings';
+import type { Assignment, CalendarEvent } from '../types';
 import { CURRENT_VERSION } from './ChangelogModal';
 import { setNasaApodEnabled } from '../hooks/useNasaApod';
 import { fetchNasaApodV2, NASA_APOD_CACHE_KEY, NASA_APOD_TOGGLE_EVENT } from '../services/publicApis';
@@ -176,6 +178,9 @@ interface AccountSettingsModalProps {
   deferredPrompt?: any;
   onInstallPwa?: () => Promise<void>;
   onDismissPwa?: () => void;
+  assignments?: Assignment[];
+  calendarEvents?: CalendarEvent[];
+  googleAccessToken?: string | null;
 }
 
 type SettingsSection = 'general' | 'models' | 'sync' | 'appearance' | 'shortcuts' | 'integrations' | 'support';
@@ -208,6 +213,9 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
   deferredPrompt,
   onInstallPwa,
   onDismissPwa,
+  assignments = [],
+  calendarEvents = [],
+  googleAccessToken = null,
 }) => {
   const [activeSection, setActiveSection] = useState<SettingsSection>('general');
   const { t } = useT();
@@ -765,6 +773,13 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                     </div>
                   </div>
                 </div>
+
+                <DailyReportSettings
+                  defaultEmail={user?.email || ''}
+                  assignments={assignments}
+                  events={calendarEvents}
+                  googleAccessToken={googleAccessToken}
+                />
 
                 <div className="rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-subtle)]/40 divide-y divide-[var(--border-hairline)]">
                   {/* Start Fresh / Semester Reset */}

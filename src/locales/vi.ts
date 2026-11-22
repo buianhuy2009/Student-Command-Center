@@ -3401,4 +3401,24 @@ export const vi = {
   dash_calm_link_tasks: 'Bài tập & hạn nộp',
   dash_switch_to_classic: 'Chuyển sang giao diện Cổ điển',
 
+  // Daily Email Report (GMT+7)
+  daily_report_title: 'Báo cáo email hằng ngày (GMT+7)',
+  daily_report_sub: 'Đăng ký nhận tổng hợp bài tập và lịch học hôm nay vào khung giờ bạn chọn.',
+  daily_report_on: 'Đã bật',
+  daily_report_off: 'Đang tắt',
+  daily_report_email_label: 'Email nhận báo cáo',
+  daily_report_hour_label: 'Giờ gửi (GMT+7)',
+  daily_report_inc_hw: 'Kèm bài tập & hạn nộp',
+  daily_report_inc_sched: 'Kèm lịch học hôm nay',
+  daily_report_now_gmt7: 'Hiện tại: {time}',
+  daily_report_last_sent: 'Đã gửi ngày {date}',
+  daily_report_preview_btn: 'Xem trước',
+  daily_report_send_now: 'Gửi thử ngay',
+  daily_report_sending: 'Đang gửi…',
+  daily_report_sent_ok: 'Đã gửi báo cáo qua {transport}.',
+  daily_report_preview_ready: 'Máy chủ chưa bật gửi email tự động — bạn có thể xem trước hoặc mở ứng dụng Mail bên dưới.',
+  daily_report_open_mail: 'Mở trong ứng dụng Mail',
+  daily_report_err_email: 'Vui lòng nhập email hợp lệ trước.',
+  daily_report_err_send: 'Không thể gửi báo cáo email.',
+
 } satisfies Record<TranslationKey, string>;

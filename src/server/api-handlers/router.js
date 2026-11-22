@@ -11,6 +11,7 @@ import handleSuggestStudySlots from "./gemini/suggest-study-slots.js";
 import handleGenerate from "./gemini/generate.js";
 import handleGoogleExchange from "./auth/google/exchange.js";
 import handleGoogleRefresh from "./auth/google/refresh.js";
+import handleDailyReport from "./reports/daily.js";
 
 export const API_ROUTES = new Map([
   ["/health", handleHealth],
@@ -25,6 +26,7 @@ export const API_ROUTES = new Map([
   ["/gemini/generate", handleGenerate],
   ["/auth/google/exchange", handleGoogleExchange],
   ["/auth/google/refresh", handleGoogleRefresh],
+  ["/reports/daily", handleDailyReport],
 ]);
 
 export function resolveApiPath(req) {

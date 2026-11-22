@@ -25,6 +25,7 @@ import handleEstimateEffort from "./gemini/estimate-effort.js";
 import handleSuggestStudySlots from "./gemini/suggest-study-slots.js";
 import handleGenerate from "./gemini/generate.js";
 import handleHealth from "./health.js";
+import handleDailyReport from "./reports/daily.js";
 import { resolveServerGoogleOAuthConfig } from "./auth/google/oauthConfig.js";
 
 function createMockRes() {
@@ -447,6 +448,57 @@ describe("Server models & unified API surface", () => {
         expect.objectContaining({ method: "POST" })
       );
       expect(generateContentMock).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("Daily Email Report endpoint (/api/reports/daily)", () => {
+    const prevResend = process.env.RESEND_API_KEY;
+    const prevFetch = globalThis.fetch;
+
+    afterEach(() => {
+      if (prevResend === undefined) delete process.env.RESEND_API_KEY;
+      else process.env.RESEND_API_KEY = prevResend;
+      globalThis.fetch = prevFetch;
+    });
+
+    it("rejects invalid emails with 400 and returns honest preview when no transport is configured", async () => {
+      delete process.env.RESEND_API_KEY;
+
+      const badRes = createMockRes();
+      await handleDailyReport({ method: "POST", body: { toEmail: "not-an-email", text: "Hi" } }, badRes);
+      expect(badRes.statusCode).toBe(400);
+
+      const previewRes = createMockRes();
+      await handleDailyReport(
+        { method: "POST", body: { toEmail: "student@example.com", subject: "Brief", text: "Today plan" } },
+        previewRes
+      );
+      expect(previewRes.statusCode).toBe(200);
+      expect(previewRes.body.ok).toBe(true);
+      expect(previewRes.body.delivered).toBe(false);
+      expect(previewRes.body.transport).toBe("preview");
+      expect(previewRes.body.preview.to).toBe("student@example.com");
+    });
+
+    it("sends via Resend when RESEND_API_KEY is configured", async () => {
+      process.env.RESEND_API_KEY = "re_test_key";
+      const fetchSpy = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ id: "email_123" }),
+      } as any);
+      globalThis.fetch = fetchSpy;
+
+      const okRes = createMockRes();
+      await handleDailyReport(
+        { method: "POST", body: { toEmail: "student@example.com", subject: "Brief", text: "Tasks today" } },
+        okRes
+      );
+      expect(okRes.statusCode).toBe(200);
+      expect(okRes.body).toEqual({ ok: true, delivered: true, transport: "resend", id: "email_123" });
+      expect(fetchSpy).toHaveBeenCalledWith(
+        "https://api.resend.com/emails",
+        expect.objectContaining({ method: "POST" })
+      );
     });
   });
 });

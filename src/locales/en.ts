@@ -3409,6 +3409,26 @@ export const en = {
   dash_calm_link_tasks: 'Assignments & due',
   dash_switch_to_classic: 'Switch to Classic view',
 
+  // Daily Email Report (GMT+7)
+  daily_report_title: 'Daily email report (GMT+7)',
+  daily_report_sub: 'Opt in to receive a daily summary of today’s homework and schedule at your chosen hour.',
+  daily_report_on: 'Opted in',
+  daily_report_off: 'Off',
+  daily_report_email_label: 'Recipient email',
+  daily_report_hour_label: 'Send hour (GMT+7)',
+  daily_report_inc_hw: 'Include open homework & due dates',
+  daily_report_inc_sched: 'Include today’s schedule',
+  daily_report_now_gmt7: 'Current time: {time}',
+  daily_report_last_sent: 'Last sent {date}',
+  daily_report_preview_btn: 'Preview',
+  daily_report_send_now: 'Send test now',
+  daily_report_sending: 'Sending…',
+  daily_report_sent_ok: 'Daily report sent via {transport}.',
+  daily_report_preview_ready: 'Server email sender is not configured — preview ready below to copy or open in Mail.',
+  daily_report_open_mail: 'Open in Mail app',
+  daily_report_err_email: 'Enter a valid email address first.',
+  daily_report_err_send: 'Could not send daily report.',
+
 } as const;
 
 export type TranslationKey = keyof typeof en;
