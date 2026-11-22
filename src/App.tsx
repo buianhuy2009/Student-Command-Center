@@ -181,6 +181,7 @@ import { PrivacyModal } from './components/PrivacyModal';
 const LOCAL_ASSIGNMENTS_KEY = 'scc_user_assignments_v2';
 const LOCAL_EMAIL_ALERTS_KEY = 'scc_cached_email_alerts_v2';
 const LOCAL_RAW_EMAILS_KEY = 'scc_cached_raw_emails_v2';
+const LOCAL_EMAILS_LAST_SYNCED_KEY = 'scc_emails_last_synced_v1';
 
 const KEPT_APP_TABS: ReadonlySet<string> = new Set<AppTab>([
   'dashboard',
@@ -799,6 +800,11 @@ export default function App() {
   // Loading States
   const [isLoadingEvents, setIsLoadingEvents] = useState(false);
   const [isLoadingEmails, setIsLoadingEmails] = useState(false);
+  const [emailLoadStage, setEmailLoadStage] = useState<'idle' | 'fetching' | 'analyzing'>('idle');
+  const [emailsLastSyncedAt, setEmailsLastSyncedAt] = useState<string | null>(() => {
+    try { return localStorage.getItem(LOCAL_EMAILS_LAST_SYNCED_KEY); } catch { return null; }
+  });
+  const [emailsAreCachedOnly, setEmailsAreCachedOnly] = useState<boolean>(true);
   const [isLoadingAssignments, setIsLoadingAssignments] = useState(false);
   const [isLoadingFiles, setIsLoadingFiles] = useState(false);
   const [isLoadingCanvas, setIsLoadingCanvas] = useState(false);
@@ -1600,16 +1606,18 @@ export default function App() {
   // Fetch Academic Emails & Summarize with Gemini (runs ONLY when Gmail permission is granted)
   const loadEmailsAndAlerts = useCallback(async (isSilent = false, forceResort = false, options?: FetchEmailOptions, _retried = false) => {
     if (!hasFeatureAccess('gmail', authUidRef.current)) {
-      if (!isDemoModeRef.current) {
+      if (!isDemoModeRef.current && rawEmailsRef.current.length === 0) {
         setRawEmails([]);
         setEmailAlerts([]);
       }
+      if (emailAlertsRef.current.length > 0) setEmailsAreCachedOnly(true);
       setEmailError(null);
       setGmailApiInfo(null);
       return;
     }
     const token = await ensureFreshGoogleToken(authUidRef.current);
     if (!token) {
+      if (emailAlertsRef.current.length > 0) setEmailsAreCachedOnly(true);
       handleMissingGoogleToken(
         setEmailError,
         setGmailApiInfo,
@@ -1620,12 +1628,20 @@ export default function App() {
       return;
     }
 
-    if (!isSilent) setIsLoadingEmails(true);
+    const showProgress = !isSilent || activeTab === 'gmail';
+    if (showProgress) {
+      setIsLoadingEmails(true);
+      setEmailLoadStage('fetching');
+    }
     try {
       const emails = await fetchAcademicEmails(token, options);
       setGoogleToken(token);
       setEmailError(null);
       setGmailApiInfo(null);
+      const syncedIso = new Date().toISOString();
+      setEmailsLastSyncedAt(syncedIso);
+      setEmailsAreCachedOnly(false);
+      try { localStorage.setItem(LOCAL_EMAILS_LAST_SYNCED_KEY, syncedIso); } catch {}
 
       // Check if emails match cached emails (same IDs in same order)
       const currentRaw = rawEmailsRef.current;
@@ -1646,6 +1662,7 @@ export default function App() {
       saveRawEmails(sanitizeRawEmails(emails));
 
       if (emails.length > 0) {
+        if (showProgress) setEmailLoadStage('analyzing');
         let alerts: EmailAlert[] = [];
         try {
           alerts = await summarizeEmailsWithGemini(emails);
@@ -1709,9 +1726,10 @@ export default function App() {
         isSilent
       );
     } finally {
-      if (!isSilent) setIsLoadingEmails(false);
+      setIsLoadingEmails(false);
+      setEmailLoadStage('idle');
     }
-  }, [handleGoogleLoaderFailure, handleMissingGoogleToken, t]);
+  }, [activeTab, handleGoogleLoaderFailure, handleMissingGoogleToken, t]);
 
   // Fetch Master Sheet Assignments (runs ONLY when Google Sheets permission is granted)
   const loadSheetAssignments = useCallback(async (isSilent = false, _retried = false) => {
@@ -3587,6 +3605,9 @@ export default function App() {
                     onForceAIRead={handleForceAIRead}
                     rawEmails={rawEmails}
                     isLoadingEmails={isLoadingEmails}
+                    emailLoadStage={emailLoadStage}
+                    emailsLastSyncedAt={emailsLastSyncedAt}
+                    emailsAreCachedOnly={emailsAreCachedOnly}
                     onRefreshEmails={(forceResort?: boolean, options?: FetchEmailOptions) =>
                       loadEmailsAndAlerts(false, forceResort ?? true, options)
                     }

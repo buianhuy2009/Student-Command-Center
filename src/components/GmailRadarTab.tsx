@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Mail,
   Sparkles,
@@ -7,23 +7,30 @@ import {
   Plus,
   Search,
   CheckCircle2,
-  Filter,
-  Globe,
-  Tag,
   AlertTriangle,
-  FileText,
-  Clock,
-  ShieldCheck,
-  ShieldAlert,
-  ChevronRight,
   ExternalLink,
   Bot,
+  MoreHorizontal,
+  ArrowLeft,
+  FlaskConical,
+  Clock,
 } from 'lucide-react';
-import { EmailAlert, EmailMessage, EmailCategory, ApiEnablementInfo } from '../types';
+import { EmailAlert, EmailMessage, ApiEnablementInfo } from '../types';
 import { ApiActivationBanner } from './ApiActivationBanner';
 import { useT } from '../services/i18n';
 import { dismissReview, getDismissedReviewIds, gmailLink, isTeacherSender, toggleTeacherSender } from '../utils/trust';
 import { logPilot } from '../utils/pilotStats';
+import {
+  trySilentRestore,
+  signInWithAccountSelect,
+  requestFeaturePermission,
+  hasFeatureAccess,
+  hasScope,
+  isConnected,
+  clearGoogleGrant,
+  googleFetch,
+} from '../services/googleAuth';
+import { auth } from '../services/firebase';
 
 function formatShortDueDate(
   iso: string,
@@ -58,22 +65,81 @@ function reviewReasonText(reason: string | undefined, t: ReturnType<typeof useT>
       return t('gmail_reason_default');
   }
 }
-import {
-  trySilentRestore,
-  signInWithAccountSelect,
-  requestFeaturePermission,
-  hasFeatureAccess,
-  hasScope,
-  isConnected,
-  clearGoogleGrant,
-  googleFetch,
-} from '../services/googleAuth';
-import { auth } from '../services/firebase';
+
+const DEMO_SAMPLE_ALERTS: EmailAlert[] = [
+  {
+    id: 'demo-err-date',
+    sender: 'Thầy Minh (Hoá học)',
+    subject: '[Hoá 9] Báo cáo thí nghiệm phản ứng oxi hoá - khử',
+    oneLineSummary: 'AI trích xuất hạn nộp (tạm): 2026-11-24 — hãy đối chiếu lại câu gốc trong thư trước khi lưu.',
+    urgency: 'HIGH',
+    category: 'ASSIGNMENT',
+    aiStatus: 'ok',
+    needsReview: true,
+    reviewReason: 'low_confidence',
+    detectedAssignment: {
+      isAssignment: true,
+      name: 'Báo cáo thí nghiệm oxi hoá - khử',
+      subject: 'Hoá học',
+      dueDate: '2026-11-24',
+      priority: 'Med',
+      dueEvidence: 'Các em hoàn thành báo cáo và nộp lại vào thứ 6 tuần tới (27/11) trước 20h nhé.',
+      dueConfidence: 'relative',
+    },
+    rawEmail: {
+      id: 'demo-err-date',
+      threadId: 'demo-err-date',
+      sender: 'Thầy Minh (Hoá học)',
+      senderEmail: 'thayminh.hoa@school.edu.vn',
+      subject: '[Hoá 9] Báo cáo thí nghiệm phản ứng oxi hoá - khử',
+      date: 'Hôm nay',
+      snippet: 'Các em hoàn thành báo cáo và nộp lại vào thứ 6 tuần tới (27/11) trước 20h nhé.',
+      body: 'Chào cả lớp,\n\nSau buổi thực hành sáng nay, các em hoàn thành báo cáo và nộp lại vào thứ 6 tuần tới (27/11) trước 20h nhé.\nLưu ý ghi rõ phương trình phản ứng và nhận xét hiện tượng.\n\nThầy Minh',
+      unread: true,
+      labelIds: ['INBOX', 'UNREAD'],
+    },
+  },
+  {
+    id: 'demo-no-date',
+    sender: 'Cô Hương (Ngữ Văn)',
+    subject: 'Bài viết phân tích đoạn trích Truyện Kiều',
+    oneLineSummary: 'Thư có nhắc bài tập nhưng không ghi rõ ngày nộp — AI không tự đặt hạn nộp.',
+    urgency: 'MEDIUM',
+    category: 'ASSIGNMENT',
+    aiStatus: 'ok',
+    needsReview: true,
+    reviewReason: 'no_date',
+    detectedAssignment: {
+      isAssignment: true,
+      name: 'Phân tích đoạn trích Truyện Kiều',
+      subject: 'Ngữ Văn',
+      dueDate: '',
+      priority: 'Med',
+      dueEvidence: 'Các em chuẩn bị dàn ý bài viết ở nhà, tiết sau cô sẽ báo lịch thu bài.',
+      dueConfidence: 'none',
+    },
+    rawEmail: {
+      id: 'demo-no-date',
+      threadId: 'demo-no-date',
+      sender: 'Cô Hương (Ngữ Văn)',
+      senderEmail: 'cohuong.van@gmail.com',
+      subject: 'Bài viết phân tích đoạn trích Truyện Kiều',
+      date: 'Hôm qua',
+      snippet: 'Các em chuẩn bị dàn ý bài viết ở nhà, tiết sau cô sẽ báo lịch thu bài.',
+      body: 'Các em thân mến,\n\nCác em chuẩn bị dàn ý bài viết ở nhà, tiết sau cô sẽ báo lịch thu bài.\nKhông cần nộp bản cứng hôm nay.\n\nCô Hương',
+      unread: true,
+      labelIds: ['INBOX', 'CATEGORY_PROMOTIONS'],
+    },
+  },
+];
 
 interface GmailRadarTabProps {
   emailAlerts: EmailAlert[];
   rawEmails: EmailMessage[];
   isLoadingEmails: boolean;
+  emailLoadStage?: 'idle' | 'fetching' | 'analyzing';
+  emailsLastSyncedAt?: string | null;
+  emailsAreCachedOnly?: boolean;
   onRefreshEmails: (forceResort?: boolean, options?: { maxResults?: number; mode?: 'inbox' | 'academic' }) => void;
   onOpenQuickDraft: (email?: EmailMessage, alert?: EmailAlert) => void;
   onExtractAssignment: (alert: EmailAlert) => void;
@@ -92,6 +158,9 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
   emailAlerts,
   rawEmails,
   isLoadingEmails,
+  emailLoadStage = 'idle',
+  emailsLastSyncedAt = null,
+  emailsAreCachedOnly = false,
   onRefreshEmails,
   onOpenQuickDraft,
   onExtractAssignment,
@@ -104,24 +173,35 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
   onUseAnotherAccount,
   onForceAIRead,
 }) => {
-  const { t, formatDate } = useT();
+  const { t, formatDate, formatTime } = useT();
   const [dismissed, setDismissed] = useState<Set<string>>(() => new Set(getDismissedReviewIds()));
   const [teacherTick, setTeacherTick] = useState(0);
   const [forcing, setForcing] = useState<string | null>(null);
+  const [demoMode, setDemoMode] = useState(false);
+
+  const effectiveAlerts = useMemo(
+    () => (demoMode ? [...DEMO_SAMPLE_ALERTS, ...emailAlerts] : emailAlerts),
+    [demoMode, emailAlerts]
+  );
+
   const isReview = (a: EmailAlert) =>
     !dismissed.has(a.id) && (a.needsReview === true || a.aiStatus === 'failed' || a.aiStatus === 'skipped');
+
   const reviewAlerts = useMemo(
     () =>
-      emailAlerts
+      effectiveAlerts
         .filter(isReview)
         .sort((x, y) => Number(Boolean(y.needsReview)) - Number(Boolean(x.needsReview))),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [emailAlerts, dismissed],
+    [effectiveAlerts, dismissed],
   );
   const reviewUrgent = reviewAlerts.filter((a) => a.needsReview).length;
+
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<string>('ALL');
   const [selectedAlertId, setSelectedAlertId] = useState<string | null>(null);
+  const [mobileShowReader, setMobileShowReader] = useState(false);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [restoring, setRestoring] = useState(false);
   const [switching, setSwitching] = useState(false);
   const [archivedIds, setArchivedIds] = useState<string[]>([]);
@@ -129,9 +209,8 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
   const [spamActionError, setSpamActionError] = useState<string | null>(null);
   const [accountEmail, setAccountEmail] = useState<string | null>(connectedEmail);
   const [liveConnected, setLiveConnected] = useState<boolean>(isGoogleConnected);
-  const autoTriedRef = useRef(false);
+  const autoTriedRef = React.useRef(false);
 
-  // Keep the displayed account in sync with the explicit prop + Firebase user.
   useEffect(() => {
     if (connectedEmail) {
       setAccountEmail(connectedEmail);
@@ -154,8 +233,15 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
     setLiveConnected(isGoogleConnected);
   }, [isGoogleConnected]);
 
-  // Instant Gmail restore: ONLY resume silently if Gmail permission was already granted.
-  // Never ask for Workspace bundles or trigger an unprompted popup on mount.
+  useEffect(() => {
+    if (!showMoreMenu) return;
+    const onOutside = (e: MouseEvent) => {
+      if (!(e.target as HTMLElement).closest('[data-gmail-more-menu]')) setShowMoreMenu(false);
+    };
+    window.addEventListener('mousedown', onOutside);
+    return () => window.removeEventListener('mousedown', onOutside);
+  }, [showMoreMenu]);
+
   useEffect(() => {
     if (autoTriedRef.current) return;
     autoTriedRef.current = true;
@@ -173,7 +259,6 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
         if (cancelled) return;
         if (token) {
           setLiveConnected(true);
-          // Best-effort: resolve the Gmail address for the status line.
           try {
             const res = await googleFetch('https://gmail.googleapis.com/gmail/v1/users/me/profile');
             if (res?.ok) {
@@ -181,31 +266,22 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
               const gmail = typeof data?.emailAddress === 'string' ? data.emailAddress : null;
               if (gmail && !cancelled) {
                 setAccountEmail(gmail);
-                try {
-                  localStorage.setItem('scc_google_email_v1', gmail);
-                } catch {}
+                try { localStorage.setItem('scc_google_email_v1', gmail); } catch {}
               }
             }
           } catch {}
-          try {
-            onRefreshEmails(false);
-          } catch {}
+          try { onRefreshEmails(false); } catch {}
         } else {
           setLiveConnected(false);
           if (rawEmails.length === 0) {
-            try {
-              onRefreshEmails(false);
-            } catch {}
+            try { onRefreshEmails(false); } catch {}
           }
         }
       } catch {
-        // Trigger parent loader when empty so disconnected state surfaces cleanly.
         if (!cancelled) {
           setLiveConnected(false);
           if (rawEmails.length === 0) {
-            try {
-              onRefreshEmails(false);
-            } catch {}
+            try { onRefreshEmails(false); } catch {}
           }
         }
       } finally {
@@ -215,7 +291,6 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
     return () => {
       cancelled = true;
     };
-    // Mount-only: restore once per view, never loop on parent re-renders.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -234,18 +309,16 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
       const fresh = await requestFeaturePermission('gmail', { loginHint, uid });
       if (fresh) {
         setLiveConnected(true);
-        try {
-          onRefreshEmails(true);
-        } catch {}
+        try { onRefreshEmails(true); } catch {}
       }
     } catch {
-      // Manual fallback stays visible; click Connect anytime to retry consent.
     } finally {
       setRestoring(false);
     }
   };
 
   const handleUseAnotherAccount = async () => {
+    setShowMoreMenu(false);
     if (onUseAnotherAccount) {
       await onUseAnotherAccount();
       return;
@@ -263,18 +336,13 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
             const gmail = typeof data?.emailAddress === 'string' ? data.emailAddress : null;
             if (gmail) {
               setAccountEmail(gmail);
-              try {
-                localStorage.setItem('scc_google_email_v1', gmail);
-              } catch {}
+              try { localStorage.setItem('scc_google_email_v1', gmail); } catch {}
             }
           }
         } catch {}
-        try {
-          onRefreshEmails(false);
-        } catch {}
+        try { onRefreshEmails(false); } catch {}
       }
     } catch (err: any) {
-      // Dismissals stay silent; real OAuth errors surface in the alert banner.
       const msg = String(err?.message || '');
       if (msg && !/dismiss|cancel|closed/i.test(msg)) {
         setSpamActionError(msg);
@@ -285,17 +353,14 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
   };
 
   const handleDisconnectClick = async () => {
+    setShowMoreMenu(false);
     if (onDisconnectGoogle) {
       await onDisconnectGoogle();
       setLiveConnected(false);
       return;
     }
-    try {
-      await clearGoogleGrant(auth?.currentUser?.uid || null);
-    } catch {}
-    try {
-      localStorage.removeItem('scc_google_email_v1');
-    } catch {}
+    try { await clearGoogleGrant(auth?.currentUser?.uid || null); } catch {}
+    try { localStorage.removeItem('scc_google_email_v1'); } catch {}
     setAccountEmail(null);
     setLiveConnected(false);
   };
@@ -305,25 +370,24 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
   const matchesCategory = (alert: EmailAlert, cat: string) => {
     if (cat === 'ALL') return true;
     if (cat === 'REVIEW') return isReview(alert);
-    if (cat === 'PROMOTIONS') {
-      // Spam + Promotions share one category (Gmail-native, not hidden).
+    if (cat === 'TASKS') return alert.category === 'ASSIGNMENT' || alert.category === 'EXAM';
+    if (cat === 'OTHER') {
       const labels = alert.gmailLabels || alert.rawEmail?.labelIds || [];
       return (
         alert.category === 'PROMOTION' ||
         alert.category === 'SPAM' ||
+        alert.category === 'SOCIAL' ||
+        alert.category === 'GENERAL' ||
         labels.includes('SPAM') ||
-        labels.includes('CATEGORY_PROMOTIONS')
+        labels.includes('CATEGORY_PROMOTIONS') ||
+        labels.includes('CATEGORY_SOCIAL')
       );
-    }
-    if (cat === 'SOCIAL') {
-      const labels = alert.gmailLabels || alert.rawEmail?.labelIds || [];
-      return alert.category === 'SOCIAL' || labels.includes('CATEGORY_SOCIAL');
     }
     return alert.category === cat;
   };
 
   const filteredAlerts = useMemo(() => {
-    const base = activeCategory === 'REVIEW' ? reviewAlerts : emailAlerts;
+    const base = activeCategory === 'REVIEW' ? reviewAlerts : effectiveAlerts;
     return base.filter((alert) => {
       if (archivedIds.includes(alert.id)) return false;
       if (!matchesCategory(alert, activeCategory)) return false;
@@ -337,11 +401,8 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
       return true;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [emailAlerts, activeCategory, searchQuery, reviewAlerts, archivedIds]);
+  }, [effectiveAlerts, activeCategory, searchQuery, reviewAlerts, archivedIds]);
 
-  // Unread counts per category tab, derived from existing data only.
-  // An alert counts as unread via its attached rawEmail flag, falling back
-  // to the rawEmails prop joined the same way as activeRawEmail below.
   const unreadCounts = useMemo(() => {
     const rawById = new Map(rawEmails.map((e) => [e.id, e]));
     const rawBySubject = new Map(rawEmails.map((e) => [e.subject, e]));
@@ -351,21 +412,22 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
       return raw?.unread ?? false;
     };
     const counts: Record<string, number> = {};
-    for (const cat of ['ALL', 'ASSIGNMENT', 'EXAM', 'ANNOUNCEMENT', 'PROMOTIONS', 'SOCIAL', 'GENERAL']) {
-      counts[cat] = emailAlerts.filter(
+    for (const cat of ['ALL', 'TASKS', 'ANNOUNCEMENT', 'OTHER']) {
+      counts[cat] = effectiveAlerts.filter(
         (a) => !archivedIds.includes(a.id) && matchesCategory(a, cat) && isUnread(a)
       ).length;
     }
     return counts;
-  }, [emailAlerts, rawEmails, archivedIds]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [effectiveAlerts, rawEmails, archivedIds]);
 
   const canModifyGmail = hasScope('gmail.modify', auth?.currentUser?.uid || null);
 
   const handleBulkArchiveSpam = async () => {
+    setShowMoreMenu(false);
     const spamIds = filteredAlerts.filter((a) => a.isSpam && a.id).map((a) => a.id);
     if (spamIds.length === 0 || isArchivingSpam) return;
 
-    // StudentOS asks for read-only Gmail access so it never changes your real inbox unexpectedly.
     if (!canModifyGmail) {
       setArchivedIds((prev) => Array.from(new Set([...prev, ...spamIds])));
       window.dispatchEvent(
@@ -414,7 +476,6 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
     }
   };
 
-  // Set initial selected alert if none selected
   const activeAlert = useMemo(() => {
     if (selectedAlertId) {
       const found = filteredAlerts.find((a) => a.id === selectedAlertId);
@@ -423,191 +484,277 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
     return filteredAlerts[0] || null;
   }, [selectedAlertId, filteredAlerts]);
 
-  // Find corresponding raw email
   const activeRawEmail = useMemo(() => {
     if (!activeAlert) return null;
     return rawEmails.find((e) => e.id === activeAlert.id || e.subject === activeAlert.subject) || activeAlert.rawEmail || null;
   }, [activeAlert, rawEmails]);
 
+  const syncFreshnessText = useMemo(() => {
+    if (emailsLastSyncedAt && !emailsAreCachedOnly) {
+      return t('gmail_synced_at', { time: formatTime(emailsLastSyncedAt) || formatDate(emailsLastSyncedAt) });
+    }
+    if (effectiveAlerts.length > 0 && (!showConnected || emailsAreCachedOnly)) {
+      const dateStr = emailsLastSyncedAt
+        ? formatDate(emailsLastSyncedAt)
+        : activeRawEmail?.date || 'saved';
+      return t('gmail_cached_notice', { date: dateStr });
+    }
+    return null;
+  }, [emailsLastSyncedAt, emailsAreCachedOnly, effectiveAlerts.length, showConnected, activeRawEmail?.date, formatDate, formatTime, t]);
+
+  const loadingBannerText =
+    emailLoadStage === 'analyzing'
+      ? t('gmail_stage_analyzing')
+      : emailLoadStage === 'fetching' || restoring
+      ? t('gmail_stage_fetching')
+      : t('gmail_scanning');
+
+  const spamCount = filteredAlerts.filter((a) => a.isSpam).length;
+
   return (
-    <div className="space-y-4">
-      {/* Gmail connection status: silent auto-restore on mount, manual
-          Connect fallback, explicit account switching, email + Disconnect. */}
-      <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] px-3 py-2 flex flex-wrap items-center justify-between gap-2 shadow-xs text-xs">
-        {restoring ? (
-          <span className="flex items-center gap-2 text-[var(--text-secondary)] font-semibold">
-            <RefreshCw className="w-3.5 h-3.5 animate-spin text-[var(--accent-text)]" />
-            {t('gmail_reconnecting')}
-          </span>
-        ) : showConnected ? (
-          <span className="flex items-center gap-2 min-w-0">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-            <span className="font-bold text-[var(--text-primary)] truncate">
-              {accountEmail ? t('gmail_connected_as', { email: accountEmail }) : t('gmail_connected_fallback')}
+    <div className="space-y-3.5">
+      {/* Row 1: Calm Connection & Sync Freshness Header */}
+      <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-hairline)] px-4 py-2.5 flex flex-wrap items-center justify-between gap-2.5 text-xs">
+        <div className="flex flex-wrap items-center gap-2 min-w-0">
+          {restoring || isLoadingEmails ? (
+            <span className="flex items-center gap-2 text-[var(--text-secondary)] font-semibold">
+              <RefreshCw className="w-3.5 h-3.5 animate-spin text-[var(--accent-text)] shrink-0" />
+              <span className="truncate">{loadingBannerText}</span>
             </span>
-          </span>
-        ) : (
-          <span className="font-semibold text-[var(--text-secondary)]">
-            {t('gmail_not_connected')}
-          </span>
-        )}
-        <div className="flex items-center gap-2">
-          {showConnected && !restoring ? (
+          ) : showConnected ? (
             <>
-              <button
-                onClick={handleUseAnotherAccount}
-                disabled={switching}
-                className="px-2.5 py-1 bg-[var(--bg-subtle)] border border-[var(--border-default)] hover:border-[var(--accent-fill)] text-[var(--text-primary)] rounded-lg font-semibold cursor-pointer disabled:opacity-60"
-              >
-                {switching ? t('gmail_switching') : t('gmail_use_another')}
-              </button>
-              <button
-                onClick={handleDisconnectClick}
-                className="px-2.5 py-1 bg-transparent border border-[var(--border-default)] text-[var(--text-secondary)] hover:text-rose-600 hover:border-rose-300 rounded-lg font-semibold cursor-pointer"
-              >
-                {t('gmail_disconnect')}
-              </button>
-            </>
-          ) : !restoring ? (
-            <>
-              <button
-                onClick={handleConnectClick}
-                className="px-2.5 py-1 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-lg font-semibold cursor-pointer"
-              >
-                {t('gmail_connect')}
-              </button>
-              <button
-                onClick={handleUseAnotherAccount}
-                disabled={switching}
-                className="px-2.5 py-1 bg-[var(--bg-subtle)] border border-[var(--border-default)] hover:border-[var(--accent-fill)] text-[var(--text-primary)] rounded-lg font-semibold cursor-pointer disabled:opacity-60"
-              >
-                {switching ? t('gmail_switching') : t('gmail_use_another')}
-              </button>
-            </>
-          ) : null}
-        </div>
-      </div>
-      {/* Top Filter Bar */}
-      <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-3 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
-        
-        {/* Category Filter Pills — ALL default, PROMOTIONS = spam+promo, SOCIAL separate */}
-        <div className="flex items-center gap-1.5 flex-wrap">
-          {['REVIEW', 'ALL', 'ASSIGNMENT', 'EXAM', 'ANNOUNCEMENT', 'PROMOTIONS', 'SOCIAL', 'GENERAL'].map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setActiveCategory(cat)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                activeCategory === cat
-                  ? 'bg-[var(--accent-fill)] text-white shadow-xs'
-                  : 'bg-[var(--bg-subtle)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] border border-[var(--border-default)]'
-              }`}
-            >
-              {cat === 'REVIEW'
-                ? `🔎 ${t('gmail_needs_eyes')}`
-                : cat === 'ALL'
-                ? t('gmail_all')
-                : cat === 'PROMOTIONS'
-                ? t('gmail_promos')
-                : cat === 'ASSIGNMENT'
-                ? t('gmail_assignment')
-                : cat === 'EXAM'
-                ? t('exam')
-                : cat === 'ANNOUNCEMENT'
-                ? t('gmail_announcement')
-                : cat === 'SOCIAL'
-                ? t('gmail_social')
-                : t('gmail_general')}
-              {cat === 'REVIEW' && reviewAlerts.length > 0 && (
-                <span className={`ml-1.5 inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full text-[10px] font-extrabold leading-none ${activeCategory === cat ? 'bg-[var(--bg-surface)] text-[var(--status-warn-text)]' : 'bg-[var(--status-warn-text)] text-white'}`}>
-                  {reviewAlerts.length}
-                </span>
-              )}
-              {cat !== 'REVIEW' && unreadCounts[cat] > 0 && (
+              <span className="inline-flex items-center gap-1.5 font-semibold text-[var(--text-primary)] truncate">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <span className="truncate">{accountEmail ? t('gmail_connected_as', { email: accountEmail }) : t('gmail_connected_fallback')}</span>
+              </span>
+              {syncFreshnessText && (
                 <span
-                  aria-label={`${unreadCounts[cat]} ${t('gmail_unread')}`}
-                  className={`ml-1.5 inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full text-[10px] font-extrabold leading-none ${
-                    activeCategory === cat ? 'bg-white text-[var(--accent-text)]' : 'bg-[var(--accent-fill)] text-white'
+                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium ${
+                    emailsAreCachedOnly
+                      ? 'bg-[var(--status-warn-bg)] text-[var(--status-warn-text)] border border-[var(--status-warn-border)]'
+                      : 'bg-[var(--bg-subtle)] text-[var(--text-muted)]'
                   }`}
                 >
-                  {unreadCounts[cat]}
+                  <Clock className="w-3 h-3 shrink-0" />
+                  <span>{syncFreshnessText}</span>
                 </span>
               )}
-            </button>
-          ))}
-        </div>
-
-          {/* Right Controls */}
-        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-          <div className="relative w-full sm:w-48">
-            <Search className="w-3.5 h-3.5 text-[var(--text-muted)] absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={t('gmail_search_ph')}
-              className="w-full pl-8 pr-3 py-1.5 text-xs bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-xl focus:outline-none focus:ring-1 focus:ring-[var(--accent-fill)] text-[var(--text-primary)]"
-            />
-          </div>
-
-          {/* Bulk hide in StudentOS / Open in Gmail */}
-          {filteredAlerts.some(a => a.isSpam) && (
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={handleBulkArchiveSpam}
-                disabled={isArchivingSpam}
-                className="px-2.5 py-1.5 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 rounded-xl text-xs font-bold hover:bg-rose-100 dark:hover:bg-rose-900/40 disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
-                title={canModifyGmail ? t('gmail_archive_spam') : t('gmail_hide_readonly_title')}
-              >
-                {isArchivingSpam && <RefreshCw className="w-3 h-3 animate-spin" />}
-                <span>
-                  {isArchivingSpam
-                    ? t('gmail_working')
-                    : canModifyGmail
-                    ? `${t('gmail_archive_spam')} (${filteredAlerts.filter(a => a.isSpam).length})`
-                    : `${t('gmail_hide_in_app')} (${filteredAlerts.filter(a => a.isSpam).length})`}
+            </>
+          ) : (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-semibold text-[var(--text-secondary)]">{t('gmail_not_connected')}</span>
+              {syncFreshnessText && (
+                <span className="px-2 py-0.5 rounded-full text-[11px] bg-[var(--status-warn-bg)] text-[var(--status-warn-text)] border border-[var(--status-warn-border)]">
+                  {syncFreshnessText}
                 </span>
-              </button>
-              <a
-                href="https://mail.google.com/mail/#search/category%3Apromotions"
-                target="_blank"
-                rel="noreferrer"
-                className="px-2.5 py-1.5 bg-[var(--bg-subtle)] border border-[var(--border-default)] hover:border-[var(--accent-fill)] text-[var(--text-primary)] rounded-xl text-xs font-bold inline-flex items-center gap-1"
-              >
-                <span>{t('gmail_open_in_gmail')}</span>
-                <ExternalLink className="w-3 h-3 text-[var(--accent-text)]" />
-              </a>
+              )}
             </div>
           )}
+        </div>
 
+        <div className="flex items-center gap-2 shrink-0">
           <button
-            onClick={() => (showConnected ? onRefreshEmails(true) : handleConnectClick())}
-            disabled={isLoadingEmails}
-            className="p-1.5 bg-[var(--bg-subtle)] border border-[var(--border-default)] hover:border-[var(--accent-fill)] text-[var(--text-secondary)] rounded-xl transition-colors cursor-pointer"
-            title={showConnected ? t('gmail_refresh_inbox') : t('gmail_connect')}
+            type="button"
+            onClick={() => {
+              setDemoMode((v) => !v);
+              if (!demoMode) setActiveCategory('REVIEW');
+            }}
+            className={`px-2.5 py-1.5 rounded-xl text-[11px] font-semibold border transition-colors cursor-pointer flex items-center gap-1.5 ${
+              demoMode
+                ? 'bg-[var(--accent-soft)] text-[var(--accent-text)] border-[var(--accent-border)]'
+                : 'bg-[var(--bg-subtle)] text-[var(--text-secondary)] border-[var(--border-hairline)] hover:border-[var(--border-default)]'
+            }`}
           >
-            <RefreshCw className={`w-4 h-4 ${isLoadingEmails ? 'animate-spin text-[var(--accent-text)]' : ''}`} strokeWidth={1.75} />
+            <FlaskConical className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">{demoMode ? t('gmail_demo_exit') : t('gmail_demo_btn')}</span>
           </button>
+
+          {showConnected ? (
+            <button
+              type="button"
+              onClick={() => onRefreshEmails(true)}
+              disabled={isLoadingEmails}
+              className="px-3 py-1.5 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-xl font-semibold transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-60"
+              title={t('gmail_refresh_inbox')}
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoadingEmails ? 'animate-spin' : ''}`} />
+              <span>{t('gmail_refresh_inbox')}</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleConnectClick}
+              className="px-3 py-1.5 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-xl font-semibold cursor-pointer"
+            >
+              {t('gmail_connect')}
+            </button>
+          )}
+
+          <div className="relative" data-gmail-more-menu>
+            <button
+              type="button"
+              onClick={() => setShowMoreMenu((v) => !v)}
+              aria-label={t('gmail_more_actions')}
+              aria-expanded={showMoreMenu}
+              className="p-1.5 rounded-xl bg-[var(--bg-subtle)] border border-[var(--border-hairline)] hover:border-[var(--border-default)] text-[var(--text-secondary)] cursor-pointer"
+            >
+              <MoreHorizontal className="w-4 h-4" />
+            </button>
+            {showMoreMenu && (
+              <div className="absolute right-0 mt-1.5 w-52 bg-[var(--bg-raised)] rounded-xl border border-[var(--border-default)] shadow-lg py-1.5 z-30 text-xs">
+                <button
+                  type="button"
+                  onClick={handleUseAnotherAccount}
+                  disabled={switching}
+                  className="w-full text-left px-3 py-2 hover:bg-[var(--bg-hover)] text-[var(--text-primary)] font-medium cursor-pointer"
+                >
+                  {switching ? t('gmail_switching') : t('gmail_use_another')}
+                </button>
+                {spamCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleBulkArchiveSpam}
+                    disabled={isArchivingSpam}
+                    className="w-full text-left px-3 py-2 hover:bg-[var(--bg-hover)] text-[var(--text-primary)] font-medium cursor-pointer"
+                  >
+                    {canModifyGmail
+                      ? `${t('gmail_archive_spam')} (${spamCount})`
+                      : `${t('gmail_hide_in_app')} (${spamCount})`}
+                  </button>
+                )}
+                <a
+                  href="https://mail.google.com/mail/"
+                  target="_blank"
+                  rel="noreferrer"
+                  onClick={() => setShowMoreMenu(false)}
+                  className="block px-3 py-2 hover:bg-[var(--bg-hover)] text-[var(--text-primary)] font-medium"
+                >
+                  {t('gmail_open_in_gmail')}
+                </a>
+                {showConnected && (
+                  <button
+                    type="button"
+                    onClick={handleDisconnectClick}
+                    className="w-full text-left px-3 py-2 hover:bg-[var(--status-err-bg)] text-[var(--status-err-text)] font-medium cursor-pointer border-t border-[var(--border-hairline)] mt-1 pt-2"
+                  >
+                    {t('gmail_disconnect')}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Explicit multi-step loading progress notice */}
+      {(isLoadingEmails || restoring) && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="px-4 py-3 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-surface)] space-y-2"
+        >
+          <div className="flex items-center justify-between gap-2 text-xs">
+            <span className="font-semibold text-[var(--text-primary)] flex items-center gap-2">
+              <RefreshCw className="w-3.5 h-3.5 animate-spin text-[var(--accent-text)]" />
+              <span>{loadingBannerText}</span>
+            </span>
+            <span className="text-[11px] font-mono text-[var(--text-muted)]">
+              {emailLoadStage === 'analyzing' ? '2 / 2' : '1 / 2'}
+            </span>
+          </div>
+          <div className="h-1.5 w-full rounded-full bg-[var(--bg-subtle)] overflow-hidden">
+            <div
+              className={`h-full bg-[var(--accent-fill)] transition-all duration-500 rounded-full ${
+                emailLoadStage === 'analyzing' ? 'w-3/4 animate-pulse' : 'w-2/5 animate-pulse'
+              }`}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Demo mode banner */}
+      {demoMode && (
+        <div className="px-4 py-2.5 rounded-2xl border border-[var(--accent-border)] bg-[var(--accent-soft)] text-xs text-[var(--accent-text)] flex flex-wrap items-center justify-between gap-2">
+          <span className="font-medium">{t('gmail_demo_banner')}</span>
+          <button
+            type="button"
+            onClick={() => setDemoMode(false)}
+            className="font-bold underline cursor-pointer shrink-0"
+          >
+            {t('gmail_demo_exit')}
+          </button>
+        </div>
+      )}
+
+      {/* Row 2: Focused 5-Tab Filter Strip + Search */}
+      <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-hairline)] p-2.5 flex flex-col md:flex-row md:items-center justify-between gap-2.5">
+        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-0.5 md:pb-0">
+          {[
+            { id: 'ALL', label: t('gmail_all') },
+            { id: 'TASKS', label: t('gmail_tab_tasks') },
+            { id: 'REVIEW', label: t('gmail_needs_eyes') },
+            { id: 'ANNOUNCEMENT', label: t('gmail_announcement') },
+            { id: 'OTHER', label: t('gmail_tab_other') },
+          ].map((tab) => {
+            const isActive = activeCategory === tab.id;
+            const countBadge =
+              tab.id === 'REVIEW'
+                ? reviewAlerts.length
+                : unreadCounts[tab.id] || 0;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveCategory(tab.id)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1.5 shrink-0 ${
+                  isActive
+                    ? 'bg-[var(--accent-fill)] text-white'
+                    : 'bg-[var(--bg-subtle)]/70 text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]'
+                }`}
+              >
+                <span>{tab.label}</span>
+                {countBadge > 0 && (
+                  <span
+                    className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold tabular-nums ${
+                      isActive
+                        ? 'bg-white/20 text-white'
+                        : tab.id === 'REVIEW'
+                        ? 'bg-[var(--status-warn-bg)] text-[var(--status-warn-text)] border border-[var(--status-warn-border)]'
+                        : 'bg-[var(--bg-surface)] text-[var(--text-muted)]'
+                    }`}
+                  >
+                    {countBadge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="relative w-full md:w-56 shrink-0">
+          <Search className="w-3.5 h-3.5 text-[var(--text-muted)] absolute left-3 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={t('gmail_search_ph')}
+            className="w-full pl-8 pr-3 py-1.5 text-xs bg-[var(--bg-subtle)] border border-[var(--border-hairline)] rounded-xl focus:outline-none focus:border-[var(--accent-fill)] text-[var(--text-primary)]"
+          />
         </div>
       </div>
 
       {/* Spam Archive Error Banner */}
       {spamActionError && (
-        <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-xl flex items-center justify-between gap-3 text-xs text-rose-900 dark:text-rose-200" role="alert">
+        <div className="p-3 bg-[var(--status-err-bg)] border border-[var(--status-err-border)] rounded-xl flex flex-wrap items-center justify-between gap-3 text-xs text-[var(--status-err-text)]" role="alert">
           <div className="flex items-center gap-2 min-w-0">
-            <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+            <AlertTriangle className="w-4 h-4 shrink-0" />
             <span className="break-words">{spamActionError}</span>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <button
-              onClick={handleConnectClick}
-              className="px-2.5 py-1 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-lg font-semibold cursor-pointer"
-            >
+            <button onClick={handleConnectClick} className="px-2.5 py-1 bg-[var(--accent-fill)] text-white rounded-lg font-semibold cursor-pointer">
               {t('gmail_connect')}
             </button>
-            <button
-              onClick={() => setSpamActionError(null)}
-              className="px-2 py-1 border border-rose-300 dark:border-rose-700 rounded-lg font-semibold cursor-pointer"
-            >
+            <button onClick={() => setSpamActionError(null)} className="px-2 py-1 border border-current rounded-lg font-semibold cursor-pointer">
               {t('common_dismiss')}
             </button>
           </div>
@@ -618,7 +765,7 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
       {gmailApiInfo ? (
         <ApiActivationBanner info={gmailApiInfo} onRetry={() => onRefreshEmails(true)} isRetrying={isLoadingEmails} />
       ) : emailError ? (
-        <div className="p-3 bg-[var(--status-warn-bg)] border border-[var(--status-warn-border)] rounded-xl flex items-center justify-between gap-3 text-xs text-[var(--status-warn-text)]">
+        <div className="p-3 bg-[var(--status-warn-bg)] border border-[var(--status-warn-border)] rounded-xl flex flex-wrap items-center justify-between gap-3 text-xs text-[var(--status-warn-text)]">
           <span>{emailError}</span>
           <button onClick={handleConnectClick} className="px-2.5 py-1 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-lg font-semibold cursor-pointer">
             {t('gmail_connect')}
@@ -631,7 +778,7 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
         <button
           type="button"
           onClick={() => setActiveCategory('REVIEW')}
-          className="w-full text-left p-3 rounded-2xl border border-[var(--status-warn-border)] bg-[var(--status-warn-bg)] text-xs text-[var(--status-warn-text)] flex items-start gap-2 hover:border-[var(--border-strong)]"
+          className="w-full text-left px-3.5 py-2.5 rounded-2xl border border-[var(--status-warn-border)] bg-[var(--status-warn-bg)] text-xs text-[var(--status-warn-text)] flex items-start gap-2 hover:opacity-95 cursor-pointer"
         >
           <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
           <span>
@@ -642,23 +789,21 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
         </button>
       )}
 
-      {/* TWO-PANE MASTER-DETAIL LAYOUT */}
-      <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] overflow-hidden shadow-xs flex flex-col md:flex-row h-[600px]">
-        
-        {/* LEFT MASTER PANE: Compact Email List */}
-        <div className="w-full md:w-80 lg:w-96 border-r border-[var(--border-default)] flex flex-col bg-[var(--bg-subtle)] overflow-hidden">
-          <div className="p-3 border-b border-[var(--border-default)] flex items-center justify-between text-xs font-bold text-[var(--text-muted)]">
+      {/* RESPONSIVE TWO-PANE MASTER-DETAIL READER */}
+      <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-hairline)] overflow-hidden flex flex-col md:flex-row min-h-[440px] md:h-[calc(100dvh-16rem)] md:max-h-[720px]">
+        {/* LEFT MASTER PANE */}
+        <div
+          className={`w-full md:w-80 lg:w-96 border-b md:border-b-0 md:border-r border-[var(--border-hairline)] flex-col bg-[var(--bg-subtle)]/40 overflow-hidden ${
+            mobileShowReader && activeAlert ? 'hidden md:flex' : 'flex'
+          }`}
+        >
+          <div className="px-3.5 py-2.5 border-b border-[var(--border-hairline)] flex items-center justify-between text-[11px] font-bold text-[var(--text-muted)]">
             <span>{t('gmail_inbox_items')}</span>
-            <span>{filteredAlerts.length} {t('gmail_messages')}</span>
+            <span className="tabular-nums">{filteredAlerts.length} {t('gmail_messages')}</span>
           </div>
 
-          <div className="flex-1 overflow-y-auto divide-y divide-[var(--border-default)]">
-            {isLoadingEmails ? (
-              <div className="p-12 text-center text-[var(--text-muted)] flex flex-col items-center justify-center gap-2">
-                <RefreshCw className="w-5 h-5 animate-spin text-[var(--accent-text)]" />
-                <span className="text-xs">{t('gmail_scanning')}</span>
-              </div>
-            ) : filteredAlerts.length === 0 ? (
+          <div className="flex-1 overflow-y-auto divide-y divide-[var(--border-hairline)]">
+            {filteredAlerts.length === 0 ? (
               <div className="p-8 text-center text-[var(--text-muted)] text-xs space-y-3">
                 <p>{!showConnected ? t('gmail_connect_empty') : t('gmail_empty')}</p>
                 {!showConnected && (
@@ -678,18 +823,22 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
                 const isHigh = alert.urgency === 'HIGH' || alert.category === 'EXAM';
 
                 return (
-                  <div
+                  <button
+                    type="button"
                     key={alert.id}
-                    onClick={() => setSelectedAlertId(alert.id)}
-                    className={`p-3.5 hover:bg-[var(--bg-hover)] transition-colors cursor-pointer text-left ${
-                      isSelected ? 'bg-[var(--bg-surface)] font-semibold border-l-3 border-[var(--accent-fill)]' : ''
+                    onClick={() => {
+                      setSelectedAlertId(alert.id);
+                      setMobileShowReader(true);
+                    }}
+                    className={`w-full p-3.5 hover:bg-[var(--bg-hover)]/70 transition-colors cursor-pointer text-left block ${
+                      isSelected ? 'bg-[var(--bg-surface)] border-l-3 border-[var(--accent-fill)]' : ''
                     }`}
                   >
-                    <div className="flex items-center justify-between gap-1 mb-1">
-                      <span className="text-[11px] font-bold text-[var(--text-primary)] truncate max-w-[160px]">
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <span className="text-[11px] font-bold text-[var(--text-primary)] truncate">
                         {alert.sender}
                       </span>
-                      <span className="text-[10px] text-[var(--text-muted)] shrink-0">
+                      <span className="text-[10px] text-[var(--text-muted)] shrink-0 tabular-nums">
                         {alert.detectedAssignment?.isAssignment
                           ? alert.detectedAssignment.dueDate
                             ? t('gmail_due_unconfirmed', { date: formatShortDueDate(alert.detectedAssignment.dueDate, formatDate) })
@@ -698,47 +847,58 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
                       </span>
                     </div>
 
-                    <div className="text-xs text-[var(--text-primary)] font-semibold truncate mb-1">
+                    <div className="text-xs text-[var(--text-primary)] font-semibold truncate mb-1.5">
                       {alert.subject}
                     </div>
 
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center flex-wrap gap-1.5">
                       {alert.origin === 'classroom' && (
-                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">{t('gmail_classroom_badge')}</span>
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-[var(--status-ok-bg)] text-[var(--status-ok-text)]">{t('gmail_classroom_badge')}</span>
                       )}
-                      <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-[var(--accent-soft)] text-[var(--accent-text)] border border-[var(--accent-border)]">
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-[var(--bg-subtle)] text-[var(--text-secondary)]">
                         {alert.aiStatus === 'skipped' ? t('gmail_ai_not_read') : alert.aiStatus === 'failed' ? t('gmail_ai_error') : alert.category}
                       </span>
                       {isReview(alert) && alert.needsReview && (
-                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-[var(--status-warn-bg)] text-[var(--status-warn-text)] border border-[var(--status-warn-border)]">
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-[var(--status-warn-bg)] text-[var(--status-warn-text)]">
                           {t('gmail_review_badge')}
                         </span>
                       )}
                       {isHigh && (
-                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-rose-50 text-rose-700 dark:bg-rose-950 dark:text-rose-300">
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-[var(--status-err-bg)] text-[var(--status-err-text)]">
                           {t('gmail_urgent')}
                         </span>
                       )}
                     </div>
-                  </div>
+                  </button>
                 );
               })
             )}
           </div>
         </div>
 
-        {/* RIGHT DETAIL PANE: Full Email Reader & Action Studio */}
-        <div className="flex-1 flex flex-col min-w-0 bg-[var(--bg-surface)] overflow-hidden">
+        {/* RIGHT DETAIL PANE */}
+        <div
+          className={`flex-1 flex-col min-w-0 bg-[var(--bg-surface)] overflow-hidden ${
+            mobileShowReader && activeAlert ? 'flex' : 'hidden md:flex'
+          }`}
+        >
           {activeAlert ? (
             <div className="flex-1 flex flex-col h-full overflow-hidden">
-              
               {/* Reader Header */}
-              <div className="p-6 border-b border-[var(--border-default)] flex items-start justify-between gap-4 bg-[var(--bg-subtle)]/40">
+              <div className="p-4 sm:p-5 border-b border-[var(--border-hairline)] flex flex-col lg:flex-row lg:items-start justify-between gap-3 bg-[var(--bg-subtle)]/25">
                 <div className="min-w-0 space-y-1">
-                  <h3 className="text-base font-bold text-[var(--text-primary)] leading-snug">
+                  <button
+                    type="button"
+                    onClick={() => setMobileShowReader(false)}
+                    className="md:hidden inline-flex items-center gap-1 text-xs font-bold text-[var(--accent-text)] mb-1 cursor-pointer"
+                  >
+                    <ArrowLeft className="w-3.5 h-3.5" />
+                    <span>{t('gmail_back_inbox')}</span>
+                  </button>
+                  <h3 className="text-sm sm:text-base font-bold text-[var(--text-primary)] leading-snug break-words">
                     {activeAlert.subject}
                   </h3>
-                  <div className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--text-muted)]">
                     <span>{t('gmail_from')} <strong className="text-[var(--text-primary)]">{activeAlert.sender}</strong></span>
                     <span>•</span>
                     <span>{activeRawEmail?.date || t('gmail_recent')}</span>
@@ -746,27 +906,28 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
                 </div>
 
                 {/* Top Actions */}
-                <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                <div className="flex items-center gap-2 shrink-0 flex-wrap">
                   <a
                     href={activeAlert.sourceUrl || gmailLink(activeAlert.id)}
                     target="_blank"
                     rel="noreferrer"
-                    className="px-3 py-1.5 bg-[var(--bg-subtle)] border border-[var(--border-default)] hover:border-[var(--accent-fill)] text-[var(--text-primary)] rounded-xl text-xs font-bold flex items-center gap-1.5"
+                    className="px-3 py-1.5 bg-[var(--bg-subtle)] border border-[var(--border-hairline)] hover:border-[var(--border-default)] text-[var(--text-primary)] rounded-xl text-xs font-semibold flex items-center gap-1.5"
                   >
                     <ExternalLink className="w-3.5 h-3.5 text-[var(--accent-text)]" />
                     <span>{activeAlert.origin === 'classroom' ? t('gmail_open_post') : t('gmail_open_email')}</span>
                   </a>
                   <button
+                    type="button"
                     onClick={() => onExtractAssignment(activeAlert)}
-                    className="px-3 py-1.5 bg-[var(--bg-subtle)] border border-[var(--border-default)] hover:border-[var(--accent-fill)] text-[var(--text-primary)] rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5"
+                    className="px-3 py-1.5 bg-[var(--bg-subtle)] border border-[var(--border-hairline)] hover:border-[var(--border-default)] text-[var(--text-primary)] rounded-xl text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5"
                   >
                     <Plus className="w-3.5 h-3.5 text-[var(--accent-text)]" />
                     <span>{t('gmail_create_task')}</span>
                   </button>
-
                   <button
+                    type="button"
                     onClick={() => onOpenQuickDraft(activeRawEmail || undefined, activeAlert)}
-                    className="px-3.5 py-1.5 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-1.5"
+                    className="px-3.5 py-1.5 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-xl text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5"
                   >
                     <Send className="w-3.5 h-3.5" />
                     <span>{t('gmail_draft_reply')}</span>
@@ -775,34 +936,31 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
               </div>
 
               {/* Reader Body & AI Insights */}
-              <div className="flex-1 overflow-y-auto p-6 space-y-6 text-xs">
-                
+              <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 text-xs">
                 {isReview(activeAlert) && (
                   <div className="p-4 rounded-2xl border border-[var(--status-warn-border)] bg-[var(--status-warn-bg)] space-y-3">
                     <p className="font-bold text-[var(--status-warn-text)] flex items-start gap-1.5">
                       <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-                      {reviewReasonText(activeAlert.reviewReason, t)}
+                      <span>{reviewReasonText(activeAlert.reviewReason, t)}</span>
                     </p>
                     <div className="flex flex-wrap gap-2">
                       <button
+                        type="button"
                         onClick={() => onExtractAssignment(activeAlert)}
-                        className="px-3 py-2 min-h-[40px] bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-xl text-xs font-bold"
+                        className="px-3 py-1.5 min-h-[36px] bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-xl text-xs font-bold cursor-pointer"
                       >
                         {t('gmail_is_assignment')}
                       </button>
                       {onForceAIRead && (activeAlert.aiStatus === 'skipped' || activeAlert.aiStatus === 'failed') && (
                         <button
+                          type="button"
                           disabled={forcing === activeAlert.id}
                           onClick={async () => {
                             setForcing(activeAlert.id);
                             logPilot('review_force_read');
-                            try {
-                              await onForceAIRead(activeAlert);
-                            } finally {
-                              setForcing(null);
-                            }
+                            try { await onForceAIRead(activeAlert); } finally { setForcing(null); }
                           }}
-                          className="px-3 py-2 min-h-[40px] bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--accent-fill)] rounded-xl text-xs font-bold text-[var(--text-primary)] disabled:opacity-60 flex items-center gap-1.5"
+                          className="px-3 py-1.5 min-h-[36px] bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--accent-fill)] rounded-xl text-xs font-semibold text-[var(--text-primary)] disabled:opacity-60 flex items-center gap-1.5 cursor-pointer"
                         >
                           {forcing === activeAlert.id ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Bot className="w-3.5 h-3.5" />}
                           {t('gmail_force_ai')}
@@ -810,11 +968,12 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
                       )}
                       {activeAlert.rawEmail?.senderEmail && activeAlert.origin !== 'classroom' && (
                         <button
+                          type="button"
                           onClick={() => {
                             if (toggleTeacherSender(activeAlert.rawEmail?.senderEmail)) logPilot('teacher_marked');
                             setTeacherTick((n) => n + 1);
                           }}
-                          className="px-3 py-2 min-h-[40px] bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--accent-fill)] rounded-xl text-xs font-bold text-[var(--text-primary)]"
+                          className="px-3 py-1.5 min-h-[36px] bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--accent-fill)] rounded-xl text-xs font-semibold text-[var(--text-primary)] cursor-pointer"
                           data-tick={teacherTick}
                         >
                           {isTeacherSender(activeAlert.rawEmail?.senderEmail)
@@ -823,25 +982,26 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
                         </button>
                       )}
                       <button
+                        type="button"
                         onClick={() => {
                           dismissReview(activeAlert.id);
                           logPilot('review_dismissed');
                           setDismissed(new Set(getDismissedReviewIds()));
                         }}
-                        className="px-3 py-2 min-h-[40px] rounded-xl text-xs font-bold text-[var(--text-secondary)] hover:text-rose-600"
+                        className="px-3 py-1.5 min-h-[36px] rounded-xl text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--status-err-text)] cursor-pointer"
                       >
                         {t('gmail_not_assignment_done')}
                       </button>
                     </div>
-                    <p className="text-[11px] text-[var(--status-warn-text)]">
+                    <p className="text-[11px] text-[var(--status-warn-text)] opacity-90">
                       {t('gmail_teacher_hint')}
                     </p>
                   </div>
                 )}
 
                 {activeAlert.detectedAssignment?.isAssignment && (
-                  <div className="p-4 bg-[var(--bg-subtle)] rounded-2xl border border-[var(--border-default)] space-y-1.5">
-                    <p className="text-[var(--text-primary)] font-semibold">
+                  <div className="p-4 bg-[var(--bg-subtle)]/70 rounded-2xl border border-[var(--border-hairline)] space-y-2">
+                    <p className="text-[var(--text-primary)] font-semibold leading-relaxed">
                       {t('gmail_ai_understood')}{' '}
                       {t('gmail_subj_label')} <strong>{activeAlert.detectedAssignment.subject || '?'}</strong> –{' '}
                       {activeAlert.detectedAssignment.dueDate ? (
@@ -855,38 +1015,37 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
                       – {t('gmail_priority_label')} <strong>{activeAlert.detectedAssignment.priority === 'High' ? t('confirm_prio_high') : activeAlert.detectedAssignment.priority === 'Low' ? t('confirm_prio_low') : activeAlert.detectedAssignment.priority === 'Med' ? t('confirm_prio_med') : activeAlert.detectedAssignment.priority}</strong>
                     </p>
                     {activeAlert.detectedAssignment.dueEvidence && (
-                      <p className="text-[var(--text-secondary)]">
+                      <p className="text-[var(--text-secondary)] italic">
                         {t('gmail_ai_read_label')} “{activeAlert.detectedAssignment.dueEvidence}”
                       </p>
                     )}
                     <button
+                      type="button"
                       onClick={() => onExtractAssignment(activeAlert)}
-                      className="mt-1 px-3 py-1.5 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-xl text-xs font-bold"
+                      className="px-3.5 py-1.5 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-xl text-xs font-bold cursor-pointer"
                     >
                       {t('gmail_check_save')}
                     </button>
                   </div>
                 )}
 
-                {/* AI Summary Banner */}
                 {activeAlert.oneLineSummary && (
-                  <div className="p-4 bg-[var(--bg-subtle)] rounded-2xl border border-[var(--border-default)] space-y-1.5">
+                  <div className="p-4 bg-[var(--bg-subtle)]/50 rounded-2xl border border-[var(--border-hairline)] space-y-1.5">
                     <div className="flex items-center gap-1.5 font-bold text-[var(--accent-text)]">
                       <Sparkles className="w-3.5 h-3.5" />
                       <span>{t('gmail_ai_rec')}</span>
                     </div>
-                    <p className="text-[var(--text-secondary)] leading-relaxed">
+                    <p className="text-[var(--text-secondary)] leading-relaxed break-words">
                       {activeAlert.oneLineSummary}
                     </p>
                   </div>
                 )}
 
-                {/* Email Body */}
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
                     {t('gmail_original')}
                   </span>
-                  <div className="p-4 bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] text-xs text-[var(--text-primary)] leading-relaxed whitespace-pre-line font-sans">
+                  <div className="p-4 bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-hairline)] text-xs text-[var(--text-primary)] leading-relaxed whitespace-pre-line break-words font-sans">
                     {activeRawEmail?.body || activeRawEmail?.snippet || activeAlert.oneLineSummary || t('gmail_no_preview')}
                   </div>
                 </div>
@@ -900,7 +1059,6 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
             </div>
           )}
         </div>
-
       </div>
     </div>
   );

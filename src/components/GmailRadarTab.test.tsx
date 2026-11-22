@@ -27,4 +27,34 @@ describe('Gmail review box', () => {
     expect(html).toContain('Cho AI đọc thư này');
     expect(html).toContain('Đây là thầy cô');
   });
+
+  it('surfaces explicit loading stage notice and cached-only warning when displaying saved emails', () => {
+    setLang('en');
+    const loadingHtml = renderToStaticMarkup(
+      <GmailRadarTab
+        emailAlerts={alerts}
+        rawEmails={[raw]}
+        isLoadingEmails={true}
+        emailLoadStage="analyzing"
+        onRefreshEmails={() => {}}
+        onOpenQuickDraft={() => {}}
+        onExtractAssignment={() => {}}
+      />
+    );
+    expect(loadingHtml).toContain('AI is reading &amp; sorting your emails');
+
+    const cachedHtml = renderToStaticMarkup(
+      <GmailRadarTab
+        emailAlerts={alerts}
+        rawEmails={[raw]}
+        isLoadingEmails={false}
+        emailsLastSyncedAt="2026-10-18T10:00:00Z"
+        emailsAreCachedOnly={true}
+        onRefreshEmails={() => {}}
+        onOpenQuickDraft={() => {}}
+        onExtractAssignment={() => {}}
+      />
+    );
+    expect(cachedHtml).toContain('Showing saved emails');
+  });
 });
