@@ -179,7 +179,12 @@ export async function fetchAllClassroomAssignments(token: string): Promise<Canva
     );
 
     if (assignments.length === 0 && (fatalError || firstCourseError)) {
-      throw fatalError || firstCourseError;
+      const errToThrow: any = fatalError || firstCourseError;
+      if (errToThrow && (errToThrow.isInsufficientScope || errToThrow.status === 403)) {
+        errToThrow.missingCourseworkScope = true;
+        errToThrow.courseCount = courses.length;
+      }
+      throw errToThrow;
     }
 
     return assignments;

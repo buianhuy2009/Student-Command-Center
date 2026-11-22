@@ -329,4 +329,44 @@ describe('Firebase-first Google OAuth transport', () => {
     expect(ga.hasFeatureAccess('gmail', uid)).toBe(true);
     expect(fb.getValidGoogleToken()).toBe('tok-fresh-popup');
   });
+
+  it('recognizes broader Classroom scope equivalents and connects Classroom gracefully when courses.readonly is granted without coursework.me.readonly', async () => {
+    const ga = await import('./googleAuth');
+    const coursesScope = 'https://www.googleapis.com/auth/classroom.courses.readonly';
+    const broaderCourseworkScope = 'https://www.googleapis.com/auth/classroom.coursework.me';
+
+    installTokenInfoFetch({
+      'tok-courses-only': `${coursesScope} email`,
+      'tok-broader': `${coursesScope} ${broaderCourseworkScope} email`,
+    });
+
+    // 1. courses.readonly granted, coursework.me.readonly unchecked -> still connects without blocking!
+    mockState.signInWithPopup.mockResolvedValueOnce({
+      user: { uid: 'uid-cls-1', email: 'student@school.edu' },
+      _cred: { accessToken: 'tok-courses-only' },
+    });
+    const res1 = await ga.requestFeaturePermissionDetailed('classroom', { uid: 'uid-cls-1' });
+    expect(res1.status).toBe('granted');
+    if (res1.status === 'granted') {
+      expect(res1.missingOptionalScopes).toContain(
+        'https://www.googleapis.com/auth/classroom.coursework.me.readonly'
+      );
+    }
+    expect(ga.hasFeatureAccess('classroom', 'uid-cls-1')).toBe(true);
+    expect(ga.getMissingOptionalFeatureScopes('classroom', 'uid-cls-1')).toContain(
+      'https://www.googleapis.com/auth/classroom.coursework.me.readonly'
+    );
+
+    // 2. Broader classroom.coursework.me scope satisfies classroom.coursework.me.readonly
+    mockState.signInWithPopup.mockResolvedValueOnce({
+      user: { uid: 'uid-cls-2', email: 'student2@school.edu' },
+      _cred: { accessToken: 'tok-broader' },
+    });
+    const res2 = await ga.requestFeaturePermissionDetailed('classroom', { uid: 'uid-cls-2' });
+    expect(res2.status).toBe('granted');
+    expect(ga.hasScope('classroom.coursework.me.readonly', 'uid-cls-2')).toBe(true);
+    expect(ga.getMissingOptionalFeatureScopes('classroom', 'uid-cls-2')).not.toContain(
+      'https://www.googleapis.com/auth/classroom.coursework.me.readonly'
+    );
+  });
 });

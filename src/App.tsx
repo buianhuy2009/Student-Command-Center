@@ -100,6 +100,7 @@ import {
   hasFeatureAccess,
   FEATURE_SCOPES,
   getGrantedScopes,
+  getMissingOptionalFeatureScopes,
   markGoogleConnected,
   normalizeScopes,
   recordGrantedScopes,
@@ -1944,6 +1945,16 @@ export default function App() {
           return loadClassroomData(isSilent, true);
         }
       }
+      if (err?.missingCourseworkScope) {
+        removeGrantedScopes(
+          ['https://www.googleapis.com/auth/classroom.coursework.me.readonly'],
+          authUidRef.current
+        );
+        setScopeRevision((n) => n + 1);
+        setClassroomApiInfo(null);
+        setClassroomError(t('classroom_partial_scope_desc'));
+        return;
+      }
       await handleGoogleLoaderFailure(
         'classroom',
         err,
@@ -3571,6 +3582,12 @@ export default function App() {
                     errorMessage={classroomError}
                     classroomApiInfo={classroomApiInfo}
                     onRefresh={() => loadClassroomData(false)}
+                    missingCourseworkScope={
+                      hasClassroomAccess &&
+                      getMissingOptionalFeatureScopes('classroom', uidForScopes).some((s) =>
+                        s.includes('classroom.coursework')
+                      )
+                    }
                   />
                 )}
 

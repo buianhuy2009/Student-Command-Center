@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { ApiEnablementInfo, CanvasAssignment } from '../types';
 import { fetchAllClassroomAssignments } from '../services/googleClassroom';
+import { getMissingOptionalFeatureScopes } from '../services/googleAuth';
 import { useT } from '../services/i18n';
 import { ApiActivationBanner } from './ApiActivationBanner';
 
@@ -24,6 +25,7 @@ interface GoogleClassroomPanelProps {
   errorMessage?: string | null;
   classroomApiInfo?: ApiEnablementInfo | null;
   onRefresh?: () => void;
+  missingCourseworkScope?: boolean;
 }
 
 export const GoogleClassroomPanel: React.FC<GoogleClassroomPanelProps> = ({
@@ -36,8 +38,13 @@ export const GoogleClassroomPanel: React.FC<GoogleClassroomPanelProps> = ({
   errorMessage: externalError,
   classroomApiInfo,
   onRefresh: externalRefresh,
+  missingCourseworkScope: externalMissingCourseworkScope,
 }) => {
   const { t, formatDate } = useT();
+  const missingOptionalScopes = isGoogleConnected ? getMissingOptionalFeatureScopes('classroom') : [];
+  const needsCourseworkScope =
+    Boolean(externalMissingCourseworkScope) ||
+    missingOptionalScopes.some((s) => s.includes('classroom.coursework'));
   const [internalAssignments, setInternalAssignments] = useState<CanvasAssignment[]>(() => {
     try {
       const saved = localStorage.getItem('scc_cached_classroom_assignments');
@@ -173,6 +180,26 @@ export const GoogleClassroomPanel: React.FC<GoogleClassroomPanelProps> = ({
           onRetry={loadAssignments}
           isRetrying={isLoading}
         />
+      ) : isGoogleConnected && needsCourseworkScope ? (
+        <div className="p-4 bg-[var(--status-info-bg)] border border-[var(--status-info-border)] rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-[var(--status-info-text)]">
+          <div className="flex items-start gap-2.5">
+            <AlertTriangle className="w-4 h-4 text-[var(--status-info-text)] shrink-0 mt-0.5" />
+            <div>
+              <p className="font-bold">{t('classroom_partial_scope_title')}</p>
+              <p className="text-[11px] mt-0.5 opacity-90">
+                {t('classroom_partial_scope_desc')}
+              </p>
+            </div>
+          </div>
+          {onConnectGoogle && (
+            <button
+              onClick={onConnectGoogle}
+              className="px-3.5 py-2 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-xl font-bold text-xs shadow-xs transition-colors cursor-pointer shrink-0"
+            >
+              {t('classroom_grant_coursework_btn')}
+            </button>
+          )}
+        </div>
       ) : error && (
         <div className="p-4 bg-[var(--status-warn-bg)] border border-[var(--status-warn-border)] rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-[var(--status-warn-text)]">
           <div className="flex items-start gap-2.5">

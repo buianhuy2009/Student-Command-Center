@@ -501,20 +501,33 @@ export function getGrantedScopes(uid?: string | null): string[] {
 
 /** Check whether a full scope URL or short suffix (e.g. 'gmail.readonly') has been granted. */
 export function hasScope(scopeOrSuffix: string, uid?: string | null): boolean {
-  const target = (scopeOrSuffix || '').trim();
+  const target = (scopeOrSuffix || '').trim().replace(/\/+$/, '');
   if (!target) return false;
   const granted = getGrantedScopes(uid);
   if (!granted.length) return false;
-  if (target.startsWith('http://') || target.startsWith('https://')) {
-    return granted.includes(target);
-  }
-  const suffix = target.replace(/^\/?(auth\/)?/, '');
-  return granted.includes(target) || granted.includes(`https://www.googleapis.com/auth/${suffix}`);
+  const grantedSet = new Set(granted.map((s) => s.replace(/\/+$/, '')));
+  const fullTarget =
+    target.startsWith('http://') || target.startsWith('https://')
+      ? target
+      : `https://www.googleapis.com/auth/${target.replace(/^\/?(auth\/)?/, '')}`;
+  if (grantedSet.has(target) || grantedSet.has(fullTarget)) return true;
+  const aliases = SCOPE_EQUIVALENTS[fullTarget];
+  return Boolean(aliases && aliases.some((alias) => grantedSet.has(alias)));
 }
 
-/** True when the account has an active/restorable Google connection AND every scope needed for `feature`. */
+export const FEATURE_MINIMUM_SCOPES: Partial<Record<GoogleFeature, string[]>> = {
+  classroom: ['https://www.googleapis.com/auth/classroom.courses.readonly'],
+};
+
+/** Return any optional feature scopes that have not yet been granted once minimum access exists. */
+export function getMissingOptionalFeatureScopes(feature: GoogleFeature, uid?: string | null): string[] {
+  const full = FEATURE_SCOPES[feature] || [];
+  return full.filter((s) => !hasScope(s, uid));
+}
+
+/** True when the account has an active/restorable Google connection AND minimum scopes needed for `feature`. */
 export function hasFeatureAccess(feature: GoogleFeature, uid?: string | null): boolean {
-  const required = FEATURE_SCOPES[feature];
+  const required = FEATURE_MINIMUM_SCOPES[feature] || FEATURE_SCOPES[feature];
   if (!required?.length) return false;
   if (!isConnected(uid)) return false;
   return required.every((s) => hasScope(s, uid));
@@ -787,6 +800,7 @@ export type FeaturePermissionResult =
       accessToken: string;
       mode: 'offline' | 'gis_token' | 'firebase_popup';
       grantedScopes: string[];
+      missingOptionalScopes?: string[];
       user?: any;
     }
   | { status: 'partial_scopes'; missingScopes: string[]; grantedScopes: string[] }
@@ -829,6 +843,17 @@ const SCOPE_EQUIVALENTS: Record<string, string[]> = {
   'https://www.googleapis.com/auth/gmail.readonly': ['https://mail.google.com'],
   'https://www.googleapis.com/auth/calendar.events': ['https://www.googleapis.com/auth/calendar'],
   'https://www.googleapis.com/auth/drive.file': ['https://www.googleapis.com/auth/drive'],
+  'https://www.googleapis.com/auth/classroom.courses.readonly': [
+    'https://www.googleapis.com/auth/classroom.courses',
+  ],
+  'https://www.googleapis.com/auth/classroom.coursework.me.readonly': [
+    'https://www.googleapis.com/auth/classroom.coursework.me',
+    'https://www.googleapis.com/auth/classroom.coursework.students.readonly',
+    'https://www.googleapis.com/auth/classroom.coursework.students',
+  ],
+  'https://www.googleapis.com/auth/classroom.announcements.readonly': [
+    'https://www.googleapis.com/auth/classroom.announcements',
+  ],
 };
 
 function getMissingScopes(requiredScopes: string[], grantedScopes: string[]): string[] {
@@ -1565,20 +1590,23 @@ export async function requestFeaturePermissionDetailed(
       };
     }
 
-    const missingScopes = getMissingScopes(requiredScopes, grantedOutcome.scopes);
-    if (missingScopes.length > 0) {
+    const minimumScopes = FEATURE_MINIMUM_SCOPES[feature] || requiredScopes;
+    const missingMinimumScopes = getMissingScopes(minimumScopes, grantedOutcome.scopes);
+    if (missingMinimumScopes.length > 0) {
       return {
         status: 'partial_scopes',
-        missingScopes,
+        missingScopes: getMissingScopes(requiredScopes, grantedOutcome.scopes),
         grantedScopes: grantedOutcome.scopes,
       };
     }
 
+    const missingOptionalScopes = getMissingScopes(requiredScopes, grantedOutcome.scopes);
     return {
       status: 'granted',
       accessToken: grantedOutcome.accessToken,
       mode,
       grantedScopes: grantedOutcome.scopes,
+      ...(missingOptionalScopes.length > 0 ? { missingOptionalScopes } : {}),
       user: grantedOutcome.user,
     };
   } catch (err: any) {
