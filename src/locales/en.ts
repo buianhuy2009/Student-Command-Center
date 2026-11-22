@@ -1067,6 +1067,8 @@ export const en = {
   app_toast_canvas_title: "Canvas Synced",
   app_toast_canvas_msg: "Loaded {count} assignments from Canvas.",
   app_toast_canvas_sheet_extra: " Marked {count} completed tasks as Done in Tracker.",
+  app_toast_canvas_auto_added: "{count} new added to Assignments",
+  app_toast_canvas_auto_removed: "{count} finished removed",
   app_canvas_catch_err: "Could not load your Canvas feed. Please check the link and try again.",
 
   app_toast_signed_in_title: "Signed in with Google",

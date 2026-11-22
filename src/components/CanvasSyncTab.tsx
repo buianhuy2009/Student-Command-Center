@@ -68,6 +68,7 @@ interface CanvasSyncTabProps {
   onSubmitAssignment?: (assignment: CanvasAssignment, fileId: string) => Promise<void>;
   googleToken?: string;
   onConnectGoogle?: () => void;
+  onToggleComplete?: (assignment: CanvasAssignment, isNowCompleted: boolean) => void;
 }
 
 export const CanvasSyncTab: React.FC<CanvasSyncTabProps> = ({
@@ -85,6 +86,7 @@ export const CanvasSyncTab: React.FC<CanvasSyncTabProps> = ({
   onSubmitAssignment,
   googleToken,
   onConnectGoogle,
+  onToggleComplete,
 }) => {
   const safeSettings = settings || { calendarFeedUrl: '', apiDomain: 'https://canvas.instructure.com', apiToken: '', autoSync: true };
   const [feedUrl, setFeedUrl] = useState(safeSettings.calendarFeedUrl || '');
@@ -188,11 +190,16 @@ export const CanvasSyncTab: React.FC<CanvasSyncTabProps> = ({
   };
 
   const handleToggleComplete = (id: string) => {
+    const target = (canvasAssignments || []).find((a) => a.id === id);
+    const wasCompleted = Boolean(target?.isCompleted) || completedIds.includes(id);
     setCompletedIds((prev) => {
       const next = prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id];
       saveCompletedCanvasIds(next);
       return next;
     });
+    if (target && onToggleComplete) {
+      onToggleComplete(target, !wasCompleted);
+    }
   };
 
   const handleExtractSubtasks = async (assignment: CanvasAssignment) => {

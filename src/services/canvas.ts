@@ -908,6 +908,7 @@ export async function fetchCanvasAssignmentsFromApi(
 }
 
 const LOCAL_STORAGE_CANVAS_COMPLETED_KEY = 'scc_canvas_completed_ids_v1';
+const LOCAL_STORAGE_CANVAS_DISMISSED_KEY = 'scc_dismissed_canvas_ids_v1';
 
 export function loadCompletedCanvasIds(): string[] {
   if (!hasUsableLocalStorage()) return [];
@@ -928,6 +929,173 @@ export function saveCompletedCanvasIds(ids: string[]) {
   } catch (e) {
     console.error('Error saving completed Canvas IDs:', e);
   }
+}
+
+export function loadDismissedCanvasIds(): string[] {
+  if (!hasUsableLocalStorage()) return [];
+  try {
+    const saved = localStorage.getItem(LOCAL_STORAGE_CANVAS_DISMISSED_KEY);
+    if (!saved) return [];
+    const parsed = JSON.parse(saved);
+    return Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveDismissedCanvasIds(ids: string[]) {
+  if (!hasUsableLocalStorage()) return;
+  try {
+    localStorage.setItem(LOCAL_STORAGE_CANVAS_DISMISSED_KEY, JSON.stringify(Array.from(new Set(ids))));
+  } catch {}
+}
+
+export function dismissCanvasAssignmentId(id: string) {
+  if (!id) return;
+  const cur = loadDismissedCanvasIds();
+  if (!cur.includes(id)) saveDismissedCanvasIds([...cur, id]);
+}
+
+export function undismissCanvasAssignmentId(id: string) {
+  if (!id) return;
+  const cur = loadDismissedCanvasIds();
+  if (cur.includes(id)) saveDismissedCanvasIds(cur.filter((x) => x !== id));
+}
+
+function normalizeCanvasDueDate(dueAt?: string | null): string {
+  if (!dueAt || typeof dueAt !== 'string') return '';
+  const trimmed = dueAt.trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+  const parsed = new Date(trimmed);
+  if (Number.isNaN(parsed.getTime())) return '';
+  const y = parsed.getFullYear();
+  const m = String(parsed.getMonth() + 1).padStart(2, '0');
+  const d = String(parsed.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function computeCanvasPriority(dueDate: string, pointsPossible?: number): 'High' | 'Med' | 'Low' {
+  if (dueDate) {
+    const dueMs = new Date(`${dueDate}T23:59:59`).getTime();
+    if (!Number.isNaN(dueMs)) {
+      const daysLeft = (dueMs - Date.now()) / 86400000;
+      if (daysLeft <= 2) return 'High';
+      if (daysLeft <= 7) return 'Med';
+    }
+  }
+  if (typeof pointsPossible === 'number' && pointsPossible >= 50) return 'High';
+  return 'Med';
+}
+
+function isAssignmentMatchingCanvas(a: Assignment, c: CanvasAssignment): boolean {
+  if (!a || !c) return false;
+  if (a.canvasId && c.id && a.canvasId === c.id) return true;
+  if (a.id === `canvas-sync-${c.id}`) return true;
+  const sName = String(a.assignmentName ?? '').toLowerCase().trim();
+  const cName = String(c.name ?? '').toLowerCase().trim();
+  if (!sName || !cName) return false;
+  const sSub = String(a.subject ?? '').toLowerCase().trim();
+  const cCourse = String(c.courseName ?? '').toLowerCase().trim();
+  const sameCourse =
+    !sSub ||
+    !cCourse ||
+    sSub === 'general' ||
+    sSub === 'canvas' ||
+    sSub === cCourse ||
+    cCourse.includes(sSub) ||
+    sSub.includes(cCourse);
+  if (a.source === 'Canvas') {
+    return sameCourse && (sName === cName || sName.includes(cName) || cName.includes(sName));
+  }
+  return sameCourse && sName === cName;
+}
+
+export interface ReconcileCanvasResult {
+  nextAssignments: Assignment[];
+  added: Assignment[];
+  removed: Assignment[];
+  updatedCount: number;
+}
+
+/**
+ * Auto-sync Canvas homework into Assignments & Due:
+ * - Adds new unfinished Canvas assignments automatically (preserving manual/Gmail/Classroom tasks)
+ * - Removes Canvas assignments once they are marked finished on Canvas or locally
+ * - Updates changed Canvas due dates without inventing missing dates
+ */
+export function reconcileCanvasAssignmentsWithTracker(params: {
+  canvasItems: CanvasAssignment[];
+  currentAssignments: Assignment[];
+  completedCanvasIds?: string[];
+  dismissedCanvasIds?: string[];
+}): ReconcileCanvasResult {
+  const canvasItems = Array.isArray(params.canvasItems) ? params.canvasItems : [];
+  const current = Array.isArray(params.currentAssignments) ? params.currentAssignments : [];
+  const completedSet = new Set(Array.isArray(params.completedCanvasIds) ? params.completedCanvasIds : []);
+  const dismissedSet = new Set(Array.isArray(params.dismissedCanvasIds) ? params.dismissedCanvasIds : []);
+
+  const matchedCanvasIds = new Set<string>();
+  const nextAssignments: Assignment[] = [];
+  const removed: Assignment[] = [];
+  const added: Assignment[] = [];
+  let updatedCount = 0;
+
+  for (const a of current) {
+    if (!a || typeof a !== 'object') continue;
+    const match = canvasItems.find((c) => isAssignmentMatchingCanvas(a, c));
+    if (match) {
+      matchedCanvasIds.add(match.id);
+      const isCanvasDone = Boolean(match.isCompleted) || completedSet.has(match.id);
+      if (isCanvasDone) {
+        removed.push(a);
+        continue;
+      }
+      const nextDue = normalizeCanvasDueDate(match.dueAt);
+      const needsCanvasId = !a.canvasId;
+      const dueChanged = Boolean(nextDue && a.dueDate !== nextDue && a.dueStatus !== 'unconfirmed');
+      if (needsCanvasId || dueChanged) {
+        updatedCount++;
+        nextAssignments.push({
+          ...a,
+          canvasId: a.canvasId || match.id,
+          ...(dueChanged ? { dueDate: nextDue, dueStatus: 'confirmed' as const } : {}),
+          updatedAt: new Date().toISOString(),
+        });
+      } else {
+        nextAssignments.push(a);
+      }
+    } else {
+      nextAssignments.push(a);
+    }
+  }
+
+  for (const c of canvasItems) {
+    if (!c || c.isInformational) continue;
+    if (matchedCanvasIds.has(c.id)) continue;
+    const isCanvasDone = Boolean(c.isCompleted) || completedSet.has(c.id);
+    if (isCanvasDone || dismissedSet.has(c.id)) continue;
+
+    const dueDate = normalizeCanvasDueDate(c.dueAt);
+    const created: Assignment = {
+      id: `canvas-sync-${c.id}`,
+      canvasId: c.id,
+      subject: c.courseName || 'Canvas',
+      assignmentName: c.name || 'Canvas Assignment',
+      dueDate,
+      dueStatus: dueDate ? 'confirmed' : 'missing',
+      priority: computeCanvasPriority(dueDate, c.pointsPossible),
+      status: 'Not Started',
+      source: 'Canvas',
+      docUrl: c.htmlUrl,
+      sourceUrl: c.htmlUrl,
+      notes: c.pointsPossible !== undefined ? `${c.pointsPossible} pts` : undefined,
+      updatedAt: new Date().toISOString(),
+    };
+    added.push(created);
+    nextAssignments.push(created);
+  }
+
+  return { nextAssignments, added, removed, updatedCount };
 }
 
 /**

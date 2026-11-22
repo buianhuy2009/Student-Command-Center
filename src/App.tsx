@@ -144,8 +144,12 @@ import {
   fetchCanvasAssignmentsFromFeed,
   fetchCanvasAssignmentsFromApi,
   crossReferenceCanvasWithSheet,
+  reconcileCanvasAssignmentsWithTracker,
   submitCanvasAssignment,
   loadCompletedCanvasIds,
+  saveCompletedCanvasIds,
+  loadDismissedCanvasIds,
+  undismissCanvasAssignmentId,
   normalizeCanvasDomain,
 } from './services/canvas';
 import {
@@ -2126,65 +2130,65 @@ export default function App() {
         setCanvasError(t('app_canvas_zero_err'));
         return;
       }
-      setCanvasAssignments(crossRef);
-      try { localStorage.setItem('scc_cached_canvas_assignments', JSON.stringify(crossRef)); } catch {}
-      setCanvasError(null);
-      setLastSyncedAt(new Date());
-
-      // Auto-Sync Canvas Completion to Master Sheet Tracker (only if Sheets is connected)
+      // Auto-sync new unfinished Canvas assignments into Assignments & Due and remove finished ones
       const token = hasFeatureAccess('sheets', authUidRef.current)
         ? await ensureFreshGoogleToken()
         : null;
       const sheetId = masterSheetIdRef.current;
+
+      let reconciledAdded = 0;
+      let reconciledRemoved = 0;
       let updatedSheetCount = 0;
-      const completedAssignmentIds = new Set<string>();
 
-      assignmentsRef.current.forEach((sheetItem) => {
-        const sName = String(sheetItem?.assignmentName ?? '').toLowerCase().trim();
-        const sSub = String(sheetItem?.subject ?? '').toLowerCase().trim();
-
-        const matchingCanvas = crossRef.find((c) => {
-          const cName = String(c?.name ?? '').toLowerCase().trim();
-          const cCourse = String(c?.courseName ?? '').toLowerCase().trim();
-
-          const exactName = sName === cName;
-          const substringMatch =
-            (sName.length >= 3 && cName.includes(sName)) ||
-            (cName.length >= 3 && sName.includes(cName));
-          const courseMatch =
-            (sSub.length >= 2 && cCourse.includes(sSub)) ||
-            (cCourse.length >= 2 && sSub.includes(cCourse));
-
-          return exactName || (substringMatch && (courseMatch || !sSub || sSub === 'general'));
+      if (effectiveSettings.autoSync !== false) {
+        const reconciled = reconcileCanvasAssignmentsWithTracker({
+          canvasItems: crossRef,
+          currentAssignments: currentAssignments,
+          completedCanvasIds: loadCompletedCanvasIds(),
+          dismissedCanvasIds: loadDismissedCanvasIds(),
         });
+        reconciledAdded = reconciled.added.length;
+        reconciledRemoved = reconciled.removed.length;
+        updatedSheetCount = reconciledAdded + reconciledRemoved + reconciled.updatedCount;
 
-        if (matchingCanvas && matchingCanvas.isCompleted && sheetItem.status !== 'Done') {
-          updatedSheetCount++;
-          completedAssignmentIds.add(sheetItem.id);
-          const doneItem = { ...sheetItem, status: 'Done' as const };
-          if (token && sheetId && sheetItem.sheetRowIndex) {
-            updateAssignmentInSheet(token, sheetId, doneItem).catch((e) =>
-              console.warn('Auto-sync status to sheet error:', e)
-            );
+        const syncedIds = new Set(reconciled.added.map((a) => a.canvasId).filter(Boolean));
+        const finalCanvasList = crossRef.map((c) =>
+          syncedIds.has(c.id) ? { ...c, isSynced: true } : c
+        );
+        setCanvasAssignments(finalCanvasList);
+        try { localStorage.setItem('scc_cached_canvas_assignments', JSON.stringify(finalCanvasList)); } catch {}
+        setCanvasError(null);
+        setLastSyncedAt(new Date());
+
+        if (updatedSheetCount > 0) {
+          setAssignments(reconciled.nextAssignments);
+          if (token && sheetId) {
+            syncAllAssignmentsToSheet(
+              token,
+              sheetId,
+              reconciled.nextAssignments.filter((a) => !a.trashedAt)
+            )
+              .then((syncedRows) => setAssignments(syncedRows))
+              .catch((e) => console.warn('Auto-sync Canvas changes to sheet error:', e));
           }
         }
-      });
-
-      if (updatedSheetCount > 0) {
-        setAssignments((prev) =>
-          prev.map((item) =>
-            completedAssignmentIds.has(item.id) ? { ...item, status: 'Done' as const } : item
-          )
-        );
+      } else {
+        setCanvasAssignments(crossRef);
+        try { localStorage.setItem('scc_cached_canvas_assignments', JSON.stringify(crossRef)); } catch {}
+        setCanvasError(null);
+        setLastSyncedAt(new Date());
       }
 
       if (!isSilent) {
+        const extraParts: string[] = [];
+        if (reconciledAdded > 0) extraParts.push(t('app_toast_canvas_auto_added', { count: reconciledAdded }));
+        if (reconciledRemoved > 0) extraParts.push(t('app_toast_canvas_auto_removed', { count: reconciledRemoved }));
         addToast({
           type: 'success',
           title: t('app_toast_canvas_title'),
           message:
             t('app_toast_canvas_msg', { count: crossRef.length }) +
-            (updatedSheetCount > 0 ? t('app_toast_canvas_sheet_extra', { count: updatedSheetCount }) : ''),
+            (extraParts.length > 0 ? ` (${extraParts.join(', ')})` : ''),
         });
       }
     } catch (err: any) {
@@ -3086,6 +3090,48 @@ export default function App() {
     });
   };
 
+  // Handle manual completion toggle inside CanvasSyncTab: remove from Assignments & Due when finished, restore when unfinished
+  const handleToggleCanvasComplete = useCallback(async (canvasItem: CanvasAssignment, isNowCompleted: boolean) => {
+    const updatedCanvasList = canvasAssignments.map((c) =>
+      c.id === canvasItem.id ? { ...c, isCompleted: isNowCompleted } : c
+    );
+    setCanvasAssignments(updatedCanvasList);
+    try { localStorage.setItem('scc_cached_canvas_assignments', JSON.stringify(updatedCanvasList)); } catch {}
+
+    const prevCompleted = loadCompletedCanvasIds();
+    const nextCompleted = isNowCompleted
+      ? Array.from(new Set([...prevCompleted, canvasItem.id]))
+      : prevCompleted.filter((id) => id !== canvasItem.id);
+    saveCompletedCanvasIds(nextCompleted);
+
+    if (!isNowCompleted) {
+      undismissCanvasAssignmentId(canvasItem.id);
+    }
+
+    const reconciled = reconcileCanvasAssignmentsWithTracker({
+      canvasItems: updatedCanvasList,
+      currentAssignments: assignmentsRef.current,
+      completedCanvasIds: nextCompleted,
+      dismissedCanvasIds: loadDismissedCanvasIds(),
+    });
+
+    if (reconciled.added.length > 0 || reconciled.removed.length > 0) {
+      setAssignments(reconciled.nextAssignments);
+      const token = hasFeatureAccess('sheets', authUidRef.current)
+        ? await ensureFreshGoogleToken()
+        : null;
+      if (token && masterSheetIdRef.current) {
+        syncAllAssignmentsToSheet(
+          token,
+          masterSheetIdRef.current,
+          reconciled.nextAssignments.filter((a) => !a.trashedAt)
+        )
+          .then((syncedRows) => setAssignments(syncedRows))
+          .catch((e) => console.warn('Canvas toggle sheet sync error:', e));
+      }
+    }
+  }, [canvasAssignments]);
+
   // Sync single Canvas assignment to Google Sheet
   const handleSyncCanvasToSheet = async (canvasItem: CanvasAssignment) => {
     await handleAddAssignment({
@@ -3475,6 +3521,7 @@ export default function App() {
                     onSubmitAssignment={handleSubmitAssignment}
                     googleToken={hasDriveAccess ? googleToken || undefined : undefined}
                     onConnectGoogle={() => promptConnectFeature('drive', () => loadRecentFiles(false))}
+                    onToggleComplete={handleToggleCanvasComplete}
                   />
                 )}
 

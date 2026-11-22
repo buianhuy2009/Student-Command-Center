@@ -1068,6 +1068,8 @@ export const vi = {
   app_toast_canvas_title: "Đã đồng bộ Canvas",
   app_toast_canvas_msg: "Đã tải {count} bài tập từ Canvas.",
   app_toast_canvas_sheet_extra: " Đã đánh dấu hoàn thành {count} bài trong Danh sách bài tập.",
+  app_toast_canvas_auto_added: "đã tự thêm {count} bài mới vào Bài tập",
+  app_toast_canvas_auto_removed: "đã gỡ {count} bài đã xong",
   app_canvas_catch_err: "Không tải được lịch Canvas. Vui lòng kiểm tra lại liên kết và thử lại.",
 
   app_toast_signed_in_title: "Đã đăng nhập bằng Google",
