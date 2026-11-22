@@ -6,6 +6,12 @@
     <description>Plain-English updates to StudentOS — what changed and why it matters for studying.</description>
     <language>en-us</language>
     <item>
+      <title>v2.22.0 — Redesigned StudentOS Starter Page, Live Demo Mode Video &amp; Populated Demo Workspaces</title>
+      <link>https://sutdent-command-center.vercel.app/?changelog=2.22.0</link>
+      <pubDate>Sun, 22 Nov 2026 15:16:00 GMT</pubDate>
+      <description>StudentOS v2.22.0 introduces a redesigned editorial starter page with interactive workspace preview tabs, sticky workflow explorer, ambient motion with pause control, native dialog walkthrough video (/demo.mp4), authentic Light/Dark/Mobile dashboard screenshots, populated Demo Mode assignments/calendar/Canvas data, opaque Privacy modal layout, and aligned permission &amp; brand copy.</description>
+    </item>
+    <item>
       <title>v2.21.0 — Calm Workspace Overhaul, AI Reliability Controls, 3-Mode Coach &amp; GMT+7 Daily Reports</title>
       <link>https://sutdent-command-center.vercel.app/?changelog=2.21.0</link>
       <pubDate>Sun, 22 Nov 2026 02:50:00 GMT</pubDate>

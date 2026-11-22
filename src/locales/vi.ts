@@ -3459,4 +3459,13 @@ export const vi = {
   changelog_r_2_21_0_d2: 'Thử trực tiếp mẫu lỗi trích xuất Gmail và khóa/hoàn tác lịch tuần mẫu; tự đồng bộ hoàn thành Canvas và đính kèm tệp thiết bị hoặc link Drive.',
   changelog_r_2_21_0_d3: 'Chọn nhanh Teacher, Professor (Gemini) hoặc Fast (Groq) trong AI Coach, đăng ký báo cáo email hằng ngày GMT+7 trong Cài đặt → Chung và sử dụng mượt ở mọi kích thước cửa sổ.',
 
+  // Changelog v2.22.0
+  changelog_r_2_22_0_t: 'Trang chủ mới, Video Demo thực tế & Dữ liệu mẫu đầy đủ trong Demo Mode',
+  changelog_r_2_22_0_h1: 'Trang chủ thiết kế mới với tab xem trước tương tác, danh mục cuộn cố định, chữ Fraunces và nền chấm chuyển động dịu mắt',
+  changelog_r_2_22_0_h2: 'Video giới thiệu Demo Mode 28s (/demo.mp4) cùng ảnh chụp màn hình Sáng, Tối và Di động thật',
+  changelog_r_2_22_0_h3: 'Bổ sung dữ liệu mẫu cho Canvas, Bảng tổng & Lịch tuần trong Demo Mode, sửa hộp thoại Riêng tư và nội dung quyền Google',
+  changelog_r_2_22_0_d1: 'Xem trước StudentOS ngay trên trang chủ qua các tab Không gian thực, Đồng bộ Canvas, Quét Gmail và AI Coach mà không bị ẩn phần khi cuộn nhanh.',
+  changelog_r_2_22_0_d2: 'Bấm Xem Demo trên trang chủ để xem video trải nghiệm thực tế trên giao diện Sáng và Tối.',
+  changelog_r_2_22_0_d3: 'Khám phá Demo Mode với sẵn bài tập Canvas, Bảng theo dõi tổng và Lịch học tuần, cùng hộp thoại Riêng tư rõ nét và mô tả quyền Google chính xác.',
+
 } satisfies Record<TranslationKey, string>;

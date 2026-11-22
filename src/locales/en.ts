@@ -3467,6 +3467,15 @@ export const en = {
   changelog_r_2_21_0_d2: 'Test AI extraction verification and study-block locking/undo demos directly inside School Inbox and Weekly Plan, sync Canvas completion automatically, and add local files or Drive links in Google Drive.',
   changelog_r_2_21_0_d3: 'Switch AI Coach between Teacher, Professor, and Fast (Groq), opt in to GMT+7 daily homework/schedule email digests in Settings → General, and resize windows without overlapping note toolbars.',
 
+  // Changelog v2.22.0
+  changelog_r_2_22_0_t: 'Redesigned Starter Page, Live Product Video & Populated Demo Mode',
+  changelog_r_2_22_0_h1: 'New starter page with interactive hero tabs, sticky workflow explorer, Fraunces editorial typography, and ambient dot canvas',
+  changelog_r_2_22_0_h2: 'Real 28s Demo Mode walkthrough video (/demo.mp4) plus authentic Light, Dark, and Mobile dashboard screenshots',
+  changelog_r_2_22_0_h3: 'Populated Canvas, Master Tracker & Schedule sample data in Live Demo Mode, opaque Privacy modal, and accurate Google scope copy',
+  changelog_r_2_22_0_d1: 'Preview StudentOS directly on the homepage across Live Workspace, Canvas Sync, Gmail Radar, and AI Coach tabs, with resilient scroll animations that never leave sections blank.',
+  changelog_r_2_22_0_d2: 'Click Watch Demo on the homepage to watch an interactive walkthrough recorded across real Demo Mode workspaces in both Light and Dark themes.',
+  changelog_r_2_22_0_d3: 'Explore Live Demo Mode with sample Canvas assignments, Master Tracker tasks, and Weekly Plan blocks preloaded, plus a clean sticky-header/footer Privacy modal and accurate Google permission disclosures.',
+
 } as const;
 
 export type TranslationKey = keyof typeof en;
