@@ -56,10 +56,8 @@ export default async function handler(req, res) {
 
   try {
     const { messages, context, mode: rawMode } = req.body || {};
-    const mode =
-      rawMode === "professor" || rawMode === "fast" || rawMode === "teacher"
-        ? rawMode
-        : "teacher";
+    // Normalize legacy 'teacher' and 'fast' to 'auto'; keep 'professor' distinct.
+    const mode = rawMode === "professor" ? "professor" : "auto";
 
     // Other studio tools (flashcards, outlines, research brief) reuse this endpoint as a
     // plain generator and identify themselves with context.tool; only the student-facing
@@ -69,9 +67,7 @@ export default async function handler(req, res) {
     const modeGuidance =
       mode === "professor"
         ? "Coach depth: Professor mode — provide thorough conceptual intuition, edge-case analysis, and university-level academic rigor."
-        : mode === "fast"
-          ? "Coach style: Fast mode — give crisp, direct, scannable next steps in as few sentences as possible."
-          : "Coach style: Teacher mode — clear, supportive, step-by-step explanations tailored for everyday study.";
+        : "Coach style: Auto mode — clear, fast, supportive step-by-step explanations tailored for everyday study.";
 
     let systemInstruction = `You are the Student Command Center AI Study Advisor & Academic Coach.
 ${modeGuidance}
@@ -87,11 +83,6 @@ ${JSON.stringify(context || {}, null, 2)}`;
       if (lastUser && isHomeworkDump(lastUser.content)) {
         systemInstruction += `\n\n${HOMEWORK_DUMP_REMINDER}`;
       }
-    }
-
-    if (mode === "fast") {
-      const reply = await callServerGroq(messages, systemInstruction);
-      return res.status(200).json({ reply, mode, provider: "groq" });
     }
 
     // Sanitize messages so that turn 0 is ALWAYS 'user' (Gemini requirement)
@@ -116,22 +107,35 @@ ${JSON.stringify(context || {}, null, 2)}`;
     }
 
     const candidateModels =
-      mode === "professor" ? COACH_MODE_MODELS.professor : COACH_MODE_MODELS.teacher;
+      mode === "professor" ? COACH_MODE_MODELS.professor : COACH_MODE_MODELS.auto;
 
-    const { response } = await generateWithModelFallback({
-      candidateModels,
-      contents: formattedContents,
-      config: {
-        systemInstruction,
-      },
-    });
+    try {
+      const { response } = await generateWithModelFallback({
+        candidateModels,
+        contents: formattedContents,
+        config: {
+          systemInstruction,
+        },
+      });
 
-    const reply = String(response?.text || "").trim();
-    if (!reply) {
-      throw new Error("Empty reply from AI model");
+      const reply = String(response?.text || "").trim();
+      if (!reply) {
+        throw new Error("Empty reply from AI model");
+      }
+
+      return res.status(200).json({ reply, mode });
+    } catch (geminiErr) {
+      // In Auto mode, silently fall back to Groq on Gemini error/quota/missing key.
+      if (mode === "auto" && String(process.env.GROQ_API_KEY || "").trim()) {
+        try {
+          const reply = await callServerGroq(messages, systemInstruction);
+          return res.status(200).json({ reply, mode: "auto" });
+        } catch {
+          // Fall through to surface original failure cleanly.
+        }
+      }
+      throw geminiErr;
     }
-
-    return res.status(200).json({ reply, mode, provider: "gemini" });
   } catch (err) {
     console.error("Study assistant error:", err);
     return sendAiFailure(res, "Study assistant failed", err);

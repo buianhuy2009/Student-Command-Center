@@ -13,6 +13,7 @@ export const SERVER_MODELS = [
 ];
 
 export const COACH_MODE_MODELS = {
+  auto: ["gemini-3.5-flash-lite", "gemini-flash-lite-latest", "gemini-flash-latest"],
   teacher: ["gemini-3.5-flash-lite", "gemini-flash-lite-latest", "gemini-flash-latest"],
   professor: ["gemini-3.5-flash", "gemini-flash-latest", "gemini-2.5-flash"],
 };

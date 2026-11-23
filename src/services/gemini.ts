@@ -943,17 +943,39 @@ export async function parseNaturalLanguageAssignment(text: string): Promise<Part
   return await postGeminiJsonEndpoint<Partial<Assignment>>('/api/gemini/parse-assignment', { text }, 'Parse assignment API');
 }
 
-export type AiCoachMode = 'teacher' | 'professor' | 'fast';
+export type AiCoachMode = 'auto' | 'professor' | 'offline';
+
+export interface StudyAssistantOptions {
+  offlineLevel?: 'quick' | 'deeper';
+  onToken?: (partialText: string) => void;
+  onDownloadProgress?: (progress: { file: string; loaded: number; total: number; percent: number }) => void;
+  signal?: AbortSignal;
+}
 
 export async function sendStudyAssistantMessage(
   messages: { role: 'user' | 'assistant'; content: string }[],
   context?: any,
-  mode: AiCoachMode = 'teacher'
+  mode: AiCoachMode | 'teacher' | 'fast' = 'auto',
+  opts?: StudyAssistantOptions
 ): Promise<string> {
+  // Offline AI: 100% on-device in Web Worker, zero cloud calls.
+  if (mode === 'offline') {
+    const { sendOfflineCoachMessage } = await import('./localCoach');
+    const { getOfflineCoachLevel } = await import('./localAiConfig');
+    return await sendOfflineCoachMessage(messages, context, {
+      level: opts?.offlineLevel || getOfflineCoachLevel(),
+      onToken: opts?.onToken,
+      onProgress: opts?.onDownloadProgress,
+      signal: opts?.signal,
+    });
+  }
+
+  const normalizedMode: 'auto' | 'professor' = mode === 'professor' ? 'professor' : 'auto';
+
   try {
     const data = await postGeminiJsonEndpoint<{ reply?: string }>(
       '/api/gemini/assistant',
-      { messages, context, mode },
+      { messages, context, mode: normalizedMode },
       'Study assistant API'
     );
     if (!data?.reply || !String(data.reply).trim()) {
@@ -963,19 +985,26 @@ export async function sendStudyAssistantMessage(
   } catch (err) {
     const historyText = messages.map((m) => `${m.role === 'user' ? 'Student' : 'Coach'}: ${m.content}`).join('\n');
     const prompt = `Student context:\n${JSON.stringify(context || {}).slice(0, 6000)}\n\nConversation:\n${historyText}`;
-    if (mode === 'fast' && getClientGroqApiKey()) {
-      const reply = await callGroqDirect(prompt, false);
-      if (reply.trim()) return reply.trim();
+    if (getClientGeminiApiKey()) {
+      try {
+        const targetModel = normalizedMode === 'professor' ? 'gemini-3.5-flash' : 'gemini-3.5-flash-lite';
+        const reply = await callGemini({
+          model: targetModel,
+          contents: prompt,
+          config: {
+            systemInstruction: 'You are Student Command Coach. Be concise, accurate, and give step-by-step hints without doing homework directly.',
+          },
+        });
+        if (reply.trim()) return reply.trim();
+      } catch (geminiErr) {
+        if (normalizedMode !== 'auto' || !getClientGroqApiKey()) {
+          throw geminiErr;
+        }
+      }
     }
-    if (getClientGeminiApiKey() || getClientGroqApiKey()) {
-      const targetModel = mode === 'professor' ? 'gemini-3.5-flash' : 'gemini-3.5-flash-lite';
-      const reply = await callGemini({
-        model: targetModel,
-        contents: prompt,
-        config: {
-          systemInstruction: 'You are Student Command Coach. Be concise, accurate, and give step-by-step hints without doing homework directly.',
-        },
-      });
+    // In Auto mode, silently fall back to configured secondary key if Gemini fails/is missing.
+    if (normalizedMode === 'auto' && getClientGroqApiKey()) {
+      const reply = await callGroqDirect(prompt, false);
       if (reply.trim()) return reply.trim();
     }
     throw err instanceof Error ? err : new Error(String(err));

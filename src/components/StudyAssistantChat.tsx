@@ -8,9 +8,18 @@ import {
   User as UserIcon,
   Trash2,
   ArrowLeft,
+  AlertTriangle,
+  Square,
+  WifiOff,
 } from 'lucide-react';
 import { MathMarkdown } from './MathMarkdown';
 import { AiCoachMode, sendStudyAssistantMessage } from '../services/gemini';
+import {
+  getOfflineCoachLevel,
+  setOfflineCoachLevel,
+  type OfflineCoachLevel,
+} from '../services/localAiConfig';
+import { abortLocalLlm } from '../services/localAi';
 import { Assignment, CalendarEvent, EmailAlert } from '../types';
 import { useT } from '../services/i18n';
 
@@ -19,9 +28,10 @@ const COACH_MODE_STORAGE_KEY = 'scc_ai_coach_mode_v1';
 function loadInitialCoachMode(): AiCoachMode {
   try {
     const raw = localStorage.getItem(COACH_MODE_STORAGE_KEY);
-    if (raw === 'professor' || raw === 'fast' || raw === 'teacher') return raw;
+    if (raw === 'professor' || raw === 'offline' || raw === 'auto') return raw;
+    if (raw === 'teacher' || raw === 'fast') return 'auto';
   } catch {}
-  return 'teacher';
+  return 'auto';
 }
 
 interface Message {
@@ -76,6 +86,13 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
   const [isSending, setIsSending] = useState(false);
   const [streamingContent, setStreamingContent] = useState('');
   const [coachMode, setCoachMode] = useState<AiCoachMode>(loadInitialCoachMode);
+  const [offlineLevel, setOfflineLevel] = useState<OfflineCoachLevel>(getOfflineCoachLevel);
+  const [downloadProgress, setDownloadProgress] = useState<{
+    loaded: number;
+    total: number;
+    percent: number;
+  } | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { t } = useT();
   const tutorBanner = `💡 ${t('coach_banner')}`;
@@ -86,21 +103,25 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
     } catch {}
   }, [coachMode]);
 
-  const modeMeta: Record<AiCoachMode, { label: string; provider: string; hint: string }> = {
-    teacher: {
-      label: t('coach_mode_teacher'),
-      provider: t('coach_provider_gemini'),
-      hint: t('coach_mode_hint_teacher'),
+  useEffect(() => {
+    setOfflineCoachLevel(offlineLevel);
+  }, [offlineLevel]);
+
+  const modeMeta: Record<AiCoachMode, { label: string; badge: string; hint: string }> = {
+    auto: {
+      label: t('coach_mode_auto'),
+      badge: t('coach_badge_online'),
+      hint: t('coach_mode_hint_auto'),
     },
     professor: {
       label: t('coach_mode_professor'),
-      provider: t('coach_provider_gemini'),
+      badge: t('coach_badge_online'),
       hint: t('coach_mode_hint_professor'),
     },
-    fast: {
-      label: t('coach_mode_fast'),
-      provider: t('coach_provider_groq'),
-      hint: t('coach_mode_hint_fast'),
+    offline: {
+      label: t('coach_mode_offline'),
+      badge: t('coach_badge_offline'),
+      hint: t('coach_mode_hint_offline'),
     },
   };
 
@@ -110,7 +131,7 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
       role="group"
       aria-label="AI Coach mode"
     >
-      {(['teacher', 'professor', 'fast'] as AiCoachMode[]).map((modeKey) => {
+      {(['auto', 'professor', 'offline'] as AiCoachMode[]).map((modeKey) => {
         const active = coachMode === modeKey;
         const info = modeMeta[modeKey];
         return (
@@ -126,19 +147,98 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
                 : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
             }`}
           >
+            {modeKey === 'offline' && <WifiOff className="w-3 h-3 shrink-0" />}
             <span>{info.label}</span>
             <span
               className={`text-[9px] font-medium px-1 py-0.2 rounded ${
                 active ? 'bg-white/20 text-white' : 'bg-[var(--bg-sunken)] text-[var(--text-muted)]'
               }`}
             >
-              {info.provider}
+              {info.badge}
             </span>
           </button>
         );
       })}
     </div>
   );
+
+  const renderOfflineControls = (compact = false) => {
+    if (coachMode !== 'offline') return null;
+    const dlLoadedMb = downloadProgress ? Math.round((downloadProgress.loaded / (1024 * 1024)) * 10) / 10 : 0;
+    const dlTotalMb = downloadProgress ? Math.round((downloadProgress.total / (1024 * 1024)) * 10) / 10 : 0;
+    return (
+      <div
+        className={`${compact ? 'px-3.5 py-2' : 'px-4 sm:px-6 py-2.5'} bg-[var(--status-warn-bg)] border-b border-[var(--status-warn-border)] shrink-0`}
+      >
+        <div className={compact ? 'space-y-1.5' : 'max-w-3xl mx-auto space-y-2'}>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-start gap-1.5 text-[11px] text-[var(--status-warn-text)]">
+              <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-bold">{t('coach_offline_warn_title')}. </span>
+                <span>{t('coach_offline_warn_body')}</span>
+              </div>
+            </div>
+            <div className="inline-flex items-center gap-1 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-default)] p-0.5 shrink-0">
+              <span className="text-[10px] font-semibold text-[var(--text-muted)] px-1.5">
+                {t('coach_offline_level_label')}
+              </span>
+              {(['quick', 'deeper'] as OfflineCoachLevel[]).map((lvl) => {
+                const active = offlineLevel === lvl;
+                return (
+                  <button
+                    key={lvl}
+                    type="button"
+                    onClick={() => setOfflineLevel(lvl)}
+                    aria-pressed={active}
+                    className={`px-2 py-0.5 rounded-md text-[10px] font-semibold transition-colors cursor-pointer ${
+                      active
+                        ? 'bg-[var(--accent-fill)] text-white'
+                        : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'
+                    }`}
+                  >
+                    {lvl === 'quick'
+                      ? `${t('coach_offline_quick_label')} (${t('coach_offline_quick_ram')})`
+                      : `${t('coach_offline_deeper_label')} (${t('coach_offline_deeper_ram')})`}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <p className="text-[10px] text-[var(--text-secondary)]">
+            {offlineLevel === 'quick' ? t('coach_offline_quick_desc') : t('coach_offline_deeper_desc')}
+          </p>
+          {downloadProgress && downloadProgress.percent < 100 && (
+            <div className="space-y-1">
+              <div className="flex items-center justify-between text-[10px] font-semibold text-[var(--text-primary)]">
+                <span>
+                  {dlTotalMb > 1
+                    ? t('coach_offline_downloading_mb', {
+                        loaded: dlLoadedMb,
+                        total: dlTotalMb,
+                        percent: downloadProgress.percent,
+                      })
+                    : t('coach_offline_downloading', { percent: downloadProgress.percent })}
+                </span>
+                <span>{downloadProgress.percent}%</span>
+              </div>
+              <div className="w-full h-1.5 rounded-full bg-[var(--bg-surface)] overflow-hidden border border-[var(--border-default)]">
+                <div
+                  className="h-full bg-[var(--accent-fill)] transition-all duration-200"
+                  style={{ width: `${downloadProgress.percent}%` }}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const handleStopOffline = () => {
+    abortLocalLlm();
+    abortControllerRef.current?.abort();
+  };
   // Persist to Dexie + localStorage via useEffect
   useEffect(() => {
     try {
@@ -169,6 +269,10 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
     if (!textToSend) setInputText('');
     setIsSending(true);
     setStreamingContent('');
+    setDownloadProgress(null);
+
+    const ac = new AbortController();
+    abortControllerRef.current = ac;
 
     try {
       // Cap context to 3k tokens ~ 12k chars
@@ -187,12 +291,22 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
           alerts: cappedAlerts,
           sources: cappedAssignments.map((a) => ({ type: 'canvas', id: a.id })),
         },
-        coachMode
+        coachMode,
+        {
+          offlineLevel,
+          signal: ac.signal,
+          onToken: (partial) => setStreamingContent(partial),
+          onDownloadProgress: (p) => setDownloadProgress({ loaded: p.loaded, total: p.total, percent: p.percent }),
+        }
       );
 
-      for (let i = 0; i < response.length; i += 8) {
-        setStreamingContent(response.slice(0, i + 8));
-        await new Promise((r) => setTimeout(r, 12));
+      setDownloadProgress(null);
+
+      if (coachMode !== 'offline') {
+        for (let i = 0; i < response.length; i += 8) {
+          setStreamingContent(response.slice(0, i + 8));
+          await new Promise((r) => setTimeout(r, 12));
+        }
       }
 
       const assistantMessage: Message = {
@@ -204,16 +318,31 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
       // persist to Dexie
       try { const { db } = await import('../services/db'); await db.briefs?.add?.({ id: `chat-${Date.now()}`, topic: text.slice(0,40), subject: 'chat', brief: response.slice(0,500), createdAt: new Date().toISOString() } as any); } catch {}
     } catch (err) {
+      setDownloadProgress(null);
       const errorDetail = err instanceof Error && err.message ? err.message : t('coach_error_fallback');
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: 'assistant',
-          content: t('coach_error_msg', { detail: errorDetail }),
-        },
-      ]);
+      if (errorDetail === 'ABORTED') {
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: 'assistant',
+            content: streamingContent ? `${streamingContent}\n\n_(${t('coach_offline_stopped')})_` : t('coach_offline_stopped'),
+          },
+        ]);
+      } else {
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: 'assistant',
+            content:
+              coachMode === 'offline'
+                ? t('coach_offline_err_msg', { detail: errorDetail })
+                : t('coach_error_msg', { detail: errorDetail }),
+          },
+        ]);
+      }
       setStreamingContent('');
     } finally {
+      abortControllerRef.current = null;
       setIsSending(false);
     }
   };
@@ -272,6 +401,7 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
         <div className="px-4 sm:px-6 py-2 text-xs font-semibold bg-[var(--accent-soft)] text-[var(--accent-text)] border-b border-[var(--accent-border)] shrink-0">
           <div className="max-w-3xl mx-auto">{tutorBanner}</div>
         </div>
+        {renderOfflineControls(false)}
 
         {/* Messages Scrollable Container */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
@@ -369,21 +499,33 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
               aria-label={t('coach_input_ph_full')}
               className="flex-1 px-4 py-3 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-2xl text-sm focus:border-[var(--accent-fill)] focus:ring-2 focus:ring-[var(--accent-fill)]/20 outline-none text-[var(--text-primary)] placeholder:text-[var(--text-muted)]"
             />
-            <button
-              onClick={() => handleSend()}
-              disabled={!inputText.trim() || isSending}
-              aria-label={t('coach_send')}
-              className="px-5 py-3 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] disabled:opacity-40 text-white rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-xs"
-            >
-              {isSending ? (
-                <RefreshCw className="w-4 h-4 animate-spin" />
-              ) : (
-                <>
-                  <span>{t('coach_send')}</span>
-                  <Send className="w-4 h-4" />
-                </>
-              )}
-            </button>
+            {isSending && coachMode === 'offline' ? (
+              <button
+                type="button"
+                onClick={handleStopOffline}
+                aria-label={t('coach_offline_stop')}
+                className="px-4 py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-xs"
+              >
+                <Square className="w-3.5 h-3.5 fill-current" />
+                <span>{t('coach_offline_stop')}</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => handleSend()}
+                disabled={!inputText.trim() || isSending}
+                aria-label={t('coach_send')}
+                className="px-5 py-3 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] disabled:opacity-40 text-white rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-xs"
+              >
+                {isSending ? (
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                ) : (
+                  <>
+                    <span>{t('coach_send')}</span>
+                    <Send className="w-4 h-4" />
+                  </>
+                )}
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -439,6 +581,7 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
       </div>
 
       <div className="px-3.5 py-1.5 text-[11px] font-semibold bg-[var(--accent-soft)] text-[var(--accent-text)] border-b border-[var(--accent-border)] shrink-0">{tutorBanner}</div>
+      {renderOfflineControls(true)}
 
       <div className="flex-1 overflow-y-auto p-3.5 space-y-3 text-xs">
         {messages.map((msg, idx) => (
@@ -505,14 +648,25 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
           aria-label={t('coach_input_ph_drawer')}
           className="flex-1 px-3 py-1.5 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl text-xs outline-none text-[var(--text-primary)]"
         />
-        <button
-          onClick={() => handleSend()}
-          disabled={!inputText.trim() || isSending}
-          aria-label={t('coach_send')}
-          className="p-2 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-xl"
-        >
-          <Send className="w-3.5 h-3.5" />
-        </button>
+        {isSending && coachMode === 'offline' ? (
+          <button
+            type="button"
+            onClick={handleStopOffline}
+            aria-label={t('coach_offline_stop')}
+            className="p-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl cursor-pointer"
+          >
+            <Square className="w-3.5 h-3.5 fill-current" />
+          </button>
+        ) : (
+          <button
+            onClick={() => handleSend()}
+            disabled={!inputText.trim() || isSending}
+            aria-label={t('coach_send')}
+            className="p-2 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-xl"
+          >
+            <Send className="w-3.5 h-3.5" />
+          </button>
+        )}
       </div>
     </div>
   );

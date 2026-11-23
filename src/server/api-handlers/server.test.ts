@@ -410,44 +410,54 @@ describe("Server models & unified API surface", () => {
       globalThis.fetch = prevFetch;
     });
 
-    it("routes Teacher (default) to gemini-3.5-flash-lite and Professor to gemini-3.5-flash", async () => {
-      expect(COACH_MODE_MODELS.teacher[0]).toBe("gemini-3.5-flash-lite");
+    it("routes Auto (default, plus legacy teacher/fast) to gemini-3.5-flash-lite and Professor to gemini-3.5-flash", async () => {
+      expect(COACH_MODE_MODELS.auto[0]).toBe("gemini-3.5-flash-lite");
       expect(COACH_MODE_MODELS.professor[0]).toBe("gemini-3.5-flash");
 
       process.env.GEMINI_API_KEY = "AIzaTestOnly";
       generateContentMock.mockResolvedValue({ text: "Coach reply" });
 
-      const resTeacher = createMockRes();
-      await handleAssistant({ method: "POST", body: { messages: [{ role: "user", content: "Hi" }] } }, resTeacher);
-      expect(resTeacher.statusCode).toBe(200);
+      const resAuto = createMockRes();
+      await handleAssistant({ method: "POST", body: { messages: [{ role: "user", content: "Hi" }] } }, resAuto);
+      expect(resAuto.statusCode).toBe(200);
       expect(generateContentMock).toHaveBeenCalledWith(expect.objectContaining({ model: "gemini-3.5-flash-lite" }));
-      expect(resTeacher.body.provider).toBe("gemini");
+      expect(resAuto.body).toEqual({ reply: "Coach reply", mode: "auto" });
+
+      generateContentMock.mockClear();
+      const resLegacyFast = createMockRes();
+      await handleAssistant({ method: "POST", body: { mode: "fast", messages: [{ role: "user", content: "Hi" }] } }, resLegacyFast);
+      expect(resLegacyFast.statusCode).toBe(200);
+      expect(generateContentMock).toHaveBeenCalledWith(expect.objectContaining({ model: "gemini-3.5-flash-lite" }));
+      expect(resLegacyFast.body).toEqual({ reply: "Coach reply", mode: "auto" });
 
       generateContentMock.mockClear();
       const resProf = createMockRes();
       await handleAssistant({ method: "POST", body: { mode: "professor", messages: [{ role: "user", content: "Explain Eigenvalues" }] } }, resProf);
       expect(resProf.statusCode).toBe(200);
       expect(generateContentMock).toHaveBeenCalledWith(expect.objectContaining({ model: "gemini-3.5-flash" }));
-      expect(resProf.body.provider).toBe("gemini");
+      expect(resProf.body).toEqual({ reply: "Coach reply", mode: "professor" });
     });
 
-    it("routes Fast mode explicitly to Groq", async () => {
+    it("silently falls back to Groq in Auto mode on Gemini failure without exposing Groq", async () => {
+      process.env.GEMINI_API_KEY = "AIzaTestOnly";
       process.env.GROQ_API_KEY = "gsk_test_only";
+      generateContentMock.mockRejectedValue(Object.assign(new Error("429 quota exceeded"), { status: 429 }));
+
       const fetchSpy = vi.fn().mockResolvedValue({
         ok: true,
-        json: async () => ({ choices: [{ message: { content: "Groq fast reply" } }] }),
+        json: async () => ({ choices: [{ message: { content: "Fallback coach reply" } }] }),
       } as any);
       globalThis.fetch = fetchSpy;
 
-      const resFast = createMockRes();
-      await handleAssistant({ method: "POST", body: { mode: "fast", messages: [{ role: "user", content: "Quick summary" }] } }, resFast);
-      expect(resFast.statusCode).toBe(200);
-      expect(resFast.body).toEqual({ reply: "Groq fast reply", mode: "fast", provider: "groq" });
+      const resAuto = createMockRes();
+      await handleAssistant({ method: "POST", body: { mode: "auto", messages: [{ role: "user", content: "Quick summary" }] } }, resAuto);
+      expect(resAuto.statusCode).toBe(200);
+      expect(resAuto.body).toEqual({ reply: "Fallback coach reply", mode: "auto" });
+      expect(JSON.stringify(resAuto.body).toLowerCase()).not.toContain("groq");
       expect(fetchSpy).toHaveBeenCalledWith(
         "https://api.groq.com/openai/v1/chat/completions",
         expect.objectContaining({ method: "POST" })
       );
-      expect(generateContentMock).not.toHaveBeenCalled();
     });
   });
 
