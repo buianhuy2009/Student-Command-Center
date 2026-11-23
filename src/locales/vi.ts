@@ -3568,4 +3568,13 @@ export const vi = {
   changelog_r_2_23_1_d2: 'Loại bỏ tham số JSON mode không hỗ trợ khi gọi Gemma 4 và tự động dự phòng sang Gemini Flash hoặc Groq (có chia nhỏ lô thư) để email được phân loại vào Bài tập, Thông báo và Khác thay vì báo lỗi.',
   changelog_r_2_23_1_d3: 'Nếu lần trước AI gặp lỗi khi đọc thư, bấm Làm mới hộp thư sẽ thử phân loại lại ngay và tận dụng khóa Gemini/Groq cá nhân nếu máy chủ chưa sẵn sàng.',
 
+  // Changelog v2.23.2
+  changelog_r_2_23_2_t: 'Quét AI tăng dần cho Gmail & Đọc toàn bộ thư kể cả Spam',
+  changelog_r_2_23_2_h1: 'Khi bấm Làm mới hộp thư, AI chỉ quét thư mới hoặc thư chưa từng đọc và giữ nguyên kết quả các thư đã phân loại',
+  changelog_r_2_23_2_h2: 'AI nay đọc toàn bộ email kể cả thư nằm trong Spam, Quảng cáo và Mạng xã hội để không bỏ sót thông báo quan trọng',
+  changelog_r_2_23_2_h3: 'Bài tập hoặc lịch thi được AI phát hiện trong thư mục Spam/Quảng cáo vẫn được giữ lại để bạn kiểm tra',
+  changelog_r_2_23_2_d1: 'Bấm Làm mới hộp thư sẽ lấy danh sách thư mới nhất nhưng giữ nguyên các thư đã được AI đọc xong, chỉ gửi thư mới hoặc thư chưa quét/lỗi trước đó cho AI.',
+  changelog_r_2_23_2_d2: 'Truy vấn Gmail và bộ lọc AI nay bao gồm cả hộp thư Spam bên cạnh Hộp thư đến (Chính, Quảng cáo, Mạng xã hội).',
+  changelog_r_2_23_2_d3: 'Nếu AI phát hiện bài tập hoặc bài kiểm tra trong thư bị Gmail gắn nhãn Spam/Quảng cáo, hệ thống giữ nguyên phân loại và đưa vào mục Cần bạn xem.',
+
 } satisfies Record<TranslationKey, string>;

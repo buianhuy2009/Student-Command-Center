@@ -14,6 +14,8 @@ import {
   deploySemesterFromSyllabus,
   generateInteractiveQuiz,
   summarizeEmailsWithGemini,
+  partitionEmailsForAIScan,
+  mergeScannedEmailAlerts,
   setClientGroqApiKey,
 } from './gemini';
 import { canMakeGeminiRequest, rateLimiter } from './gemini/rateLimiter';
@@ -434,6 +436,58 @@ describe('canvas, firebase, ambientAudio, and srsEngine hardening', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(alerts).toHaveLength(1);
     expect(alerts[0]).toMatchObject({ id: 'm1', aiStatus: 'ok', category: 'ASSIGNMENT' });
+  });
+
+  it('scans all emails including SPAM/PROMOTIONS and incrementally skips already-scanned ones', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          alerts: [
+            { id: 'spam-1', sender: 'Teacher', subject: 'Quiz', oneLineSummary: 'Quiz tomorrow', urgency: 'HIGH', category: 'EXAM', aiStatus: 'ok' },
+          ],
+          model: 'gemma-4-31b-it',
+        }),
+        { status: 200, headers: { 'content-type': 'application/json' } }
+      )
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const spamEmail = {
+      id: 'spam-1',
+      threadId: 't-spam',
+      sender: 'Random Sender',
+      senderEmail: 'random@gmail.com',
+      subject: 'Quiz tomorrow',
+      date: 'Today',
+      snippet: 'Reminder: quiz tomorrow',
+      unread: true,
+      labelIds: ['SPAM'],
+    };
+    const alreadyScannedEmail = {
+      id: 'ok-1',
+      threadId: 't-ok',
+      sender: 'Ms. Lan',
+      senderEmail: 'lan@school.edu.vn',
+      subject: 'Syllabus',
+      date: 'Yesterday',
+      snippet: 'Read chapter 1',
+      unread: false,
+      labelIds: ['INBOX'],
+    };
+    const existingAlerts: any[] = [
+      { id: 'ok-1', sender: 'Ms. Lan', subject: 'Syllabus', oneLineSummary: 'Read chapter 1', urgency: 'LOW', category: 'ANNOUNCEMENT', isSpam: false, aiStatus: 'ok', rawEmail: alreadyScannedEmail },
+      { id: 'spam-1', sender: 'Random Sender', subject: 'Quiz tomorrow', oneLineSummary: 'Old skipped', urgency: 'INFO', category: 'PROMOTION', isSpam: true, aiStatus: 'skipped', rawEmail: spamEmail },
+    ];
+
+    const { emailsToScan, reusableByEmailId } = partitionEmailsForAIScan([spamEmail, alreadyScannedEmail], existingAlerts);
+    expect(emailsToScan.map((e) => e.id)).toEqual(['spam-1']);
+    expect(reusableByEmailId.has('ok-1')).toBe(true);
+
+    const scanned = await summarizeEmailsWithGemini(emailsToScan);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const merged = mergeScannedEmailAlerts([spamEmail, alreadyScannedEmail], reusableByEmailId, scanned);
+    expect(merged.map((a) => a.id)).toEqual(['spam-1', 'ok-1']);
+    expect(merged[0]).toMatchObject({ id: 'spam-1', aiStatus: 'ok', category: 'EXAM' });
   });
 });
 

@@ -3576,6 +3576,15 @@ export const en = {
   changelog_r_2_23_1_d2: 'Removed unsupported JSON-mode flags on Gemma 4 requests and added seamless fallback to Gemini Flash models and multi-model Groq (with automatic batch chunking) so emails are sorted into Tasks, Announcements, and Other instead of failing.',
   changelog_r_2_23_1_d3: 'If your previous email fetch hit an AI outage, clicking Refresh Inbox now retries AI sorting directly instead of staying stuck on cached failed items, and uses your saved client Gemini/Groq key if the server route is unavailable.',
 
+  // Changelog v2.23.2
+  changelog_r_2_23_2_t: 'Incremental AI Email Scanning & Full Spam-Inclusive Triage',
+  changelog_r_2_23_2_h1: 'Refreshing Gmail now sends only new or unscanned emails to the AI while reusing already-sorted messages',
+  changelog_r_2_23_2_h2: 'AI email triage now scans every message including Gmail Spam, Promotions, and Social folders so nothing important is skipped',
+  changelog_r_2_23_2_h3: 'AI-detected homework and exams in Gmail-filtered folders stay surfaced for review instead of being forced back into Spam',
+  changelog_r_2_23_2_d1: 'Clicking Refresh Inbox checks Gmail for new mail, keeps previously sorted emails cached, and sends only brand-new or unscanned/failed emails to the AI.',
+  changelog_r_2_23_2_d2: 'Gmail fetch and AI sorting now include Spam alongside Inbox (Primary, Promotions, and Social) so important messages from new senders are always read.',
+  changelog_r_2_23_2_d3: 'When the AI identifies an assignment or exam inside a Spam- or Promotions-labeled email, it preserves the task and surfaces it in Need Eyes for confirmation.',
+
 } as const;
 
 export type TranslationKey = keyof typeof en;

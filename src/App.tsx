@@ -157,6 +157,8 @@ import {
 } from './services/canvas';
 import {
   summarizeEmailsWithGemini,
+  partitionEmailsForAIScan,
+  mergeScannedEmailAlerts,
   generateQuickDraft,
   parseNaturalLanguageAssignment,
 } from './services/gemini';
@@ -1811,65 +1813,73 @@ export default function App() {
       setEmailsAreCachedOnly(false);
       try { localStorage.setItem(LOCAL_EMAILS_LAST_SYNCED_KEY, syncedIso); } catch {}
 
-      // Check if emails match cached emails (same IDs in same order)
       const currentRaw = rawEmailsRef.current;
       const currentAlerts = emailAlertsRef.current;
       const isSameSet =
-        !forceResort &&
         currentRaw.length > 0 &&
         currentRaw.length === emails.length &&
         currentRaw.every((re, i) => re.id === emails[i]?.id);
-      const hasFailedAI = currentAlerts.some((a) => a.aiStatus === 'failed');
 
-      if (isSameSet && currentAlerts.length > 0 && (!hasFailedAI || isSilent)) {
-        // Cached classification is valid (or silent sync won't hammer AI when previously failed) — do not re-call Gemini!
-        setRawEmails(sanitizeRawEmails(emails));
-        return;
-      }
+      const { emailsToScan, reusableByEmailId } = partitionEmailsForAIScan(emails, currentAlerts);
+      const onlyPreviouslyFailed =
+        emailsToScan.length > 0 &&
+        emailsToScan.every((msg) => {
+          const prev = currentAlerts.find((a) => (a.rawEmail?.id || a.id.replace(/^alert-/, '')) === msg.id);
+          return prev?.aiStatus === 'failed';
+        });
 
       setRawEmails(sanitizeRawEmails(emails));
       saveRawEmails(sanitizeRawEmails(emails));
 
-      if (emails.length > 0) {
-        if (showProgress) setEmailLoadStage('analyzing');
-        let alerts: EmailAlert[] = [];
-        try {
-          alerts = await summarizeEmailsWithGemini(emails);
-        } catch (geminiErr) {
-          console.warn('Gemini email summarizer unavailable, using Gmail-native classification:', geminiErr);
-          // Offline: Gmail labels only — no content keywords.
-          alerts = emails.map((msg, idx) => {
-            const labels = (msg as any).labelIds || [];
-            const isPromo = labels.includes('SPAM') || labels.includes('CATEGORY_PROMOTIONS');
-            const isSocial = !isPromo && labels.includes('CATEGORY_SOCIAL');
-            const summary = msg.snippet ? (msg.snippet.slice(0, 160) + (msg.snippet.length > 160 ? '...' : '')) : msg.subject;
-
-            return {
-              id: `alert-${msg.id || idx}`,
-              sender: msg.sender,
-              subject: msg.subject,
-              oneLineSummary: summary,
-              urgency: isPromo || isSocial ? 'INFO' as const : 'MEDIUM' as const,
-              category: isPromo ? 'PROMOTION' as const : isSocial ? 'SOCIAL' as const : 'GENERAL' as const,
-              isSpam: isPromo,
-              spamReason: isPromo ? t('app_gmail_sorted_by') : '',
-              gmailLabels: labels,
-              detectedAssignment: undefined,
-              rawEmail: msg,
-              aiStatus: 'failed' as const,
-              needsReview: !isPromo,
-              reviewReason: 'ai_failed',
-            };
-          });
-        }
-        setEmailAlerts(sanitizeEmailAlerts(alerts));
-        saveEmailAlerts(sanitizeEmailAlerts(alerts));
-      } else {
+      if (emails.length === 0) {
         setEmailAlerts([]);
         try {
           localStorage.removeItem(LOCAL_EMAIL_ALERTS_KEY);
         } catch {}
+        return;
       }
+
+      if (emailsToScan.length === 0 || (isSameSet && isSilent && !forceResort && onlyPreviouslyFailed)) {
+        // All emails are already scanned (or silent sync won't hammer AI on previously failed items): preserve existing alerts.
+        const merged = mergeScannedEmailAlerts(emails, reusableByEmailId, currentAlerts);
+        setEmailAlerts(sanitizeEmailAlerts(merged));
+        saveEmailAlerts(sanitizeEmailAlerts(merged));
+        return;
+      }
+
+      if (showProgress) setEmailLoadStage('analyzing');
+      let scannedAlerts: EmailAlert[] = [];
+      try {
+        scannedAlerts = await summarizeEmailsWithGemini(emailsToScan, { forceAI: true });
+      } catch (geminiErr) {
+        console.warn('Gemini email summarizer unavailable, using Gmail-native fallback:', geminiErr);
+        scannedAlerts = emailsToScan.map((msg, idx) => {
+          const labels = (msg as any).labelIds || [];
+          const isPromo = labels.includes('SPAM') || labels.includes('CATEGORY_PROMOTIONS');
+          const isSocial = !isPromo && labels.includes('CATEGORY_SOCIAL');
+          const summary = msg.snippet ? (msg.snippet.slice(0, 160) + (msg.snippet.length > 160 ? '...' : '')) : msg.subject;
+
+          return {
+            id: msg.id || `alert-${idx}`,
+            sender: msg.sender,
+            subject: msg.subject,
+            oneLineSummary: summary,
+            urgency: isPromo || isSocial ? 'INFO' as const : 'MEDIUM' as const,
+            category: isPromo ? 'PROMOTION' as const : isSocial ? 'SOCIAL' as const : 'GENERAL' as const,
+            isSpam: isPromo,
+            spamReason: isPromo ? t('app_gmail_sorted_by') : '',
+            gmailLabels: labels,
+            detectedAssignment: undefined,
+            rawEmail: msg,
+            aiStatus: 'failed' as const,
+            needsReview: !isPromo,
+            reviewReason: 'ai_failed',
+          };
+        });
+      }
+      const mergedAlerts = mergeScannedEmailAlerts(emails, reusableByEmailId, scannedAlerts);
+      setEmailAlerts(sanitizeEmailAlerts(mergedAlerts));
+      saveEmailAlerts(sanitizeEmailAlerts(mergedAlerts));
     } catch (err: any) {
       console.error('Email fetch error:', err);
       lastEmailSyncAtRef.current = Date.now();

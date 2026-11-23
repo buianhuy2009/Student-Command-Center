@@ -396,14 +396,8 @@ export async function fetchAcademicEmails(
     const maxResults = options?.maxResults || 25;
     let query = options?.customQuery;
     if (!query) {
-      if (options?.mode === 'academic') {
-        // Academic mode: keep broad inbox scope, trust Gmail native categories
-        // instead of keyword OR-lists. Spam/Trash excluded at API level.
-        query = 'in:inbox -in:chats -in:spam -in:trash';
-      } else {
-        // Default: latest inbox, Gmail-native spam/trash already excluded.
-        query = 'in:inbox -in:chats -in:spam -in:trash';
-      }
+      // Fetch both Inbox (Primary/Promotions/Social) and Spam so AI reads all incoming mail regardless of Gmail sorting.
+      query = '(in:inbox OR in:spam) -in:chats -in:trash';
     }
 
     const listUrl = `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${encodeURIComponent(

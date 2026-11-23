@@ -173,30 +173,28 @@ export function postProcessAlerts(emails, alerts, model) {
       if (!["High", "Med", "Low"].includes(det.priority)) det.priority = "Med";
     }
 
-    if (labels.includes("SPAM") && !academic) {
-      alert.isSpam = true;
-      alert.category = "PROMOTION";
-      alert.urgency = "INFO";
-      if (det) det.isAssignment = false;
-    } else if (academic && (alert.category === "PROMOTION" || alert.category === "SPAM")) {
+    if (academic && (alert.category === "PROMOTION" || alert.category === "SPAM")) {
       // The judges' exact failure: a teacher's email filed as an ad. Keep it visible.
       alert.category = det?.isAssignment ? "ASSIGNMENT" : "GENERAL";
       alert.isSpam = false;
       alert.needsReview = true;
       alert.reviewReason = "teacher_as_promo";
+    } else if (alert.category === "SPAM" || alert.category === "PROMOTION") {
+      alert.isSpam = true;
     }
 
     if (!alert.needsReview && det?.isAssignment && !det.dueDate) {
       alert.needsReview = true;
       alert.reviewReason = "no_date";
-    } else if (!alert.needsReview && alert.confidence < 0.6 && alert.category !== "PROMOTION" && alert.category !== "SOCIAL") {
+    } else if (!alert.needsReview && alert.confidence < 0.6 && alert.category !== "PROMOTION" && alert.category !== "SOCIAL" && alert.category !== "SPAM") {
       alert.needsReview = true;
       alert.reviewReason = "low_confidence";
     } else if (
       !alert.needsReview &&
-      (labels.includes("CATEGORY_PROMOTIONS") || labels.includes("CATEGORY_SOCIAL")) &&
+      (labels.includes("SPAM") || labels.includes("CATEGORY_PROMOTIONS") || labels.includes("CATEGORY_SOCIAL")) &&
       alert.category !== "PROMOTION" &&
-      alert.category !== "SOCIAL"
+      alert.category !== "SOCIAL" &&
+      alert.category !== "SPAM"
     ) {
       alert.needsReview = true;
       alert.reviewReason = "gmail_sorted";

@@ -21,7 +21,7 @@ import {
   ThreeTierFeynmanResult,
   DeployedSemesterResult,
 } from '../types';
-import { ACADEMIC_CUE_RE, ACADEMIC_SENDER_RE, gmailLink, isTeacherSender } from '../utils/trust';
+import { ACADEMIC_SENDER_RE, gmailLink, isTeacherSender } from '../utils/trust';
 import { cleanEmailForAI } from '../utils/emailText';
 import {
   GEMINI_DEFAULT_MODEL,
@@ -838,48 +838,65 @@ Return only JSON.`;
 // Existing Helper Endpoints & Legacy Support
 // -------------------------------------------------------------
 
+function alertRawEmailId(alert: EmailAlert): string {
+  if (alert.rawEmail?.id) return String(alert.rawEmail.id);
+  const id = String(alert.id || '');
+  return id.startsWith('alert-') ? id.slice('alert-'.length) : id;
+}
+
+/**
+ * Split fetched emails into already-scanned alerts (aiStatus === 'ok') and
+ * emails that still need AI scanning (brand new, previously failed, or previously skipped).
+ */
+export function partitionEmailsForAIScan(
+  emails: EmailMessage[],
+  existingAlerts: EmailAlert[],
+): { emailsToScan: EmailMessage[]; reusableByEmailId: Map<string, EmailAlert> } {
+  const existingByEmailId = new Map<string, EmailAlert>();
+  for (const alert of existingAlerts || []) {
+    if (!alert) continue;
+    const rawId = alertRawEmailId(alert);
+    if (rawId) existingByEmailId.set(rawId, alert);
+  }
+  const reusableByEmailId = new Map<string, EmailAlert>();
+  const emailsToScan: EmailMessage[] = [];
+  for (const email of emails) {
+    const prev = existingByEmailId.get(String(email.id));
+    if (prev && prev.aiStatus === 'ok') {
+      reusableByEmailId.set(String(email.id), { ...prev, rawEmail: email, gmailLabels: email.labelIds || prev.gmailLabels });
+    } else {
+      emailsToScan.push(email);
+    }
+  }
+  return { emailsToScan, reusableByEmailId };
+}
+
+/** Merge newly scanned alerts with preserved already-scanned alerts in inbox order. */
+export function mergeScannedEmailAlerts(
+  emails: EmailMessage[],
+  reusableByEmailId: Map<string, EmailAlert>,
+  scannedAlerts: EmailAlert[],
+): EmailAlert[] {
+  const scannedByEmailId = new Map<string, EmailAlert>();
+  for (const alert of scannedAlerts || []) {
+    if (!alert) continue;
+    const rawId = alertRawEmailId(alert);
+    if (rawId) scannedByEmailId.set(rawId, alert);
+  }
+  return emails
+    .map((e) => scannedByEmailId.get(String(e.id)) ?? reusableByEmailId.get(String(e.id)))
+    .filter((a): a is EmailAlert => Boolean(a));
+}
+
 export async function summarizeEmailsWithGemini(
   emails: EmailMessage[],
   opts: { forceAI?: boolean; origin?: 'gmail' | 'classroom' } = {},
 ): Promise<EmailAlert[]> {
-  // Gmail-native pre-sort saves AI calls: Promotions/Social from non-school senders are not
-  // sent to the AI. They are NOT hidden — they land in "AI chưa đọc được" for the student.
-  // Teachers the student marked (often on personal Gmail) always go to the AI.
+  // Scan all emails regardless of Gmail Spam / Promotions / Social labels so nothing important is skipped.
   const origin = opts.origin || 'gmail';
   const isAcademicSender = (e: EmailMessage) =>
     isTeacherSender(e.senderEmail) || ACADEMIC_SENDER_RE.test(`${e.senderEmail || ''} ${e.sender || ''}`);
-  const bucketOf = (e: EmailMessage): 'PROMOTION' | 'SOCIAL' | 'AI' => {
-    if (opts.forceAI) return 'AI';
-    const labels = e.labelIds || [];
-    if (labels.includes('SPAM')) return isAcademicSender(e) ? 'AI' : 'PROMOTION';
-    if (labels.includes('CATEGORY_PROMOTIONS')) return isAcademicSender(e) ? 'AI' : 'PROMOTION';
-    if (labels.includes('CATEGORY_SOCIAL')) return isAcademicSender(e) ? 'AI' : 'SOCIAL';
-    return 'AI';
-  };
   const linkOf = (e: EmailMessage) => (origin === 'gmail' ? gmailLink(e.id) : (e as any).sourceUrl);
-  const skippedAlert = (e: EmailMessage, category: 'PROMOTION' | 'SOCIAL'): EmailAlert => {
-    const cue = ACADEMIC_CUE_RE.test(`${e.subject || ''} ${e.snippet || ''}`);
-    return {
-      id: e.id,
-      sender: e.sender,
-      subject: e.subject,
-      oneLineSummary: `${(e.snippet || e.subject || '').slice(0, 90)}…`,
-      urgency: 'INFO' as const,
-      category,
-      categoryLabel: category === 'SOCIAL' ? t('gem_cat_social') : t('gem_cat_promo'),
-      isSpam: category === 'PROMOTION',
-      spamReason: t('gem_sorted_by_gmail'),
-      language: 'other' as const,
-      gmailLabels: e.labelIds || [],
-      rawEmail: e,
-      aiStatus: 'skipped',
-      // Looks school-related although Gmail filed it away → surface it, never hide it.
-      needsReview: cue,
-      reviewReason: cue ? 'skipped_with_cue' : 'skipped',
-      origin,
-      sourceUrl: linkOf(e),
-    };
-  };
   const failed = (e: EmailMessage, reason: string): EmailAlert => ({
     id: e.id,
     sender: e.sender,
@@ -898,11 +915,8 @@ export async function summarizeEmailsWithGemini(
     sourceUrl: linkOf(e),
   });
 
-  const aiEmails = emails.filter((e) => bucketOf(e) === 'AI');
-  const localAlerts = emails
-    .filter((e) => bucketOf(e) !== 'AI')
-    .map((e) => skippedAlert(e, bucketOf(e) as 'PROMOTION' | 'SOCIAL'));
-  if (aiEmails.length === 0) return localAlerts;
+  const aiEmails = emails;
+  if (aiEmails.length === 0) return [];
   // Data minimisation: quoted replies + signatures cut, body capped at AI_BODY_LIMIT chars.
   const payload = aiEmails.map((e) => ({
     id: e.id,
@@ -1007,7 +1021,7 @@ Return ONLY JSON:
     aiAlerts = aiEmails.map((e) => failed(e, 'ai_failed'));
   }
   const byId = new Map<string, EmailAlert>();
-  [...aiAlerts, ...localAlerts].forEach((a) => byId.set(a.id, a));
+  aiAlerts.forEach((a) => byId.set(a.id, a));
   // Preserve original inbox order; every fetched email stays visible somewhere.
   return emails.map((e) => byId.get(e.id)).filter((a): a is EmailAlert => Boolean(a));
 }

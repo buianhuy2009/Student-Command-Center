@@ -77,4 +77,15 @@ describe('server post-processing never trusts the model alone', () => {
     expect(prompt).toContain('2026-09-14 (Thứ 2 / Monday)');
     expect(prompt).toContain('2026-10-16 (Thứ 6 / Friday)');
   });
+
+  it('keeps an AI-detected assignment from a SPAM-labeled email visible for review', () => {
+    const [a] = postProcessAlerts(
+      [email({ sender: 'Unknown Sender', senderEmail: 'personal@example.com', labelIds: ['SPAM'] })],
+      [{ id: 'e1', category: 'ASSIGNMENT', confidence: 0.9, detectedAssignment: { isAssignment: true, dueDate: '2026-09-18' } }],
+      'm'
+    );
+    expect(a.category).toBe('ASSIGNMENT');
+    expect(a.needsReview).toBe(true);
+    expect(a.reviewReason).toBe('gmail_sorted');
+  });
 });
