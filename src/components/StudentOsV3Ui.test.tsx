@@ -119,6 +119,22 @@ describe('StudentOS v3.0 UI suite', () => {
     expect(html).toContain('Cancel');
     expect(html).toContain('much less smart than Online AI');
     expect(FORBIDDEN_RE.test(html)).toBe(false);
+
+    const initHtml = renderToStaticMarkup(
+      <GmailRadarTab
+        emailAlerts={[]}
+        rawEmails={[]}
+        isLoadingEmails={true}
+        emailLoadStage="analyzing"
+        emailAiMode="offline"
+        emailSortProgress={{ completed: 0, total: 15, stage: 'initializing' }}
+        onCancelEmailSort={() => {}}
+        onRefreshEmails={() => {}}
+        onOpenQuickDraft={() => {}}
+        onExtractAssignment={() => {}}
+      />
+    );
+    expect(initHtml).toContain('Loading Offline AI into memory');
   });
 
   it('renders PhotoNoteScannerModal 3 modes and OfflineAiStorageCard in EN and VI', () => {

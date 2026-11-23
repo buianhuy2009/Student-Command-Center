@@ -46,7 +46,13 @@ let loadedTokenizer: Awaited<ReturnType<typeof AutoTokenizer.from_pretrained>> |
 let loadedModel: Awaited<ReturnType<typeof AutoModelForCausalLM.from_pretrained>> | null = null;
 let loadPromise: Promise<void> | null = null;
 let activeAbortCriteria: InterruptableStoppingCriteria | null = null;
-let cancelledRequestId: string | null = null;
+let activeProgressRequestId: string | null = null;
+const cancelledRequestIds = new Set<string>();
+let workerQueue: Promise<void> = Promise.resolve();
+
+function enqueueWorkerTask(fn: () => Promise<void>): void {
+  workerQueue = workerQueue.then(fn, fn);
+}
 
 async function detectWebGpuAdapter(): Promise<boolean> {
   try {
@@ -87,10 +93,33 @@ async function disposeModel(): Promise<void> {
 }
 
 async function ensureModelLoaded(level: OfflineCoachLevel, requestId: string): Promise<void> {
-  if (loadedLevel === level && loadedModel && loadedTokenizer) return;
+  activeProgressRequestId = requestId;
+  if (loadedLevel === level && loadedModel && loadedTokenizer) {
+    self.postMessage({
+      type: 'progress',
+      id: requestId,
+      file: '',
+      loaded: 1,
+      total: 1,
+      percent: 100,
+      stage: 'ready',
+    });
+    return;
+  }
   if (loadPromise) {
     await loadPromise;
-    if (loadedLevel === level && loadedModel && loadedTokenizer) return;
+    if (loadedLevel === level && loadedModel && loadedTokenizer) {
+      self.postMessage({
+        type: 'progress',
+        id: requestId,
+        file: '',
+        loaded: 1,
+        total: 1,
+        percent: 100,
+        stage: 'ready',
+      });
+      return;
+    }
   }
 
   loadPromise = (async () => {
@@ -102,11 +131,31 @@ async function ensureModelLoaded(level: OfflineCoachLevel, requestId: string): P
       level === 'deeper' ? LOCAL_MODEL_CATALOG.llmDeeper.id : LOCAL_MODEL_CATALOG.llmQuick.id;
     const hasWebGpu = await detectWebGpuAdapter();
     const device = hasWebGpu ? 'webgpu' : 'wasm';
-    const dtype = hasWebGpu ? 'q4f16' : 'q4';
+    // Use q4 on both WebGPU and WASM: q4f16 triggers degenerate/repetitive activations on Qwen2.5 WebGPU.
+    const dtype = 'q4';
 
     const fileBytes = new Map<string, { loaded: number; total: number }>();
+    let emittedInitializing = false;
+
+    const emitInitializing = (loaded: number, total: number) => {
+      if (emittedInitializing) return;
+      emittedInitializing = true;
+      if (!activeProgressRequestId) return;
+      self.postMessage({
+        type: 'progress',
+        id: activeProgressRequestId,
+        file: '',
+        loaded: loaded || 1,
+        total: total || 1,
+        percent: 100,
+        stage: 'initializing',
+      });
+    };
 
     const progress_callback = (info: ProgressInfo) => {
+      const targetId = activeProgressRequestId;
+      if (!targetId) return;
+
       if (info.status === 'progress' && 'file' in info) {
         fileBytes.set(info.file, {
           loaded: info.loaded || 0,
@@ -118,26 +167,42 @@ async function ensureModelLoaded(level: OfflineCoachLevel, requestId: string): P
           totalLoaded += entry.loaded;
           totalExpected += entry.total;
         }
+        const isDoneDownloadingOnnx =
+          totalExpected > 0 &&
+          totalLoaded >= totalExpected &&
+          String(info.file || '').endsWith('.onnx');
+        if (isDoneDownloadingOnnx) {
+          emitInitializing(totalLoaded, totalExpected);
+          return;
+        }
         const percent =
           totalExpected > 0
             ? Math.min(99, Math.round((totalLoaded / totalExpected) * 100))
-            : Math.round(info.progress || 0);
+            : Math.min(99, Math.round(info.progress || 0));
         self.postMessage({
           type: 'progress',
-          id: requestId,
+          id: targetId,
           file: info.file,
           loaded: totalLoaded,
           total: totalExpected,
           percent,
+          stage: 'downloading',
         });
+      } else if (info.status === 'done' && 'file' in info && String(info.file || '').endsWith('.onnx')) {
+        let totalExpected = 0;
+        for (const entry of fileBytes.values()) {
+          totalExpected += entry.total;
+        }
+        emitInitializing(totalExpected, totalExpected);
       } else if (info.status === 'ready') {
         self.postMessage({
           type: 'progress',
-          id: requestId,
+          id: targetId,
           file: '',
           loaded: 1,
           total: 1,
           percent: 100,
+          stage: 'ready',
         });
       }
     };
@@ -155,6 +220,7 @@ async function ensureModelLoaded(level: OfflineCoachLevel, requestId: string): P
     } catch (err) {
       // Fallback to WASM q4 if WebGPU initialization fails on a driver quirk.
       if (device === 'webgpu') {
+        emitInitializing(1, 1);
         const tokenizer = loadedTokenizer || (await AutoTokenizer.from_pretrained(modelId, { progress_callback }));
         const model = await AutoModelForCausalLM.from_pretrained(modelId, {
           device: 'wasm',
@@ -167,6 +233,18 @@ async function ensureModelLoaded(level: OfflineCoachLevel, requestId: string): P
       } else {
         throw err;
       }
+    }
+
+    if (activeProgressRequestId) {
+      self.postMessage({
+        type: 'progress',
+        id: activeProgressRequestId,
+        file: '',
+        loaded: 1,
+        total: 1,
+        percent: 100,
+        stage: 'ready',
+      });
     }
   })();
 
@@ -184,9 +262,11 @@ async function runGeneration(
   maxNewTokens: number,
   streamTokens: boolean
 ): Promise<string> {
-  cancelledRequestId = null;
+  if (cancelledRequestIds.has(requestId)) {
+    throw new Error('ABORTED');
+  }
   await ensureModelLoaded(level, requestId);
-  if (cancelledRequestId === requestId) {
+  if (cancelledRequestIds.has(requestId)) {
     throw new Error('ABORTED');
   }
   if (!loadedTokenizer || !loadedModel) {
@@ -227,15 +307,17 @@ async function runGeneration(
       do_sample: false,
       stopping_criteria: [stoppingCriteria],
       ...(streamer ? { streamer } : {}),
-    })) as { slice?: (s: [null, [number, null]]) => unknown } & Record<string, unknown>;
+    })) as {
+      slice?: (dim0: number | [number, number] | null, dim1: number | [number | null, number | null] | null) => unknown;
+    } & Record<string, unknown>;
 
-    if (cancelledRequestId === requestId) {
+    if (cancelledRequestIds.has(requestId)) {
       throw new Error('ABORTED');
     }
 
     let decoded = accumulated;
     if (!decoded && typeof output?.slice === 'function') {
-      const generatedTokens = output.slice([null, [inputTokenCount, null]]) as Parameters<
+      const generatedTokens = output.slice(null, [inputTokenCount, null]) as Parameters<
         typeof loadedTokenizer.batch_decode
       >[0];
       const decodedArr = loadedTokenizer.batch_decode(generatedTokens, {
@@ -245,18 +327,20 @@ async function runGeneration(
     }
     return stripThinkBlocks(decoded).trim();
   } finally {
+    cancelledRequestIds.delete(requestId);
     if (activeAbortCriteria === stoppingCriteria) {
       activeAbortCriteria = null;
     }
   }
 }
 
-self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
+self.onmessage = (event: MessageEvent<WorkerRequest>) => {
   const msg = event.data;
   if (!msg) return;
 
   if (msg.type === 'abort') {
-    cancelledRequestId = msg.id || '__all__';
+    const target = msg.id || activeProgressRequestId;
+    if (target) cancelledRequestIds.add(target);
     if (activeAbortCriteria) {
       try {
         activeAbortCriteria.interrupt();
@@ -268,51 +352,57 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
   }
 
   if (msg.type === 'unload') {
-    await disposeModel();
-    self.postMessage({ type: 'unloaded', id: msg.id });
+    enqueueWorkerTask(async () => {
+      await disposeModel();
+      self.postMessage({ type: 'unloaded', id: msg.id });
+    });
     return;
   }
 
   if (msg.type === 'classifyEmail') {
-    try {
-      const text = await runGeneration(
-        msg.id,
-        'quick',
-        [
-          { role: 'system', content: msg.systemPrompt },
-          { role: 'user', content: msg.prompt },
-        ],
-        msg.maxNewTokens ?? 180,
-        false
-      );
-      self.postMessage({ type: 'done', id: msg.id, text });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      self.postMessage({ type: 'error', id: msg.id, error: message });
-    }
+    enqueueWorkerTask(async () => {
+      try {
+        const text = await runGeneration(
+          msg.id,
+          'quick',
+          [
+            { role: 'system', content: msg.systemPrompt },
+            { role: 'user', content: msg.prompt },
+          ],
+          msg.maxNewTokens ?? 180,
+          false
+        );
+        self.postMessage({ type: 'done', id: msg.id, text });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        self.postMessage({ type: 'error', id: msg.id, error: message });
+      }
+    });
     return;
   }
 
   if (msg.type === 'coachChat') {
-    try {
-      const chatMessages: WorkerChatMessage[] = [
-        { role: 'system', content: msg.systemPrompt },
-        ...msg.messages.map((m) => ({
-          role: (m.role === 'assistant' ? 'assistant' : 'user') as 'assistant' | 'user',
-          content: String(m.content || ''),
-        })),
-      ];
-      const text = await runGeneration(
-        msg.id,
-        msg.level || 'quick',
-        chatMessages,
-        msg.maxNewTokens ?? 220,
-        true
-      );
-      self.postMessage({ type: 'done', id: msg.id, text });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      self.postMessage({ type: 'error', id: msg.id, error: message });
-    }
+    enqueueWorkerTask(async () => {
+      try {
+        const chatMessages: WorkerChatMessage[] = [
+          { role: 'system', content: msg.systemPrompt },
+          ...msg.messages.map((m) => ({
+            role: (m.role === 'assistant' ? 'assistant' : 'user') as 'assistant' | 'user',
+            content: String(m.content || ''),
+          })),
+        ];
+        const text = await runGeneration(
+          msg.id,
+          msg.level || 'quick',
+          chatMessages,
+          msg.maxNewTokens ?? 220,
+          true
+        );
+        self.postMessage({ type: 'done', id: msg.id, text });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        self.postMessage({ type: 'error', id: msg.id, error: message });
+      }
+    });
   }
 };

@@ -28,12 +28,12 @@ export interface LocalModelCatalogEntry {
 export const LOCAL_MODEL_CATALOG = {
   llmQuick: {
     id: 'onnx-community/Qwen2.5-0.5B-Instruct',
-    approxMbWebGpu: 460,
+    approxMbWebGpu: 749,
     approxMbWasm: 749,
   },
   llmDeeper: {
     id: 'onnx-community/Qwen3-1.7B-ONNX',
-    approxMbWebGpu: 1360,
+    approxMbWebGpu: 2048,
     approxMbWasm: 2048,
   },
   ocrDetector: {

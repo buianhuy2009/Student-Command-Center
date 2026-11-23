@@ -99,4 +99,19 @@ describe('localEmailClassifier', () => {
 
     await expect(classifyEmailsLocally(emails, { signal: ac.signal })).rejects.toThrow('ABORTED');
   });
+
+  it('forwards initializing progress stage cleanly', async () => {
+    runLocalLlmClassifyMock.mockImplementationOnce(async ({ onProgress }) => {
+      onProgress?.({ file: 'model_q4.onnx', loaded: 100, total: 100, percent: 100, stage: 'initializing' });
+      onProgress?.({ file: '', loaded: 1, total: 1, percent: 100, stage: 'ready' });
+      return JSON.stringify({ category: 'ANNOUNCEMENT', urgency: 'LOW', isAssignment: false, oneLineSummary: 'Notice' });
+    });
+
+    const stages: string[] = [];
+    await classifyEmailsLocally(
+      [{ id: '1', sender: 'School', subject: 'Notice', date: 'Today', snippet: 'Hello', labelIds: ['INBOX'] }],
+      { onProgress: (p) => stages.push(p.stage) }
+    );
+    expect(stages).toEqual(['sorting', 'initializing', 'sorting']);
+  });
 });

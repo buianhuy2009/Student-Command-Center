@@ -8,7 +8,7 @@ import type { EmailAlert, EmailCategory, EmailMessage, PriorityLevel } from '../
 export interface EmailSortProgress {
   completed: number;
   total: number;
-  stage: 'downloading' | 'sorting';
+  stage: 'downloading' | 'initializing' | 'sorting';
   downloadPercent?: number;
   downloadLoadedMb?: number;
   downloadTotalMb?: number;
@@ -192,7 +192,13 @@ export async function classifyEmailsLocally(
         maxNewTokens: 180,
         signal: opts.signal,
         onProgress: (dl) => {
-          if (dl.percent < 100) {
+          if (dl.stage === 'initializing') {
+            opts.onProgress?.({
+              completed,
+              total,
+              stage: 'initializing',
+            });
+          } else if (dl.stage !== 'ready' && dl.percent < 100) {
             opts.onProgress?.({
               completed,
               total,

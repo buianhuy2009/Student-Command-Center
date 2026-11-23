@@ -843,7 +843,7 @@ export async function summarizeEmailsWithGemini(
     onProgress?: (progress: {
       completed: number;
       total: number;
-      stage: 'downloading' | 'sorting';
+      stage: 'downloading' | 'initializing' | 'sorting';
       downloadPercent?: number;
       downloadLoadedMb?: number;
       downloadTotalMb?: number;
@@ -977,7 +977,13 @@ export type AiCoachMode = 'auto' | 'professor' | 'offline';
 export interface StudyAssistantOptions {
   offlineLevel?: 'quick' | 'deeper';
   onToken?: (partialText: string) => void;
-  onDownloadProgress?: (progress: { file: string; loaded: number; total: number; percent: number }) => void;
+  onDownloadProgress?: (progress: {
+    file: string;
+    loaded: number;
+    total: number;
+    percent: number;
+    stage?: 'downloading' | 'initializing' | 'ready';
+  }) => void;
   signal?: AbortSignal;
 }
 

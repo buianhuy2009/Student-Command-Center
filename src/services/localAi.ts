@@ -11,6 +11,7 @@ export interface ModelDownloadProgress {
   loaded: number;
   total: number;
   percent: number;
+  stage?: 'downloading' | 'initializing' | 'ready';
 }
 
 export interface CachedModelSummary {
@@ -27,11 +28,12 @@ export interface CachedModelsInfo {
   activeSlot: LocalAiSlot | null;
 }
 
-const IDLE_UNLOAD_MS = 3 * 60 * 1000;
+const IDLE_UNLOAD_MS = 10 * 60 * 1000;
 const TRANSFORMERS_CACHE_NAME = 'transformers-cache';
 
 let llmWorker: Worker | null = null;
 let activeSlot: LocalAiSlot | null = null;
+let loadedSlotReady: LocalAiSlot | null = null;
 let idleTimer: ReturnType<typeof setTimeout> | null = null;
 let ocrUnloader: (() => Promise<void> | void) | null = null;
 let reqSeq = 0;
@@ -79,21 +81,27 @@ function ensureLlmWorker(): Worker {
     if (!cb) return;
 
     if (data.type === 'progress') {
+      if (data.stage === 'ready') {
+        loadedSlotReady = activeSlot;
+      }
       cb.onProgress?.({
         file: String(data.file || ''),
         loaded: Number(data.loaded || 0),
         total: Number(data.total || 0),
         percent: Number(data.percent || 0),
+        stage: data.stage,
       });
       return;
     }
 
     if (data.type === 'token') {
+      loadedSlotReady = activeSlot;
       cb.onToken?.(String(data.text || ''));
       return;
     }
 
     if (data.type === 'done') {
+      loadedSlotReady = activeSlot;
       pendingRequests.delete(data.id);
       resetIdleTimer();
       cb.resolve(String(data.text || ''));
@@ -118,6 +126,7 @@ function ensureLlmWorker(): Worker {
 
 export async function unloadLlmWorker(): Promise<void> {
   clearIdleTimer();
+  loadedSlotReady = null;
   if (activeSlot === 'llm:quick' || activeSlot === 'llm:deeper') {
     activeSlot = null;
   }
@@ -221,18 +230,24 @@ export async function runLocalLlmClassify(opts: {
     if (opts.signal?.aborted) {
       throw new Error('ABORTED');
     }
-    await acquireLocalSlot('llm:quick');
+    const slot: LocalAiSlot = 'llm:quick';
+    await acquireLocalSlot(slot);
     const worker = ensureLlmWorker();
     const id = `cls-${++reqSeq}-${Date.now()}`;
 
     return new Promise<string>((resolve, reject) => {
       const onAbort = () => {
-        try {
-          worker.postMessage({ type: 'abort', id });
-        } catch {
-          // Ignore abort failure.
-        }
         pendingRequests.delete(id);
+        if (loadedSlotReady !== slot) {
+          // Terminating cancels in-flight model downloads or WebGPU shader compiles cleanly.
+          void unloadLlmWorker();
+        } else {
+          try {
+            worker.postMessage({ type: 'abort', id });
+          } catch {
+            // Ignore abort failure.
+          }
+        }
         reject(new Error('ABORTED'));
       };
 
@@ -283,12 +298,17 @@ export async function runLocalLlmChat(opts: {
 
     return new Promise<string>((resolve, reject) => {
       const onAbort = () => {
-        try {
-          worker.postMessage({ type: 'abort', id });
-        } catch {
-          // Ignore abort failure.
-        }
         pendingRequests.delete(id);
+        if (loadedSlotReady !== slot) {
+          // Terminating cancels in-flight model downloads or WebGPU shader compiles cleanly.
+          void unloadLlmWorker();
+        } else {
+          try {
+            worker.postMessage({ type: 'abort', id });
+          } catch {
+            // Ignore abort failure.
+          }
+        }
         reject(new Error('ABORTED'));
       };
 
