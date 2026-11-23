@@ -20,6 +20,9 @@ export const LOCAL_MODEL_CACHE_NAME = 'studentos-local-models-v1';
 
 export interface LocalModelCatalogEntry {
   id: string;
+  wasmFallbackId?: string;
+  f32FallbackId?: string;
+  contextWindowSize?: number;
   approxMbWebGpu: number;
   approxMbWasm: number;
   urls?: readonly string[];
@@ -27,14 +30,20 @@ export interface LocalModelCatalogEntry {
 
 export const LOCAL_MODEL_CATALOG = {
   llmQuick: {
-    id: 'onnx-community/Qwen2.5-0.5B-Instruct',
-    approxMbWebGpu: 749,
-    approxMbWasm: 749,
+    id: 'Qwen2.5-0.5B-Instruct-q4f16_1-MLC',
+    f32FallbackId: 'Qwen2.5-0.5B-Instruct-q4f32_1-MLC',
+    wasmFallbackId: 'HuggingFaceTB/SmolLM2-360M-Instruct',
+    contextWindowSize: 1536,
+    approxMbWebGpu: 265,
+    approxMbWasm: 370,
   },
   llmDeeper: {
-    id: 'onnx-community/Qwen3-1.7B-ONNX',
-    approxMbWebGpu: 2048,
-    approxMbWasm: 2048,
+    id: 'Qwen2.5-1.5B-Instruct-q4f16_1-MLC',
+    f32FallbackId: 'Qwen2.5-1.5B-Instruct-q4f32_1-MLC',
+    wasmFallbackId: 'onnx-community/Qwen2.5-0.5B-Instruct',
+    contextWindowSize: 2048,
+    approxMbWebGpu: 828,
+    approxMbWasm: 749,
   },
   ocrDetector: {
     id: 'dbnet-v3',

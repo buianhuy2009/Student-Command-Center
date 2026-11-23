@@ -437,7 +437,7 @@ export const en = {
   gmail_ai_online: "Online AI",
   gmail_ai_offline: "Offline AI (On Device)",
   gmail_ai_online_hint: "Much smarter sorting, zero RAM. Sends emails online & has rate limits.",
-  gmail_ai_offline_hint: "100% private, no limits. Much less smart than Online AI & needs ~1 GB free RAM (~750 MB one-time browser download).",
+  gmail_ai_offline_hint: "100% private, no limits. Much less smart than Online AI & uses ~1 GB RAM (~270 MB one-time browser download).",
   gmail_ai_offline_warn: "Offline AI runs privately inside your browser — it is much less smart than Online AI and may miss tricky deadlines.",
   gmail_sort_progress_count: "Sorted {completed} of {total} emails…",
   gmail_sort_progress_dl: "Downloading Offline AI ({loaded} / {total} MB · {percent}%)…",
@@ -3442,10 +3442,10 @@ export const en = {
   coach_offline_level_label: 'Thinking level:',
   coach_offline_quick_label: 'Quick',
   coach_offline_quick_ram: '~1 GB RAM',
-  coach_offline_quick_desc: 'Fastest & lightest (~750 MB once, ~1 GB RAM). Basic tips only — very limited intelligence.',
+  coach_offline_quick_desc: 'Fastest & lightest (~270 MB once, ~1 GB RAM). Basic tips in a few seconds.',
   coach_offline_deeper_label: 'Deeper',
   coach_offline_deeper_ram: '~2 GB RAM',
-  coach_offline_deeper_desc: 'Better Vietnamese & study hints (~1.3 GB once, ~2 GB RAM). Still much weaker than Online AI.',
+  coach_offline_deeper_desc: 'Better Vietnamese & study hints (~830 MB once, ~1.8 GB RAM). Still much weaker than Online AI.',
   coach_offline_downloading: 'Downloading Offline AI into browser storage ({percent}%)…',
   coach_offline_downloading_mb: 'Downloading Offline AI ({loaded} / {total} MB · {percent}%)…',
   coach_offline_preparing: 'Loading Offline AI into memory (first load takes ~30–60s)…',
@@ -3574,6 +3574,15 @@ export const en = {
   landing_v3_c2_badge: 'Works 100% Offline',
   landing_v3_c2_t: 'Photo-to-Note Scanner (Slides & Handwriting)',
   landing_v3_c2_d: 'Snap full pages of printed slides, Vietnamese handwriting, or English handwriting into clean Markdown notes directly on your device — photos never leave your computer or phone.',
+
+  // Changelog v3.0.2
+  changelog_r_3_0_2_t: 'Dramatically Faster Offline AI & Much Lower Memory Usage',
+  changelog_r_3_0_2_h1: 'Replies in ~1–6 seconds instead of 1–3 minutes by streaming compact model weights directly to browser graphics acceleration',
+  changelog_r_3_0_2_h2: 'Cuts real Quick memory from ~4 GB down to ~0.9 GB and shrinks one-time download from ~750 MB to ~270 MB',
+  changelog_r_3_0_2_h3: 'Keeps Deeper mode within ~1.8 GB RAM (~830 MB download) with accurate browser storage reporting and lightweight CPU fallback',
+  changelog_r_3_0_2_d1: 'Upgraded the AI Study Coach and School Inbox offline worker to stream sharded quantized weights with a bounded conversation context window, eliminating triple-buffered memory copies.',
+  changelog_r_3_0_2_d2: 'Updated Quick (~270 MB once, ~1 GB RAM) and Deeper (~830 MB once, ~1.8 GB RAM) estimates across Study Coach and School Inbox to reflect measured browser memory usage.',
+  changelog_r_3_0_2_d3: 'Updated Settings → Offline Storage & RAM so clearing browser storage frees all cached offline AI shards reliably, while devices without graphics acceleration fall back cleanly to a lightweight CPU model.',
 
   // Changelog v3.0.1
   changelog_r_3_0_1_t: 'Reliable Offline AI Execution & Calmer, Uncluttered Coach and Inbox UI',

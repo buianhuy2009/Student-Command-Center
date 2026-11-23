@@ -14,18 +14,18 @@ export interface OfflineCoachOptions {
   signal?: AbortSignal;
 }
 
-const SLIDING_WINDOW_TURNS = 6;
+const SLIDING_WINDOW_TURNS = 4;
 
 /**
  * Runs the AI Study Coach 100% locally in the browser Web Worker with zero cloud requests.
- * Keeps a 6-message sliding window so KV cache fits safely within 8 GB laptop RAM budgets.
+ * Keeps a 4-message sliding window so KV cache fits safely within tight laptop RAM budgets.
  */
 export async function sendOfflineCoachMessage(
   messages: OfflineCoachMessage[],
   context: any,
   opts: OfflineCoachOptions
 ): Promise<string> {
-  // Drop initial assistant welcome greeting if it's message 0, then keep last 6 turns.
+  // Drop initial assistant welcome greeting if it's message 0, then keep last 4 turns.
   const cleaned = messages.filter((m, idx) => !(idx === 0 && m.role === 'assistant'));
   const windowed = cleaned.slice(-SLIDING_WINDOW_TURNS);
   const lastUser = [...windowed].reverse().find((m) => m.role === 'user')?.content || '';
@@ -36,7 +36,7 @@ export async function sendOfflineCoachMessage(
     level: opts.level,
     messages: windowed.length > 0 ? windowed : [{ role: 'user', content: 'Hello!' }],
     systemPrompt,
-    maxNewTokens: opts.level === 'deeper' ? 240 : 200,
+    maxNewTokens: opts.level === 'deeper' ? 180 : 140,
     onToken: opts.onToken,
     onProgress: opts.onProgress,
     signal: opts.signal,

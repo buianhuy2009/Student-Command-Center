@@ -341,12 +341,29 @@ export async function runLocalLlmChat(opts: {
   });
 }
 
-function classifyCachedUrl(url: string): CachedModelSummary['key'] {
+const WEBLLM_CACHE_NAMES = ['webllm/model', 'webllm/config', 'webllm/wasm'] as const;
+
+function classifyCachedUrl(url: string, cacheName?: string): CachedModelSummary['key'] {
   const lower = url.toLowerCase();
-  if (lower.includes(LOCAL_MODEL_CATALOG.llmDeeper.id.toLowerCase())) {
+  if (
+    lower.includes(LOCAL_MODEL_CATALOG.llmDeeper.id.toLowerCase()) ||
+    (LOCAL_MODEL_CATALOG.llmDeeper.f32FallbackId && lower.includes(LOCAL_MODEL_CATALOG.llmDeeper.f32FallbackId.toLowerCase())) ||
+    (LOCAL_MODEL_CATALOG.llmDeeper.wasmFallbackId && lower.includes(LOCAL_MODEL_CATALOG.llmDeeper.wasmFallbackId.toLowerCase())) ||
+    lower.includes('1.5b') ||
+    lower.includes('1.7b')
+  ) {
     return 'deeper_llm';
   }
-  if (lower.includes(LOCAL_MODEL_CATALOG.llmQuick.id.toLowerCase())) {
+  if (
+    lower.includes(LOCAL_MODEL_CATALOG.llmQuick.id.toLowerCase()) ||
+    (LOCAL_MODEL_CATALOG.llmQuick.f32FallbackId && lower.includes(LOCAL_MODEL_CATALOG.llmQuick.f32FallbackId.toLowerCase())) ||
+    (LOCAL_MODEL_CATALOG.llmQuick.wasmFallbackId && lower.includes(LOCAL_MODEL_CATALOG.llmQuick.wasmFallbackId.toLowerCase())) ||
+    lower.includes('0.5b') ||
+    lower.includes('360m')
+  ) {
+    return 'quick_llm';
+  }
+  if (cacheName && (WEBLLM_CACHE_NAMES as readonly string[]).includes(cacheName)) {
     return 'quick_llm';
   }
   return 'photo_scanner';
@@ -369,7 +386,7 @@ export async function getCachedModelsInfo(): Promise<CachedModelsInfo> {
     photo_scanner: 0,
   };
 
-  for (const cacheName of [LOCAL_MODEL_CACHE_NAME, TRANSFORMERS_CACHE_NAME]) {
+  for (const cacheName of [LOCAL_MODEL_CACHE_NAME, TRANSFORMERS_CACHE_NAME, ...WEBLLM_CACHE_NAMES]) {
     try {
       const has = await caches.has(cacheName);
       if (!has) continue;
@@ -390,7 +407,7 @@ export async function getCachedModelsInfo(): Promise<CachedModelsInfo> {
             bytes = 0;
           }
         }
-        const key = classifyCachedUrl(req.url);
+        const key = classifyCachedUrl(req.url, cacheName);
         bucketBytes[key] += bytes;
       }
     } catch {
@@ -419,7 +436,7 @@ export async function getCachedModelsInfo(): Promise<CachedModelsInfo> {
 export async function clearLocalModelCache(): Promise<void> {
   await unloadAllLocalAi();
   if (typeof caches === 'undefined') return;
-  for (const cacheName of [LOCAL_MODEL_CACHE_NAME, TRANSFORMERS_CACHE_NAME]) {
+  for (const cacheName of [LOCAL_MODEL_CACHE_NAME, TRANSFORMERS_CACHE_NAME, ...WEBLLM_CACHE_NAMES]) {
     try {
       await caches.delete(cacheName);
     } catch {

@@ -38,11 +38,12 @@ export default defineConfig(() => {
       },
       workbox: {
         globPatterns: ['**/*.{js,css,woff2,png,svg,webp}'],
-        globIgnores: ['**/index.html'],
+        globIgnores: ['**/index.html', '**/webllm-engine*.js'],
         maximumFileSizeToCacheInBytes: 2 * 1024 * 1024,
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [/^\/api\//, /^\/share-target/, /^\/privacy/, /^\/terms/, /^\/google-sites-home/],
         runtimeCaching: [
+          { urlPattern: /\/assets\/webllm-engine.*\.js$/i, handler: 'CacheFirst', options: { cacheName: 'webllm-js-cache', expiration: { maxEntries: 4, maxAgeSeconds: 30 * 86400 } } },
           { urlPattern: /^https:\/\/generativelanguage\.googleapis\.com\/.*/i, handler: 'NetworkFirst', options: { cacheName: 'gemini-api', networkTimeoutSeconds: 10, expiration: { maxEntries: 50, maxAgeSeconds: 300 } } },
           { urlPattern: /^https:\/\/www\.googleapis\.com\/.*/i, handler: 'NetworkFirst', options: { cacheName: 'googleapis-cache', networkTimeoutSeconds: 8, expiration: { maxEntries: 100, maxAgeSeconds: 300 } } },
           { urlPattern: /^https:\/\/sheets\.googleapis\.com\/.*/i, handler: 'NetworkFirst', options: { cacheName: 'sheets-api', networkTimeoutSeconds: 8, expiration: { maxEntries: 50, maxAgeSeconds: 300 } } },
@@ -62,6 +63,15 @@ export default defineConfig(() => {
     },
     worker: {
       format: 'es',
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('@mlc-ai/web-llm') || id.includes('@mlc-ai/web-runtime') || id.includes('@mlc-ai/web-xgrammar') || id.includes('@mlc-ai/web-tokenizers')) {
+              return 'webllm-engine';
+            }
+          },
+        },
+      },
     },
     server: {
       headers: {

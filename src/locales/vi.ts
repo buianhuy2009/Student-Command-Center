@@ -438,7 +438,7 @@ export const vi = {
   gmail_ai_online: "AI Trực tuyến",
   gmail_ai_offline: "AI Ngoại tuyến (Trên máy)",
   gmail_ai_online_hint: "Thông minh hơn nhiều, không tốn RAM. Gửi email lên mạng & có giới hạn.",
-  gmail_ai_offline_hint: "Riêng tư 100%, không giới hạn. Kém thông minh hơn Online AI nhiều & cần ~1 GB RAM trống (tải 1 lần ~750 MB).",
+  gmail_ai_offline_hint: "Riêng tư 100%, không giới hạn. Kém thông minh hơn Online AI nhiều & dùng ~1 GB RAM (tải 1 lần ~270 MB).",
   gmail_ai_offline_warn: "AI Ngoại tuyến chạy riêng tư trong trình duyệt — kém thông minh hơn Online AI rất nhiều và có thể nhận nhầm hạn nộp khó.",
   gmail_sort_progress_count: "Đã phân loại {completed} / {total} email…",
   gmail_sort_progress_dl: "Đang tải AI Ngoại tuyến ({loaded} / {total} MB · {percent}%)…",
@@ -3434,10 +3434,10 @@ export const vi = {
   coach_offline_level_label: 'Mức độ suy nghĩ:',
   coach_offline_quick_label: 'Nhanh',
   coach_offline_quick_ram: '~1 GB RAM',
-  coach_offline_quick_desc: 'Nhanh & nhẹ nhất (tải 1 lần ~750 MB, ~1 GB RAM). Chỉ gợi ý cơ bản — rất hạn chế.',
+  coach_offline_quick_desc: 'Nhanh & nhẹ nhất (tải 1 lần ~270 MB, ~1 GB RAM). Trả lời gợi ý cơ bản trong vài giây.',
   coach_offline_deeper_label: 'Kỹ hơn',
   coach_offline_deeper_ram: '~2 GB RAM',
-  coach_offline_deeper_desc: 'Hiểu tiếng Việt & gợi ý tốt hơn (tải 1 lần ~1.3 GB, ~2 GB RAM). Vẫn yếu hơn Online AI nhiều.',
+  coach_offline_deeper_desc: 'Hiểu tiếng Việt & gợi ý tốt hơn (tải 1 lần ~830 MB, ~1,8 GB RAM). Vẫn yếu hơn Online AI nhiều.',
   coach_offline_downloading: 'Đang tải AI Ngoại tuyến vào bộ nhớ trình duyệt ({percent}%)…',
   coach_offline_downloading_mb: 'Đang tải AI Ngoại tuyến ({loaded} / {total} MB · {percent}%)…',
   coach_offline_preparing: 'Đang nạp AI Ngoại tuyến vào bộ nhớ (lần đầu mất ~30–60s)…',
@@ -3566,6 +3566,15 @@ export const vi = {
   landing_v3_c2_badge: 'Hoạt động 100% Ngoại tuyến',
   landing_v3_c2_t: 'Quét ảnh thành Ghi chú (Slide & Chữ viết tay)',
   landing_v3_c2_d: 'Chụp cả trang slide in, vở viết tay tiếng Việt hoặc tiếng Anh để chuyển thành ghi chú Markdown ngay trên máy — ảnh không bao giờ rời khỏi thiết bị của bạn.',
+
+  // Changelog v3.0.2
+  changelog_r_3_0_2_t: 'AI Ngoại tuyến nhanh gấp nhiều lần & tốn ít RAM hơn hẳn',
+  changelog_r_3_0_2_h1: 'Phản hồi chỉ trong ~1–6 giây thay vì 1–3 phút nhờ nạp trực tiếp mô hình nén lên tăng tốc đồ họa trình duyệt',
+  changelog_r_3_0_2_h2: 'Giảm RAM thực tế chế độ Nhanh từ ~4 GB xuống ~0,9 GB và giảm dung lượng tải từ ~750 MB xuống ~270 MB',
+  changelog_r_3_0_2_h3: 'Chế độ Kỹ hơn chỉ tốn ~1,8 GB RAM (tải ~830 MB), thống kê đúng bộ nhớ trình duyệt và tự lùi về CPU nhẹ nếu cần',
+  changelog_r_3_0_2_d1: 'Nâng cấp worker chạy AI Study Coach và Hộp thư ngoại tuyến để nạp từng mảnh trọng số trực tiếp với cửa sổ ngữ cảnh gọn nhẹ, loại bỏ tình trạng nhân đôi bộ nhớ 3 lần.',
+  changelog_r_3_0_2_d2: 'Cập nhật thông số trung thực cho chế độ Nhanh (~270 MB tải 1 lần, ~1 GB RAM) và Kỹ hơn (~830 MB tải 1 lần, ~1,8 GB RAM) dựa trên đo đạc thực tế trên trình duyệt.',
+  changelog_r_3_0_2_d3: 'Cập nhật mục Cài đặt → Dung lượng & RAM ngoại tuyến để xóa sạch toàn bộ dữ liệu bộ nhớ đệm của mô hình mới.',
 
   // Changelog v3.0.1
   changelog_r_3_0_1_t: 'Sửa lỗi AI Ngoại tuyến kẹt 99% & Giao diện Coach, Hộp thư gọn gàng hơn',
