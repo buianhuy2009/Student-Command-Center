@@ -24,10 +24,8 @@ import {
   Send,
   HelpCircle,
   FileCheck,
-  ScanText,
 } from 'lucide-react';
 import { MathMarkdown } from '../MathMarkdown';
-import { PhotoNoteScannerModal } from '../PhotoNoteScannerModal';
 import { createFormattedAssignmentDoc } from '../../services/googleWorkspace';
 import {
   analyzeEssayDraft,
@@ -94,8 +92,6 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
   });
 
   const [copiedNote, setCopiedNote] = useState(false);
-  const [scannerOpen, setScannerOpen] = useState(false);
-  const [scannerInitialFile, setScannerInitialFile] = useState<File | Blob | null>(null);
 
   // --- 1-Click Doc Generator State ---
   const [docTitle, setDocTitle] = useState('');
@@ -218,30 +214,6 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
 
   const handlePrintNote = () => {
     window.print();
-  };
-
-  const handleInsertScannedMarkdown = (scannedMd: string) => {
-    if (!activeNote) {
-      handleCreateScannedNote(scannedMd);
-      return;
-    }
-    const separator = activeNote.content.trim() ? '\n\n' : '';
-    handleUpdateActiveNote({ content: `${activeNote.content}${separator}${scannedMd}` });
-  };
-
-  const handleCreateScannedNote = (scannedMd: string) => {
-    const firstHeading = scannedMd.match(/^#+\s+(.+)$/m)?.[1]?.trim();
-    const newNote: MarkdownNote = {
-      id: `note-${Date.now()}`,
-      title: firstHeading || t('ocr_default_note_title'),
-      subject: activeNote?.subject || t('dochub_subject_general'),
-      content: scannedMd,
-      updatedAt: formatDate(new Date()),
-    };
-    const updated = [newNote, ...notes];
-    setNotes(updated);
-    saveNotes(updated);
-    setActiveNoteId(newNote.id);
   };
 
   // Run Google Doc Generator
@@ -509,19 +481,6 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
 
                     <div className="flex flex-wrap items-center gap-2">
                       <button
-                        type="button"
-                        onClick={() => {
-                          setScannerInitialFile(null);
-                          setScannerOpen(true);
-                        }}
-                        className="px-3 py-1.5 text-xs font-bold bg-[var(--accent-soft)] border border-[var(--accent-border)] hover:border-[var(--accent-fill)] text-[var(--accent-text)] rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer"
-                        title={t('ocr_btn_open_tip')}
-                      >
-                        <ScanText className="w-3.5 h-3.5" />
-                        <span>{t('ocr_btn_open')}</span>
-                      </button>
-
-                      <button
                         onClick={handleInsertCornellTemplate}
                         className="px-3 py-1.5 text-xs font-semibold bg-[var(--bg-subtle)] border border-[var(--border-default)] hover:border-[var(--accent-fill)] text-[var(--text-secondary)] rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer"
                         title={t('dochub_cornell_tip')}
@@ -567,30 +526,6 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
                     <textarea
                       value={activeNote.content}
                       onChange={(e) => handleUpdateActiveNote({ content: e.target.value })}
-                      onPaste={(e) => {
-                        const items = e.clipboardData?.items;
-                        if (!items) return;
-                        for (const item of Array.from(items)) {
-                          if (item.type.startsWith('image/')) {
-                            const blob = item.getAsFile();
-                            if (blob) {
-                              e.preventDefault();
-                              setScannerInitialFile(blob);
-                              setScannerOpen(true);
-                              break;
-                            }
-                          }
-                        }
-                      }}
-                      onDragOver={(e) => e.preventDefault()}
-                      onDrop={(e) => {
-                        const f = e.dataTransfer?.files?.[0];
-                        if (f && f.type.startsWith('image/')) {
-                          e.preventDefault();
-                          setScannerInitialFile(f);
-                          setScannerOpen(true);
-                        }
-                      }}
                       placeholder={t('dochub_editor_ph')}
                       className="flex-1 w-full p-4 text-xs font-mono bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--accent-fill)] text-[var(--text-primary)] resize-none leading-relaxed"
                     />
@@ -1005,17 +940,6 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
           </form>
         </div>
       )}
-
-      <PhotoNoteScannerModal
-        isOpen={scannerOpen}
-        initialFile={scannerInitialFile}
-        onClose={() => {
-          setScannerOpen(false);
-          setScannerInitialFile(null);
-        }}
-        onInsertIntoNote={handleInsertScannedMarkdown}
-        onCreateNewNote={handleCreateScannedNote}
-      />
     </div>
   );
 };

@@ -836,35 +836,8 @@ Return only JSON.`;
 
 export async function summarizeEmailsWithGemini(
   emails: EmailMessage[],
-  opts: {
-    forceAI?: boolean;
-    origin?: 'gmail' | 'classroom';
-    mode?: 'online' | 'offline';
-    onProgress?: (progress: {
-      completed: number;
-      total: number;
-      stage: 'downloading' | 'initializing' | 'sorting';
-      downloadPercent?: number;
-      downloadLoadedMb?: number;
-      downloadTotalMb?: number;
-    }) => void;
-    signal?: AbortSignal;
-  } = {},
+  opts: { forceAI?: boolean; origin?: 'gmail' | 'classroom' } = {},
 ): Promise<EmailAlert[]> {
-  const { getEmailAiMode } = await import('./localAiConfig');
-  const activeMode = opts.mode ?? getEmailAiMode();
-
-  // Offline AI mode: 100% local in browser Web Worker, NEVER fall back to cloud APIs.
-  if (activeMode === 'offline') {
-    const { classifyEmailsLocally } = await import('./localEmailClassifier');
-    return await classifyEmailsLocally(emails, {
-      forceAI: opts.forceAI,
-      origin: opts.origin,
-      onProgress: opts.onProgress,
-      signal: opts.signal,
-    });
-  }
-
   // Gmail-native pre-sort saves AI calls: Promotions/Social from non-school senders are not
   // sent to the AI. They are NOT hidden — they land in "AI chưa đọc được" for the student.
   // Teachers the student marked (often on personal Gmail) always go to the AI.
@@ -925,7 +898,6 @@ export async function summarizeEmailsWithGemini(
   const localAlerts = emails
     .filter((e) => bucketOf(e) !== 'AI')
     .map((e) => skippedAlert(e, bucketOf(e) as 'PROMOTION' | 'SOCIAL'));
-  opts.onProgress?.({ completed: localAlerts.length, total: emails.length, stage: 'sorting' });
   if (aiEmails.length === 0) return localAlerts;
   // Data minimisation: quoted replies + signatures cut, body capped at AI_BODY_LIMIT chars.
   const payload = aiEmails.map((e) => ({
@@ -957,7 +929,6 @@ export async function summarizeEmailsWithGemini(
     console.error('Error calling summarize emails API:', error);
     aiAlerts = aiEmails.map((e) => failed(e, 'ai_failed'));
   }
-  opts.onProgress?.({ completed: emails.length, total: emails.length, stage: 'sorting' });
   const byId = new Map<string, EmailAlert>();
   [...aiAlerts, ...localAlerts].forEach((a) => byId.set(a.id, a));
   // Preserve original inbox order; every fetched email stays visible somewhere.
@@ -972,45 +943,17 @@ export async function parseNaturalLanguageAssignment(text: string): Promise<Part
   return await postGeminiJsonEndpoint<Partial<Assignment>>('/api/gemini/parse-assignment', { text }, 'Parse assignment API');
 }
 
-export type AiCoachMode = 'auto' | 'professor' | 'offline';
-
-export interface StudyAssistantOptions {
-  offlineLevel?: 'quick' | 'deeper';
-  onToken?: (partialText: string) => void;
-  onDownloadProgress?: (progress: {
-    file: string;
-    loaded: number;
-    total: number;
-    percent: number;
-    stage?: 'downloading' | 'initializing' | 'ready';
-  }) => void;
-  signal?: AbortSignal;
-}
+export type AiCoachMode = 'teacher' | 'professor' | 'fast';
 
 export async function sendStudyAssistantMessage(
   messages: { role: 'user' | 'assistant'; content: string }[],
   context?: any,
-  mode: AiCoachMode | 'teacher' | 'fast' = 'auto',
-  opts?: StudyAssistantOptions
+  mode: AiCoachMode = 'teacher'
 ): Promise<string> {
-  // Offline AI: 100% on-device in Web Worker, zero cloud calls.
-  if (mode === 'offline') {
-    const { sendOfflineCoachMessage } = await import('./localCoach');
-    const { getOfflineCoachLevel } = await import('./localAiConfig');
-    return await sendOfflineCoachMessage(messages, context, {
-      level: opts?.offlineLevel || getOfflineCoachLevel(),
-      onToken: opts?.onToken,
-      onProgress: opts?.onDownloadProgress,
-      signal: opts?.signal,
-    });
-  }
-
-  const normalizedMode: 'auto' | 'professor' = mode === 'professor' ? 'professor' : 'auto';
-
   try {
     const data = await postGeminiJsonEndpoint<{ reply?: string }>(
       '/api/gemini/assistant',
-      { messages, context, mode: normalizedMode },
+      { messages, context, mode },
       'Study assistant API'
     );
     if (!data?.reply || !String(data.reply).trim()) {
@@ -1020,26 +963,19 @@ export async function sendStudyAssistantMessage(
   } catch (err) {
     const historyText = messages.map((m) => `${m.role === 'user' ? 'Student' : 'Coach'}: ${m.content}`).join('\n');
     const prompt = `Student context:\n${JSON.stringify(context || {}).slice(0, 6000)}\n\nConversation:\n${historyText}`;
-    if (getClientGeminiApiKey()) {
-      try {
-        const targetModel = normalizedMode === 'professor' ? 'gemini-3.5-flash' : 'gemini-3.5-flash-lite';
-        const reply = await callGemini({
-          model: targetModel,
-          contents: prompt,
-          config: {
-            systemInstruction: 'You are Student Command Coach. Be concise, accurate, and give step-by-step hints without doing homework directly.',
-          },
-        });
-        if (reply.trim()) return reply.trim();
-      } catch (geminiErr) {
-        if (normalizedMode !== 'auto' || !getClientGroqApiKey()) {
-          throw geminiErr;
-        }
-      }
-    }
-    // In Auto mode, silently fall back to configured secondary key if Gemini fails/is missing.
-    if (normalizedMode === 'auto' && getClientGroqApiKey()) {
+    if (mode === 'fast' && getClientGroqApiKey()) {
       const reply = await callGroqDirect(prompt, false);
+      if (reply.trim()) return reply.trim();
+    }
+    if (getClientGeminiApiKey() || getClientGroqApiKey()) {
+      const targetModel = mode === 'professor' ? 'gemini-3.5-flash' : 'gemini-3.5-flash-lite';
+      const reply = await callGemini({
+        model: targetModel,
+        contents: prompt,
+        config: {
+          systemInstruction: 'You are Student Command Coach. Be concise, accurate, and give step-by-step hints without doing homework directly.',
+        },
+      });
       if (reply.trim()) return reply.trim();
     }
     throw err instanceof Error ? err : new Error(String(err));

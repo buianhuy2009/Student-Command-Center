@@ -29,7 +29,6 @@ import {
   getGeminiQuotaStatus,
 } from '../services/gemini';
 import { vaultSet, vaultGet, vaultExists, vaultClear } from '../services/vault';
-import { OfflineAiStorageCard } from './OfflineAiStorageCard';
 import { useT } from '../services/i18n';
 
 interface GeminiSettingsModalProps {
@@ -599,8 +598,6 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
               </button>
             )}
           </div>
-
-          <OfflineAiStorageCard />
         </div>
 
         {/* Footer Actions */}

@@ -26,7 +26,6 @@ const AI_FLOWS = [
   { sourceKey: 'privacy_ai_cls_src', sentKey: 'privacy_ai_cls_sent', toKey: 'privacy_ai_cls_to' },
   { sourceKey: 'privacy_ai_text_src', sentKey: 'privacy_ai_text_sent', toKey: 'privacy_ai_text_to' },
   { sourceKey: 'privacy_ai_tutor_src', sentKey: 'privacy_ai_tutor_sent', toKey: 'privacy_ai_tutor_to' },
-  { sourceKey: 'privacy_ai_offline_src', sentKey: 'privacy_ai_offline_sent', toKey: 'privacy_ai_offline_to' },
 ] as const;
 
 const Section: React.FC<{ title: string; defaultOpen?: boolean; children: React.ReactNode }> = ({ title, defaultOpen, children }) => (

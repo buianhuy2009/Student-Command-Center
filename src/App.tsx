@@ -14,13 +14,6 @@ import { useDebouncedCallback } from './hooks/useDebouncedCallback';
 import { initTheme, setTheme, syncDarkToTheme } from './services/theme';
 import { getLayoutMode, LAYOUT_MODE_EVENT, type LayoutMode } from './services/layoutMode';
 import { loadDailyReportConfig, saveDailyReportConfig, shouldSendDailyReportNow, sendDailyReport } from './services/dailyReport';
-import {
-  getEmailAiMode,
-  setEmailAiMode as persistEmailAiMode,
-  type EmailAiMode,
-} from './services/localAiConfig';
-import { abortLocalLlm } from './services/localAi';
-import type { EmailSortProgress } from './services/localEmailClassifier';
 import { useT } from './services/i18n';
 // Chunk-resilient lazy(): after a fresh deploy the service worker can serve a
 // stale index.html that references rotated chunk filenames → dynamic import()
@@ -866,17 +859,6 @@ export default function App() {
   const [isLoadingEvents, setIsLoadingEvents] = useState(false);
   const [isLoadingEmails, setIsLoadingEmails] = useState(false);
   const [emailLoadStage, setEmailLoadStage] = useState<'idle' | 'fetching' | 'analyzing'>('idle');
-  const [emailAiMode, setEmailAiMode] = useState<EmailAiMode>(getEmailAiMode);
-  const [emailSortProgress, setEmailSortProgress] = useState<EmailSortProgress | null>(null);
-  const emailSortAbortRef = useRef<AbortController | null>(null);
-  const handleChangeEmailAiMode = useCallback((mode: EmailAiMode) => {
-    setEmailAiMode(mode);
-    persistEmailAiMode(mode);
-  }, []);
-  const handleCancelEmailSort = useCallback(() => {
-    abortLocalLlm();
-    emailSortAbortRef.current?.abort();
-  }, []);
   const [emailsLastSyncedAt, setEmailsLastSyncedAt] = useState<string | null>(() => {
     try { return localStorage.getItem(LOCAL_EMAILS_LAST_SYNCED_KEY); } catch { return null; }
   });
@@ -1818,27 +1800,12 @@ export default function App() {
       saveRawEmails(sanitizeRawEmails(emails));
 
       if (emails.length > 0) {
-        if (showProgress) {
-          setEmailLoadStage('analyzing');
-          setEmailSortProgress({ completed: 0, total: emails.length, stage: 'sorting' });
-        }
-        emailSortAbortRef.current?.abort();
-        const sortAc = new AbortController();
-        emailSortAbortRef.current = sortAc;
+        if (showProgress) setEmailLoadStage('analyzing');
         let alerts: EmailAlert[] = [];
         try {
-          alerts = await summarizeEmailsWithGemini(emails, {
-            mode: emailAiMode,
-            signal: sortAc.signal,
-            onProgress: (p) => {
-              if (showProgress) setEmailSortProgress(p);
-            },
-          });
-        } catch (geminiErr: any) {
-          if (geminiErr?.message === 'ABORTED') {
-            return;
-          }
-          console.warn('Email summarizer unavailable, using Gmail-native classification:', geminiErr);
+          alerts = await summarizeEmailsWithGemini(emails);
+        } catch (geminiErr) {
+          console.warn('Gemini email summarizer unavailable, using Gmail-native classification:', geminiErr);
           // Offline: Gmail labels only — no content keywords.
           alerts = emails.map((msg, idx) => {
             const labels = (msg as any).labelIds || [];
@@ -1863,10 +1830,6 @@ export default function App() {
               reviewReason: 'ai_failed',
             };
           });
-        } finally {
-          if (emailSortAbortRef.current === sortAc) {
-            emailSortAbortRef.current = null;
-          }
         }
         setEmailAlerts(sanitizeEmailAlerts(alerts));
         saveEmailAlerts(sanitizeEmailAlerts(alerts));
@@ -1903,9 +1866,8 @@ export default function App() {
     } finally {
       setIsLoadingEmails(false);
       setEmailLoadStage('idle');
-      setEmailSortProgress(null);
     }
-  }, [activeTab, emailAiMode, handleGoogleLoaderFailure, handleMissingGoogleToken, t]);
+  }, [activeTab, handleGoogleLoaderFailure, handleMissingGoogleToken, t]);
 
   // Fetch Master Sheet Assignments (runs ONLY when Google Sheets permission is granted)
   const loadSheetAssignments = useCallback(async (isSilent = false, _retried = false) => {
@@ -3790,10 +3752,6 @@ export default function App() {
                     rawEmails={rawEmails}
                     isLoadingEmails={isLoadingEmails}
                     emailLoadStage={emailLoadStage}
-                    emailAiMode={emailAiMode}
-                    onChangeEmailAiMode={handleChangeEmailAiMode}
-                    emailSortProgress={emailSortProgress}
-                    onCancelEmailSort={handleCancelEmailSort}
                     emailsLastSyncedAt={emailsLastSyncedAt}
                     emailsAreCachedOnly={emailsAreCachedOnly}
                     onRefreshEmails={(forceResort?: boolean, options?: FetchEmailOptions) =>

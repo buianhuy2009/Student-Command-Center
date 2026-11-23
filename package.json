@@ -1,7 +1,7 @@
 {
   "name": "student-command-center",
   "private": true,
-  "version": "3.0.2",
+  "version": "2.22.0",
   "description": "Student Command Center - Unified academic OS for Canvas LMS, Google Workspace, and AI study coaching",
   "type": "module",
   "scripts": {
@@ -22,8 +22,6 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@excalidraw/excalidraw": "^0.18.1",
     "@google/genai": "^2.4.0",
-    "@huggingface/transformers": "^4.3.2",
-    "@mlc-ai/web-llm": "^0.2.89",
     "@tailwindcss/vite": "^4.1.14",
     "@vitejs/plugin-react": "^5.0.4",
     "canvas-confetti": "^1.9.4",
@@ -37,7 +35,6 @@
     "lucide-react": "^0.546.0",
     "mermaid": "^11.17.2",
     "motion": "^12.23.24",
-    "onnxruntime-web": "^1.31.1",
     "pyodide": "^314.0.6",
     "react": "^19.0.1",
     "react-dom": "^19.0.1",

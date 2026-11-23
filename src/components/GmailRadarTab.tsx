@@ -14,16 +14,8 @@ import {
   ArrowLeft,
   FlaskConical,
   Clock,
-  WifiOff,
-  Square,
 } from 'lucide-react';
 import { EmailAlert, EmailMessage, ApiEnablementInfo } from '../types';
-import {
-  getEmailAiMode,
-  setEmailAiMode as persistEmailAiMode,
-  type EmailAiMode,
-} from '../services/localAiConfig';
-import type { EmailSortProgress } from '../services/localEmailClassifier';
 import { ApiActivationBanner } from './ApiActivationBanner';
 import { useT } from '../services/i18n';
 import { dismissReview, getDismissedReviewIds, gmailLink, isTeacherSender, toggleTeacherSender } from '../utils/trust';
@@ -146,10 +138,6 @@ interface GmailRadarTabProps {
   rawEmails: EmailMessage[];
   isLoadingEmails: boolean;
   emailLoadStage?: 'idle' | 'fetching' | 'analyzing';
-  emailAiMode?: EmailAiMode;
-  onChangeEmailAiMode?: (mode: EmailAiMode) => void;
-  emailSortProgress?: EmailSortProgress | null;
-  onCancelEmailSort?: () => void;
   emailsLastSyncedAt?: string | null;
   emailsAreCachedOnly?: boolean;
   onRefreshEmails: (forceResort?: boolean, options?: { maxResults?: number; mode?: 'inbox' | 'academic' }) => void;
@@ -171,10 +159,6 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
   rawEmails,
   isLoadingEmails,
   emailLoadStage = 'idle',
-  emailAiMode: controlledEmailAiMode,
-  onChangeEmailAiMode,
-  emailSortProgress = null,
-  onCancelEmailSort,
   emailsLastSyncedAt = null,
   emailsAreCachedOnly = false,
   onRefreshEmails,
@@ -194,13 +178,6 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
   const [teacherTick, setTeacherTick] = useState(0);
   const [forcing, setForcing] = useState<string | null>(null);
   const [demoMode, setDemoMode] = useState(false);
-  const [localEmailAiMode, setLocalEmailAiMode] = useState<EmailAiMode>(getEmailAiMode);
-  const activeEmailAiMode = controlledEmailAiMode ?? localEmailAiMode;
-  const handleSelectEmailAiMode = (mode: EmailAiMode) => {
-    setLocalEmailAiMode(mode);
-    persistEmailAiMode(mode);
-    onChangeEmailAiMode?.(mode);
-  };
 
   const effectiveAlerts = useMemo(
     () => (demoMode ? [...DEMO_SAMPLE_ALERTS, ...emailAlerts] : emailAlerts),
@@ -535,265 +512,165 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
   const spamCount = filteredAlerts.filter((a) => a.isSpam).length;
 
   return (
-    <div className="space-y-2.5">
-      {/* Row 1: Unified Connection, Sorting AI Mode & Sync Toolbar */}
-      <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-hairline)] px-3.5 py-2 space-y-1.5 text-xs">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex flex-wrap items-center gap-2 min-w-0">
-            {restoring || isLoadingEmails ? (
-              <span className="flex items-center gap-2 text-[var(--text-secondary)] font-semibold">
-                <RefreshCw className="w-3.5 h-3.5 animate-spin text-[var(--accent-text)] shrink-0" />
-                <span className="truncate">{loadingBannerText}</span>
+    <div className="space-y-3.5">
+      {/* Row 1: Calm Connection & Sync Freshness Header */}
+      <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-hairline)] px-4 py-2.5 flex flex-wrap items-center justify-between gap-2.5 text-xs">
+        <div className="flex flex-wrap items-center gap-2 min-w-0">
+          {restoring || isLoadingEmails ? (
+            <span className="flex items-center gap-2 text-[var(--text-secondary)] font-semibold">
+              <RefreshCw className="w-3.5 h-3.5 animate-spin text-[var(--accent-text)] shrink-0" />
+              <span className="truncate">{loadingBannerText}</span>
+            </span>
+          ) : showConnected ? (
+            <>
+              <span className="inline-flex items-center gap-1.5 font-semibold text-[var(--text-primary)] truncate">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <span className="truncate">{accountEmail ? t('gmail_connected_as', { email: accountEmail }) : t('gmail_connected_fallback')}</span>
               </span>
-            ) : showConnected ? (
-              <>
-                <span className="inline-flex items-center gap-1.5 font-semibold text-[var(--text-primary)] truncate">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                  <span className="truncate">{accountEmail ? t('gmail_connected_as', { email: accountEmail }) : t('gmail_connected_fallback')}</span>
+              {syncFreshnessText && (
+                <span
+                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium ${
+                    emailsAreCachedOnly
+                      ? 'bg-[var(--status-warn-bg)] text-[var(--status-warn-text)] border border-[var(--status-warn-border)]'
+                      : 'bg-[var(--bg-subtle)] text-[var(--text-muted)]'
+                  }`}
+                >
+                  <Clock className="w-3 h-3 shrink-0" />
+                  <span>{syncFreshnessText}</span>
                 </span>
-                {syncFreshnessText && (
-                  <span
-                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium ${
-                      emailsAreCachedOnly
-                        ? 'bg-[var(--status-warn-bg)] text-[var(--status-warn-text)] border border-[var(--status-warn-border)]'
-                        : 'bg-[var(--bg-subtle)] text-[var(--text-muted)]'
-                    }`}
-                  >
-                    <Clock className="w-3 h-3 shrink-0" />
-                    <span className="truncate max-w-[260px] sm:max-w-none">{syncFreshnessText}</span>
-                  </span>
-                )}
-              </>
-            ) : (
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="font-semibold text-[var(--text-secondary)]">{t('gmail_not_connected')}</span>
-                {syncFreshnessText && (
-                  <span className="px-2 py-0.5 rounded-full text-[11px] bg-[var(--status-warn-bg)] text-[var(--status-warn-text)] border border-[var(--status-warn-border)] truncate max-w-[280px] sm:max-w-none">
-                    {syncFreshnessText}
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2 shrink-0">
-            <div className="inline-flex items-center gap-1.5">
-              <span className="text-[11px] font-semibold text-[var(--text-muted)] hidden sm:inline">
-                {t('gmail_ai_mode_label')}
-              </span>
-              <div
-                className="inline-flex items-center rounded-xl border border-[var(--border-default)] bg-[var(--bg-canvas)] p-0.5 gap-0.5"
-                role="group"
-                aria-label={t('gmail_ai_mode_label')}
-              >
-                {(['online', 'offline'] as EmailAiMode[]).map((modeKey) => {
-                  const active = activeEmailAiMode === modeKey;
-                  const hint = modeKey === 'online' ? t('gmail_ai_online_hint') : t('gmail_ai_offline_hint');
-                  return (
-                    <button
-                      key={modeKey}
-                      type="button"
-                      onClick={() => handleSelectEmailAiMode(modeKey)}
-                      title={hint}
-                      aria-pressed={active}
-                      className={`px-2 py-1 rounded-lg text-[11px] font-semibold transition-colors cursor-pointer flex items-center gap-1 whitespace-nowrap ${
-                        active
-                          ? 'bg-[var(--accent-fill)] text-white shadow-2xs'
-                          : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
-                      }`}
-                    >
-                      {modeKey === 'offline' && <WifiOff className="w-3 h-3 shrink-0" />}
-                      <span>{modeKey === 'online' ? t('gmail_ai_online') : t('gmail_ai_offline')}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {showConnected ? (
-              <button
-                type="button"
-                onClick={() => onRefreshEmails(true)}
-                disabled={isLoadingEmails}
-                className="px-3 py-1.5 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-xl font-semibold transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-60"
-                title={t('gmail_refresh_inbox')}
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${isLoadingEmails ? 'animate-spin' : ''}`} />
-                <span>{t('gmail_refresh_inbox')}</span>
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={handleConnectClick}
-                className="px-3 py-1.5 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-xl font-semibold cursor-pointer"
-              >
-                {t('gmail_connect')}
-              </button>
-            )}
-
-            <div className="relative" data-gmail-more-menu>
-              <button
-                type="button"
-                onClick={() => setShowMoreMenu((v) => !v)}
-                aria-label={t('gmail_more_actions')}
-                aria-expanded={showMoreMenu}
-                className="p-1.5 rounded-xl bg-[var(--bg-subtle)] border border-[var(--border-hairline)] hover:border-[var(--border-default)] text-[var(--text-secondary)] cursor-pointer"
-              >
-                <MoreHorizontal className="w-4 h-4" />
-              </button>
-              {showMoreMenu && (
-                <div className="absolute right-0 mt-1.5 w-56 bg-[var(--bg-raised)] rounded-xl border border-[var(--border-default)] shadow-lg py-1.5 z-30 text-xs">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setDemoMode((v) => !v);
-                      if (!demoMode) setActiveCategory('REVIEW');
-                      setShowMoreMenu(false);
-                    }}
-                    className="w-full text-left px-3 py-2 hover:bg-[var(--bg-hover)] text-[var(--text-primary)] font-medium cursor-pointer flex items-center gap-2"
-                  >
-                    <FlaskConical className="w-3.5 h-3.5 text-[var(--accent-text)] shrink-0" />
-                    <span>{demoMode ? t('gmail_demo_exit') : t('gmail_demo_btn')}</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleUseAnotherAccount}
-                    disabled={switching}
-                    className="w-full text-left px-3 py-2 hover:bg-[var(--bg-hover)] text-[var(--text-primary)] font-medium cursor-pointer"
-                  >
-                    {switching ? t('gmail_switching') : t('gmail_use_another')}
-                  </button>
-                  {spamCount > 0 && (
-                    <button
-                      type="button"
-                      onClick={handleBulkArchiveSpam}
-                      disabled={isArchivingSpam}
-                      className="w-full text-left px-3 py-2 hover:bg-[var(--bg-hover)] text-[var(--text-primary)] font-medium cursor-pointer"
-                    >
-                      {canModifyGmail
-                        ? `${t('gmail_archive_spam')} (${spamCount})`
-                        : `${t('gmail_hide_in_app')} (${spamCount})`}
-                    </button>
-                  )}
-                  <a
-                    href="https://mail.google.com/mail/"
-                    target="_blank"
-                    rel="noreferrer"
-                    onClick={() => setShowMoreMenu(false)}
-                    className="block px-3 py-2 hover:bg-[var(--bg-hover)] text-[var(--text-primary)] font-medium"
-                  >
-                    {t('gmail_open_in_gmail')}
-                  </a>
-                  {showConnected && (
-                    <button
-                      type="button"
-                      onClick={handleDisconnectClick}
-                      className="w-full text-left px-3 py-2 hover:bg-[var(--status-err-bg)] text-[var(--status-err-text)] font-medium cursor-pointer border-t border-[var(--border-hairline)] mt-1 pt-2"
-                    >
-                      {t('gmail_disconnect')}
-                    </button>
-                  )}
-                </div>
+              )}
+            </>
+          ) : (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-semibold text-[var(--text-secondary)]">{t('gmail_not_connected')}</span>
+              {syncFreshnessText && (
+                <span className="px-2 py-0.5 rounded-full text-[11px] bg-[var(--status-warn-bg)] text-[var(--status-warn-text)] border border-[var(--status-warn-border)]">
+                  {syncFreshnessText}
+                </span>
               )}
             </div>
-          </div>
+          )}
         </div>
 
-        {activeEmailAiMode === 'offline' && (
-          <details className="px-2.5 py-1.5 rounded-xl bg-[var(--status-warn-bg)] border border-[var(--status-warn-border)] text-[11px] text-[var(--status-warn-text)]">
-            <summary className="list-none cursor-pointer flex items-center gap-1.5 font-medium select-none">
-              <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-              <span className="flex-1">{t('gmail_ai_offline_warn')}</span>
-              <span className="text-[10px] underline decoration-dotted opacity-80 shrink-0">ⓘ</span>
-            </summary>
-            <p className="mt-1 text-[11px] text-[var(--text-secondary)]">
-              {t('gmail_ai_offline_hint')}
-            </p>
-          </details>
-        )}
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={() => {
+              setDemoMode((v) => !v);
+              if (!demoMode) setActiveCategory('REVIEW');
+            }}
+            className={`px-2.5 py-1.5 rounded-xl text-[11px] font-semibold border transition-colors cursor-pointer flex items-center gap-1.5 ${
+              demoMode
+                ? 'bg-[var(--accent-soft)] text-[var(--accent-text)] border-[var(--accent-border)]'
+                : 'bg-[var(--bg-subtle)] text-[var(--text-secondary)] border-[var(--border-hairline)] hover:border-[var(--border-default)]'
+            }`}
+          >
+            <FlaskConical className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">{demoMode ? t('gmail_demo_exit') : t('gmail_demo_btn')}</span>
+          </button>
+
+          {showConnected ? (
+            <button
+              type="button"
+              onClick={() => onRefreshEmails(true)}
+              disabled={isLoadingEmails}
+              className="px-3 py-1.5 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-xl font-semibold transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-60"
+              title={t('gmail_refresh_inbox')}
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoadingEmails ? 'animate-spin' : ''}`} />
+              <span>{t('gmail_refresh_inbox')}</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleConnectClick}
+              className="px-3 py-1.5 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-xl font-semibold cursor-pointer"
+            >
+              {t('gmail_connect')}
+            </button>
+          )}
+
+          <div className="relative" data-gmail-more-menu>
+            <button
+              type="button"
+              onClick={() => setShowMoreMenu((v) => !v)}
+              aria-label={t('gmail_more_actions')}
+              aria-expanded={showMoreMenu}
+              className="p-1.5 rounded-xl bg-[var(--bg-subtle)] border border-[var(--border-hairline)] hover:border-[var(--border-default)] text-[var(--text-secondary)] cursor-pointer"
+            >
+              <MoreHorizontal className="w-4 h-4" />
+            </button>
+            {showMoreMenu && (
+              <div className="absolute right-0 mt-1.5 w-52 bg-[var(--bg-raised)] rounded-xl border border-[var(--border-default)] shadow-lg py-1.5 z-30 text-xs">
+                <button
+                  type="button"
+                  onClick={handleUseAnotherAccount}
+                  disabled={switching}
+                  className="w-full text-left px-3 py-2 hover:bg-[var(--bg-hover)] text-[var(--text-primary)] font-medium cursor-pointer"
+                >
+                  {switching ? t('gmail_switching') : t('gmail_use_another')}
+                </button>
+                {spamCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleBulkArchiveSpam}
+                    disabled={isArchivingSpam}
+                    className="w-full text-left px-3 py-2 hover:bg-[var(--bg-hover)] text-[var(--text-primary)] font-medium cursor-pointer"
+                  >
+                    {canModifyGmail
+                      ? `${t('gmail_archive_spam')} (${spamCount})`
+                      : `${t('gmail_hide_in_app')} (${spamCount})`}
+                  </button>
+                )}
+                <a
+                  href="https://mail.google.com/mail/"
+                  target="_blank"
+                  rel="noreferrer"
+                  onClick={() => setShowMoreMenu(false)}
+                  className="block px-3 py-2 hover:bg-[var(--bg-hover)] text-[var(--text-primary)] font-medium"
+                >
+                  {t('gmail_open_in_gmail')}
+                </a>
+                {showConnected && (
+                  <button
+                    type="button"
+                    onClick={handleDisconnectClick}
+                    className="w-full text-left px-3 py-2 hover:bg-[var(--status-err-bg)] text-[var(--status-err-text)] font-medium cursor-pointer border-t border-[var(--border-hairline)] mt-1 pt-2"
+                  >
+                    {t('gmail_disconnect')}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Explicit multi-step loading progress notice */}
-      {(isLoadingEmails || restoring) && (() => {
-        const isDownloading = emailSortProgress?.stage === 'downloading';
-        const isInitializing = emailSortProgress?.stage === 'initializing';
-        const dlPercent = emailSortProgress?.downloadPercent ?? 0;
-        const sortTotal = emailSortProgress?.total ?? 0;
-        const sortCompleted = emailSortProgress?.completed ?? 0;
-        const sortPct =
-          isDownloading
-            ? dlPercent
-            : sortTotal > 0
-              ? Math.min(100, Math.round((sortCompleted / sortTotal) * 100))
-              : emailLoadStage === 'analyzing'
-                ? 75
-                : 35;
-
-        const progressLabel = isInitializing
-          ? t('gmail_sort_progress_init')
-          : isDownloading
-            ? emailSortProgress?.downloadTotalMb
-              ? t('gmail_sort_progress_dl', {
-                  loaded: emailSortProgress.downloadLoadedMb ?? 0,
-                  total: emailSortProgress.downloadTotalMb,
-                  percent: dlPercent,
-                })
-              : t('gmail_sort_progress_dl_pct', { percent: dlPercent })
-            : emailLoadStage === 'analyzing' && sortTotal > 0
-              ? t('gmail_sort_progress_count', { completed: sortCompleted, total: sortTotal })
-              : loadingBannerText;
-
-        return (
-          <div
-            role="status"
-            aria-live="polite"
-            className="px-3.5 py-2.5 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-surface)] space-y-1.5"
-          >
-            <div className="flex items-center justify-between gap-2 text-xs">
-              <span className="font-semibold text-[var(--text-primary)] flex items-center gap-2 min-w-0">
-                <RefreshCw className="w-3.5 h-3.5 animate-spin text-[var(--accent-text)] shrink-0" />
-                <span className="truncate">{progressLabel}</span>
-              </span>
-              <div className="flex items-center gap-2 shrink-0">
-                {!isInitializing && (
-                  <span className="text-[11px] font-mono text-[var(--text-muted)]">
-                    {isDownloading
-                      ? `${dlPercent}%`
-                      : emailLoadStage === 'analyzing' && sortTotal > 0
-                        ? `${sortCompleted} / ${sortTotal}`
-                        : emailLoadStage === 'analyzing'
-                          ? '2 / 2'
-                          : '1 / 2'}
-                  </span>
-                )}
-                {onCancelEmailSort && emailLoadStage === 'analyzing' && (
-                  <button
-                    type="button"
-                    onClick={onCancelEmailSort}
-                    className="px-2 py-0.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-[10px] font-semibold inline-flex items-center gap-1 cursor-pointer"
-                  >
-                    <Square className="w-2.5 h-2.5 fill-current" />
-                    <span>{t('gmail_sort_cancel')}</span>
-                  </button>
-                )}
-              </div>
-            </div>
-            {isInitializing ? (
-              <progress
-                className="h-1.5 w-full rounded-full overflow-hidden accent-[var(--accent-fill)]"
-                aria-label={progressLabel}
-              />
-            ) : (
-              <progress
-                value={Math.max(8, sortPct)}
-                max={100}
-                className="h-1.5 w-full rounded-full overflow-hidden accent-[var(--accent-fill)]"
-                aria-label={progressLabel}
-              />
-            )}
+      {(isLoadingEmails || restoring) && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="px-4 py-3 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-surface)] space-y-2"
+        >
+          <div className="flex items-center justify-between gap-2 text-xs">
+            <span className="font-semibold text-[var(--text-primary)] flex items-center gap-2">
+              <RefreshCw className="w-3.5 h-3.5 animate-spin text-[var(--accent-text)]" />
+              <span>{loadingBannerText}</span>
+            </span>
+            <span className="text-[11px] font-mono text-[var(--text-muted)]">
+              {emailLoadStage === 'analyzing' ? '2 / 2' : '1 / 2'}
+            </span>
           </div>
-        );
-      })()}
+          <div className="h-1.5 w-full rounded-full bg-[var(--bg-subtle)] overflow-hidden">
+            <div
+              className={`h-full bg-[var(--accent-fill)] transition-all duration-500 rounded-full ${
+                emailLoadStage === 'analyzing' ? 'w-3/4 animate-pulse' : 'w-2/5 animate-pulse'
+              }`}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Demo mode banner */}
       {demoMode && (
@@ -810,7 +687,7 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
       )}
 
       {/* Row 2: Focused 5-Tab Filter Strip + Search */}
-      <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-hairline)] p-2 flex flex-col md:flex-row md:items-center justify-between gap-2">
+      <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-hairline)] p-2.5 flex flex-col md:flex-row md:items-center justify-between gap-2.5">
         <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-0.5 md:pb-0">
           {[
             { id: 'ALL', label: t('gmail_all') },
@@ -901,10 +778,10 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
         <button
           type="button"
           onClick={() => setActiveCategory('REVIEW')}
-          className="w-full text-left px-3 py-1.5 rounded-xl border border-[var(--status-warn-border)] bg-[var(--status-warn-bg)] text-[11px] text-[var(--status-warn-text)] flex items-center gap-2 hover:opacity-95 cursor-pointer"
+          className="w-full text-left px-3.5 py-2.5 rounded-2xl border border-[var(--status-warn-border)] bg-[var(--status-warn-bg)] text-xs text-[var(--status-warn-text)] flex items-start gap-2 hover:opacity-95 cursor-pointer"
         >
-          <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-          <span className="truncate">
+          <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+          <span>
             <strong>{t('gmail_review_banner_title')}</strong>
             {' · '}
             {t('gmail_review_banner_desc', { total: reviewAlerts.length, urgent: reviewUrgent })}
@@ -913,7 +790,7 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
       )}
 
       {/* RESPONSIVE TWO-PANE MASTER-DETAIL READER */}
-      <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-hairline)] overflow-hidden flex flex-col md:flex-row min-h-[440px] md:h-[calc(100dvh-13.5rem)] md:max-h-[760px]">
+      <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-hairline)] overflow-hidden flex flex-col md:flex-row min-h-[440px] md:h-[calc(100dvh-16rem)] md:max-h-[720px]">
         {/* LEFT MASTER PANE */}
         <div
           className={`w-full md:w-80 lg:w-96 border-b md:border-b-0 md:border-r border-[var(--border-hairline)] flex-col bg-[var(--bg-subtle)]/40 overflow-hidden ${
@@ -1008,7 +885,7 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
           {activeAlert ? (
             <div className="flex-1 flex flex-col h-full overflow-hidden">
               {/* Reader Header */}
-              <div className="p-3.5 sm:px-4 sm:py-3 border-b border-[var(--border-hairline)] flex flex-col lg:flex-row lg:items-start justify-between gap-2.5 bg-[var(--bg-subtle)]/25">
+              <div className="p-4 sm:p-5 border-b border-[var(--border-hairline)] flex flex-col lg:flex-row lg:items-start justify-between gap-3 bg-[var(--bg-subtle)]/25">
                 <div className="min-w-0 space-y-1">
                   <button
                     type="button"
@@ -1059,18 +936,18 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
               </div>
 
               {/* Reader Body & AI Insights */}
-              <div className="flex-1 overflow-y-auto p-3.5 sm:p-4 space-y-3 text-xs">
+              <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 text-xs">
                 {isReview(activeAlert) && (
-                  <div className="p-3 rounded-xl border border-[var(--status-warn-border)] bg-[var(--status-warn-bg)] space-y-2">
-                    <p className="font-semibold text-[var(--status-warn-text)] flex items-start gap-1.5">
+                  <div className="p-4 rounded-2xl border border-[var(--status-warn-border)] bg-[var(--status-warn-bg)] space-y-3">
+                    <p className="font-bold text-[var(--status-warn-text)] flex items-start gap-1.5">
                       <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
                       <span>{reviewReasonText(activeAlert.reviewReason, t)}</span>
                     </p>
-                    <div className="flex flex-wrap gap-1.5">
+                    <div className="flex flex-wrap gap-2">
                       <button
                         type="button"
                         onClick={() => onExtractAssignment(activeAlert)}
-                        className="px-2.5 py-1 min-h-[32px] bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-lg text-[11px] font-bold cursor-pointer"
+                        className="px-3 py-1.5 min-h-[36px] bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-xl text-xs font-bold cursor-pointer"
                       >
                         {t('gmail_is_assignment')}
                       </button>
@@ -1083,9 +960,9 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
                             logPilot('review_force_read');
                             try { await onForceAIRead(activeAlert); } finally { setForcing(null); }
                           }}
-                          className="px-2.5 py-1 min-h-[32px] bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--accent-fill)] rounded-lg text-[11px] font-semibold text-[var(--text-primary)] disabled:opacity-60 flex items-center gap-1.5 cursor-pointer"
+                          className="px-3 py-1.5 min-h-[36px] bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--accent-fill)] rounded-xl text-xs font-semibold text-[var(--text-primary)] disabled:opacity-60 flex items-center gap-1.5 cursor-pointer"
                         >
-                          {forcing === activeAlert.id ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Bot className="w-3 h-3" />}
+                          {forcing === activeAlert.id ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Bot className="w-3.5 h-3.5" />}
                           {t('gmail_force_ai')}
                         </button>
                       )}
@@ -1096,8 +973,7 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
                             if (toggleTeacherSender(activeAlert.rawEmail?.senderEmail)) logPilot('teacher_marked');
                             setTeacherTick((n) => n + 1);
                           }}
-                          title={t('gmail_teacher_hint')}
-                          className="px-2.5 py-1 min-h-[32px] bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--accent-fill)] rounded-lg text-[11px] font-semibold text-[var(--text-primary)] cursor-pointer"
+                          className="px-3 py-1.5 min-h-[36px] bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--accent-fill)] rounded-xl text-xs font-semibold text-[var(--text-primary)] cursor-pointer"
                           data-tick={teacherTick}
                         >
                           {isTeacherSender(activeAlert.rawEmail?.senderEmail)
@@ -1112,16 +988,19 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
                           logPilot('review_dismissed');
                           setDismissed(new Set(getDismissedReviewIds()));
                         }}
-                        className="px-2.5 py-1 min-h-[32px] rounded-lg text-[11px] font-semibold text-[var(--text-secondary)] hover:text-[var(--status-err-text)] cursor-pointer"
+                        className="px-3 py-1.5 min-h-[36px] rounded-xl text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--status-err-text)] cursor-pointer"
                       >
                         {t('gmail_not_assignment_done')}
                       </button>
                     </div>
+                    <p className="text-[11px] text-[var(--status-warn-text)] opacity-90">
+                      {t('gmail_teacher_hint')}
+                    </p>
                   </div>
                 )}
 
                 {activeAlert.detectedAssignment?.isAssignment && (
-                  <div className="p-3 bg-[var(--bg-subtle)]/70 rounded-xl border border-[var(--border-hairline)] space-y-2">
+                  <div className="p-4 bg-[var(--bg-subtle)]/70 rounded-2xl border border-[var(--border-hairline)] space-y-2">
                     <p className="text-[var(--text-primary)] font-semibold leading-relaxed">
                       {t('gmail_ai_understood')}{' '}
                       {t('gmail_subj_label')} <strong>{activeAlert.detectedAssignment.subject || '?'}</strong> –{' '}
@@ -1143,7 +1022,7 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
                     <button
                       type="button"
                       onClick={() => onExtractAssignment(activeAlert)}
-                      className="px-3 py-1.5 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-lg text-[11px] font-bold cursor-pointer"
+                      className="px-3.5 py-1.5 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-xl text-xs font-bold cursor-pointer"
                     >
                       {t('gmail_check_save')}
                     </button>
@@ -1151,7 +1030,7 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
                 )}
 
                 {activeAlert.oneLineSummary && (
-                  <div className="p-3 bg-[var(--bg-subtle)]/50 rounded-xl border border-[var(--border-hairline)] space-y-1">
+                  <div className="p-4 bg-[var(--bg-subtle)]/50 rounded-2xl border border-[var(--border-hairline)] space-y-1.5">
                     <div className="flex items-center gap-1.5 font-bold text-[var(--accent-text)]">
                       <Sparkles className="w-3.5 h-3.5" />
                       <span>{t('gmail_ai_rec')}</span>
@@ -1166,7 +1045,7 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
                   <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
                     {t('gmail_original')}
                   </span>
-                  <div className="p-3.5 bg-[var(--bg-surface)] rounded-xl border border-[var(--border-hairline)] text-xs text-[var(--text-primary)] leading-relaxed whitespace-pre-line break-words font-sans">
+                  <div className="p-4 bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-hairline)] text-xs text-[var(--text-primary)] leading-relaxed whitespace-pre-line break-words font-sans">
                     {activeRawEmail?.body || activeRawEmail?.snippet || activeAlert.oneLineSummary || t('gmail_no_preview')}
                   </div>
                 </div>

@@ -4,7 +4,7 @@ import { useT, type TranslationKey } from '../services/i18n';
 
 type Batch3Key = TranslationKey;
 
-export const CURRENT_VERSION = '3.0.2';
+export const CURRENT_VERSION = '2.22.0';
 
 interface VersionRelease {
   version: string;
@@ -17,55 +17,10 @@ interface VersionRelease {
 
 const RELEASES: VersionRelease[] = [
   {
-    version: '3.0.2',
-    isoDate: '2026-11-23',
-    titleKey: 'changelog_r_3_0_2_t',
-    badgeKey: 'changelog_latest_badge',
-    highlightKeys: [
-      'changelog_r_3_0_2_h1',
-      'changelog_r_3_0_2_h2',
-      'changelog_r_3_0_2_h3',
-    ],
-    detailKeys: [
-      'changelog_r_3_0_2_d1',
-      'changelog_r_3_0_2_d2',
-      'changelog_r_3_0_2_d3',
-    ],
-  },
-  {
-    version: '3.0.1',
-    isoDate: '2026-11-23',
-    titleKey: 'changelog_r_3_0_1_t',
-    highlightKeys: [
-      'changelog_r_3_0_1_h1',
-      'changelog_r_3_0_1_h2',
-      'changelog_r_3_0_1_h3',
-    ],
-    detailKeys: [
-      'changelog_r_3_0_1_d1',
-      'changelog_r_3_0_1_d2',
-      'changelog_r_3_0_1_d3',
-    ],
-  },
-  {
-    version: '3.0.0',
-    isoDate: '2026-11-23',
-    titleKey: 'changelog_r_3_0_0_t',
-    highlightKeys: [
-      'changelog_r_3_0_0_h1',
-      'changelog_r_3_0_0_h2',
-      'changelog_r_3_0_0_h3',
-    ],
-    detailKeys: [
-      'changelog_r_3_0_0_d1',
-      'changelog_r_3_0_0_d2',
-      'changelog_r_3_0_0_d3',
-    ],
-  },
-  {
     version: '2.22.0',
     isoDate: '2026-11-22',
     titleKey: 'changelog_r_2_22_0_t',
+    badgeKey: 'changelog_latest_badge',
     highlightKeys: [
       'changelog_r_2_22_0_h1',
       'changelog_r_2_22_0_h2',
