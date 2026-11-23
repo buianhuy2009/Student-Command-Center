@@ -71,6 +71,7 @@ import { getLayoutMode, setLayoutMode, type LayoutMode } from '../services/layou
 import { useT } from '../services/i18n';
 import { LanguageToggle } from './LanguageToggle';
 import { DailyReportSettings } from './DailyReportSettings';
+import { OfflineAiStorageCard } from './OfflineAiStorageCard';
 import type { Assignment, CalendarEvent } from '../types';
 import { CURRENT_VERSION } from './ChangelogModal';
 import { setNasaApodEnabled } from '../hooks/useNasaApod';
@@ -835,6 +836,8 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                     {t('settings_backup_banner_sub')}
                   </div>
                 </div>
+
+                <OfflineAiStorageCard />
 
                 <div className="rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-subtle)]/40 divide-y divide-[var(--border-hairline)]">
                   {/* Gemini Key */}

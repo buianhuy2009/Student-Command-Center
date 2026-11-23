@@ -330,9 +330,19 @@ export const HeroInteractivePreview: React.FC<HeroInteractivePreviewProps> = ({
           tabIndex={activeTab === 'coach' ? 0 : -1}
         >
           <div className="p-4 sm:p-5 space-y-3">
-            <div className="flex items-center justify-between text-xs">
+            <div className="flex items-center justify-between gap-2 text-xs flex-wrap">
               <span className="font-bold text-[var(--text-primary)]">AI Study Coach · Socratic Mode</span>
-              <span className="text-[11px] font-mono text-[var(--text-muted)]">Gemini Flash</span>
+              <div className="inline-flex items-center gap-1 rounded-lg bg-[var(--bg-canvas)] border border-[var(--border-hairline)] p-0.5 text-[10px] font-semibold">
+                <span className="px-2 py-0.5 rounded-md bg-[var(--accent-fill)] text-white">Auto</span>
+                <span className="px-2 py-0.5 text-[var(--text-secondary)]">Professor</span>
+                <span className="px-2 py-0.5 text-[var(--text-secondary)] inline-flex items-center gap-1">
+                  <WifiOff className="w-2.5 h-2.5" aria-hidden="true" />
+                  Offline AI
+                </span>
+              </div>
+            </div>
+            <div className="px-2.5 py-1.5 rounded-lg bg-[var(--status-warn-bg)] border border-[var(--status-warn-border)] text-[10px] text-[var(--status-warn-text)] font-medium">
+              Offline AI runs privately on your device (much less smart than Online AI — double-check math &amp; facts).
             </div>
             <div className="p-3 rounded-xl bg-[var(--bg-canvas)] border border-[var(--border-hairline)] text-xs text-[var(--text-secondary)] space-y-2">
               <p className="font-semibold text-[var(--text-primary)]">
@@ -421,12 +431,12 @@ export const StickyWorkflowExplorer: React.FC = () => {
       desc: t('landing_pillar_3_d'),
       aura: '',
       darkCard: true,
-      badge: 'Teacher · Professor · Fast',
+      badge: 'Auto · Professor · Offline AI',
       preview: (
         <div className="space-y-3 text-xs text-slate-200">
           <div className="flex items-center justify-between text-[11px] text-slate-400">
             <span className="font-mono">AI DAILY PLANNER</span>
-            <span className="px-2 py-0.5 rounded-full bg-white/10 text-white font-semibold">Teacher Mode</span>
+            <span className="px-2 py-0.5 rounded-full bg-white/10 text-white font-semibold">Auto Mode</span>
           </div>
           <div className="p-3 rounded-xl bg-white/5 border border-white/10 space-y-1.5">
             <p className="text-white font-semibold">Today · 3 study sprints scheduled</p>

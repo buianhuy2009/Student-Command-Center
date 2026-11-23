@@ -53,6 +53,7 @@ const PRIVACY_ROWS = [
   ['calendar', 'landing_priv_t_calendar', 'landing_priv_w_calendar', 'landing_priv_a_calendar'],
   ['drive_sheets', 'landing_priv_t_drive', 'landing_priv_w_drive', 'landing_priv_a_drive'],
   ['gmail', 'landing_priv_t_gmail', 'landing_priv_w_gmail', 'landing_priv_a_gmail'],
+  ['offline_ai', 'landing_priv_t_offline', 'landing_priv_w_offline', 'landing_priv_a_offline'],
 ] as const;
 
 const INTEGRATIONS = [
@@ -61,7 +62,8 @@ const INTEGRATIONS = [
   'Gmail AI',
   'Google Classroom',
   'Drive & Sheets',
-  'Gemini Flash',
+  'On-Device Offline AI',
+  'Photo Note Scanner',
   'Desmos & GeoGebra',
   'Offline PWA',
 ] as const;
@@ -310,6 +312,49 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
         {/* Sticky 2-Column Interactive Workflow Explorer */}
         <StickyWorkflowExplorer />
+
+        {/* StudentOS v3.0 On-Device Offline AI Highlight */}
+        <section id="offline-ai" className="py-14 sm:py-16 border-t border-[var(--border-hairline)] scroll-mt-20">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+            <div className="max-w-2xl space-y-2">
+              <span className="font-mono text-[11px] font-bold tracking-widest uppercase text-[var(--accent-text)]">
+                STUDENTOS 3.0
+              </span>
+              <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[var(--text-primary)]">
+                {t('landing_v3_title')}
+              </h2>
+              <p className="text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed">
+                {t('landing_v3_sub')}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="p-6 rounded-3xl bg-[var(--bg-surface)] border border-[var(--border-hairline)] space-y-2.5">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[var(--accent-soft)] text-[var(--accent-text)] text-[11px] font-bold">
+                  {t('landing_v3_c1_badge')}
+                </div>
+                <h3 className="text-base font-bold text-[var(--text-primary)]">
+                  {t('landing_v3_c1_t')}
+                </h3>
+                <p className="text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed">
+                  {t('landing_v3_c1_d')}
+                </p>
+              </div>
+
+              <div className="p-6 rounded-3xl bg-[var(--bg-surface)] border border-[var(--border-hairline)] space-y-2.5">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[var(--status-ok-bg)] text-[var(--status-ok-text)] text-[11px] font-bold">
+                  {t('landing_v3_c2_badge')}
+                </div>
+                <h3 className="text-base font-bold text-[var(--text-primary)]">
+                  {t('landing_v3_c2_t')}
+                </h3>
+                <p className="text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed">
+                  {t('landing_v3_c2_d')}
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
 
         {/* 3-Step Quickstart (Architectural Columns) */}
         <section id="how" className="py-16 sm:py-20 border-t border-[var(--border-hairline)] scroll-mt-20">
