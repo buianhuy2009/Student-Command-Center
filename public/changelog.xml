@@ -6,6 +6,12 @@
     <description>Plain-English updates to StudentOS — what changed and why it matters for studying.</description>
     <language>en-us</language>
     <item>
+      <title>v3.0.0 — On-Device Offline AI Suite: Offline Coach, Email Sorting &amp; Photo Note Scanner</title>
+      <link>https://sutdent-command-center.vercel.app/?changelog=3.0.0</link>
+      <pubDate>Mon, 23 Nov 2026 07:12:00 GMT</pubDate>
+      <description>StudentOS v3.0.0 introduces an optional 100% on-device Offline AI suite right inside the browser: Auto/Professor/Offline AI Study Coach with Quick &amp; Deeper levels, Online vs. Offline School Inbox sorting with live countable progress, an offline Photo-to-Note Scanner for printed slides and Vietnamese/English handwriting, and an Offline Storage &amp; RAM manager in Settings.</description>
+    </item>
+    <item>
       <title>v2.22.0 — Redesigned StudentOS Starter Page, Live Demo Mode Video &amp; Populated Demo Workspaces</title>
       <link>https://sutdent-command-center.vercel.app/?changelog=2.22.0</link>
       <pubDate>Sun, 22 Nov 2026 15:16:00 GMT</pubDate>

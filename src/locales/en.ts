@@ -3573,6 +3573,15 @@ export const en = {
   landing_v3_c2_t: 'Photo-to-Note Scanner (Slides & Handwriting)',
   landing_v3_c2_d: 'Snap full pages of printed slides, Vietnamese handwriting, or English handwriting into clean Markdown notes directly on your device — photos never leave your computer or phone.',
 
+  // Changelog v3.0.0
+  changelog_r_3_0_0_t: 'On-Device Offline AI Suite: Offline Coach, Email Sorting & Photo Note Scanner',
+  changelog_r_3_0_0_h1: 'AI Study Coach now offers Auto, Professor, and 100% private Offline AI (with Quick & Deeper thinking levels)',
+  changelog_r_3_0_0_h2: 'School Inbox lets you switch between Online AI and Offline AI with live countable email sorting progress',
+  changelog_r_3_0_0_h3: 'New Photo-to-Note Scanner in Docs & Notes converts printed slides, Vietnamese handwriting, and English handwriting offline',
+  changelog_r_3_0_0_d1: 'Open AI Study Coach to choose Auto for smart everyday help, Professor for deeper STEM/essay explanations, or Offline AI when you want zero uploads or have no internet (with clear reminders that Offline AI is much less smart than Online AI).',
+  changelog_r_3_0_0_d2: 'Toggle Online AI vs. Offline AI right inside School Inbox with continuous email counting and Cancel support, plus manage downloaded browser models, free RAM, or delete offline data anytime in Settings.',
+  changelog_r_3_0_0_d3: 'Open Docs & Notes → Scan Photo to Note (or paste/drop a photo) to turn full pages of printed slides, Vietnamese notes, or English handwriting into editable Markdown notes completely on your device.',
+
 } as const;
 
 export type TranslationKey = keyof typeof en;

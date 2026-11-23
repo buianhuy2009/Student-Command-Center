@@ -3565,4 +3565,13 @@ export const vi = {
   landing_v3_c2_t: 'Quét ảnh thành Ghi chú (Slide & Chữ viết tay)',
   landing_v3_c2_d: 'Chụp cả trang slide in, vở viết tay tiếng Việt hoặc tiếng Anh để chuyển thành ghi chú Markdown ngay trên máy — ảnh không bao giờ rời khỏi thiết bị của bạn.',
 
+  // Changelog v3.0.0
+  changelog_r_3_0_0_t: 'Bộ AI Ngoại tuyến trên máy: Gia sư Offline, Phân loại Email & Quét ảnh thành Ghi chú',
+  changelog_r_3_0_0_h1: 'Gia sư AI có thêm 3 chế độ: Tự động, Chuyên sâu và AI Ngoại tuyến 100% trên máy (với 2 mức Nhanh & Kỹ hơn)',
+  changelog_r_3_0_0_h2: 'Hộp thư trường học cho phép chọn AI Trực tuyến hoặc AI Ngoại tuyến kèm thanh đếm số email đã phân loại theo thời gian thực',
+  changelog_r_3_0_0_h3: 'Tính năng Quét ảnh thành Ghi chú mới hỗ trợ chữ in, chữ viết tay tiếng Việt và tiếng Anh hoàn toàn ngoại tuyến',
+  changelog_r_3_0_0_d1: 'Mở Gia sư AI để chọn Tự động cho nhu cầu hằng ngày, Chuyên sâu cho bài khó, hoặc AI Ngoại tuyến khi mất mạng hay cần riêng tư tuyệt đối (kèm cảnh báo rõ rằng AI Ngoại tuyến kém thông minh hơn Online AI rất nhiều).',
+  changelog_r_3_0_0_d2: 'Chuyển đổi AI Trực tuyến / Ngoại tuyến ngay trong Hộp thư trường học với tiến độ đếm từng email và nút Hủy; quản lý dung lượng trình duyệt, giải phóng RAM hoặc xóa mô hình ngoại tuyến bất kỳ lúc nào trong Cài đặt.',
+  changelog_r_3_0_0_d3: 'Vào Tài liệu & Ghi chú → Quét ảnh thành Ghi chú (hoặc dán/kéo thả ảnh) để chuyển cả trang slide in hoặc vở viết tay thành ghi chú Markdown ngay trên thiết bị mà không tải ảnh lên mạng.',
+
 } satisfies Record<TranslationKey, string>;
