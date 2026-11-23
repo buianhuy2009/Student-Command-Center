@@ -2,7 +2,7 @@ import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import path from 'path';
-import {defineConfig} from 'vite';
+import {defineConfig, defaultClientConditions} from 'vite';
 
 export default defineConfig(() => {
   return {
@@ -55,9 +55,13 @@ export default defineConfig(() => {
       }
     })],
     resolve: {
+      conditions: ['onnxruntime-web-use-extern-wasm', ...defaultClientConditions],
       alias: {
         '@': path.resolve(__dirname, '.'),
       },
+    },
+    worker: {
+      format: 'es',
     },
     server: {
       headers: {
