@@ -16,9 +16,18 @@ vi.mock("@google/genai", () => ({
 
 import apiIndexHandler from "../../../api/index.js";
 import { createServerApp } from "../../../server.ts";
-import { SERVER_MODELS, COACH_MODE_MODELS } from "./gemini/models.js";
+import {
+  ALLOWED_GEMINI_MODELS,
+  SERVER_MODELS,
+  COACH_MODE_MODELS,
+  EMAIL_FAST_MODELS,
+  VISION_CHEAPEST_MODELS,
+  resetModelCooldownsForTest,
+} from "./gemini/models.js";
 import { resetRateLimitsForTest } from "./gemini/generate.js";
 import handleAssistant from "./gemini/assistant.js";
+import handleExtractNotes from "./gemini/extract-notes.js";
+import handleSummarizeEmails from "./gemini/summarize-emails.js";
 import handleQuickDraft from "./gemini/quick-draft.js";
 import handleExtractSubtasks from "./gemini/extract-subtasks.js";
 import handleEstimateEffort from "./gemini/estimate-effort.js";
@@ -69,6 +78,7 @@ describe("Server models & unified API surface", () => {
   beforeEach(() => {
     generateContentMock.mockReset();
     resetRateLimitsForTest();
+    resetModelCooldownsForTest();
   });
 
   afterEach(() => {
@@ -76,12 +86,23 @@ describe("Server models & unified API surface", () => {
     else process.env.GEMINI_API_KEY = originalGeminiKey;
   });
 
-  it("removes nonexistent Gemini model IDs and keeps valid models", () => {
+  it("uses only the allowed Gemini/Gemma models and never calls TTS or unapproved aliases", () => {
     expect(SERVER_MODELS).not.toContain("gemini-3.5-flash");
-    expect(SERVER_MODELS).not.toContain("gemini-3.8-flash");
-    expect(SERVER_MODELS).toContain("gemini-flash-latest");
-    expect(SERVER_MODELS).toContain("gemini-2.5-flash");
-    expect(SERVER_MODELS).toContain("gemini-flash-lite-latest");
+    expect(SERVER_MODELS).not.toContain("gemini-3.8-flash-tts");
+    expect(SERVER_MODELS).not.toContain("gemini-3.8-flash-lite-tts");
+    expect(SERVER_MODELS).not.toContain("gemini-flash-latest");
+    expect(SERVER_MODELS).not.toContain("gemini-2.5-flash");
+    expect(SERVER_MODELS).not.toContain("gemini-flash-lite-latest");
+    for (const m of SERVER_MODELS) {
+      expect(ALLOWED_GEMINI_MODELS).toContain(m);
+    }
+    expect(SERVER_MODELS).toContain("gemini-3-flash-preview");
+    expect(SERVER_MODELS).toContain("gemini-3.1-flash-lite");
+    expect(SERVER_MODELS).toContain("gemini-3.6-flash");
+    expect(SERVER_MODELS).toContain("gemini-3.5-flash-lite");
+    expect(SERVER_MODELS).toContain("gemini-3.8-flash");
+    expect(SERVER_MODELS).toContain("gemma-4-31b-it");
+    expect(SERVER_MODELS).toContain("gemma-4-26b-a4b-it");
   });
 
   it("removes dead app.ts and duplicate handlers.ts", () => {
@@ -105,14 +126,15 @@ describe("Server models & unified API surface", () => {
       await new Promise<void>((resolve) => server.close(() => resolve()));
     });
 
-    it("serves /api/health without nonexistent model IDs", async () => {
+    it("serves /api/health with only allowed model IDs", async () => {
       const res = await fetch(`${baseUrl}/api/health`);
       expect(res.status).toBe(200);
       const data = await res.json();
       expect(data.status).toBe("ok");
       expect(data.models).not.toContain("gemini-3.5-flash");
-      expect(data.models).not.toContain("gemini-3.8-flash");
-      expect(data.models).toContain("gemini-flash-latest");
+      expect(data.models).not.toContain("gemini-3.8-flash-tts");
+      expect(data.models).not.toContain("gemini-flash-latest");
+      expect(data.models).toContain("gemini-3-flash-preview");
     });
 
     it("includes x-canvas-token in CORS Allow-Headers on OPTIONS", async () => {
@@ -397,7 +419,7 @@ describe("Server models & unified API surface", () => {
     });
   });
 
-  describe("AI Coach 3-mode routing", () => {
+  describe("AI Coach 4-tier routing, email fast group, note scanner & limit rotation", () => {
     const prevGemini = process.env.GEMINI_API_KEY;
     const prevGroq = process.env.GROQ_API_KEY;
     const prevFetch = globalThis.fetch;
@@ -410,44 +432,117 @@ describe("Server models & unified API surface", () => {
       globalThis.fetch = prevFetch;
     });
 
-    it("routes Teacher (default) to gemini-3.5-flash-lite and Professor to gemini-3.5-flash", async () => {
-      expect(COACH_MODE_MODELS.teacher[0]).toBe("gemini-3.5-flash-lite");
-      expect(COACH_MODE_MODELS.professor[0]).toBe("gemini-3.5-flash");
+    it("routes Instant (quick), Balanced, Scholar (reasoning), and Mastery (apex) to their exact model tiers", async () => {
+      expect(COACH_MODE_MODELS.quick).toEqual(["gemma-4-31b-it", "gemma-4-26b-a4b-it"]);
+      expect(COACH_MODE_MODELS.balanced).toEqual(["gemini-3-flash-preview", "gemini-3.1-flash-lite"]);
+      expect(COACH_MODE_MODELS.reasoning).toEqual(["gemini-3.6-flash", "gemini-3.5-flash-lite"]);
+      expect(COACH_MODE_MODELS.apex).toEqual(["gemini-3.8-flash"]);
 
       process.env.GEMINI_API_KEY = "AIzaTestOnly";
       generateContentMock.mockResolvedValue({ text: "Coach reply" });
 
-      const resTeacher = createMockRes();
-      await handleAssistant({ method: "POST", body: { messages: [{ role: "user", content: "Hi" }] } }, resTeacher);
-      expect(resTeacher.statusCode).toBe(200);
-      expect(generateContentMock).toHaveBeenCalledWith(expect.objectContaining({ model: "gemini-3.5-flash-lite" }));
-      expect(resTeacher.body.provider).toBe("gemini");
+      const resBalanced = createMockRes();
+      await handleAssistant({ method: "POST", body: { messages: [{ role: "user", content: "Hi" }] } }, resBalanced);
+      expect(resBalanced.statusCode).toBe(200);
+      expect(generateContentMock).toHaveBeenCalledWith(expect.objectContaining({ model: "gemini-3-flash-preview" }));
 
       generateContentMock.mockClear();
-      const resProf = createMockRes();
-      await handleAssistant({ method: "POST", body: { mode: "professor", messages: [{ role: "user", content: "Explain Eigenvalues" }] } }, resProf);
-      expect(resProf.statusCode).toBe(200);
-      expect(generateContentMock).toHaveBeenCalledWith(expect.objectContaining({ model: "gemini-3.5-flash" }));
-      expect(resProf.body.provider).toBe("gemini");
+      const resReasoning = createMockRes();
+      await handleAssistant({ method: "POST", body: { mode: "reasoning", messages: [{ role: "user", content: "Explain Eigenvalues" }] } }, resReasoning);
+      expect(resReasoning.statusCode).toBe(200);
+      expect(generateContentMock).toHaveBeenCalledWith(expect.objectContaining({ model: "gemini-3.6-flash" }));
+
+      generateContentMock.mockClear();
+      const resApex = createMockRes();
+      await handleAssistant({ method: "POST", body: { mode: "apex", messages: [{ role: "user", content: "Prove convergence" }] } }, resApex);
+      expect(resApex.statusCode).toBe(200);
+      expect(generateContentMock).toHaveBeenCalledWith(expect.objectContaining({ model: "gemini-3.8-flash" }));
+
+      generateContentMock.mockClear();
+      const resQuick = createMockRes();
+      await handleAssistant({ method: "POST", body: { mode: "quick", messages: [{ role: "user", content: "Quick tip" }] } }, resQuick);
+      expect(resQuick.statusCode).toBe(200);
+      expect(generateContentMock).toHaveBeenCalledWith(expect.objectContaining({ model: "gemma-4-31b-it" }));
     });
 
-    it("routes Fast mode explicitly to Groq", async () => {
+    it("rotates away from a rate-limited model and falls back to Groq in Instant mode", async () => {
+      process.env.GEMINI_API_KEY = "AIzaTestOnly";
       process.env.GROQ_API_KEY = "gsk_test_only";
+
+      // First call: Gemma 31B hits 429, rotates to Gemma 26B seamlessly.
+      generateContentMock
+        .mockRejectedValueOnce(Object.assign(new Error("429 RESOURCE_EXHAUSTED"), { status: 429 }))
+        .mockResolvedValueOnce({ text: "Gemma 26B reply" });
+
+      const resRotated = createMockRes();
+      await handleAssistant({ method: "POST", body: { mode: "quick", messages: [{ role: "user", content: "Hi" }] } }, resRotated);
+      expect(resRotated.statusCode).toBe(200);
+      expect(resRotated.body.model).toBe("gemma-4-26b-a4b-it");
+
+      // Next call while 31B is cooled down starts straight on 26B; if all Gemma fail, Groq answers.
+      generateContentMock.mockRejectedValue(Object.assign(new Error("429 RESOURCE_EXHAUSTED"), { status: 429 }));
       const fetchSpy = vi.fn().mockResolvedValue({
         ok: true,
         json: async () => ({ choices: [{ message: { content: "Groq fast reply" } }] }),
       } as any);
       globalThis.fetch = fetchSpy;
 
-      const resFast = createMockRes();
-      await handleAssistant({ method: "POST", body: { mode: "fast", messages: [{ role: "user", content: "Quick summary" }] } }, resFast);
-      expect(resFast.statusCode).toBe(200);
-      expect(resFast.body).toEqual({ reply: "Groq fast reply", mode: "fast", provider: "groq" });
-      expect(fetchSpy).toHaveBeenCalledWith(
-        "https://api.groq.com/openai/v1/chat/completions",
-        expect.objectContaining({ method: "POST" })
+      const resGroq = createMockRes();
+      await handleAssistant({ method: "POST", body: { mode: "fast", messages: [{ role: "user", content: "Quick summary" }] } }, resGroq);
+      expect(resGroq.statusCode).toBe(200);
+      expect(resGroq.body).toEqual({ reply: "Groq fast reply", mode: "quick", provider: "groq", model: "llama-3.3-70b-versatile" });
+    });
+
+    it("routes email summarization through the Fast (Gemma 4) model group", async () => {
+      expect(EMAIL_FAST_MODELS).toEqual(["gemma-4-31b-it", "gemma-4-26b-a4b-it"]);
+      process.env.GEMINI_API_KEY = "AIzaTestOnly";
+      generateContentMock.mockResolvedValue({
+        text: JSON.stringify({
+          alerts: [
+            {
+              id: "e1",
+              sender: "Ms. Lan",
+              subject: "Math HW",
+              oneLineSummary: "Homework due tomorrow",
+              urgency: "HIGH",
+              category: "ASSIGNMENT",
+              categoryLabel: "Bài tập",
+              confidence: 0.95,
+              detectedAssignment: { isAssignment: true, name: "Worksheet 2", subject: "Toán", dueDate: "2026-11-24", dueConfidence: "explicit", dueEvidence: "24/11", priority: "High" },
+            },
+          ],
+        }),
+      });
+
+      const res = createMockRes();
+      await handleSummarizeEmails({ method: "POST", body: { emails: [{ id: "e1", sender: "Ms. Lan", subject: "Math HW", body: "Submit 24/11" }] } }, res);
+      expect(res.statusCode).toBe(200);
+      expect(generateContentMock).toHaveBeenCalledWith(expect.objectContaining({ model: "gemma-4-31b-it" }));
+      expect(res.body.model).toBe("gemma-4-31b-it");
+    });
+
+    it("extracts text from note images using the cheapest vision-capable model group", async () => {
+      expect(VISION_CHEAPEST_MODELS[0]).toBe("gemma-4-31b-it");
+      expect(VISION_CHEAPEST_MODELS[1]).toBe("gemma-4-26b-a4b-it");
+      process.env.GEMINI_API_KEY = "AIzaTestOnly";
+      generateContentMock.mockResolvedValue({
+        text: JSON.stringify({
+          title: "Calculus Lecture 4",
+          subject: "Calculus",
+          text: "# Integration by Parts\n$$\\int u\\,dv = uv - \\int v\\,du$$",
+          keyTerms: ["Integration by Parts"],
+        }),
+      });
+
+      const res = createMockRes();
+      await handleExtractNotes(
+        { method: "POST", body: { imageBase64: "ZmFrZQ==", mimeType: "image/png", formatMode: "markdown" } },
+        res
       );
-      expect(generateContentMock).not.toHaveBeenCalled();
+      expect(res.statusCode).toBe(200);
+      expect(generateContentMock).toHaveBeenCalledWith(expect.objectContaining({ model: "gemma-4-31b-it" }));
+      expect(res.body.title).toBe("Calculus Lecture 4");
+      expect(res.body.text).toContain("Integration by Parts");
     });
   });
 

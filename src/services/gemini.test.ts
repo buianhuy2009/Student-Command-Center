@@ -83,10 +83,17 @@ describe('Gemini models & anti-fallback hardening', () => {
     vi.restoreAllMocks();
   });
 
-  it('does not reference retired or nonexistent gemini-3.5-flash / gemini-3.8-flash models', () => {
+  it('does not reference TTS, retired, or unapproved Gemini models', () => {
     const models = [GEMINI_DEFAULT_MODEL, GEMINI_FALLBACK_MODEL, ...GEMINI_SAFETY_MODELS];
     expect(models).not.toContain('gemini-3.5-flash');
-    expect(models).not.toContain('gemini-3.8-flash');
+    expect(models).not.toContain('gemini-3.8-flash-tts');
+    expect(models).not.toContain('gemini-3.8-flash-lite-tts');
+    expect(models).not.toContain('gemini-flash-latest');
+    expect(models).not.toContain('gemini-2.5-flash');
+    expect(models).toContain('gemini-3-flash-preview');
+    expect(models).toContain('gemini-3.1-flash-lite');
+    expect(models).toContain('gemma-4-31b-it');
+    expect(models).toContain('gemma-4-26b-a4b-it');
   });
 
   it('sendStudyAssistantMessage rejects HTML responses and empty replies', async () => {

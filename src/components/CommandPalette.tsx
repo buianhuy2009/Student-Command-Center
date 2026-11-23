@@ -21,6 +21,7 @@ import {
   BookOpen,
   Compass,
   Grid2x2,
+  ScanText,
 } from 'lucide-react';
 import { Assignment, AppTab } from '../types';
 import { useT } from '../services/i18n';
@@ -218,6 +219,13 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       category: t('pal_cat_workspaces'),
       icon: FileText,
       run: () => { onSelectWorkspace('notes-markdown'); onClose(); },
+    },
+    {
+      id: 'ws-note-scanner',
+      title: t('pal_ws_note_scanner'),
+      category: t('pal_cat_workspaces'),
+      icon: ScanText,
+      run: () => { onSelectWorkspace('note-scanner'); onClose(); },
     },
     {
       id: 'ws-flashcards',

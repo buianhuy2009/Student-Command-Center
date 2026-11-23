@@ -10,6 +10,7 @@ import {
   Sparkles,
   Bookmark,
   LayoutDashboard,
+  ScanText,
 } from 'lucide-react';
 import { useT } from '../services/i18n';
 
@@ -185,6 +186,13 @@ export const AppLogo: React.FC<AppLogoProps> = ({ id, size = 'md', className = '
       return (
         <div aria-label={t('logo_notes')} className={`${sizeClasses} bg-gradient-to-br from-[#2563EB] to-[#1D4ED8] text-white flex items-center justify-center font-bold shadow-sm shrink-0 ${className}`}>
           <FileText className={iconSizes} aria-hidden="true" />
+        </div>
+      );
+
+    case 'note-scanner':
+      return (
+        <div aria-label={t('logo_note_scanner')} className={`${sizeClasses} bg-gradient-to-br from-[#0D9488] to-[#0891B2] text-white flex items-center justify-center font-bold shadow-sm shrink-0 ${className}`}>
+          <ScanText className={iconSizes} aria-hidden="true" />
         </div>
       );
 

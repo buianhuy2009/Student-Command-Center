@@ -24,6 +24,7 @@ import {
   Send,
   HelpCircle,
   FileCheck,
+  ScanText,
 } from 'lucide-react';
 import { MathMarkdown } from '../MathMarkdown';
 import { createFormattedAssignmentDoc } from '../../services/googleWorkspace';
@@ -480,6 +481,16 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => window.dispatchEvent(new CustomEvent('scc-navigate', { detail: 'note-scanner' }))}
+                        className="px-3 py-1.5 text-xs font-semibold bg-[var(--bg-subtle)] border border-[var(--border-default)] hover:border-[var(--accent-fill)] text-[var(--text-secondary)] rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer"
+                        title={t('scanner_title')}
+                      >
+                        <ScanText className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
+                        <span>{t('dochub_scan_photo_btn')}</span>
+                      </button>
+
                       <button
                         onClick={handleInsertCornellTemplate}
                         className="px-3 py-1.5 text-xs font-semibold bg-[var(--bg-subtle)] border border-[var(--border-default)] hover:border-[var(--accent-fill)] text-[var(--text-secondary)] rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer"

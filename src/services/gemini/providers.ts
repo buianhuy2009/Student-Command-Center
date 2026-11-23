@@ -1,9 +1,39 @@
-// Default Gemini model chain (server + client fallback to Groq when BYOK key set).
+// Allowed Gemini & Gemma model chain (server + client fallback to Groq when BYOK key set).
 import { t as tr } from '../i18n';
 
-export const GEMINI_DEFAULT_MODEL = 'gemini-flash-latest';
-export const GEMINI_FALLBACK_MODEL = 'gemini-2.5-flash';
-export const GEMINI_SAFETY_MODELS = ['gemini-flash-lite-latest'];
+export const ALLOWED_GEMINI_MODELS = [
+  'gemini-3-flash-preview',
+  'gemini-3.1-flash-lite',
+  'gemini-3.6-flash',
+  'gemini-3.5-flash-lite',
+  'gemini-3.8-flash',
+  'gemma-4-26b-a4b-it',
+  'gemma-4-31b-it',
+] as const;
+
+export const GEMINI_DEFAULT_MODEL = 'gemini-3-flash-preview';
+export const GEMINI_FALLBACK_MODEL = 'gemini-3.1-flash-lite';
+export const GEMINI_SAFETY_MODELS = [
+  'gemma-4-31b-it',
+  'gemma-4-26b-a4b-it',
+  'gemini-3.5-flash-lite',
+  'gemini-3.6-flash',
+  'gemini-3.8-flash',
+];
+
+export const CLIENT_COACH_MODE_MODELS = {
+  quick: ['gemma-4-31b-it', 'gemma-4-26b-a4b-it'],
+  balanced: ['gemini-3-flash-preview', 'gemini-3.1-flash-lite'],
+  reasoning: ['gemini-3.6-flash', 'gemini-3.5-flash-lite'],
+  apex: ['gemini-3.8-flash', 'gemini-3.6-flash', 'gemini-3.5-flash-lite'],
+} as const;
+
+export const VISION_CHEAPEST_MODELS = [
+  'gemma-4-31b-it',
+  'gemma-4-26b-a4b-it',
+  'gemini-3.1-flash-lite',
+  'gemini-3-flash-preview',
+] as const;
 
 /** Mask a key for display (never log full keys). e.g. "AIza...****" */
 export function maskApiKey(key: string): string {

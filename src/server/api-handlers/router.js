@@ -9,6 +9,7 @@ import handleExtractSubtasks from "./gemini/extract-subtasks.js";
 import handleEstimateEffort from "./gemini/estimate-effort.js";
 import handleSuggestStudySlots from "./gemini/suggest-study-slots.js";
 import handleGenerate from "./gemini/generate.js";
+import handleExtractNotes from "./gemini/extract-notes.js";
 import handleGoogleExchange from "./auth/google/exchange.js";
 import handleGoogleRefresh from "./auth/google/refresh.js";
 import handleDailyReport from "./reports/daily.js";
@@ -24,6 +25,7 @@ export const API_ROUTES = new Map([
   ["/gemini/estimate-effort", handleEstimateEffort],
   ["/gemini/suggest-study-slots", handleSuggestStudySlots],
   ["/gemini/generate", handleGenerate],
+  ["/gemini/extract-notes", handleExtractNotes],
   ["/auth/google/exchange", handleGoogleExchange],
   ["/auth/google/refresh", handleGoogleRefresh],
   ["/reports/daily", handleDailyReport],

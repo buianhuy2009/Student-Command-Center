@@ -421,12 +421,12 @@ export const StickyWorkflowExplorer: React.FC = () => {
       desc: t('landing_pillar_3_d'),
       aura: '',
       darkCard: true,
-      badge: 'Teacher · Professor · Fast',
+      badge: 'Instant · Balanced · Scholar · Mastery',
       preview: (
         <div className="space-y-3 text-xs text-slate-200">
           <div className="flex items-center justify-between text-[11px] text-slate-400">
             <span className="font-mono">AI DAILY PLANNER</span>
-            <span className="px-2 py-0.5 rounded-full bg-white/10 text-white font-semibold">Teacher Mode</span>
+            <span className="px-2 py-0.5 rounded-full bg-white/10 text-white font-semibold">Balanced</span>
           </div>
           <div className="p-3 rounded-xl bg-white/5 border border-white/10 space-y-1.5">
             <p className="text-white font-semibold">Today · 3 study sprints scheduled</p>

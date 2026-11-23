@@ -37,6 +37,7 @@ function lazyRetry<T extends { default: React.ComponentType<any> }>(importer: ()
   );
 }
 const DocumentHubWorkspace = lazyRetry(() => import('./components/workspaces/DocumentHubWorkspace').then(m => ({ default: m.DocumentHubWorkspace })));
+const NoteScannerWorkspace = lazyRetry(() => import('./components/workspaces/NoteScannerWorkspace').then(m => ({ default: m.NoteScannerWorkspace })));
 const DesmosWorkspace = lazyRetry(() => import('./components/workspaces/DesmosWorkspace').then(m => ({ default: m.DesmosWorkspace })));
 const GeoGebraWorkspace = lazyRetry(() => import('./components/workspaces/GeoGebraWorkspace').then(m => ({ default: m.GeoGebraWorkspace })));
 const ExcalidrawWorkspace = lazyRetry(() => import('./components/workspaces/ExcalidrawWorkspace').then(m => ({ default: m.ExcalidrawWorkspace })));
@@ -194,6 +195,7 @@ const KEPT_APP_TABS: ReadonlySet<string> = new Set<AppTab>([
   'radar',
   'tracker',
   'notes-markdown',
+  'note-scanner',
   'flashcards',
   'excalidraw',
   'geogebra',
@@ -213,6 +215,7 @@ const TAB_LABEL_KEYS: Record<AppTab, string> = {
   radar: 'app_tab_radar',
   tracker: 'app_tab_tracker',
   'notes-markdown': 'app_tab_notes',
+  'note-scanner': 'app_tab_note_scanner',
   flashcards: 'app_tab_flashcards',
   excalidraw: 'app_tab_excalidraw',
   geogebra: 'app_tab_geogebra',
@@ -3849,6 +3852,12 @@ export default function App() {
                     isGoogleConnected={hasDriveAccess}
                     googleToken={hasDriveAccess ? googleToken || undefined : undefined}
                     onConnectGoogle={() => promptConnectFeature('drive', () => loadRecentFiles(false))}
+                  />
+                )}
+
+                {activeTab === 'note-scanner' && (
+                  <NoteScannerWorkspace
+                    onOpenNotes={() => handleTabTransition('notes-markdown')}
                   />
                 )}
 

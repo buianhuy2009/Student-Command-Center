@@ -27,6 +27,8 @@ import {
   GEMINI_DEFAULT_MODEL,
   GEMINI_FALLBACK_MODEL,
   GEMINI_SAFETY_MODELS,
+  CLIENT_COACH_MODE_MODELS,
+  VISION_CHEAPEST_MODELS,
   maskApiKey,
   getGeminiKeyMeta,
   setGeminiKeyExpiry,
@@ -57,6 +59,8 @@ export {
   GEMINI_DEFAULT_MODEL,
   GEMINI_FALLBACK_MODEL,
   GEMINI_SAFETY_MODELS,
+  CLIENT_COACH_MODE_MODELS,
+  VISION_CHEAPEST_MODELS,
   maskApiKey,
   getGeminiKeyMeta,
   setGeminiKeyExpiry,
@@ -943,15 +947,37 @@ export async function parseNaturalLanguageAssignment(text: string): Promise<Part
   return await postGeminiJsonEndpoint<Partial<Assignment>>('/api/gemini/parse-assignment', { text }, 'Parse assignment API');
 }
 
-export type AiCoachMode = 'teacher' | 'professor' | 'fast';
+export type AiCoachMode = 'quick' | 'balanced' | 'reasoning' | 'apex';
+export type LegacyAiCoachMode = AiCoachMode | 'fast' | 'teacher' | 'professor';
+
+export function normalizeAiCoachMode(raw?: string | null): AiCoachMode {
+  switch (raw) {
+    case 'quick':
+    case 'fast':
+      return 'quick';
+    case 'balanced':
+    case 'teacher':
+      return 'balanced';
+    case 'reasoning':
+    case 'professor':
+    case 'deep':
+      return 'reasoning';
+    case 'apex':
+    case 'deepest':
+      return 'apex';
+    default:
+      return 'balanced';
+  }
+}
 
 export async function sendStudyAssistantMessage(
   messages: { role: 'user' | 'assistant'; content: string }[],
   context?: any,
-  mode: AiCoachMode = 'teacher'
+  rawMode: LegacyAiCoachMode = 'balanced'
 ): Promise<string> {
+  const mode = normalizeAiCoachMode(rawMode);
   try {
-    const data = await postGeminiJsonEndpoint<{ reply?: string }>(
+    const data = await postGeminiJsonEndpoint<{ reply?: string; model?: string; provider?: string }>(
       '/api/gemini/assistant',
       { messages, context, mode },
       'Study assistant API'
@@ -963,14 +989,26 @@ export async function sendStudyAssistantMessage(
   } catch (err) {
     const historyText = messages.map((m) => `${m.role === 'user' ? 'Student' : 'Coach'}: ${m.content}`).join('\n');
     const prompt = `Student context:\n${JSON.stringify(context || {}).slice(0, 6000)}\n\nConversation:\n${historyText}`;
-    if (mode === 'fast' && getClientGroqApiKey()) {
+    if (mode === 'quick' && getClientGeminiApiKey()) {
+      try {
+        const reply = await callGemini({
+          candidateModels: [...CLIENT_COACH_MODE_MODELS.quick],
+          contents: prompt,
+          config: {
+            systemInstruction: 'You are Student Command Coach. Be concise, accurate, and give step-by-step hints without doing homework directly.',
+          },
+        });
+        if (reply.trim()) return reply.trim();
+      } catch {}
+    }
+    if (mode === 'quick' && getClientGroqApiKey()) {
       const reply = await callGroqDirect(prompt, false);
       if (reply.trim()) return reply.trim();
     }
     if (getClientGeminiApiKey() || getClientGroqApiKey()) {
-      const targetModel = mode === 'professor' ? 'gemini-3.5-flash' : 'gemini-3.5-flash-lite';
+      const candidateModels = [...(CLIENT_COACH_MODE_MODELS[mode] || CLIENT_COACH_MODE_MODELS.balanced)];
       const reply = await callGemini({
-        model: targetModel,
+        candidateModels,
         contents: prompt,
         config: {
           systemInstruction: 'You are Student Command Coach. Be concise, accurate, and give step-by-step hints without doing homework directly.',
@@ -979,6 +1017,92 @@ export async function sendStudyAssistantMessage(
       if (reply.trim()) return reply.trim();
     }
     throw err instanceof Error ? err : new Error(String(err));
+  }
+}
+
+export type NoteScanMode = 'markdown' | 'verbatim' | 'summary';
+
+export interface NoteScanResult {
+  title: string;
+  subject: string;
+  text: string;
+  keyTerms: string[];
+  model?: string;
+}
+
+export async function extractTextFromNoteImage(params: {
+  imageBase64: string;
+  mimeType: string;
+  formatMode?: NoteScanMode;
+}): Promise<NoteScanResult> {
+  const formatMode = params.formatMode || 'markdown';
+  try {
+    const data = await postGeminiJsonEndpoint<NoteScanResult>(
+      '/api/gemini/extract-notes',
+      {
+        imageBase64: params.imageBase64,
+        mimeType: params.mimeType,
+        formatMode,
+      },
+      'Note scanner API'
+    );
+    if (!data?.text || !String(data.text).trim()) {
+      throw new Error(t('scanner_err_empty'));
+    }
+    return {
+      title: String(data.title || '').trim() || t('scanner_default_title'),
+      subject: String(data.subject || '').trim() || t('dochub_subject_general'),
+      text: String(data.text),
+      keyTerms: Array.isArray(data.keyTerms) ? data.keyTerms.map(String) : [],
+      model: data.model,
+    };
+  } catch (err) {
+    if (!getClientGeminiApiKey()) {
+      throw err instanceof Error ? err : new Error(String(err));
+    }
+    const modePrompt =
+      formatMode === 'verbatim'
+        ? 'Transcribe every visible word, line, heading, and formula verbatim in clean plain text or markdown without summarizing.'
+        : formatMode === 'summary'
+          ? 'Transcribe the key points from this note image into a structured study outline with headings, bullet points, definitions, and formulas.'
+          : 'Transcribe all handwritten or printed notes in this image into clean, well-structured Markdown. Preserve headings, lists, and convert any math formulas into KaTeX delimiters ($...$ inline, $$...$$ display).';
+    const raw = await callGemini({
+      candidateModels: [...VISION_CHEAPEST_MODELS],
+      skipGroqFallback: true,
+      contents: [
+        { inlineData: { data: params.imageBase64, mimeType: params.mimeType } },
+        {
+          text: `${modePrompt}
+Respond with strict JSON:
+{
+  "title": "Short descriptive title for these notes",
+  "subject": "Detected school subject or General",
+  "text": "The full extracted note content",
+  "keyTerms": ["term 1", "term 2"]
+}`,
+        },
+      ],
+      config: { responseMimeType: 'application/json' },
+    });
+    try {
+      const parsed = repairJsonString<NoteScanResult>(raw);
+      if (parsed && typeof parsed.text === 'string' && parsed.text.trim()) {
+        return {
+          title: String(parsed.title || '').trim() || t('scanner_default_title'),
+          subject: String(parsed.subject || '').trim() || t('dochub_subject_general'),
+          text: parsed.text.trim(),
+          keyTerms: Array.isArray(parsed.keyTerms) ? parsed.keyTerms.map(String) : [],
+        };
+      }
+    } catch {}
+    const fallbackText = raw.trim();
+    if (!fallbackText) throw new Error(t('scanner_err_empty'));
+    return {
+      title: t('scanner_default_title'),
+      subject: t('dochub_subject_general'),
+      text: fallbackText,
+      keyTerms: [],
+    };
   }
 }
 

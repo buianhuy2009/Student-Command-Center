@@ -72,13 +72,13 @@ export interface StreamCallbacks {
 function resolveApiModelName(model: AIModelId): string {
   switch (model) {
     case 'gemini-flash-lite':
-      return 'gemini-flash-lite-latest';
+      return 'gemini-3.1-flash-lite';
     case 'gemini-pro':
-      return 'gemini-2.5-flash';
+      return 'gemini-3.6-flash';
     case 'gemini-flash':
     case 'groq-llama':
     default:
-      return 'gemini-flash-latest';
+      return 'gemini-3-flash-preview';
   }
 }
 

@@ -6,6 +6,12 @@
     <description>Plain-English updates to StudentOS — what changed and why it matters for studying.</description>
     <language>en-us</language>
     <item>
+      <title>v2.23.0 — 4-Tier AI Coach Selector, Automatic Model Rotation, Note Scanner &amp; App Store Redesign</title>
+      <link>https://sutdent-command-center.vercel.app/?changelog=2.23.0</link>
+      <pubDate>Mon, 23 Nov 2026 10:35:00 GMT</pubDate>
+      <description>StudentOS v2.23.0 introduces a 4-tier AI Coach dropdown selector (Instant, Balanced, Scholar, Mastery) with a spacious full-width chat layout, automatic rotation across allowed Gemini and Gemma models on rate limits, fast-tier email triage, a new Note Scanner tool for extracting text and math from note photos, and a redesigned App Store with visual preview cards and Starter Study Packs.</description>
+    </item>
+    <item>
       <title>v2.22.0 — Redesigned StudentOS Starter Page, Live Demo Mode Video &amp; Populated Demo Workspaces</title>
       <link>https://sutdent-command-center.vercel.app/?changelog=2.22.0</link>
       <pubDate>Sun, 22 Nov 2026 15:16:00 GMT</pubDate>

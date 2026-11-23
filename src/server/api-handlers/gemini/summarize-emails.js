@@ -1,5 +1,6 @@
 import { applyApiCors } from "../cors.js";
 import { generateWithModelFallback, parseJsonLoose } from "./generate.js";
+import { EMAIL_FAST_MODELS } from "./models.js";
 
 const VI_WEEKDAYS = ["Chủ nhật", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
 const EN_WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -79,12 +80,13 @@ async function callGroq(prompt) {
   return data?.choices?.[0]?.message?.content || "";
 }
 
-/** Gemini chain first, Groq last. Returns { parsed, model }. */
+/** Fast model group (Gemma 4 31B -> 26B) first, Groq fallback last. Returns { parsed, model }. */
 async function generateJson(prompt) {
   let lastError = null;
   if (process.env.GEMINI_API_KEY) {
     try {
       const { response, model } = await generateWithModelFallback({
+        candidateModels: EMAIL_FAST_MODELS,
         contents: prompt,
         config: { responseMimeType: "application/json", temperature: 0.1 },
       });

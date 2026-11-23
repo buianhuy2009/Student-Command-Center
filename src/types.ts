@@ -225,6 +225,7 @@ export type AppTab =
   | 'radar'
   | 'tracker'
   | 'notes-markdown'
+  | 'note-scanner'
   | 'flashcards'
   | 'excalidraw'
   | 'geogebra'
@@ -250,6 +251,7 @@ export const IA_CATEGORY_MAP: Record<AppTab, IACategory> = {
   pomodoro: 'Learn',
   drive: 'Research',
   'notes-markdown': 'Research',
+  'note-scanner': 'Research',
   arxiv: 'Research',
   'open-library': 'Research',
 };

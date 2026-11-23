@@ -1,7 +1,45 @@
 import { GoogleGenAI } from "@google/genai";
 import { t } from "../i18n";
 import { rateLimiter } from "./rateLimiter";
-import { checkDailyQuota, incrementQuota, getClientGeminiApiKey, callGroqDirect, getClientGroqApiKey, GEMINI_DEFAULT_MODEL, GEMINI_FALLBACK_MODEL, GEMINI_SAFETY_MODELS } from "./providers";
+import {
+  checkDailyQuota,
+  incrementQuota,
+  getClientGeminiApiKey,
+  callGroqDirect,
+  getClientGroqApiKey,
+  GEMINI_DEFAULT_MODEL,
+  GEMINI_FALLBACK_MODEL,
+  GEMINI_SAFETY_MODELS,
+} from "./providers";
+
+const CLIENT_MODEL_COOLDOWN_MS = 90_000;
+const clientModelCooldowns = new Map<string, number>();
+
+function isClientRateLimitError(err: any): boolean {
+  const status = err?.status ?? err?.code ?? err?.response?.status;
+  const msg = String(err?.message || err?.error?.message || err || '');
+  return status === 429 || /\b429\b|RESOURCE_EXHAUSTED|quota|rate limit/i.test(msg);
+}
+
+function markClientModelLimited(model: string): void {
+  if (!model) return;
+  clientModelCooldowns.set(model, Date.now() + CLIENT_MODEL_COOLDOWN_MS);
+}
+
+function prioritizeClientModels(models: string[]): string[] {
+  const now = Date.now();
+  const ready: string[] = [];
+  const cooled: string[] = [];
+  for (const m of models) {
+    const until = clientModelCooldowns.get(m) || 0;
+    if (until > now) cooled.push(m);
+    else {
+      if (until) clientModelCooldowns.delete(m);
+      ready.push(m);
+    }
+  }
+  return [...ready, ...cooled];
+}
 
 function extractErrorText(err: any): string {
   const status = err?.status ?? err?.code ?? err?.response?.status;
@@ -65,18 +103,25 @@ export async function testGroqApiKeyDetailed(key: string): Promise<{ ok: boolean
   }
 }
 
-export async function callGemini(params: { contents: any; config?: any; model?: string }): Promise<string> {
+export async function callGemini(params: {
+  contents: any;
+  config?: any;
+  model?: string;
+  candidateModels?: string[];
+  skipGroqFallback?: boolean;
+}): Promise<string> {
   if (!checkDailyQuota()) throw new Error(t('gclient_daily_limit'));
   return rateLimiter.execute(async () => {
     incrementQuota();
     const clientKey = getClientGeminiApiKey();
-    const targetModel = params.model || GEMINI_DEFAULT_MODEL;
+    const targetModel = params.model || params.candidateModels?.[0] || GEMINI_DEFAULT_MODEL;
     let lastErrorMessage = '';
 
     if (clientKey) {
-      const attempts = Array.from(
-        new Set([targetModel, GEMINI_DEFAULT_MODEL, GEMINI_FALLBACK_MODEL, ...GEMINI_SAFETY_MODELS])
-      );
+      const baseAttempts = params.candidateModels?.length
+        ? params.candidateModels
+        : [targetModel, GEMINI_DEFAULT_MODEL, GEMINI_FALLBACK_MODEL, ...GEMINI_SAFETY_MODELS];
+      const attempts = prioritizeClientModels(Array.from(new Set(baseAttempts)));
       for (const m of attempts) {
         try {
           const ai = new GoogleGenAI({ apiKey: clientKey });
@@ -85,9 +130,14 @@ export async function callGemini(params: { contents: any; config?: any; model?: 
           return res.text;
         } catch (e: any) {
           lastErrorMessage = extractErrorText(e);
-          if (e?.status === 429 || e?.message?.includes('429')) throw e;
+          if (isClientRateLimitError(e)) {
+            markClientModelLimited(m);
+            continue;
+          }
           const isModelNotFound = e?.status === 404 || /NOT_FOUND|not found|Retired|deprecated/i.test(String(e?.message || ''));
-          if (!isModelNotFound) break;
+          if (isModelNotFound) continue;
+          const isBadRequest = e?.status === 400 && /API key not valid|API_KEY_INVALID/i.test(String(e?.message || ''));
+          if (isBadRequest) break;
         }
       }
       console.warn('Client Gemini failed, trying server proxy:', lastErrorMessage);
@@ -97,7 +147,12 @@ export async function callGemini(params: { contents: any; config?: any; model?: 
       const serverRes = await fetch('/api/gemini/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents: params.contents, config: params.config, model: targetModel }),
+        body: JSON.stringify({
+          contents: params.contents,
+          config: params.config,
+          model: targetModel,
+          candidateModels: params.candidateModels,
+        }),
       });
       const contentType = serverRes.headers?.get?.('content-type') || '';
       if (!contentType.includes('application/json')) {
@@ -119,7 +174,7 @@ export async function callGemini(params: { contents: any; config?: any; model?: 
       console.warn('Server proxy failed:', lastErrorMessage);
     }
 
-    if (getClientGroqApiKey()) {
+    if (!params.skipGroqFallback && getClientGroqApiKey()) {
       try {
         let promptText = '';
         if (typeof params.contents === 'string') promptText = params.contents;

@@ -1,6 +1,6 @@
 import { applyApiCors } from "../cors.js";
 import { generateWithModelFallback, sendAiFailure } from "./generate.js";
-import { COACH_MODE_MODELS } from "./models.js";
+import { COACH_MODE_MODELS, normalizeCoachMode } from "./models.js";
 import { TUTOR_POLICY, HOMEWORK_DUMP_REMINDER, isHomeworkDump } from "./tutorPolicy.js";
 
 const GROQ_CHAT_MODELS = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"];
@@ -8,7 +8,7 @@ const GROQ_CHAT_MODELS = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"];
 async function callServerGroq(messages, systemInstruction) {
   const apiKey = String(process.env.GROQ_API_KEY || "").trim();
   if (!apiKey) {
-    const err = new Error("Fast mode uses Groq, which is not configured on this server (missing GROQ_API_KEY).");
+    const err = new Error("Quick tier backup uses Groq, which is not configured on this server (missing GROQ_API_KEY).");
     err.status = 503;
     throw err;
   }
@@ -39,13 +39,35 @@ async function callServerGroq(messages, systemInstruction) {
     if (response.ok) {
       const data = await response.json();
       const text = String(data?.choices?.[0]?.message?.content || "").trim();
-      if (text) return text;
+      if (text) return { text, model };
     } else {
       const detail = await response.text().catch(() => "");
       lastErr = new Error(`Groq ${response.status}: ${detail.slice(0, 180)}`);
     }
   }
   throw lastErr || new Error("Groq did not return a reply.");
+}
+
+function buildFormattedContents(messages) {
+  const formattedContents = [];
+  for (const m of messages || []) {
+    const role = m.role === "assistant" ? "model" : "user";
+    if (formattedContents.length === 0 && role === "model") {
+      continue;
+    }
+    formattedContents.push({
+      role,
+      parts: [{ text: m.content || "" }],
+    });
+  }
+
+  if (formattedContents.length === 0) {
+    formattedContents.push({
+      role: "user",
+      parts: [{ text: "Hello! How can you help me today?" }],
+    });
+  }
+  return formattedContents;
 }
 
 export default async function handler(req, res) {
@@ -56,10 +78,7 @@ export default async function handler(req, res) {
 
   try {
     const { messages, context, mode: rawMode } = req.body || {};
-    const mode =
-      rawMode === "professor" || rawMode === "fast" || rawMode === "teacher"
-        ? rawMode
-        : "teacher";
+    const mode = normalizeCoachMode(rawMode);
 
     // Other studio tools (flashcards, outlines, research brief) reuse this endpoint as a
     // plain generator and identify themselves with context.tool; only the student-facing
@@ -67,11 +86,13 @@ export default async function handler(req, res) {
     const isTutorChat = !(context && context.tool);
 
     const modeGuidance =
-      mode === "professor"
-        ? "Coach depth: Professor mode — provide thorough conceptual intuition, edge-case analysis, and university-level academic rigor."
-        : mode === "fast"
-          ? "Coach style: Fast mode — give crisp, direct, scannable next steps in as few sentences as possible."
-          : "Coach style: Teacher mode — clear, supportive, step-by-step explanations tailored for everyday study.";
+      mode === "apex"
+        ? "Coach depth: Maximum depth — deliver rigorous, nuanced academic synthesis, edge-case checks, and deep conceptual clarity."
+        : mode === "reasoning"
+          ? "Coach depth: Multi-step reasoning — break down tough problems systematically with university-level rigor and intuition."
+          : mode === "quick"
+            ? "Coach style: Quick — give crisp, direct, scannable next steps in as few sentences as possible."
+            : "Coach style: Balanced — clear, supportive, step-by-step explanations tailored for everyday study.";
 
     let systemInstruction = `You are the Student Command Center AI Study Advisor & Academic Coach.
 ${modeGuidance}
@@ -89,41 +110,48 @@ ${JSON.stringify(context || {}, null, 2)}`;
       }
     }
 
-    if (mode === "fast") {
-      const reply = await callServerGroq(messages, systemInstruction);
-      return res.status(200).json({ reply, mode, provider: "groq" });
-    }
+    const formattedContents = buildFormattedContents(messages);
 
-    // Sanitize messages so that turn 0 is ALWAYS 'user' (Gemini requirement)
-    const formattedContents = [];
-    for (const m of messages || []) {
-      const role = m.role === "assistant" ? "model" : "user";
-      if (formattedContents.length === 0 && role === "model") {
-        // Skip assistant welcome greeting if it's at index 0
-        continue;
+    // Quick tier: Gemma 4 (31B -> 26B) first, then Groq fallback when Gemma is unavailable or hits limit.
+    if (mode === "quick") {
+      let gemmaErr = null;
+      if (process.env.GEMINI_API_KEY) {
+        try {
+          const { response, model } = await generateWithModelFallback({
+            candidateModels: COACH_MODE_MODELS.quick,
+            contents: formattedContents,
+            config: { systemInstruction },
+          });
+          const reply = String(response?.text || "").trim();
+          if (reply) {
+            return res.status(200).json({ reply, mode, provider: "gemini", model });
+          }
+        } catch (err) {
+          gemmaErr = err;
+        }
       }
-      formattedContents.push({
-        role,
-        parts: [{ text: m.content || "" }],
-      });
+      try {
+        const { text, model } = await callServerGroq(messages, systemInstruction);
+        return res.status(200).json({ reply: text, mode, provider: "groq", model });
+      } catch (groqErr) {
+        throw gemmaErr || groqErr;
+      }
     }
 
-    if (formattedContents.length === 0) {
-      formattedContents.push({
-        role: "user",
-        parts: [{ text: "Hello! How can you help me today?" }],
-      });
-    }
+    // Build candidate list for the requested tier, plus graceful cross-tier fallback on limit exhaustion.
+    const tierModels = COACH_MODE_MODELS[mode] || COACH_MODE_MODELS.balanced;
+    const crossTierBackup =
+      mode === "apex"
+        ? [...COACH_MODE_MODELS.reasoning, ...COACH_MODE_MODELS.balanced]
+        : mode === "reasoning"
+          ? COACH_MODE_MODELS.balanced
+          : COACH_MODE_MODELS.quick;
+    const candidateModels = [...new Set([...tierModels, ...crossTierBackup])];
 
-    const candidateModels =
-      mode === "professor" ? COACH_MODE_MODELS.professor : COACH_MODE_MODELS.teacher;
-
-    const { response } = await generateWithModelFallback({
+    const { response, model } = await generateWithModelFallback({
       candidateModels,
       contents: formattedContents,
-      config: {
-        systemInstruction,
-      },
+      config: { systemInstruction },
     });
 
     const reply = String(response?.text || "").trim();
@@ -131,7 +159,7 @@ ${JSON.stringify(context || {}, null, 2)}`;
       throw new Error("Empty reply from AI model");
     }
 
-    return res.status(200).json({ reply, mode, provider: "gemini" });
+    return res.status(200).json({ reply, mode, provider: "gemini", model });
   } catch (err) {
     console.error("Study assistant error:", err);
     return sendAiFailure(res, "Study assistant failed", err);

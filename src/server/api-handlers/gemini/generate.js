@@ -1,6 +1,12 @@
 import { GoogleGenAI } from "@google/genai";
 import { applyApiCors } from "../cors.js";
-import { SERVER_MODELS, modelError } from "./models.js";
+import {
+  SERVER_MODELS,
+  isRateLimitError,
+  markModelLimited,
+  modelError,
+  prioritizeAvailableModels,
+} from "./models.js";
 
 let genAI = null;
 let cachedApiKey = null;
@@ -83,11 +89,12 @@ export async function generateWithModelFallback(params) {
     Array.isArray(params?.candidateModels) && params.candidateModels.length > 0
       ? params.candidateModels
       : null;
-  const models = candidateModels
+  const rawModels = candidateModels
     ? candidateModels
     : requested && SERVER_MODELS.includes(requested)
       ? [requested, ...SERVER_MODELS.filter((m) => m !== requested)]
       : SERVER_MODELS;
+  const models = prioritizeAvailableModels(rawModels);
 
   for (const model of models) {
     try {
@@ -98,6 +105,9 @@ export async function generateWithModelFallback(params) {
       });
       return { response, model, errors };
     } catch (e) {
+      if (isRateLimitError(e)) {
+        markModelLimited(model);
+      }
       errors.push(`${model}: ${modelError(e)}`);
       console.warn(`Model ${model} failed: ${e?.message || e}`);
     }
@@ -162,7 +172,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed", code: "method_not_allowed", text: "" });
   }
   try {
-    const { contents, config, model: requestedModel } = req.body || {};
+    const { contents, config, model: requestedModel, candidateModels } = req.body || {};
     if (!contents) {
       return res.status(400).json({ error: "Missing contents", code: "missing_contents", text: "" });
     }
@@ -173,7 +183,15 @@ export default async function handler(req, res) {
     if (!serverDailyQuotaOk(ip)) {
       return res.status(429).json({ error: "Daily quota 50/day exceeded", code: "daily_quota_exceeded", text: "" });
     }
-    const { response, model } = await generateWithModelFallback({ contents, config, model: requestedModel });
+    const allowedCandidates = Array.isArray(candidateModels)
+      ? candidateModels.filter((m) => SERVER_MODELS.includes(m))
+      : undefined;
+    const { response, model } = await generateWithModelFallback({
+      contents,
+      config,
+      model: requestedModel,
+      candidateModels: allowedCandidates && allowedCandidates.length > 0 ? allowedCandidates : undefined,
+    });
     return res.status(200).json({ text: response?.text || "", model });
   } catch (err) {
     console.error("generate error", err);
