@@ -14,8 +14,16 @@ import {
   ArrowLeft,
   FlaskConical,
   Clock,
+  WifiOff,
+  Square,
 } from 'lucide-react';
 import { EmailAlert, EmailMessage, ApiEnablementInfo } from '../types';
+import {
+  getEmailAiMode,
+  setEmailAiMode as persistEmailAiMode,
+  type EmailAiMode,
+} from '../services/localAiConfig';
+import type { EmailSortProgress } from '../services/localEmailClassifier';
 import { ApiActivationBanner } from './ApiActivationBanner';
 import { useT } from '../services/i18n';
 import { dismissReview, getDismissedReviewIds, gmailLink, isTeacherSender, toggleTeacherSender } from '../utils/trust';
@@ -138,6 +146,10 @@ interface GmailRadarTabProps {
   rawEmails: EmailMessage[];
   isLoadingEmails: boolean;
   emailLoadStage?: 'idle' | 'fetching' | 'analyzing';
+  emailAiMode?: EmailAiMode;
+  onChangeEmailAiMode?: (mode: EmailAiMode) => void;
+  emailSortProgress?: EmailSortProgress | null;
+  onCancelEmailSort?: () => void;
   emailsLastSyncedAt?: string | null;
   emailsAreCachedOnly?: boolean;
   onRefreshEmails: (forceResort?: boolean, options?: { maxResults?: number; mode?: 'inbox' | 'academic' }) => void;
@@ -159,6 +171,10 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
   rawEmails,
   isLoadingEmails,
   emailLoadStage = 'idle',
+  emailAiMode: controlledEmailAiMode,
+  onChangeEmailAiMode,
+  emailSortProgress = null,
+  onCancelEmailSort,
   emailsLastSyncedAt = null,
   emailsAreCachedOnly = false,
   onRefreshEmails,
@@ -178,6 +194,13 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
   const [teacherTick, setTeacherTick] = useState(0);
   const [forcing, setForcing] = useState<string | null>(null);
   const [demoMode, setDemoMode] = useState(false);
+  const [localEmailAiMode, setLocalEmailAiMode] = useState<EmailAiMode>(getEmailAiMode);
+  const activeEmailAiMode = controlledEmailAiMode ?? localEmailAiMode;
+  const handleSelectEmailAiMode = (mode: EmailAiMode) => {
+    setLocalEmailAiMode(mode);
+    persistEmailAiMode(mode);
+    onChangeEmailAiMode?.(mode);
+  };
 
   const effectiveAlerts = useMemo(
     () => (demoMode ? [...DEMO_SAMPLE_ALERTS, ...emailAlerts] : emailAlerts),
@@ -646,31 +669,118 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
         </div>
       </div>
 
-      {/* Explicit multi-step loading progress notice */}
-      {(isLoadingEmails || restoring) && (
-        <div
-          role="status"
-          aria-live="polite"
-          className="px-4 py-3 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-surface)] space-y-2"
-        >
-          <div className="flex items-center justify-between gap-2 text-xs">
-            <span className="font-semibold text-[var(--text-primary)] flex items-center gap-2">
-              <RefreshCw className="w-3.5 h-3.5 animate-spin text-[var(--accent-text)]" />
-              <span>{loadingBannerText}</span>
-            </span>
-            <span className="text-[11px] font-mono text-[var(--text-muted)]">
-              {emailLoadStage === 'analyzing' ? '2 / 2' : '1 / 2'}
-            </span>
-          </div>
-          <div className="h-1.5 w-full rounded-full bg-[var(--bg-subtle)] overflow-hidden">
+      {/* Row 1b: Online AI vs Offline AI (On Device) Sorting Mode */}
+      <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-hairline)] px-4 py-2.5 space-y-2 text-xs">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-semibold text-[var(--text-secondary)]">{t('gmail_ai_mode_label')}</span>
             <div
-              className={`h-full bg-[var(--accent-fill)] transition-all duration-500 rounded-full ${
-                emailLoadStage === 'analyzing' ? 'w-3/4 animate-pulse' : 'w-2/5 animate-pulse'
-              }`}
-            />
+              className="inline-flex items-center rounded-xl border border-[var(--border-default)] bg-[var(--bg-canvas)] p-0.5 gap-0.5"
+              role="group"
+              aria-label={t('gmail_ai_mode_label')}
+            >
+              {(['online', 'offline'] as EmailAiMode[]).map((modeKey) => {
+                const active = activeEmailAiMode === modeKey;
+                return (
+                  <button
+                    key={modeKey}
+                    type="button"
+                    onClick={() => handleSelectEmailAiMode(modeKey)}
+                    aria-pressed={active}
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors cursor-pointer flex items-center gap-1 ${
+                      active
+                        ? 'bg-[var(--accent-fill)] text-white shadow-2xs'
+                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
+                    }`}
+                  >
+                    {modeKey === 'offline' && <WifiOff className="w-3 h-3 shrink-0" />}
+                    <span>{modeKey === 'online' ? t('gmail_ai_online') : t('gmail_ai_offline')}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
+          <span className="text-[11px] text-[var(--text-secondary)]">
+            {activeEmailAiMode === 'online' ? t('gmail_ai_online_hint') : t('gmail_ai_offline_hint')}
+          </span>
         </div>
-      )}
+        {activeEmailAiMode === 'offline' && (
+          <div className="flex items-start gap-1.5 px-3 py-2 rounded-xl bg-[var(--status-warn-bg)] border border-[var(--status-warn-border)] text-[11px] text-[var(--status-warn-text)]">
+            <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+            <span>{t('gmail_ai_offline_warn')}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Explicit multi-step loading progress notice */}
+      {(isLoadingEmails || restoring) && (() => {
+        const isDownloading = emailSortProgress?.stage === 'downloading';
+        const dlPercent = emailSortProgress?.downloadPercent ?? 0;
+        const sortTotal = emailSortProgress?.total ?? 0;
+        const sortCompleted = emailSortProgress?.completed ?? 0;
+        const sortPct =
+          isDownloading
+            ? dlPercent
+            : sortTotal > 0
+              ? Math.min(100, Math.round((sortCompleted / sortTotal) * 100))
+              : emailLoadStage === 'analyzing'
+                ? 75
+                : 35;
+
+        const progressLabel = isDownloading
+          ? emailSortProgress?.downloadTotalMb
+            ? t('gmail_sort_progress_dl', {
+                loaded: emailSortProgress.downloadLoadedMb ?? 0,
+                total: emailSortProgress.downloadTotalMb,
+                percent: dlPercent,
+              })
+            : t('gmail_sort_progress_dl_pct', { percent: dlPercent })
+          : emailLoadStage === 'analyzing' && sortTotal > 0
+            ? t('gmail_sort_progress_count', { completed: sortCompleted, total: sortTotal })
+            : loadingBannerText;
+
+        return (
+          <div
+            role="status"
+            aria-live="polite"
+            className="px-4 py-3 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-surface)] space-y-2"
+          >
+            <div className="flex items-center justify-between gap-2 text-xs">
+              <span className="font-semibold text-[var(--text-primary)] flex items-center gap-2 min-w-0">
+                <RefreshCw className="w-3.5 h-3.5 animate-spin text-[var(--accent-text)] shrink-0" />
+                <span className="truncate">{progressLabel}</span>
+              </span>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="text-[11px] font-mono text-[var(--text-muted)]">
+                  {isDownloading
+                    ? `${dlPercent}%`
+                    : emailLoadStage === 'analyzing' && sortTotal > 0
+                      ? `${sortCompleted} / ${sortTotal}`
+                      : emailLoadStage === 'analyzing'
+                        ? '2 / 2'
+                        : '1 / 2'}
+                </span>
+                {onCancelEmailSort && emailLoadStage === 'analyzing' && (
+                  <button
+                    type="button"
+                    onClick={onCancelEmailSort}
+                    className="px-2 py-0.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-[10px] font-semibold inline-flex items-center gap-1 cursor-pointer"
+                  >
+                    <Square className="w-2.5 h-2.5 fill-current" />
+                    <span>{t('gmail_sort_cancel')}</span>
+                  </button>
+                )}
+              </div>
+            </div>
+            <div className="h-1.5 w-full rounded-full bg-[var(--bg-subtle)] overflow-hidden">
+              <div
+                className="h-full bg-[var(--accent-fill)] transition-all duration-300 rounded-full"
+                style={{ width: `${Math.max(8, sortPct)}%` }}
+              />
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Demo mode banner */}
       {demoMode && (

@@ -836,8 +836,35 @@ Return only JSON.`;
 
 export async function summarizeEmailsWithGemini(
   emails: EmailMessage[],
-  opts: { forceAI?: boolean; origin?: 'gmail' | 'classroom' } = {},
+  opts: {
+    forceAI?: boolean;
+    origin?: 'gmail' | 'classroom';
+    mode?: 'online' | 'offline';
+    onProgress?: (progress: {
+      completed: number;
+      total: number;
+      stage: 'downloading' | 'sorting';
+      downloadPercent?: number;
+      downloadLoadedMb?: number;
+      downloadTotalMb?: number;
+    }) => void;
+    signal?: AbortSignal;
+  } = {},
 ): Promise<EmailAlert[]> {
+  const { getEmailAiMode } = await import('./localAiConfig');
+  const activeMode = opts.mode ?? getEmailAiMode();
+
+  // Offline AI mode: 100% local in browser Web Worker, NEVER fall back to cloud APIs.
+  if (activeMode === 'offline') {
+    const { classifyEmailsLocally } = await import('./localEmailClassifier');
+    return await classifyEmailsLocally(emails, {
+      forceAI: opts.forceAI,
+      origin: opts.origin,
+      onProgress: opts.onProgress,
+      signal: opts.signal,
+    });
+  }
+
   // Gmail-native pre-sort saves AI calls: Promotions/Social from non-school senders are not
   // sent to the AI. They are NOT hidden — they land in "AI chưa đọc được" for the student.
   // Teachers the student marked (often on personal Gmail) always go to the AI.
@@ -898,6 +925,7 @@ export async function summarizeEmailsWithGemini(
   const localAlerts = emails
     .filter((e) => bucketOf(e) !== 'AI')
     .map((e) => skippedAlert(e, bucketOf(e) as 'PROMOTION' | 'SOCIAL'));
+  opts.onProgress?.({ completed: localAlerts.length, total: emails.length, stage: 'sorting' });
   if (aiEmails.length === 0) return localAlerts;
   // Data minimisation: quoted replies + signatures cut, body capped at AI_BODY_LIMIT chars.
   const payload = aiEmails.map((e) => ({
@@ -929,6 +957,7 @@ export async function summarizeEmailsWithGemini(
     console.error('Error calling summarize emails API:', error);
     aiAlerts = aiEmails.map((e) => failed(e, 'ai_failed'));
   }
+  opts.onProgress?.({ completed: emails.length, total: emails.length, stage: 'sorting' });
   const byId = new Map<string, EmailAlert>();
   [...aiAlerts, ...localAlerts].forEach((a) => byId.set(a.id, a));
   // Preserve original inbox order; every fetched email stays visible somewhere.

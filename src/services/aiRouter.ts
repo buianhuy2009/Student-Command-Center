@@ -4,7 +4,7 @@ import type { AISource, PromptTemplate } from '../types';
 
 /* ---------- BYOK + provider routing (Gemini primary, Groq fallback) ---------- */
 
-export type AIModelId = 'gemini-flash-lite' | 'gemini-flash' | 'gemini-pro' | 'groq-llama';
+export type AIModelId = 'gemini-flash-lite' | 'gemini-flash' | 'gemini-pro' | 'groq-llama' | 'local-browser';
 export type AITaskKind = 'spam' | 'summarize' | 'essay' | 'code' | 'chat';
 
 export const MODEL_CATALOG: { id: AIModelId; label: string; bestFor: string; cheap: boolean }[] = [
@@ -12,6 +12,7 @@ export const MODEL_CATALOG: { id: AIModelId; label: string; bestFor: string; che
   { id: 'gemini-flash', label: 'Gemini Flash', bestFor: 'Everyday summaries, drafts', cheap: true },
   { id: 'gemini-pro', label: 'Gemini Pro', bestFor: 'Essays, rubrics, hard reasoning', cheap: false },
   { id: 'groq-llama', label: 'Groq Llama (fallback)', bestFor: 'Overflow when Gemini quota hits', cheap: true },
+  { id: 'local-browser', label: 'Offline AI (On Device)', bestFor: '100% private email sorting & quick hints offline', cheap: true },
 ];
 
 /** Per-task default model: cheap for spam, strong for essays. User can override per call. */
