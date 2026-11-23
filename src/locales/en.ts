@@ -3567,6 +3567,15 @@ export const en = {
   changelog_r_2_23_0_d2: 'Open Note Scanner from the App Store, Command Palette, or Markdown Notes toolbar to drop or paste note photos and pull editable text and KaTeX equations using our most economical vision tier.',
   changelog_r_2_23_0_d3: 'All AI routes now rotate cleanly across allowed Gemini and Gemma models when any model hits a rate limit (without calling TTS models), Email triage runs on the fast group, and the App Store features visual preview cards and Starter Study Packs.',
 
+  // Changelog v2.23.1
+  changelog_r_2_23_1_t: 'Calm Gmail Sync Cooldown & Reliable AI Email Reading/Sorting',
+  changelog_r_2_23_1_h1: 'Stopped frequent background Gmail re-syncing caused by focus storms, token refresh events, and short polling intervals',
+  changelog_r_2_23_1_h2: 'Fixed Gemma JSON mode compatibility so AI email triage reads, categorizes, and extracts homework deadlines reliably',
+  changelog_r_2_23_1_h3: 'Added automatic Gemini Flash, chunked Groq, and client-side BYOK key fallbacks when any email AI provider is unavailable',
+  changelog_r_2_23_1_d1: 'Background syncs now run every 5 minutes with a 5-minute Gmail auto-sync cooldown and 2-minute window-focus cooldown, while keeping the manual Refresh Inbox button instant whenever you want a fresh check.',
+  changelog_r_2_23_1_d2: 'Removed unsupported JSON-mode flags on Gemma 4 requests and added seamless fallback to Gemini Flash models and multi-model Groq (with automatic batch chunking) so emails are sorted into Tasks, Announcements, and Other instead of failing.',
+  changelog_r_2_23_1_d3: 'If your previous email fetch hit an AI outage, clicking Refresh Inbox now retries AI sorting directly instead of staying stuck on cached failed items, and uses your saved client Gemini/Groq key if the server route is unavailable.',
+
 } as const;
 
 export type TranslationKey = keyof typeof en;

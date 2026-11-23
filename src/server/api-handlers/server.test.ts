@@ -518,7 +518,36 @@ describe("Server models & unified API surface", () => {
       await handleSummarizeEmails({ method: "POST", body: { emails: [{ id: "e1", sender: "Ms. Lan", subject: "Math HW", body: "Submit 24/11" }] } }, res);
       expect(res.statusCode).toBe(200);
       expect(generateContentMock).toHaveBeenCalledWith(expect.objectContaining({ model: "gemma-4-31b-it" }));
+      const gemmaCall = generateContentMock.mock.calls[0]?.[0];
+      expect(gemmaCall?.config?.responseMimeType).toBeUndefined();
       expect(res.body.model).toBe("gemma-4-31b-it");
+
+      // If Gemma 4 models fail, email summarization falls back to Gemini Flash with JSON mode.
+      generateContentMock.mockReset();
+      generateContentMock
+        .mockRejectedValueOnce(new Error("Gemma 31B unavailable"))
+        .mockRejectedValueOnce(new Error("Gemma 26B unavailable"))
+        .mockResolvedValueOnce({
+          text: JSON.stringify({
+            alerts: [
+              {
+                id: "e2",
+                sender: "Mr. Minh",
+                subject: "Physics Quiz",
+                oneLineSummary: "Quiz Friday",
+                urgency: "HIGH",
+                category: "EXAM",
+                categoryLabel: "Kiểm tra",
+                confidence: 0.9,
+              },
+            ],
+          }),
+        });
+      const resBackup = createMockRes();
+      await handleSummarizeEmails({ method: "POST", body: { emails: [{ id: "e2", sender: "Mr. Minh", subject: "Physics Quiz", body: "Quiz this Friday" }] } }, resBackup);
+      expect(resBackup.statusCode).toBe(200);
+      expect(resBackup.body.model).toBe("gemini-3-flash-preview");
+      expect(resBackup.body.alerts[0]).toMatchObject({ id: "e2", aiStatus: "ok", category: "EXAM" });
     });
 
     it("extracts text from note images using the cheapest vision-capable model group", async () => {

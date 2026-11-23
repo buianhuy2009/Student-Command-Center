@@ -125,7 +125,12 @@ export async function callGemini(params: {
       for (const m of attempts) {
         try {
           const ai = new GoogleGenAI({ apiKey: clientKey });
-          const res = await ai.models.generateContent({ model: m, contents: params.contents, config: params.config });
+          let modelConfig = params.config;
+          if (m.startsWith('gemma-') && modelConfig && typeof modelConfig === 'object') {
+            const { responseMimeType: _rmt, responseSchema: _rs, ...rest } = modelConfig;
+            modelConfig = Object.keys(rest).length > 0 ? rest : undefined;
+          }
+          const res = await ai.models.generateContent({ model: m, contents: params.contents, config: modelConfig });
           if (!res.text || !res.text.trim()) throw new Error(t('gclient_empty_model', { model: m }));
           return res.text;
         } catch (e: any) {

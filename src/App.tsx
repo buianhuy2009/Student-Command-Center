@@ -843,6 +843,18 @@ export default function App() {
   const [lastSyncedAt, setLastSyncedAt] = useState<Date>(new Date());
   const isSyncingRef = useRef(false);
   const pendingFullSyncRef = useRef(false);
+  const isLoadingEmailsRef = useRef(false);
+  const lastEmailSyncAtRef = useRef<number>((() => {
+    try {
+      const saved = localStorage.getItem(LOCAL_EMAILS_LAST_SYNCED_KEY);
+      const parsed = saved ? Date.parse(saved) : NaN;
+      return Number.isFinite(parsed) ? parsed : 0;
+    } catch {
+      return 0;
+    }
+  })());
+  const lastFocusSyncAtRef = useRef<number>(0);
+  const lastSyncedTokenRef = useRef<string | null>(getStoredGoogleToken());
   const connectAttemptRef = useRef(0);
   const isConnectingOAuthRef = useRef(false);
   const syncFeatureByKeyRef = useRef<((feature: GoogleFeature) => Promise<void>) | null>(null);
@@ -1746,6 +1758,10 @@ export default function App() {
 
   // Fetch Academic Emails & Summarize with Gemini (runs ONLY when Gmail permission is granted)
   const loadEmailsAndAlerts = useCallback(async (isSilent = false, forceResort = false, options?: FetchEmailOptions, _retried = false) => {
+    const EMAIL_AUTO_SYNC_COOLDOWN_MS = 5 * 60 * 1000;
+    if (isLoadingEmailsRef.current && !_retried) {
+      return;
+    }
     if (!hasFeatureAccess('gmail', authUidRef.current)) {
       if (!isDemoModeRef.current && rawEmailsRef.current.length === 0) {
         setRawEmails([]);
@@ -1754,6 +1770,15 @@ export default function App() {
       if (emailAlertsRef.current.length > 0) setEmailsAreCachedOnly(true);
       setEmailError(null);
       setGmailApiInfo(null);
+      return;
+    }
+    if (
+      isSilent &&
+      !forceResort &&
+      !options &&
+      rawEmailsRef.current.length > 0 &&
+      Date.now() - lastEmailSyncAtRef.current < EMAIL_AUTO_SYNC_COOLDOWN_MS
+    ) {
       return;
     }
     const token = await ensureFreshGoogleToken(authUidRef.current);
@@ -1769,13 +1794,15 @@ export default function App() {
       return;
     }
 
-    const showProgress = !isSilent || activeTab === 'gmail';
+    isLoadingEmailsRef.current = true;
+    const showProgress = !isSilent;
     if (showProgress) {
       setIsLoadingEmails(true);
       setEmailLoadStage('fetching');
     }
     try {
       const emails = await fetchAcademicEmails(token, options);
+      lastEmailSyncAtRef.current = Date.now();
       setGoogleToken(token);
       setEmailError(null);
       setGmailApiInfo(null);
@@ -1792,9 +1819,10 @@ export default function App() {
         currentRaw.length > 0 &&
         currentRaw.length === emails.length &&
         currentRaw.every((re, i) => re.id === emails[i]?.id);
+      const hasFailedAI = currentAlerts.some((a) => a.aiStatus === 'failed');
 
-      if (isSameSet && currentAlerts.length > 0) {
-        // Cached classification is valid and up to date! Do not re-call Gemini!
+      if (isSameSet && currentAlerts.length > 0 && (!hasFailedAI || isSilent)) {
+        // Cached classification is valid (or silent sync won't hammer AI when previously failed) — do not re-call Gemini!
         setRawEmails(sanitizeRawEmails(emails));
         return;
       }
@@ -1844,6 +1872,7 @@ export default function App() {
       }
     } catch (err: any) {
       console.error('Email fetch error:', err);
+      lastEmailSyncAtRef.current = Date.now();
       const is401 = err?.status === 401 || /401|expired|hết hạn/i.test(err?.message || '');
       if (is401 && !_retried) {
         if (await refreshGoogleAccessToken(true, authUidRef.current)) {
@@ -1867,10 +1896,11 @@ export default function App() {
         isSilent
       );
     } finally {
+      isLoadingEmailsRef.current = false;
       setIsLoadingEmails(false);
       setEmailLoadStage('idle');
     }
-  }, [activeTab, handleGoogleLoaderFailure, handleMissingGoogleToken, t]);
+  }, [handleGoogleLoaderFailure, handleMissingGoogleToken, t]);
 
   // Fetch Master Sheet Assignments (runs ONLY when Google Sheets permission is granted)
   const loadSheetAssignments = useCallback(async (isSilent = false, _retried = false) => {
@@ -2490,32 +2520,41 @@ export default function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-  // 1b. Real-Time Auto-Sync on Google Token Acquisition or Refresh (skip redundant fire during initial hydration)
+  // 1b. Real-Time Auto-Sync on Google Token Acquisition or Refresh (skip redundant fire during hydration or active sync)
   useEffect(() => {
     const handleTokenUpdated = (e: any) => {
       const updated = e.detail?.token ?? getStoredGoogleToken();
       setGoogleToken(updated);
       setScopeRevision((n) => n + 1);
-      if (updated && !isHydratingAuthRef.current && !isConnectingOAuthRef.current) {
-        runFullSync(false);
+      const tokenChanged = Boolean(updated && updated !== lastSyncedTokenRef.current);
+      if (updated) lastSyncedTokenRef.current = updated;
+      if (tokenChanged && !isHydratingAuthRef.current && !isConnectingOAuthRef.current && !isSyncingRef.current) {
+        void runFullSync(true);
       }
     };
     window.addEventListener('scc-google-token-updated', handleTokenUpdated);
     return () => window.removeEventListener('scc-google-token-updated', handleTokenUpdated);
   }, [runFullSync]);
 
-  // 2. Real-Time Background Auto-Sync (every 60s, debounced)
+  // 2. Real-Time Background Auto-Sync (every 5 minutes, debounced)
   useEffect(() => {
-    const interval = setInterval(() => debouncedSync(), 60000);
+    const interval = setInterval(() => debouncedSync(), 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, [debouncedSync]);
 
-  // 3. Real-Time Auto-Sync on Tab Focus / Document Visibility Change — debounced to prevent 4x firestorm
+  // 3. Real-Time Auto-Sync on Tab Focus / Document Visibility Change (cooldown-gated to prevent rapid re-syncs)
   useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') debouncedSync();
+    const FOCUS_SYNC_COOLDOWN_MS = 2 * 60 * 1000;
+    const triggerFocusSync = () => {
+      const now = Date.now();
+      if (now - lastFocusSyncAtRef.current < FOCUS_SYNC_COOLDOWN_MS) return;
+      lastFocusSyncAtRef.current = now;
+      debouncedSync();
     };
-    const handleWindowFocus = () => debouncedSync();
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') triggerFocusSync();
+    };
+    const handleWindowFocus = () => triggerFocusSync();
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('focus', handleWindowFocus);
     return () => {
@@ -3758,7 +3797,7 @@ export default function App() {
                     emailsLastSyncedAt={emailsLastSyncedAt}
                     emailsAreCachedOnly={emailsAreCachedOnly}
                     onRefreshEmails={(forceResort?: boolean, options?: FetchEmailOptions) =>
-                      loadEmailsAndAlerts(false, forceResort ?? true, options)
+                      loadEmailsAndAlerts(forceResort === false && rawEmailsRef.current.length > 0, forceResort ?? true, options)
                     }
                     onOpenQuickDraft={(email?: EmailMessage, alert?: EmailAlert) => {
                       setDraftInitialEmail(email || null);

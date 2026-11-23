@@ -81,6 +81,14 @@ export function resetRateLimitsForTest() {
   dailyQuotaMap.clear();
 }
 
+export function sanitizeConfigForModel(model, config) {
+  if (!config || typeof config !== "object") return config;
+  if (!String(model || "").startsWith("gemma-")) return config;
+  // Gemma endpoints on the Gemini Developer API reject JSON mode (`responseMimeType`/`responseSchema`).
+  const { responseMimeType: _rmt, responseSchema: _rs, ...rest } = config;
+  return Object.keys(rest).length > 0 ? rest : undefined;
+}
+
 export async function generateWithModelFallback(params) {
   const ai = getGenAI();
   const errors = [];
@@ -97,11 +105,12 @@ export async function generateWithModelFallback(params) {
   const models = prioritizeAvailableModels(rawModels);
 
   for (const model of models) {
+    const modelConfig = sanitizeConfigForModel(model, params.config);
     try {
       const response = await ai.models.generateContent({
         model,
         contents: params.contents,
-        config: params.config,
+        config: modelConfig,
       });
       return { response, model, errors };
     } catch (e) {

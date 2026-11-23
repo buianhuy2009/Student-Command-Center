@@ -1,6 +1,6 @@
 import { applyApiCors } from "../cors.js";
 import { generateWithModelFallback, parseJsonLoose } from "./generate.js";
-import { EMAIL_FAST_MODELS } from "./models.js";
+import { EMAIL_FAST_MODELS, SERVER_MODELS } from "./models.js";
 
 const VI_WEEKDAYS = ["Chủ nhật", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
 const EN_WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -62,41 +62,64 @@ Return ONLY JSON:
 {"alerts":[{"id":"same id","sender":"clean sender name","subject":"email subject","oneLineSummary":"...","urgency":"HIGH|MEDIUM|LOW|INFO","category":"ASSIGNMENT|EXAM|GRADE|SCHEDULE|ANNOUNCEMENT|SPAM|PROMOTION|SOCIAL|GENERAL","categoryLabel":"e.g. 'Bài tập' or 'Khuyến mãi'","isSpam":false,"spamReason":"","language":"vi|en|other","confidence":0.9,"detectedAssignment":{"isAssignment":true,"name":"short task name","subject":"Toán","dueDate":"YYYY-MM-DD or empty","dueConfidence":"explicit|relative|none","dueEvidence":"exact quote or empty","priority":"High|Med|Low"}}]}`;
 }
 
+const GROQ_EMAIL_MODELS = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"];
+
 async function callGroq(prompt) {
   const key = process.env.GROQ_API_KEY;
   if (!key) throw new Error("No GROQ_API_KEY");
-  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-    body: JSON.stringify({
-      model: "llama-3.3-70b-versatile",
-      messages: [{ role: "user", content: prompt }],
-      response_format: { type: "json_object" },
-      temperature: 0.1,
-    }),
-  });
-  if (!res.ok) throw new Error(`Groq ${res.status}`);
-  const data = await res.json();
-  return data?.choices?.[0]?.message?.content || "";
+  let lastErr = null;
+  for (const model of GROQ_EMAIL_MODELS) {
+    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+      body: JSON.stringify({
+        model,
+        messages: [{ role: "user", content: prompt }],
+        response_format: { type: "json_object" },
+        temperature: 0.1,
+      }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const text = data?.choices?.[0]?.message?.content || "";
+      if (text) return { text, model: `groq-${model}` };
+    } else {
+      lastErr = new Error(`Groq ${model} ${res.status}`);
+    }
+  }
+  throw lastErr || new Error("Groq email triage failed");
 }
 
-/** Fast model group (Gemma 4 31B -> 26B) first, Groq fallback last. Returns { parsed, model }. */
+/** Fast model group (Gemma 4 31B -> 26B) first, Gemini Flash fallback, Groq last. Returns { parsed, model }. */
 async function generateJson(prompt) {
   let lastError = null;
   if (process.env.GEMINI_API_KEY) {
-    try {
-      const { response, model } = await generateWithModelFallback({
-        candidateModels: EMAIL_FAST_MODELS,
-        contents: prompt,
-        config: { responseMimeType: "application/json", temperature: 0.1 },
-      });
-      return { parsed: parseJsonLoose(response?.text || "{}"), model };
-    } catch (err) {
-      lastError = err;
+    const geminiBackup = SERVER_MODELS.filter((m) => !EMAIL_FAST_MODELS.includes(m));
+    const candidateGroups = [EMAIL_FAST_MODELS, geminiBackup].filter((g) => g.length > 0);
+    for (const candidateModels of candidateGroups) {
+      try {
+        const { response, model } = await generateWithModelFallback({
+          candidateModels,
+          contents: prompt,
+          config: { responseMimeType: "application/json", temperature: 0.1 },
+        });
+        const parsed = parseJsonLoose(response?.text || "{}");
+        if (Array.isArray(parsed?.alerts)) {
+          return { parsed, model };
+        }
+        lastError = new Error(`${model}: missing alerts array`);
+      } catch (err) {
+        lastError = err;
+      }
     }
   }
   try {
-    return { parsed: parseJsonLoose(await callGroq(prompt)), model: "groq-llama-3.3-70b" };
+    const { text, model } = await callGroq(prompt);
+    const parsed = parseJsonLoose(text || "{}");
+    if (Array.isArray(parsed?.alerts)) {
+      return { parsed, model };
+    }
+    lastError = new Error(`${model}: missing alerts array`);
   } catch (err) {
     lastError = lastError || err;
   }
@@ -195,10 +218,31 @@ export default async function handler(req, res) {
   const batch = emails.slice(0, 40);
   try {
     const { parsed, model } = await generateJson(buildEmailPrompt(batch, today));
-    res.status(200).json({ alerts: postProcessAlerts(batch, parsed?.alerts, model), model });
+    return res.status(200).json({ alerts: postProcessAlerts(batch, parsed?.alerts, model), model });
   } catch (err) {
+    // Large batches can hit token/TPM limits (e.g. Groq free tier); chunk into smaller slices before giving up.
+    if (batch.length > 8) {
+      const CHUNK_SIZE = 8;
+      const chunkedAlerts = [];
+      let lastModel = null;
+      let anyChunkSucceeded = false;
+      for (let i = 0; i < batch.length; i += CHUNK_SIZE) {
+        const slice = batch.slice(i, i + CHUNK_SIZE);
+        try {
+          const { parsed, model } = await generateJson(buildEmailPrompt(slice, today));
+          lastModel = model;
+          anyChunkSucceeded = true;
+          chunkedAlerts.push(...postProcessAlerts(slice, parsed?.alerts, model));
+        } catch {
+          chunkedAlerts.push(...slice.map((e) => failedAlert(e, "ai_failed")));
+        }
+      }
+      if (anyChunkSucceeded) {
+        return res.status(200).json({ alerts: chunkedAlerts, model: lastModel });
+      }
+    }
     console.error("Email summarization error:", err);
     // Honest fallback: nothing is invented, everything not spam goes to the review box.
-    res.status(200).json({ alerts: batch.map((e) => failedAlert(e, "ai_failed")), model: null, error: "ai_unavailable" });
+    return res.status(200).json({ alerts: batch.map((e) => failedAlert(e, "ai_failed")), model: null, error: "ai_unavailable" });
   }
 }

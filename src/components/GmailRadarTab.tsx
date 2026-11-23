@@ -270,7 +270,13 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
               }
             }
           } catch {}
-          try { onRefreshEmails(false); } catch {}
+          const isStale =
+            !emailsLastSyncedAt ||
+            !Number.isFinite(Date.parse(emailsLastSyncedAt)) ||
+            Date.now() - Date.parse(emailsLastSyncedAt) > 5 * 60 * 1000;
+          if (rawEmails.length === 0 || isStale) {
+            try { onRefreshEmails(false); } catch {}
+          }
         } else {
           setLiveConnected(false);
           if (rawEmails.length === 0) {
@@ -340,7 +346,7 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
             }
           }
         } catch {}
-        try { onRefreshEmails(false); } catch {}
+        try { onRefreshEmails(true); } catch {}
       }
     } catch (err: any) {
       const msg = String(err?.message || '');

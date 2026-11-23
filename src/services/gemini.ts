@@ -916,21 +916,94 @@ export async function summarizeEmailsWithGemini(
     labelIds: e.labelIds || [],
     knownTeacher: isTeacherSender(e.senderEmail),
   }));
-  let aiAlerts: EmailAlert[];
+  let aiAlerts: EmailAlert[] | null = null;
   try {
-    const data = await postGeminiJsonEndpoint<{ alerts?: any[] }>(
+    const data = await postGeminiJsonEndpoint<{ alerts?: any[]; model?: string | null; error?: string }>(
       '/api/gemini/summarize-emails',
       { emails: payload, today: new Date().toISOString() },
       'Summarize API'
     );
-    const byId = new Map<string, any>((data.alerts || []).map((a: any) => [String(a.id), a]));
-    aiAlerts = aiEmails.map((src) => {
-      const alert = byId.get(String(src.id));
-      if (!alert) return failed(src, 'ai_omitted');
-      return { ...alert, gmailLabels: src.labelIds || [], rawEmail: src, origin, sourceUrl: linkOf(src) } as EmailAlert;
-    });
+    const hasUsableAi =
+      Array.isArray(data?.alerts) &&
+      data.alerts.length > 0 &&
+      data.error !== 'ai_unavailable' &&
+      data.alerts.some((a: any) => a?.aiStatus !== 'failed');
+    if (hasUsableAi) {
+      const byId = new Map<string, any>((data.alerts || []).map((a: any) => [String(a.id), a]));
+      aiAlerts = aiEmails.map((src) => {
+        const alert = byId.get(String(src.id));
+        if (!alert) return failed(src, 'ai_omitted');
+        return { ...alert, gmailLabels: src.labelIds || [], rawEmail: src, origin, sourceUrl: linkOf(src) } as EmailAlert;
+      });
+    }
   } catch (error) {
-    console.error('Error calling summarize emails API:', error);
+    console.warn('Summarize emails API failed, checking client AI fallback:', error);
+  }
+
+  // Client-side BYOK fallback when server /api/gemini/summarize-emails is unavailable or unconfigured.
+  if (!aiAlerts && (getClientGeminiApiKey() || getClientGroqApiKey())) {
+    try {
+      const todayIso = new Date().toISOString().slice(0, 10);
+      const runDirectBatch = async (chunkPayload: typeof payload) => {
+        const prompt = `Read these school emails for a student and return JSON classifying each email.
+Today: ${todayIso}. Resolve relative dates from each email's dateISO/date. Never invent a dueDate (use "" if unclear).
+Teachers/schools/LMS senders are NEVER PROMOTION or SPAM.
+Emails:
+${JSON.stringify(chunkPayload)}
+
+Return ONLY JSON:
+{"alerts":[{"id":"same id","sender":"clean sender name","subject":"email subject","oneLineSummary":"under 16 words in email language","urgency":"HIGH|MEDIUM|LOW|INFO","category":"ASSIGNMENT|EXAM|GRADE|SCHEDULE|ANNOUNCEMENT|SPAM|PROMOTION|SOCIAL|GENERAL","categoryLabel":"short label","isSpam":false,"spamReason":"","language":"vi|en|other","confidence":0.9,"detectedAssignment":{"isAssignment":true,"name":"short task name","subject":"subject","dueDate":"YYYY-MM-DD or empty","dueConfidence":"explicit|relative|none","dueEvidence":"exact quote or empty","priority":"High|Med|Low"}}]}`;
+        const rawText = getClientGeminiApiKey()
+          ? await callGemini({
+              candidateModels: [GEMINI_FALLBACK_MODEL, GEMINI_DEFAULT_MODEL, 'gemma-4-31b-it', 'gemma-4-26b-a4b-it'],
+              contents: prompt,
+              config: { responseMimeType: 'application/json', temperature: 0.1 },
+            })
+          : await callGroqDirect(prompt, true);
+        const parsed = repairJsonString<{ alerts?: any[] }>(rawText);
+        return Array.isArray(parsed?.alerts) ? parsed.alerts : [];
+      };
+
+      const directList: any[] = [];
+      const CHUNK_SIZE = 10;
+      for (let i = 0; i < payload.length; i += CHUNK_SIZE) {
+        try {
+          directList.push(...(await runDirectBatch(payload.slice(i, i + CHUNK_SIZE))));
+        } catch (chunkErr) {
+          console.warn('Client email batch failed:', chunkErr);
+        }
+      }
+      if (directList.length > 0) {
+        const byId = new Map<string, any>(directList.filter((a) => a?.id).map((a: any) => [String(a.id), a]));
+        aiAlerts = aiEmails.map((src) => {
+          const alert = byId.get(String(src.id));
+          if (!alert) return failed(src, 'ai_omitted');
+          const academic = isAcademicSender(src);
+          const labels = src.labelIds || [];
+          const cat = alert.category === 'PROMOTION' || alert.category === 'SPAM' ? (academic ? 'GENERAL' : alert.category) : alert.category || 'GENERAL';
+          const det = alert.detectedAssignment;
+          if (det && !/^\d{4}-\d{2}-\d{2}$/.test(String(det.dueDate || ''))) {
+            det.dueDate = '';
+            det.dueConfidence = 'none';
+          }
+          return {
+            ...alert,
+            category: cat,
+            isSpam: academic ? false : Boolean(alert.isSpam),
+            aiStatus: 'ok' as const,
+            gmailLabels: labels,
+            rawEmail: src,
+            origin,
+            sourceUrl: linkOf(src),
+          } as EmailAlert;
+        });
+      }
+    } catch (directErr) {
+      console.error('Client email summarization fallback failed:', directErr);
+    }
+  }
+
+  if (!aiAlerts) {
     aiAlerts = aiEmails.map((e) => failed(e, 'ai_failed'));
   }
   const byId = new Map<string, EmailAlert>();

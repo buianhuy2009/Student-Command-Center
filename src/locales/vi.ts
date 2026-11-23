@@ -3559,4 +3559,13 @@ export const vi = {
   changelog_r_2_23_0_d2: 'Mở Quét ảnh ghi chú từ Kho ứng dụng, Bảng lệnh (⌘K) hoặc thanh Ghi chú để kéo thả hoặc dán ảnh và trích xuất nội dung cùng công thức KaTeX bằng nhóm model tiết kiệm nhất.',
   changelog_r_2_23_0_d3: 'Mọi tác vụ AI tự động đổi sang model dự phòng trong danh sách cho phép khi một model chạm giới hạn (không gọi nhầm model TTS), quét Gmail dùng nhóm nhanh và Kho ứng dụng có thẻ xem trước cùng Bộ công cụ gợi ý.',
 
+  // Changelog v2.23.1
+  changelog_r_2_23_1_t: 'Dừng đồng bộ Gmail liên tục & Khắc phục AI đọc và phân loại email',
+  changelog_r_2_23_1_h1: 'Ngừng tình trạng tự quét lại Gmail liên tục do chuyển cửa sổ, làm mới token và chu kỳ nền quá ngắn',
+  changelog_r_2_23_1_h2: 'Sửa lỗi tương thích JSON mode trên Gemma để AI đọc, phân loại thư và trích xuất hạn bài tập ổn định',
+  changelog_r_2_23_1_h3: 'Bổ sung dự phòng tự động qua Gemini Flash, Groq chia nhỏ lô và khóa BYOK cá nhân khi máy chủ bận',
+  changelog_r_2_23_1_d1: 'Đồng bộ nền được giãn thành mỗi 5 phút kèm thời gian chờ 5 phút cho tự động đồng bộ Gmail và 2 phút khi quay lại tab; nút Làm mới hộp thư vẫn chạy ngay lập tức khi bạn bấm.',
+  changelog_r_2_23_1_d2: 'Loại bỏ tham số JSON mode không hỗ trợ khi gọi Gemma 4 và tự động dự phòng sang Gemini Flash hoặc Groq (có chia nhỏ lô thư) để email được phân loại vào Bài tập, Thông báo và Khác thay vì báo lỗi.',
+  changelog_r_2_23_1_d3: 'Nếu lần trước AI gặp lỗi khi đọc thư, bấm Làm mới hộp thư sẽ thử phân loại lại ngay và tận dụng khóa Gemini/Groq cá nhân nếu máy chủ chưa sẵn sàng.',
+
 } satisfies Record<TranslationKey, string>;
