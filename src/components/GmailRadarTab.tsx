@@ -522,9 +522,9 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
   const spamCount = filteredAlerts.filter((a) => a.isSpam).length;
 
   return (
-    <div className="space-y-3.5">
+    <div className="h-full min-h-0 flex-1 flex flex-col gap-3 overflow-hidden">
       {/* Row 1: Calm Connection & Sync Freshness Header */}
-      <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-hairline)] px-4 py-2.5 flex flex-wrap items-center justify-between gap-2.5 text-xs">
+      <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-hairline)] px-4 py-2.5 flex flex-wrap items-center justify-between gap-2.5 text-xs shrink-0">
         <div className="flex flex-wrap items-center gap-2 min-w-0">
           {restoring || isLoadingEmails ? (
             <span className="flex items-center gap-2 text-[var(--text-secondary)] font-semibold">
@@ -786,7 +786,7 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
       )}
 
       {/* RESPONSIVE TWO-PANE MASTER-DETAIL READER */}
-      <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-hairline)] overflow-hidden flex flex-col md:flex-row min-h-[440px] md:h-[calc(100dvh-16rem)] md:max-h-[720px]">
+      <div className="flex-1 min-h-0 bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-hairline)] overflow-hidden flex flex-col md:flex-row">
         {/* LEFT MASTER PANE */}
         <div
           className={`w-full md:w-80 lg:w-96 border-b md:border-b-0 md:border-r border-[var(--border-hairline)] flex-col bg-[var(--bg-subtle)]/40 overflow-hidden ${

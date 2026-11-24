@@ -17,7 +17,7 @@ import {
   Plus,
   Trash2,
   Download,
-  ArrowLeft,
+  FolderKey,
 } from 'lucide-react';
 import { SchoolFile, ApiEnablementInfo } from '../types';
 import { ApiActivationBanner } from './ApiActivationBanner';
@@ -67,6 +67,8 @@ interface GoogleDriveTabProps {
   onRefreshFiles: () => void;
   isGoogleConnected?: boolean;
   onConnectGoogle?: () => void;
+  hasAllDriveAccess?: boolean;
+  onRequestAllFilesAccess?: () => void;
   driveError?: string | null;
   driveApiInfo?: ApiEnablementInfo | null;
   googleToken?: string;
@@ -78,16 +80,17 @@ export const GoogleDriveTab: React.FC<GoogleDriveTabProps> = ({
   onRefreshFiles,
   isGoogleConnected = true,
   onConnectGoogle,
+  hasAllDriveAccess = false,
+  onRequestAllFilesAccess,
   driveError,
   driveApiInfo,
   googleToken,
 }) => {
-  const { t, formatDate, formatTime } = useT();
+  const { t } = useT();
   const [searchQuery, setSearchQuery] = useState('');
   const [fileCategory, setFileCategory] = useState<string>('ALL');
   const [sortOrder, setSortOrder] = useState<string>('DEFAULT');
-  const [selectedFileId, setSelectedFileId] = useState<string | null>(null);
-  const [mobileShowDetail, setMobileShowDetail] = useState(false);
+  const [sharingFileId, setSharingFileId] = useState<string | null>(null);
 
   // User-added external files (device uploads + Drive links)
   const [externalFiles, setExternalFiles] = useState<SchoolFile[]>(() => loadExternalDriveFiles());
@@ -160,8 +163,7 @@ export const GoogleDriveTab: React.FC<GoogleDriveTabProps> = ({
         });
       }
       if (lastId) {
-        setSelectedFileId(lastId);
-        setMobileShowDetail(true);
+        setSharingFileId(null);
       }
     } catch (err: any) {
       setAddFeedback({ type: 'err', text: err?.message || 'Could not add file.' });
@@ -200,8 +202,6 @@ export const GoogleDriveTab: React.FC<GoogleDriveTabProps> = ({
             origin: 'drive_link',
           };
       persistExternal((prev) => [entry, ...prev.filter((f) => f.id !== entry.id)]);
-      setSelectedFileId(entry.id);
-      setMobileShowDetail(true);
       setShowLinkForm(false);
       setLinkUrlInput('');
       setLinkNameInput('');
@@ -225,8 +225,6 @@ export const GoogleDriveTab: React.FC<GoogleDriveTabProps> = ({
         `StudentOS Notes — ${new Date().toLocaleDateString()}`
       );
       persistExternal((prev) => [created, ...prev.filter((f) => f.id !== created.id)]);
-      setSelectedFileId(created.id);
-      setMobileShowDetail(true);
       setAddFeedback({ type: 'ok', text: t('drive_upload_done', { name: created.name }) });
       onRefreshFiles();
     } catch (err: any) {
@@ -241,9 +239,8 @@ export const GoogleDriveTab: React.FC<GoogleDriveTabProps> = ({
     try {
       await db.preferences.delete(`${LOCAL_BLOB_KEY_PREFIX}${fileId}`);
     } catch {}
-    if (selectedFileId === fileId) {
-      setSelectedFileId(null);
-      setMobileShowDetail(false);
+    if (sharingFileId === fileId) {
+      setSharingFileId(null);
     }
   };
 
@@ -317,17 +314,9 @@ export const GoogleDriveTab: React.FC<GoogleDriveTabProps> = ({
     return sorted;
   }, [allFiles, fileCategory, searchQuery, sortOrder]);
 
-  const activeFile = useMemo(() => {
-    if (selectedFileId) {
-      const found = filteredFiles.find((f) => f.id === selectedFileId);
-      if (found) return found;
-    }
-    return filteredFiles[0] || null;
-  }, [selectedFileId, filteredFiles]);
-
-  const handleShareFile = async (e: React.FormEvent) => {
+  const handleShareFile = async (e: React.FormEvent, targetFile: SchoolFile) => {
     e.preventDefault();
-    if (!activeFile || !shareEmail.trim()) return;
+    if (!targetFile || !shareEmail.trim()) return;
     if (!isGoogleConnected || !googleToken) {
       setShareError(t('drive_connect_to_share'));
       if (onConnectGoogle) onConnectGoogle();
@@ -337,9 +326,13 @@ export const GoogleDriveTab: React.FC<GoogleDriveTabProps> = ({
     setShareSuccess(false);
     setShareError(null);
     try {
-      await shareGoogleDriveFile(googleToken, activeFile.id, shareEmail.trim());
+      await shareGoogleDriveFile(googleToken, targetFile.id, shareEmail.trim());
       setShareSuccess(true);
-      setTimeout(() => setShareSuccess(false), 4000);
+      setShareEmail('');
+      setTimeout(() => {
+        setShareSuccess(false);
+        setSharingFileId(null);
+      }, 2000);
     } catch (err: any) {
       console.error('Error sharing file:', err);
       setShareError(err?.message || t('drive_share_err'));
@@ -352,7 +345,7 @@ export const GoogleDriveTab: React.FC<GoogleDriveTabProps> = ({
 
   return (
     <div
-      className={`space-y-4 ${isDragging ? 'ring-2 ring-[var(--accent-fill)] rounded-2xl' : ''}`}
+      className={`h-full min-h-0 flex-1 flex flex-col gap-3 overflow-hidden ${isDragging ? 'ring-2 ring-[var(--accent-fill)] rounded-2xl' : ''}`}
       onDragOver={(e) => {
         e.preventDefault();
         setIsDragging(true);
@@ -373,49 +366,127 @@ export const GoogleDriveTab: React.FC<GoogleDriveTabProps> = ({
         onChange={(e) => void handleDeviceFiles(e.target.files)}
       />
 
-      {/* Add External Files Action Bar */}
-      <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            disabled={isAddingFile}
-            onClick={() => fileInputRef.current?.click()}
-            className="px-3.5 py-2 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-60"
-          >
-            <Upload className="w-3.5 h-3.5" />
-            <span>{isAddingFile ? t('drive_uploading') : t('drive_add_device_btn')}</span>
-          </button>
+      {/* Compact Action & Filter Bar */}
+      <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-3 space-y-2.5 shadow-xs shrink-0">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              disabled={isAddingFile}
+              onClick={() => fileInputRef.current?.click()}
+              className="px-3 py-1.5 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-60"
+            >
+              <Upload className="w-3.5 h-3.5" />
+              <span>{isAddingFile ? t('drive_uploading') : t('drive_add_device_btn')}</span>
+            </button>
 
-          <button
-            type="button"
-            onClick={() => setShowLinkForm((v) => !v)}
-            className="px-3.5 py-2 bg-[var(--bg-subtle)] hover:bg-[var(--bg-hover)] border border-[var(--border-default)] text-[var(--text-primary)] rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
-          >
-            <Link2 className="w-3.5 h-3.5 text-[var(--accent-text)]" />
-            <span>{t('drive_add_link_btn')}</span>
-          </button>
+            <button
+              type="button"
+              onClick={() => setShowLinkForm((v) => !v)}
+              className="px-3 py-1.5 bg-[var(--bg-subtle)] hover:bg-[var(--bg-hover)] border border-[var(--border-default)] text-[var(--text-primary)] rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <Link2 className="w-3.5 h-3.5 text-[var(--accent-text)]" />
+              <span>{t('drive_add_link_btn')}</span>
+            </button>
 
-          <button
-            type="button"
-            disabled={isAddingFile}
-            onClick={handleCreateNewDoc}
-            className="px-3.5 py-2 bg-[var(--bg-subtle)] hover:bg-[var(--bg-hover)] border border-[var(--border-default)] text-[var(--text-primary)] rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-60"
-          >
-            <Plus className="w-3.5 h-3.5 text-[var(--accent-text)]" />
-            <span>{t('drive_new_doc_btn')}</span>
-          </button>
+            <button
+              type="button"
+              disabled={isAddingFile}
+              onClick={handleCreateNewDoc}
+              className="px-3 py-1.5 bg-[var(--bg-subtle)] hover:bg-[var(--bg-hover)] border border-[var(--border-default)] text-[var(--text-primary)] rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-60"
+            >
+              <Plus className="w-3.5 h-3.5 text-[var(--accent-text)]" />
+              <span>{t('drive_new_doc_btn')}</span>
+            </button>
+
+            {onRequestAllFilesAccess && (
+              hasAllDriveAccess ? (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold bg-[var(--status-ok-bg)] text-[var(--status-ok-text)] border border-[var(--status-ok-border)]">
+                  <Check className="w-3.5 h-3.5" />
+                  <span>{t('drive_all_granted_badge')}</span>
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={onRequestAllFilesAccess}
+                  className="px-3 py-1.5 bg-[var(--accent-2-soft,var(--accent-soft))] hover:brightness-95 border border-[var(--accent-2-border,var(--accent-border))] text-[var(--accent-2-text,var(--accent-text))] rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                >
+                  <FolderKey className="w-3.5 h-3.5" />
+                  <span>{t('drive_access_all_btn')}</span>
+                </button>
+              )
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value)}
+              aria-label={t('drive_sort_label')}
+              className="px-2 py-1.5 text-xs bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-xl focus:outline-none focus:ring-1 focus:ring-[var(--accent-fill)] text-[var(--text-secondary)] font-semibold cursor-pointer"
+            >
+              <option value="DEFAULT">{t('drive_sort_default')}</option>
+              <option value="NAME">{t('drive_sort_name')}</option>
+              <option value="NEWEST">{t('drive_sort_newest')}</option>
+              <option value="OLDEST">{t('drive_sort_oldest')}</option>
+            </select>
+            <div className="relative w-44 sm:w-52">
+              <Search className="w-3.5 h-3.5 text-[var(--text-muted)] absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={t('drive_search_ph')}
+                className="w-full pl-8 pr-3 py-1.5 text-xs bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-xl focus:outline-none focus:ring-1 focus:ring-[var(--accent-fill)] text-[var(--text-primary)]"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => (!isGoogleConnected && onConnectGoogle ? onConnectGoogle() : onRefreshFiles())}
+              disabled={isLoadingFiles}
+              className="p-1.5 bg-[var(--bg-subtle)] border border-[var(--border-default)] hover:border-[var(--accent-fill)] text-[var(--text-secondary)] rounded-xl transition-colors cursor-pointer"
+              title={isGoogleConnected ? t('drive_refresh') : t('drive_connect')}
+            >
+              <RefreshCw className={`w-4 h-4 ${isLoadingFiles ? 'animate-spin text-[var(--accent-text)]' : ''}`} />
+            </button>
+          </div>
         </div>
 
-        <p className="text-[11px] text-[var(--text-muted)]">
-          {t('drive_drop_hint')}
-        </p>
+        {/* Category Pills */}
+        <div className="flex items-center justify-between gap-2 flex-wrap pt-1 border-t border-[var(--border-hairline)]">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {[
+              { id: 'ALL', label: t('drive_all') },
+              { id: 'DOCS', label: t('drive_docs') },
+              { id: 'SHEETS', label: t('drive_sheets') },
+              { id: 'SLIDES', label: t('drive_slides') },
+              { id: 'PDF', label: t('drive_pdfs') },
+            ].map((cat) => (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => setFileCategory(cat.id)}
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  fileCategory === cat.id
+                    ? 'bg-[var(--accent-fill)] text-white shadow-xs'
+                    : 'bg-[var(--bg-subtle)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] border border-[var(--border-hairline)]'
+                }`}
+              >
+                {cat.label}
+              </button>
+            ))}
+          </div>
+          <span className="text-[11px] font-semibold text-[var(--text-muted)]">
+            {filteredFiles.length} {t('drive_files')}
+          </span>
+        </div>
       </div>
 
       {/* Inline Link-from-Google-Drive Form */}
       {showLinkForm && (
         <form
           onSubmit={handleAddDriveLink}
-          className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-4 space-y-3 shadow-xs animate-in fade-in duration-150"
+          className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-3.5 space-y-2.5 shadow-xs shrink-0 animate-in fade-in duration-150"
         >
           <div className="flex items-center justify-between gap-2">
             <h3 className="text-xs font-bold text-[var(--text-primary)] flex items-center gap-1.5">
@@ -461,7 +532,7 @@ export const GoogleDriveTab: React.FC<GoogleDriveTabProps> = ({
       {addFeedback && (
         <div
           role="status"
-          className={`px-3.5 py-2.5 rounded-xl border text-xs flex items-center justify-between gap-2 ${
+          className={`px-3.5 py-2 rounded-xl border text-xs flex items-center justify-between gap-2 shrink-0 ${
             addFeedback.type === 'ok'
               ? 'bg-[var(--status-ok-bg)] border-[var(--status-ok-border)] text-[var(--status-ok-text)]'
               : 'bg-[var(--status-err-bg)] border-[var(--status-err-border)] text-[var(--status-err-text)]'
@@ -474,71 +545,13 @@ export const GoogleDriveTab: React.FC<GoogleDriveTabProps> = ({
         </div>
       )}
 
-      {/* Top Filter Bar */}
-      <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-3 flex flex-col lg:flex-row lg:items-center justify-between gap-3 shadow-xs">
-        {/* Category Pills */}
-        <div className="flex items-center gap-1.5 flex-wrap">
-          {[
-            { id: 'ALL', label: t('drive_all') },
-            { id: 'DOCS', label: t('drive_docs') },
-            { id: 'SHEETS', label: t('drive_sheets') },
-            { id: 'SLIDES', label: t('drive_slides') },
-            { id: 'PDF', label: t('drive_pdfs') },
-          ].map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => setFileCategory(cat.id)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                fileCategory === cat.id
-                  ? 'bg-[var(--accent-fill)] text-white shadow-xs'
-                  : 'bg-[var(--bg-subtle)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] border border-[var(--border-default)]'
-              }`}
-            >
-              {cat.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Right Search & Refresh */}
-        <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto justify-end">
-          <select
-            value={sortOrder}
-            onChange={(e) => setSortOrder(e.target.value)}
-            aria-label={t('drive_sort_label')}
-            className="px-2 py-1.5 text-xs bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-xl focus:outline-none focus:ring-1 focus:ring-[var(--accent-fill)] text-[var(--text-secondary)] font-semibold cursor-pointer"
-          >
-            <option value="DEFAULT">{t('drive_sort_default')}</option>
-            <option value="NAME">{t('drive_sort_name')}</option>
-            <option value="NEWEST">{t('drive_sort_newest')}</option>
-            <option value="OLDEST">{t('drive_sort_oldest')}</option>
-          </select>
-          <div className="relative flex-1 sm:flex-initial sm:w-48 min-w-[140px]">
-            <Search className="w-3.5 h-3.5 text-[var(--text-muted)] absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={t('drive_search_ph')}
-              className="w-full pl-8 pr-3 py-1.5 text-xs bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-xl focus:outline-none focus:ring-1 focus:ring-[var(--accent-fill)] text-[var(--text-primary)]"
-            />
-          </div>
-
-          <button
-            onClick={() => (!isGoogleConnected && onConnectGoogle ? onConnectGoogle() : onRefreshFiles())}
-            disabled={isLoadingFiles}
-            className="p-1.5 bg-[var(--bg-subtle)] border border-[var(--border-default)] hover:border-[var(--accent-fill)] text-[var(--text-secondary)] rounded-xl transition-colors cursor-pointer"
-            title={isGoogleConnected ? t('drive_refresh') : t('drive_connect')}
-          >
-            <RefreshCw className={`w-4 h-4 ${isLoadingFiles ? 'animate-spin text-[var(--accent-text)]' : ''}`} />
-          </button>
-        </div>
-      </div>
-
       {/* Error Banner */}
       {driveApiInfo ? (
-        <ApiActivationBanner info={driveApiInfo} onRetry={onRefreshFiles} isRetrying={isLoadingFiles} />
+        <div className="shrink-0">
+          <ApiActivationBanner info={driveApiInfo} onRetry={onRefreshFiles} isRetrying={isLoadingFiles} />
+        </div>
       ) : driveError ? (
-        <div className="p-3 bg-[var(--status-warn-bg)] border border-[var(--status-warn-border)] rounded-xl flex flex-wrap items-center justify-between gap-3 text-xs text-[var(--status-warn-text)]">
+        <div className="p-3 bg-[var(--status-warn-bg)] border border-[var(--status-warn-border)] rounded-xl flex flex-wrap items-center justify-between gap-3 text-xs text-[var(--status-warn-text)] shrink-0">
           <span>{driveError}</span>
           {onConnectGoogle && (
             <button onClick={onConnectGoogle} className="px-2.5 py-1 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-lg font-semibold cursor-pointer">
@@ -548,237 +561,157 @@ export const GoogleDriveTab: React.FC<GoogleDriveTabProps> = ({
         </div>
       ) : null}
 
-      {/* TWO-PANE RESPONSIVE MASTER-DETAIL LAYOUT */}
-      <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] overflow-hidden shadow-xs flex flex-col md:flex-row min-h-[420px] md:h-[calc(100dvh-19rem)] md:max-h-[680px]">
-        {/* LEFT MASTER PANE: Compact File List */}
-        <div
-          className={`w-full md:w-80 lg:w-96 border-b md:border-b-0 md:border-r border-[var(--border-default)] flex-col bg-[var(--bg-subtle)] overflow-hidden ${
-            mobileShowDetail && activeFile ? 'hidden md:flex' : 'flex'
-          }`}
-        >
-          <div className="p-3 border-b border-[var(--border-default)] flex items-center justify-between text-xs font-bold text-[var(--text-muted)]">
-            <span>{t('drive_items')}</span>
-            <span>{filteredFiles.length} {t('drive_files')}</span>
-          </div>
-
-          <div className="flex-1 overflow-y-auto divide-y divide-[var(--border-default)]">
-            {isLoadingFiles && filteredFiles.length === 0 ? (
-              <div className="p-12 text-center text-[var(--text-muted)] flex flex-col items-center justify-center gap-2">
-                <RefreshCw className="w-5 h-5 animate-spin text-[var(--accent-text)]" />
-                <span className="text-xs">{t('drive_indexing')}</span>
+      {/* CLEAN FILENAME-ONLY LIST (No preview pane) */}
+      <div className="flex-1 min-h-0 bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] overflow-hidden shadow-xs flex flex-col">
+        <div className="flex-1 overflow-y-auto divide-y divide-[var(--border-hairline)]">
+          {isLoadingFiles && filteredFiles.length === 0 ? (
+            <div className="h-full flex flex-col items-center justify-center p-8 text-[var(--text-muted)] gap-2">
+              <RefreshCw className="w-5 h-5 animate-spin text-[var(--accent-text)]" />
+              <span className="text-xs">{t('drive_indexing')}</span>
+            </div>
+          ) : !isGoogleConnected && filteredFiles.length === 0 ? (
+            <div className="h-full flex flex-col items-center justify-center p-8 text-center text-[var(--text-muted)] text-xs space-y-3">
+              <HardDrive className="w-8 h-8 text-[var(--accent-text)] opacity-80" />
+              <div className="space-y-1 max-w-sm">
+                <p className="font-bold text-[var(--text-primary)]">{t('drive_connect_card_title')}</p>
+                <p>{t('drive_connect_card_desc')}</p>
               </div>
-            ) : !isGoogleConnected && filteredFiles.length === 0 ? (
-              <div className="p-8 text-center text-[var(--text-muted)] text-xs space-y-3 my-auto">
-                <HardDrive className="w-8 h-8 mx-auto text-[var(--accent-text)] opacity-80" />
-                <div className="space-y-1">
-                  <p className="font-bold text-[var(--text-primary)]">{t('drive_connect_card_title')}</p>
-                  <p>{t('drive_connect_card_desc')}</p>
-                </div>
-                {onConnectGoogle && (
-                  <button
-                    type="button"
-                    onClick={onConnectGoogle}
-                    className="px-4 py-2 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-xl font-bold cursor-pointer inline-flex items-center gap-1.5"
-                  >
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>{t('canvas_connect_drive_btn')}</span>
-                  </button>
-                )}
-              </div>
-            ) : filteredFiles.length === 0 ? (
-              <div className="p-12 text-center text-[var(--text-muted)] text-xs">
-                {t('drive_empty')}
-              </div>
-            ) : (
-              filteredFiles.map((file) => {
-                const isSelected = activeFile?.id === file.id;
-                const fileType = getFileTypeDetails(file.mimeType);
-                const Icon = fileType.icon;
-                const originBadge =
-                  file.origin === 'local'
-                    ? t('drive_origin_local')
-                    : file.origin === 'drive_link'
-                    ? t('drive_origin_link')
-                    : null;
-
-                return (
-                  <div
-                    key={file.id}
-                    onClick={() => {
-                      setSelectedFileId(file.id);
-                      setMobileShowDetail(true);
-                    }}
-                    className={`p-3.5 hover:bg-[var(--bg-hover)] transition-colors cursor-pointer text-left flex items-start gap-3 ${
-                      isSelected ? 'bg-[var(--bg-surface)] font-semibold border-l-3 border-[var(--accent-fill)]' : ''
-                    }`}
-                  >
-                    <Icon className={`w-4 h-4 mt-0.5 shrink-0 ${fileType.color}`} />
-                    <div className="min-w-0 flex-1">
-                      <div className="text-xs text-[var(--text-primary)] font-semibold truncate mb-0.5">
-                        {file.name}
-                      </div>
-                      <div className="flex items-center flex-wrap gap-1.5 text-[10px] text-[var(--text-muted)]">
-                        <span className={`px-1.5 py-0.2 rounded font-bold ${fileType.bg}`}>
-                          {fileType.label}
+              {onConnectGoogle && (
+                <button
+                  type="button"
+                  onClick={onConnectGoogle}
+                  className="px-4 py-2 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-xl font-bold cursor-pointer inline-flex items-center gap-1.5"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>{t('canvas_connect_drive_btn')}</span>
+                </button>
+              )}
+            </div>
+          ) : filteredFiles.length === 0 ? (
+            <div className="h-full flex items-center justify-center p-8 text-[var(--text-muted)] text-xs">
+              {t('drive_empty')}
+            </div>
+          ) : (
+            filteredFiles.map((file) => {
+              const fileType = getFileTypeDetails(file.mimeType);
+              const Icon = fileType.icon;
+              const isSharingThis = sharingFileId === file.id;
+              return (
+                <div key={file.id} className="px-4 py-2.5 hover:bg-[var(--bg-hover)]/60 transition-colors">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <Icon className={`w-4 h-4 shrink-0 ${fileType.color}`} />
+                      {file.origin === 'local' ? (
+                        <button
+                          type="button"
+                          onClick={() => void handleOpenLocalFile(file)}
+                          className="text-xs sm:text-sm font-medium text-[var(--text-primary)] hover:text-[var(--accent-text)] truncate text-left cursor-pointer"
+                        >
+                          {file.name}
+                        </button>
+                      ) : file.webViewLink ? (
+                        <a
+                          href={file.webViewLink}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-xs sm:text-sm font-medium text-[var(--text-primary)] hover:text-[var(--accent-text)] truncate"
+                        >
+                          {file.name}
+                        </a>
+                      ) : (
+                        <span className="text-xs sm:text-sm font-medium text-[var(--text-primary)] truncate">
+                          {file.name}
                         </span>
-                        {originBadge && (
-                          <span className="px-1.5 py-0.2 rounded font-semibold bg-[var(--bg-surface)] border border-[var(--border-default)] text-[var(--text-secondary)]">
-                            {originBadge}
-                          </span>
-                        )}
-                        {file.modifiedTime && (
-                          <span>{formatDate(file.modifiedTime)}</span>
-                        )}
-                      </div>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {file.origin === 'local' ? (
+                        <button
+                          type="button"
+                          onClick={() => void handleOpenLocalFile(file)}
+                          className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--accent-text)] hover:bg-[var(--bg-surface)] cursor-pointer"
+                          title={t('drive_download_local')}
+                          aria-label={t('drive_download_local')}
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                        </button>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSharingFileId(isSharingThis ? null : file.id);
+                              setShareError(null);
+                              setShareSuccess(false);
+                            }}
+                            className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--accent-text)] hover:bg-[var(--bg-surface)] cursor-pointer"
+                            title={t('drive_share')}
+                            aria-label={t('drive_share')}
+                          >
+                            <Share2 className="w-3.5 h-3.5" />
+                          </button>
+                          {file.webViewLink && (
+                            <a
+                              href={file.webViewLink}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--accent-text)] hover:bg-[var(--bg-surface)]"
+                              title={t('drive_open')}
+                              aria-label={t('drive_open')}
+                            >
+                              <ExternalLink className="w-3.5 h-3.5" />
+                            </a>
+                          )}
+                        </>
+                      )}
+
+                      {isExternalAdded(file) && (
+                        <button
+                          type="button"
+                          onClick={() => void handleRemoveExternalFile(file.id)}
+                          className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-rose-600 hover:bg-[var(--bg-surface)] cursor-pointer"
+                          title={t('drive_remove_added')}
+                          aria-label={t('drive_remove_added')}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                     </div>
                   </div>
-                );
-              })
-            )}
-          </div>
-        </div>
 
-        {/* RIGHT DETAIL PANE: File Inspector & Sharing Studio */}
-        <div
-          className={`flex-1 flex-col min-w-0 bg-[var(--bg-surface)] overflow-hidden ${
-            mobileShowDetail && activeFile ? 'flex' : 'hidden md:flex'
-          }`}
-        >
-          {activeFile ? (
-            <div className="flex-1 flex flex-col h-full overflow-hidden">
-              {/* Header */}
-              <div className="p-4 sm:p-6 border-b border-[var(--border-default)] flex flex-col sm:flex-row sm:items-start justify-between gap-3 bg-[var(--bg-subtle)]/40">
-                <div className="min-w-0 space-y-1">
-                  <button
-                    type="button"
-                    onClick={() => setMobileShowDetail(false)}
-                    className="md:hidden inline-flex items-center gap-1 text-xs font-bold text-[var(--accent-text)] mb-1 cursor-pointer"
-                  >
-                    <ArrowLeft className="w-3.5 h-3.5" />
-                    <span>{t('drive_back_list')}</span>
-                  </button>
-                  <h3 className="text-base font-bold text-[var(--text-primary)] leading-snug break-words">
-                    {activeFile.name}
-                  </h3>
-                  <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--text-muted)]">
-                    <span>{t('drive_type')} <strong className="text-[var(--text-primary)]">{getFileTypeDetails(activeFile.mimeType).label}</strong></span>
-                    {activeFile.modifiedTime && (
-                      <>
-                        <span>•</span>
-                        <span>{t('drive_modified')} {formatDate(activeFile.modifiedTime)} {formatTime(activeFile.modifiedTime)}</span>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2 shrink-0">
-                  {activeFile.origin === 'local' ? (
-                    <button
-                      type="button"
-                      onClick={() => void handleOpenLocalFile(activeFile)}
-                      className="px-3.5 py-1.5 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                  {isSharingThis && (
+                    <form
+                      onSubmit={(e) => handleShareFile(e, file)}
+                      className="mt-2 pl-7 flex flex-wrap items-center gap-2"
                     >
-                      <Download className="w-3.5 h-3.5" />
-                      <span>{t('drive_download_local')}</span>
-                    </button>
-                  ) : activeFile.webViewLink ? (
-                    <a
-                      href={activeFile.webViewLink}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="px-3.5 py-1.5 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 shrink-0"
-                    >
-                      <span>{t('drive_open')}</span>
-                      <ExternalLink className="w-3.5 h-3.5" />
-                    </a>
-                  ) : null}
-
-                  {isExternalAdded(activeFile) && (
-                    <button
-                      type="button"
-                      onClick={() => void handleRemoveExternalFile(activeFile.id)}
-                      className="px-3 py-1.5 bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--status-err-border)] hover:text-[var(--status-err-text)] text-[var(--text-secondary)] rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      <span>{t('drive_remove_added')}</span>
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Inspector Content */}
-              <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 text-xs">
-                {activeFile.origin !== 'local' && (
-                  <div className="p-4 sm:p-5 bg-[var(--bg-subtle)] rounded-2xl border border-[var(--border-default)] space-y-3">
-                    <div className="flex items-center gap-2 font-bold text-[var(--text-primary)]">
-                      <Share2 className="w-4 h-4 text-[var(--accent-text)]" />
-                      <span>{t('drive_share_title')}</span>
-                    </div>
-                    <p className="text-[11px] text-[var(--text-muted)]">
-                      {t('drive_share_desc')}
-                    </p>
-
-                    <form onSubmit={handleShareFile} className="flex flex-col sm:flex-row gap-2">
                       <input
                         type="email"
                         value={shareEmail}
                         onChange={(e) => setShareEmail(e.target.value)}
                         placeholder={t('drive_share_ph')}
-                        className="flex-1 px-3 py-2 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-[var(--accent-fill)]"
+                        className="flex-1 min-w-[180px] px-2.5 py-1.5 bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[var(--accent-fill)]"
                       />
                       <button
                         type="submit"
                         disabled={isSharing || !shareEmail.trim()}
-                        className="px-4 py-2 bg-[var(--text-primary)] text-[var(--bg-canvas)] rounded-xl text-xs font-bold transition-colors cursor-pointer disabled:opacity-50"
+                        className="px-3 py-1.5 bg-[var(--accent-fill)] text-white rounded-lg text-xs font-bold cursor-pointer disabled:opacity-50"
                       >
                         {isSharing ? t('drive_sharing') : t('drive_share')}
                       </button>
+                      {shareSuccess && (
+                        <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                          <Check className="w-3.5 h-3.5" /> {t('drive_shared_ok')}
+                        </span>
+                      )}
+                      {shareError && (
+                        <span className="text-xs text-rose-600 dark:text-rose-400">{shareError}</span>
+                      )}
                     </form>
-
-                    {shareSuccess && (
-                      <div className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-bold animate-in fade-in">
-                        <Check className="w-3.5 h-3.5" />
-                        <span>{t('drive_shared_ok')}</span>
-                      </div>
-                    )}
-                    {shareError && (
-                      <div className="text-xs text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800 rounded-xl p-2.5 flex items-center justify-between gap-2" role="alert">
-                        <span>{shareError}</span>
-                        {!googleToken && onConnectGoogle && (
-                          <button
-                            type="button"
-                            onClick={onConnectGoogle}
-                            className="px-2.5 py-1 bg-[var(--accent-fill)] text-white rounded-lg font-semibold shrink-0 cursor-pointer"
-                          >
-                            {t('drive_connect')}
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* File Summary */}
-                <div className="p-4 bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] space-y-1.5">
-                  <span className="text-[11px] font-bold text-[var(--text-primary)] block">
-                    {t('drive_privacy_title')}
-                  </span>
-                  <p className="text-[11px] text-[var(--text-muted)]">
-                    {getFileTypeDetails(activeFile.mimeType).label}
-                    {activeFile.modifiedTime ? t('drive_updated_at', { date: formatDate(activeFile.modifiedTime) }) : ''}
-                  </p>
-                  <p className="text-[11px] text-[var(--text-muted)]">
-                    {activeFile.origin === 'local' ? t('drive_upload_local_note') : t('drive_privacy_desc')}
-                  </p>
+                  )}
                 </div>
-              </div>
-            </div>
-          ) : (
-            <div className="flex-1 flex flex-col items-center justify-center p-8 text-[var(--text-muted)] text-center space-y-2">
-              <HardDrive className="w-10 h-10 opacity-30" />
-              <p className="text-xs font-bold text-[var(--text-primary)]">{t('drive_select_title')}</p>
-              <p className="text-[11px] max-w-xs">{t('drive_select_hint')}</p>
-            </div>
+              );
+            })
           )}
         </div>
       </div>

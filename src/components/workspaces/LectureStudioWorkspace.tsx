@@ -17,6 +17,7 @@ import {
   Info,
   RotateCcw,
   ArrowRight,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { MathMarkdown } from '../MathMarkdown';
 import { AiProgressBar } from '../ui/AiProgressBar';
@@ -91,6 +92,9 @@ export const LectureStudioWorkspace: React.FC<LectureStudioWorkspaceProps> = ({
   const [subjectInput, setSubjectInput] = useState('');
   const [isDragging, setIsDragging] = useState(false);
   const [activeSubTab, setActiveSubTab] = useState<'summary' | 'transcript'>('summary');
+  const [step, setStep] = useState<'setup' | 'workspace'>(() =>
+    isProcessing || activeLectureId ? 'workspace' : 'setup'
+  );
   const [savedNotesNotice, setSavedNotesNotice] = useState(false);
   const [savedDeckNotice, setSavedDeckNotice] = useState(false);
   const [cacheStats, setCacheStats] = useState<{ entryCount: number; approxMb: number } | null>(null);
@@ -332,187 +336,248 @@ export const LectureStudioWorkspace: React.FC<LectureStudioWorkspaceProps> = ({
     },
   ];
 
-  return (
-    <div className="space-y-5 animate-in fade-in duration-200">
-      {/* Header + Mode / Language Controls */}
-      <div className="bg-[var(--bg-surface)] rounded-2xl p-4 sm:p-5 border border-[var(--border-default)] flex flex-col gap-4 shadow-xs">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div className="flex items-center gap-3.5">
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-              <AudioLines className="w-5 h-5" />
+  if (step === 'setup') {
+    return (
+      <div className="h-full min-h-0 flex-1 flex items-center justify-center overflow-y-auto p-2 animate-in fade-in duration-200">
+        <div className="w-full max-w-3xl bg-[var(--bg-surface)] rounded-3xl p-5 sm:p-6 border border-[var(--border-default)] flex flex-col gap-4 shadow-card">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-[var(--accent-2-fill,var(--accent-fill))] text-white flex items-center justify-center shrink-0 shadow-xs">
+                <AudioLines className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--accent-2-text,var(--accent-text))]">
+                  {t('lecture_step1_heading')}
+                </p>
+                <h2 className="text-lg font-bold text-[var(--text-primary)] tracking-tight">
+                  {t('lecture_title')}
+                </h2>
+              </div>
             </div>
-            <div>
-              <h2 className="text-base sm:text-lg font-bold text-[var(--text-primary)] tracking-tight">
-                {t('lecture_title')}
-              </h2>
-              <p className="text-xs text-[var(--text-muted)] mt-0.5">
-                {t('lecture_sub')}
-              </p>
-            </div>
-          </div>
 
-          {/* Language Selector */}
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="inline-flex items-center gap-1 p-1 bg-[var(--bg-subtle)] rounded-xl border border-[var(--border-default)]">
+            {/* Language Selector */}
+            <div className="inline-flex items-center gap-1 p-1 bg-[var(--bg-subtle)] rounded-xl border border-[var(--border-default)] self-start sm:self-auto">
               {(
                 [
                   { id: 'auto', label: t('lecture_lang_auto') },
                   { id: 'vi', label: t('lecture_lang_vi') },
                   { id: 'en', label: t('lecture_lang_en') },
                 ] as { id: LectureLanguage; label: string }[]
-              ).map((lang) => (
+              ).map((langOpt) => (
                 <button
-                  key={lang.id}
+                  key={langOpt.id}
                   type="button"
                   disabled={isProcessing}
-                  onClick={() => setLanguage(lang.id)}
+                  onClick={() => setLanguage(langOpt.id)}
                   className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer disabled:opacity-60 ${
-                    language === lang.id
+                    language === langOpt.id
                       ? 'bg-[var(--accent-fill)] text-white shadow-2xs'
                       : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                   }`}
                 >
-                  {lang.label}
+                  {langOpt.label}
                 </button>
               ))}
             </div>
           </div>
-        </div>
 
-        {/* Mode Toggle Strip */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 pt-2 border-t border-[var(--border-hairline)]">
-          {modeOptions.map((opt) => {
-            const Icon = opt.icon;
-            const active = mode === opt.id;
-            return (
+          {/* Transcription Mode */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 pt-2 border-t border-[var(--border-hairline)]">
+            {modeOptions.map((opt) => {
+              const Icon = opt.icon;
+              const active = mode === opt.id;
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  disabled={isProcessing}
+                  onClick={() => setMode(opt.id)}
+                  className={`text-left p-3 rounded-xl border transition-all cursor-pointer disabled:opacity-60 flex items-start gap-2.5 ${
+                    active
+                      ? 'bg-[var(--accent-soft)] border-[var(--accent-border)] text-[var(--text-primary)]'
+                      : 'bg-[var(--bg-subtle)]/60 border-[var(--border-hairline)] hover:border-[var(--border-default)] text-[var(--text-secondary)]'
+                  }`}
+                >
+                  <div
+                    className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
+                      active
+                        ? 'bg-[var(--accent-fill)] text-white'
+                        : 'bg-[var(--bg-surface)] text-[var(--text-muted)] border border-[var(--border-hairline)]'
+                    }`}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-xs font-bold text-[var(--text-primary)]">{opt.label}</div>
+                    <div className="text-[11px] text-[var(--text-muted)] mt-0.5 leading-snug">
+                      {opt.hint}
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* AI Summary Engine */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-2 border-t border-[var(--border-hairline)]">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
+                {t('lecture_summary_engine_label')}
+              </span>
+              <div
+                role="group"
+                aria-label={t('lecture_summary_engine_label')}
+                className="inline-flex items-center gap-1 p-1 bg-[var(--bg-subtle)] rounded-xl border border-[var(--border-default)]"
+              >
+                {(
+                  [
+                    { id: 'online', label: t('lecture_summary_mode_online'), Icon: Wifi },
+                    { id: 'offline', label: t('lecture_summary_mode_offline'), Icon: HardDrive },
+                  ] as {
+                    id: LectureSummaryMode;
+                    label: string;
+                    Icon: React.ComponentType<{ className?: string }>;
+                  }[]
+                ).map(({ id, label, Icon }) => (
+                  <button
+                    key={id}
+                    type="button"
+                    disabled={isProcessing}
+                    onClick={() => setSummaryMode(id)}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-60 ${
+                      summaryMode === id
+                        ? 'bg-[var(--accent-fill)] text-white shadow-2xs'
+                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                    }`}
+                  >
+                    <Icon className="w-3 h-3" />
+                    <span>{label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {summaryMode === 'offline' && (
+              <p className="text-[11px] text-[var(--status-warn-text)] bg-[var(--status-warn-bg)]/80 border border-[var(--status-warn-border)]/70 rounded-xl px-2.5 py-1.5 leading-snug">
+                {t('lecture_summary_offline_note')}
+              </p>
+            )}
+          </div>
+
+          {/* Duration Notice */}
+          <div className="rounded-xl border border-[var(--status-info-border)] bg-[var(--status-info-bg)]/60 px-3.5 py-2.5 text-xs text-[var(--status-info-text)] flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-start gap-2 min-w-0 flex-1">
+              <Info className="w-4 h-4 shrink-0 mt-0.5" />
+              <span>
+                {mode === 'online'
+                  ? t('lecture_notice_online', {
+                      min: durationEstimate.minMinutes,
+                      max: durationEstimate.maxMinutes,
+                    })
+                  : t('lecture_notice_offline', {
+                      min: durationEstimate.minMinutes,
+                      max: durationEstimate.maxMinutes,
+                    })}
+              </span>
+            </div>
+
+            {(mode !== 'online' || summaryMode === 'offline') && cacheStats && cacheStats.approxMb > 0 && (
               <button
-                key={opt.id}
                 type="button"
                 disabled={isProcessing}
-                onClick={() => setMode(opt.id)}
-                className={`text-left p-3 rounded-xl border transition-all cursor-pointer disabled:opacity-60 flex items-start gap-2.5 ${
-                  active
-                    ? 'bg-[var(--accent-soft)] border-[var(--accent-border)] text-[var(--text-primary)]'
-                    : 'bg-[var(--bg-subtle)]/60 border-[var(--border-hairline)] hover:border-[var(--border-default)] text-[var(--text-secondary)]'
-                }`}
+                onClick={async () => {
+                  await clearOfflineModels();
+                  const next = await getOfflineModelCacheStats().catch(() => null);
+                  if (next) setCacheStats(next);
+                }}
+                className="px-2.5 py-1 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-default)] text-[11px] font-semibold text-[var(--text-secondary)] hover:text-rose-600 cursor-pointer shrink-0"
               >
-                <div
-                  className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
-                    active
-                      ? 'bg-[var(--accent-fill)] text-white'
-                      : 'bg-[var(--bg-surface)] text-[var(--text-muted)] border border-[var(--border-hairline)]'
-                  }`}
-                >
-                  <Icon className="w-3.5 h-3.5" />
-                </div>
-                <div className="min-w-0">
-                  <div className="text-xs font-bold text-[var(--text-primary)]">{opt.label}</div>
-                  <div className="text-[11px] text-[var(--text-muted)] mt-0.5 leading-snug">
-                    {opt.hint}
-                  </div>
-                </div>
+                {t('scanner_clear_cache', { mb: cacheStats.approxMb })}
               </button>
-            );
-          })}
-        </div>
-
-        {/* AI Summary Mode Strip: Online Gemini vs Offline Gemma 3 270M */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-2 border-t border-[var(--border-hairline)]">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
-              {t('lecture_summary_engine_label')}
-            </span>
-            <div
-              role="group"
-              aria-label={t('lecture_summary_engine_label')}
-              className="inline-flex items-center gap-1 p-1 bg-[var(--bg-subtle)] rounded-xl border border-[var(--border-default)]"
-            >
-              {(
-                [
-                  { id: 'online', label: t('lecture_summary_mode_online'), Icon: Wifi },
-                  { id: 'offline', label: t('lecture_summary_mode_offline'), Icon: HardDrive },
-                ] as {
-                  id: LectureSummaryMode;
-                  label: string;
-                  Icon: React.ComponentType<{ className?: string }>;
-                }[]
-              ).map(({ id, label, Icon }) => (
-                <button
-                  key={id}
-                  type="button"
-                  disabled={isProcessing}
-                  onClick={() => setSummaryMode(id)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-60 ${
-                    summaryMode === id
-                      ? 'bg-[var(--accent-fill)] text-white shadow-2xs'
-                      : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                  }`}
-                >
-                  <Icon className="w-3 h-3" />
-                  <span>{label}</span>
-                </button>
-              ))}
-            </div>
+            )}
           </div>
 
-          {summaryMode === 'offline' && (
-            <p className="text-[11px] text-[var(--status-warn-text)] bg-[var(--status-warn-bg)]/80 border border-[var(--status-warn-border)]/70 rounded-xl px-2.5 py-1.5 leading-snug">
-              {t('lecture_summary_offline_note')}
-            </p>
-          )}
-        </div>
+          <div className="flex items-center justify-between gap-3 pt-1">
+            {lectures.length > 0 ? (
+              <button
+                type="button"
+                onClick={() => {
+                  if (!activeLectureId && lectures[0]) selectLecture(lectures[0].id);
+                  setStep('workspace');
+                }}
+                className="text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--accent-text)] cursor-pointer"
+              >
+                {t('lecture_history_title')} ({lectures.length}) →
+              </button>
+            ) : (
+              <span />
+            )}
 
-        {/* Upfront Duration & Background Execution Notice */}
-        <div className="rounded-xl border border-[var(--status-info-border)] bg-[var(--status-info-bg)]/60 px-3.5 py-2.5 text-xs text-[var(--status-info-text)] flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-start gap-2 min-w-0 flex-1">
-            <Info className="w-4 h-4 shrink-0 mt-0.5" />
-            <span>
-              {mode === 'online'
-                ? t('lecture_notice_online', {
-                    min: durationEstimate.minMinutes,
-                    max: durationEstimate.maxMinutes,
-                  })
-                : t('lecture_notice_offline', {
-                    min: durationEstimate.minMinutes,
-                    max: durationEstimate.maxMinutes,
-                  })}
-            </span>
-          </div>
-
-          {(mode !== 'online' || summaryMode === 'offline') && cacheStats && cacheStats.approxMb > 0 && (
             <button
               type="button"
-              disabled={isProcessing}
-              onClick={async () => {
-                await clearOfflineModels();
-                const next = await getOfflineModelCacheStats().catch(() => null);
-                if (next) setCacheStats(next);
-              }}
-              className="px-2.5 py-1 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-default)] text-[11px] font-semibold text-[var(--text-secondary)] hover:text-rose-600 cursor-pointer shrink-0"
+              onClick={() => setStep('workspace')}
+              className="px-5 py-2.5 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-xl text-xs font-bold inline-flex items-center gap-2 transition-colors cursor-pointer shadow-xs"
             >
-              {t('scanner_clear_cache', { mb: cacheStats.approxMb })}
+              <span>{t('lecture_step1_continue')}</span>
+              <ArrowRight className="w-4 h-4" />
             </button>
-          )}
+          </div>
         </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-full min-h-0 flex-1 flex flex-col gap-3 overflow-hidden animate-in fade-in duration-200">
+      {/* Compact Workspace Top Bar */}
+      <div className="bg-[var(--bg-surface)] rounded-2xl px-4 py-2.5 border border-[var(--border-default)] flex flex-wrap items-center justify-between gap-3 shadow-xs shrink-0">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-8 h-8 rounded-xl bg-[var(--accent-2-fill,var(--accent-fill))] text-white flex items-center justify-center shrink-0">
+            <AudioLines className="w-4 h-4" />
+          </div>
+          <div className="min-w-0 flex items-center gap-2 flex-wrap">
+            <h2 className="text-sm font-bold text-[var(--text-primary)] tracking-tight">
+              {t('lecture_title')}
+            </h2>
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--bg-subtle)] border border-[var(--border-default)] text-[var(--text-secondary)] font-semibold">
+              {modeOptions.find((m) => m.id === mode)?.label}
+            </span>
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--accent-soft)] border border-[var(--accent-border)]/50 text-[var(--accent-text)] font-semibold">
+              {summaryMode === 'offline' ? t('lecture_summary_mode_offline') : t('lecture_summary_mode_online')}
+            </span>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          disabled={isProcessing}
+          onClick={() => setStep('setup')}
+          className="px-3 py-1.5 rounded-xl bg-[var(--bg-subtle)] hover:bg-[var(--bg-hover)] border border-[var(--border-default)] text-xs font-semibold text-[var(--text-primary)] inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+        >
+          <SlidersHorizontal className="w-3.5 h-3.5 text-[var(--accent-text)]" />
+          <span>{t('lecture_change_model')}</span>
+        </button>
       </div>
 
       {/* Live Progress Bar */}
       {isProcessing && progress && (
-        <AiProgressBar
-          percent={progress.percent}
-          label={progress.label}
-          detail={progress.detail}
-          currentItem={progress.currentItem}
-          totalItems={progress.totalItems}
-          etaText={t('ai_bg_switch_safe')}
-          onCancel={cancelActiveJob}
-        />
+        <div className="shrink-0">
+          <AiProgressBar
+            percent={progress.percent}
+            label={progress.label}
+            detail={progress.detail}
+            currentItem={progress.currentItem}
+            totalItems={progress.totalItems}
+            etaText={t('ai_bg_switch_safe')}
+            onCancel={cancelActiveJob}
+          />
+        </div>
       )}
 
       {error && (
         <div
           role="alert"
-          className="p-3.5 rounded-xl bg-[var(--status-err-bg)] border border-[var(--status-err-border)] text-xs text-[var(--status-err-text)] flex items-start gap-2"
+          className="p-3 rounded-xl bg-[var(--status-err-bg)] border border-[var(--status-err-border)] text-xs text-[var(--status-err-text)] flex items-start gap-2 shrink-0"
         >
           <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
           <span>{error}</span>
@@ -520,10 +585,10 @@ export const LectureStudioWorkspace: React.FC<LectureStudioWorkspaceProps> = ({
       )}
 
       {/* Main Split Grid: Left Upload + Saved Lectures, Right Transcript + Summary */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 min-w-0">
+      <div className="flex-1 min-h-0 grid grid-cols-1 xl:grid-cols-12 gap-4 overflow-hidden">
         {/* Left Column */}
-        <div className="xl:col-span-4 min-w-0 space-y-4">
-          <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-4 shadow-xs space-y-3.5">
+        <div className="xl:col-span-4 min-w-0 min-h-0 flex flex-col gap-3 overflow-hidden">
+          <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-3.5 shadow-xs space-y-2.5 shrink-0">
             <input
               ref={fileInputRef}
               type="file"
@@ -547,17 +612,17 @@ export const LectureStudioWorkspace: React.FC<LectureStudioWorkspaceProps> = ({
                 handleFilePick(e.dataTransfer.files?.[0]);
               }}
               onClick={() => fileInputRef.current?.click()}
-              className={`rounded-2xl border-2 border-dashed p-5 text-center cursor-pointer transition-colors ${
+              className={`rounded-xl border-2 border-dashed p-3.5 text-center cursor-pointer transition-colors ${
                 isDragging
                   ? 'border-[var(--accent-fill)] bg-[var(--accent-soft)]/50'
                   : 'border-[var(--border-default)] bg-[var(--bg-subtle)]/50 hover:border-[var(--border-strong)]'
               }`}
             >
-              <Upload className="w-7 h-7 mx-auto mb-2 text-[var(--accent-text)]" />
-              <p className="text-xs font-bold text-[var(--text-primary)]">
+              <Upload className="w-5 h-5 mx-auto mb-1 text-[var(--accent-text)]" />
+              <p className="text-xs font-bold text-[var(--text-primary)] truncate">
                 {selectedFile ? selectedFile.name : t('lecture_drop_title')}
               </p>
-              <p className="text-[11px] text-[var(--text-muted)] mt-1">
+              <p className="text-[10px] text-[var(--text-muted)] mt-0.5">
                 {selectedFile && detectedDurationSec !== null
                   ? t('lecture_detected_duration', {
                       duration: formatMmSs(detectedDurationSec),
@@ -565,27 +630,22 @@ export const LectureStudioWorkspace: React.FC<LectureStudioWorkspaceProps> = ({
                     })
                   : t('lecture_drop_sub')}
               </p>
-              {selectedFile && isVideoFile(selectedFile) && (
-                <p className="mt-2 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-[var(--accent-soft)] text-[var(--accent-text)] border border-[var(--accent-border)]/60">
-                  {t('lecture_video_auto_extract')}
-                </p>
-              )}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 gap-2">
+            <div className="grid grid-cols-2 gap-2">
               <input
                 type="text"
                 value={titleInput}
                 onChange={(e) => setTitleInput(e.target.value)}
                 placeholder={t('lecture_title_ph')}
-                className="w-full px-3 py-2 text-xs bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-xl focus:outline-none focus:border-[var(--accent-fill)] text-[var(--text-primary)]"
+                className="w-full px-2.5 py-1.5 text-xs bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-xl focus:outline-none focus:border-[var(--accent-fill)] text-[var(--text-primary)]"
               />
               <input
                 type="text"
                 value={subjectInput}
                 onChange={(e) => setSubjectInput(e.target.value)}
                 placeholder={t('scanner_subject_ph')}
-                className="w-full px-3 py-2 text-xs bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-xl focus:outline-none focus:border-[var(--accent-fill)] text-[var(--text-primary)]"
+                className="w-full px-2.5 py-1.5 text-xs bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-xl focus:outline-none focus:border-[var(--accent-fill)] text-[var(--text-primary)]"
               />
             </div>
 
@@ -593,34 +653,32 @@ export const LectureStudioWorkspace: React.FC<LectureStudioWorkspaceProps> = ({
               type="button"
               disabled={!selectedFile || isProcessing}
               onClick={handleStart}
-              className="w-full py-2.5 px-4 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] disabled:opacity-45 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-xs"
+              className="w-full py-2 px-4 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] disabled:opacity-45 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-xs"
             >
-              <Sparkles className="w-4 h-4" />
+              <Sparkles className="w-3.5 h-3.5" />
               <span>{t('lecture_start_btn')}</span>
             </button>
           </div>
 
-          {/* Saved Lectures List (Offline-capable via Dexie) */}
-          <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-4 shadow-xs space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">
-                {t('lecture_history_title')} ({lectures.length})
-              </h3>
-            </div>
+          {/* Saved Lectures List (Inner Scrolling) */}
+          <div className="flex-1 min-h-0 bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-3.5 shadow-xs flex flex-col gap-2 overflow-hidden">
+            <h3 className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)] shrink-0">
+              {t('lecture_history_title')} ({lectures.length})
+            </h3>
 
             {lectures.length === 0 ? (
               <p className="text-xs text-[var(--text-muted)] py-4 text-center">
                 {t('lecture_history_empty')}
               </p>
             ) : (
-              <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1">
+              <div className="flex-1 min-h-0 overflow-y-auto space-y-2 pr-1">
                 {lectures.map((lec) => {
                   const selected = lec.id === activeLecture?.id;
                   return (
                     <div
                       key={lec.id}
                       onClick={() => selectLecture(lec.id)}
-                      className={`p-3 rounded-xl border cursor-pointer transition-colors flex items-start justify-between gap-2 ${
+                      className={`p-2.5 rounded-xl border cursor-pointer transition-colors flex items-start justify-between gap-2 ${
                         selected
                           ? 'bg-[var(--accent-soft)]/70 border-[var(--accent-border)]'
                           : 'bg-[var(--bg-subtle)]/60 border-[var(--border-hairline)] hover:border-[var(--border-default)]'
@@ -630,7 +688,7 @@ export const LectureStudioWorkspace: React.FC<LectureStudioWorkspaceProps> = ({
                         <div className="text-xs font-bold text-[var(--text-primary)] truncate">
                           {lec.title}
                         </div>
-                        <div className="flex flex-wrap items-center gap-1.5 text-[10px] text-[var(--text-muted)] mt-1">
+                        <div className="flex flex-wrap items-center gap-1.5 text-[10px] text-[var(--text-muted)] mt-0.5">
                           {lec.originalDurationSec > 0 && (
                             <span className="inline-flex items-center gap-0.5">
                               <Clock className="w-2.5 h-2.5" />
@@ -665,22 +723,22 @@ export const LectureStudioWorkspace: React.FC<LectureStudioWorkspaceProps> = ({
         </div>
 
         {/* Right Column: Lecture Player, Outline/Summary & Clickable Transcript */}
-        <div className="xl:col-span-8 min-w-0 bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-4 sm:p-5 shadow-xs flex flex-col gap-4">
+        <div className="xl:col-span-8 min-w-0 min-h-0 bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-4 shadow-xs flex flex-col gap-3 overflow-hidden">
           {!activeLecture ? (
-            <div className="flex-1 min-h-[420px] flex flex-col items-center justify-center text-center p-8 text-[var(--text-muted)]">
-              <AudioLines className="w-12 h-12 opacity-25 mb-3" />
+            <div className="flex-1 flex flex-col items-center justify-center text-center p-6 text-[var(--text-muted)]">
+              <AudioLines className="w-11 h-11 opacity-25 mb-2.5" />
               <h3 className="text-sm font-bold text-[var(--text-primary)]">
                 {t('lecture_empty_heading')}
               </h3>
-              <p className="text-xs max-w-md mt-1.5 leading-relaxed">
+              <p className="text-xs max-w-md mt-1 leading-relaxed">
                 {t('lecture_empty_sub')}
               </p>
             </div>
           ) : (
             <>
-              <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-[var(--border-hairline)]">
+              <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-[var(--border-hairline)] shrink-0">
                 <div className="min-w-0">
-                  <h3 className="text-base font-bold text-[var(--text-primary)] truncate">
+                  <h3 className="text-sm font-bold text-[var(--text-primary)] truncate">
                     {activeLecture.title}
                   </h3>
                   <div className="flex flex-wrap items-center gap-2 text-[11px] text-[var(--text-muted)] mt-0.5">
@@ -744,7 +802,7 @@ export const LectureStudioWorkspace: React.FC<LectureStudioWorkspaceProps> = ({
                     controls
                     playsInline
                     src={sessionAudioUrl}
-                    className="w-full max-h-[260px] rounded-xl bg-black"
+                    className="w-full max-h-40 rounded-xl bg-black shrink-0"
                   />
                 ) : (
                   <audio
@@ -753,16 +811,16 @@ export const LectureStudioWorkspace: React.FC<LectureStudioWorkspaceProps> = ({
                     }}
                     controls
                     src={sessionAudioUrl}
-                    className="w-full h-10 rounded-xl"
+                    className="w-full h-9 rounded-xl shrink-0"
                   />
                 ))}
 
               {/* Tabs: Summary & Outline vs Transcript */}
-              <div className="inline-flex items-center gap-1 p-1 bg-[var(--bg-subtle)] rounded-xl border border-[var(--border-default)] self-start">
+              <div className="inline-flex items-center gap-1 p-1 bg-[var(--bg-subtle)] rounded-xl border border-[var(--border-default)] self-start shrink-0">
                 <button
                   type="button"
                   onClick={() => setActiveSubTab('summary')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-colors ${
+                  className={`px-3 py-1 rounded-lg text-xs font-semibold cursor-pointer transition-colors ${
                     activeSubTab === 'summary'
                       ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-2xs'
                       : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
@@ -773,7 +831,7 @@ export const LectureStudioWorkspace: React.FC<LectureStudioWorkspaceProps> = ({
                 <button
                   type="button"
                   onClick={() => setActiveSubTab('transcript')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-colors ${
+                  className={`px-3 py-1 rounded-lg text-xs font-semibold cursor-pointer transition-colors ${
                     activeSubTab === 'transcript'
                       ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-2xs'
                       : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
@@ -784,7 +842,7 @@ export const LectureStudioWorkspace: React.FC<LectureStudioWorkspaceProps> = ({
               </div>
 
               {activeSubTab === 'summary' ? (
-                <div className="flex-1 min-h-[300px] max-h-[540px] overflow-y-auto space-y-4 pr-1">
+                <div className="flex-1 min-h-0 overflow-y-auto space-y-3 pr-1">
                   {formattedSummaryMarkdown ? (
                     <div className="rounded-2xl bg-[var(--bg-subtle)]/55 border border-[var(--border-hairline)] overflow-hidden">
                       <div className="px-4 py-2.5 bg-[var(--bg-surface)]/80 border-b border-[var(--border-hairline)] flex flex-wrap items-center justify-between gap-2">
@@ -954,7 +1012,7 @@ export const LectureStudioWorkspace: React.FC<LectureStudioWorkspaceProps> = ({
                   )}
                 </div>
               ) : (
-                <div className="flex-1 min-h-[300px] max-h-[500px] overflow-y-auto space-y-2 pr-1">
+                <div className="flex-1 min-h-0 overflow-y-auto space-y-2 pr-1">
                   {activeSegments.length === 0 ? (
                     <div className="p-8 text-center text-xs text-[var(--text-muted)]">
                       {t('lecture_waiting_transcript')}
@@ -982,7 +1040,7 @@ export const LectureStudioWorkspace: React.FC<LectureStudioWorkspaceProps> = ({
               )}
 
               {/* Bottom Action Bar */}
-              <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-[var(--border-hairline)]">
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-2.5 border-t border-[var(--border-hairline)] shrink-0">
                 <div className="flex flex-wrap items-center gap-3 text-xs">
                   {savedNotesNotice && (
                     <span className="inline-flex items-center gap-1 font-semibold text-[var(--status-ok-text)]">

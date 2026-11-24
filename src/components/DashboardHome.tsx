@@ -319,7 +319,7 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
     ];
 
     return (
-      <div className="w-full max-w-4xl mx-auto px-4 sm:px-8 py-10 sm:py-14 space-y-10 text-left animate-in fade-in duration-300">
+      <div className="w-full max-w-4xl mx-auto px-4 sm:px-8 py-4 sm:py-6 space-y-5 text-left animate-in fade-in duration-300">
         {/* Calming Welcome Header */}
         <header className="space-y-4">
           <div className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-widest">

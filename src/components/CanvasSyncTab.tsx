@@ -291,7 +291,7 @@ export const CanvasSyncTab: React.FC<CanvasSyncTabProps> = ({
   const isConfigured = Boolean(safeSettings.calendarFeedUrl?.trim() || isApiConfigured);
 
   return (
-    <div className="space-y-4">
+    <div className="h-full min-h-0 flex-1 flex flex-col gap-3 overflow-hidden">
       {/* Sync error banner — single channel (no duplicate toast). Ember palette. */}
       {errorMessage && (() => {
         const isHostNotAllowlisted = /host-not-allowlisted|not on.*allowlist|allowlist/i.test(errorMessage);
@@ -567,7 +567,7 @@ export const CanvasSyncTab: React.FC<CanvasSyncTabProps> = ({
       </details>
 
       {/* Main High-Density macOS Table View (40px Rows) */}
-      <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] overflow-hidden shadow-xs">
+      <div className="flex-1 min-h-0 bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] overflow-y-auto shadow-xs">
         {isLoading ? (
           <div className="p-16 text-center text-[var(--text-muted)] flex flex-col items-center justify-center gap-2">
             <RefreshCw className="w-6 h-6 animate-spin text-[var(--accent-text)]" />

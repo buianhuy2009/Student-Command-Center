@@ -234,6 +234,15 @@ const VIEWPORT_FIT_TABS: ReadonlySet<AppTab> = new Set<AppTab>([
   'phet',
   'arxiv',
   'open-library',
+  'lecture-studio',
+  'radar',
+  'note-scanner',
+  'drive',
+  'gmail',
+  'tracker',
+  'canvas',
+  'notes-markdown',
+  'pomodoro',
 ]);
 
 function normalizeAppTab(raw: string): AppTab {
@@ -810,7 +819,14 @@ export default function App() {
   const uidForScopes = user?.uid || null;
   const hasCalendarAccess = Boolean(isDemoMode || (scopeRevision >= 0 && hasFeatureAccess('calendar', uidForScopes)));
   const hasGmailAccess = Boolean(isDemoMode || (scopeRevision >= 0 && hasFeatureAccess('gmail', uidForScopes)));
-  const hasDriveAccess = Boolean(isDemoMode || (scopeRevision >= 0 && hasFeatureAccess('drive', uidForScopes)));
+  const hasDriveAccess = Boolean(
+    isDemoMode ||
+      (scopeRevision >= 0 &&
+        (hasFeatureAccess('drive', uidForScopes) || hasFeatureAccess('drive-all', uidForScopes)))
+  );
+  const hasAllDriveAccess = Boolean(
+    isDemoMode || (scopeRevision >= 0 && hasFeatureAccess('drive-all', uidForScopes))
+  );
   const hasSheetsAccess = Boolean(isDemoMode || (scopeRevision >= 0 && hasFeatureAccess('sheets', uidForScopes)));
   const hasClassroomAccess = Boolean(isDemoMode || (scopeRevision >= 0 && hasFeatureAccess('classroom', uidForScopes)));
   const isGoogleConnected =
@@ -2045,7 +2061,7 @@ export default function App() {
 
   // Fetch Recent Files (runs ONLY when Google Drive permission is granted)
   const loadRecentFiles = useCallback(async (isSilent = false, _retried = false) => {
-    if (!hasFeatureAccess('drive', authUidRef.current)) {
+    if (!hasFeatureAccess('drive', authUidRef.current) && !hasFeatureAccess('drive-all', authUidRef.current)) {
       if (!isDemoModeRef.current) setRecentFiles([]);
       setDriveError(null);
       setDriveApiInfo(null);
@@ -2695,6 +2711,7 @@ export default function App() {
         await loadEmailsAndAlerts(false);
         break;
       case 'drive':
+      case 'drive-all':
         await loadRecentFiles(false);
         break;
       case 'sheets':
@@ -2875,6 +2892,7 @@ export default function App() {
           calendar: t('app_feature_cal'),
           gmail: t('app_feature_gmail'),
           drive: t('app_feature_drive'),
+          'drive-all': t('app_feature_drive'),
           sheets: t('app_feature_sheets'),
           classroom: t('app_feature_cls'),
         };
@@ -2939,7 +2957,7 @@ export default function App() {
         if (inferredFeature === 'calendar') { setCalendarError(null); setCalendarApiInfo(null); }
         if (inferredFeature === 'gmail') { setEmailError(null); setGmailApiInfo(null); }
         if (inferredFeature === 'sheets') { setSheetError(null); setSheetApiInfo(null); }
-        if (inferredFeature === 'drive') { setDriveError(null); setDriveApiInfo(null); }
+        if (inferredFeature === 'drive' || inferredFeature === 'drive-all') { setDriveError(null); setDriveApiInfo(null); }
         if (inferredFeature === 'classroom') { setClassroomError(null); setClassroomApiInfo(null); }
       }
 
@@ -2947,6 +2965,7 @@ export default function App() {
         calendar: t('app_feature_cal'),
         gmail: t('app_feature_gmail'),
         drive: t('app_feature_drive'),
+        'drive-all': t('app_feature_drive'),
         sheets: t('app_feature_sheets'),
         classroom: t('app_feature_cls'),
       };
@@ -3877,6 +3896,8 @@ export default function App() {
                     onRefreshFiles={() => loadRecentFiles(false)}
                     isGoogleConnected={hasDriveAccess}
                     onConnectGoogle={() => promptConnectFeature('drive', () => loadRecentFiles(false))}
+                    hasAllDriveAccess={hasAllDriveAccess}
+                    onRequestAllFilesAccess={() => promptConnectFeature('drive-all', () => loadRecentFiles(false))}
                     driveError={driveError}
                     driveApiInfo={driveApiInfo}
                     googleToken={hasDriveAccess ? googleToken || undefined : undefined}

@@ -1138,7 +1138,7 @@ export async function syncAllAssignmentsToSheet(
 
 export async function fetchRecentSchoolFiles(
   token: string,
-  limit = 20
+  limit = 100
 ): Promise<SchoolFile[]> {
   try {
     // Exclude folders and trashed items so that any document, spreadsheet, presentation, PDF, or text file appears

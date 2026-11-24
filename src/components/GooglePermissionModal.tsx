@@ -43,6 +43,13 @@ const FEATURE_COPY: Record<GoogleFeature, FeatureCopy> = {
     canDoKeys: ['gperm_drive_can1', 'gperm_drive_can2'],
     neverDoKeys: ['gperm_drive_nev1', 'gperm_drive_nev2'],
   },
+  'drive-all': {
+    logoId: 'drive',
+    titleKey: 'gperm_drive_all_title',
+    whyKey: 'gperm_drive_all_why',
+    canDoKeys: ['gperm_drive_all_can1', 'gperm_drive_all_can2'],
+    neverDoKeys: ['gperm_drive_all_nev1', 'gperm_drive_all_nev2'],
+  },
   sheets: {
     logoId: 'tracker',
     titleKey: 'gperm_sheets_title',

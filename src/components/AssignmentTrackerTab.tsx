@@ -337,7 +337,7 @@ export const AssignmentTrackerTab: React.FC<AssignmentTrackerTabProps> = ({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="h-full min-h-0 flex-1 flex flex-col gap-3 overflow-hidden">
       {/* Google Sheets Disconnected Guidance Banner */}
       {!isGoogleConnected && (
         <div className="p-4 bg-[var(--status-warn-bg)] border border-[var(--status-warn-border)] rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in">
@@ -579,7 +579,7 @@ export const AssignmentTrackerTab: React.FC<AssignmentTrackerTabProps> = ({
       {/* VIEW RENDERER: TABLE | BOARD (timeline Gantt removed — lives in its own workspace) */}
       {viewMode === 'kanban' ? (
         /* KANBAN BOARD VIEW */
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-in fade-in duration-150">
+        <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-3 gap-4 overflow-hidden animate-in fade-in duration-150">
           {(
             [
               { id: 'Not Started', label: t('tracker_col_todo'), color: 'border-[var(--status-warn-border)]' },
@@ -592,10 +592,10 @@ export const AssignmentTrackerTab: React.FC<AssignmentTrackerTabProps> = ({
             return (
               <div
                 key={col.id}
-                className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-4 shadow-xs flex flex-col min-h-[500px]"
+                className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-3.5 shadow-xs flex flex-col min-h-0 overflow-hidden"
               >
                 {/* Column Header */}
-                <div className="flex items-center justify-between pb-3 mb-3 border-b border-[var(--border-default)]">
+                <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-[var(--border-default)] shrink-0">
                   <div className="flex items-center gap-2">
                     <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--text-primary)]">
                       {col.label}
@@ -607,7 +607,7 @@ export const AssignmentTrackerTab: React.FC<AssignmentTrackerTabProps> = ({
                 </div>
 
                 {/* Cards Container */}
-                <div className="flex-1 space-y-2.5 overflow-y-auto max-h-[600px] pr-1">
+                <div className="flex-1 min-h-0 space-y-2.5 overflow-y-auto pr-1">
                   {colTasks.length === 0 ? (
                     <div className="py-12 text-center text-[11px] text-[var(--text-muted)]">
                       {t('tracker_empty_col')} {col.label.toLowerCase()}
@@ -717,7 +717,7 @@ export const AssignmentTrackerTab: React.FC<AssignmentTrackerTabProps> = ({
         </div>
       ) : (
         /* TABLE VIEW */
-        <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] overflow-hidden shadow-xs">
+        <div className="flex-1 min-h-0 bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] overflow-y-auto shadow-xs">
           {isLoading ? (
             <div className="p-16 text-center text-[var(--text-muted)] flex flex-col items-center justify-center gap-2">
               <RefreshCw className="w-6 h-6 animate-spin text-[var(--accent-text)]" />

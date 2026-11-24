@@ -1296,22 +1296,23 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
 
   if (tasks.length === 0) {
     return (
-      <div className="mx-auto w-full max-w-3xl space-y-4 overflow-x-hidden px-1">
-        <div className="rounded-3xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-6 shadow-card sm:p-8">
+      <div className="flex-1 min-h-0 overflow-y-auto px-1">
+        <div className="mx-auto w-full max-w-3xl space-y-4">
+        <div className="rounded-3xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-5 shadow-card sm:p-6">
           <div className="flex items-start gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 text-white shadow-sm">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--accent-2-fill,var(--accent-fill))] text-white shadow-sm">
               <CalendarCheck className="h-5 w-5" aria-hidden="true" />
             </div>
             <div className="min-w-0">
-              <h2 className="text-lg font-bold text-[var(--text-primary)]">{t('plan_title')}</h2>
-              <p className="mt-1 text-sm leading-relaxed text-[var(--text-muted)]">
+              <h2 className="text-base sm:text-lg font-bold text-[var(--text-primary)]">{t('plan_title')}</h2>
+              <p className="mt-0.5 text-xs sm:text-sm leading-relaxed text-[var(--text-muted)]">
                 {t('plan_empty_intro')}
               </p>
             </div>
           </div>
-          <div className="mt-6 flex flex-col items-center rounded-2xl border border-dashed border-[var(--border-default)] px-4 py-10 text-center ">
+          <div className="mt-4 flex flex-col items-center rounded-2xl border border-dashed border-[var(--border-default)] px-4 py-8 text-center ">
             <ListPlus className="h-8 w-8 text-[var(--text-muted)]" aria-hidden="true" />
-            <p className="mt-3 max-w-sm text-sm font-semibold text-[var(--text-primary)]">
+            <p className="mt-2.5 max-w-sm text-sm font-semibold text-[var(--text-primary)]">
               {t('plan_nothing_dated_t')}
             </p>
             <p className="mt-1 max-w-sm text-xs leading-relaxed text-[var(--text-muted)]">
@@ -1327,32 +1328,48 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
             </button>
           </div>
           {!hasMeetingFeed && (
-            <p className="mt-4 flex items-start gap-2 text-xs leading-relaxed text-[var(--text-muted)]">
+            <p className="mt-3 flex items-start gap-2 text-xs leading-relaxed text-[var(--text-muted)]">
               <CalendarX2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
               {t('plan_connect_gcal_empty')}
             </p>
           )}
         </div>
         {renderUndated()}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-4 overflow-x-hidden px-1">
-      {/* Header */}
-      <div className="rounded-3xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-5 shadow-card sm:p-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex min-w-0 items-start gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 text-white shadow-sm">
-              <Sparkles className="h-5 w-5" aria-hidden="true" />
+    <div className="flex-1 min-h-0 flex flex-col gap-3 overflow-hidden">
+      {/* Compact Header Strip */}
+      <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-surface)] px-4 py-3 shadow-xs shrink-0">
+        <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--accent-2-fill,var(--accent-fill))] text-white shadow-xs">
+              <Sparkles className="h-4 w-4" aria-hidden="true" />
             </div>
             <div className="min-w-0">
-              <h2 className="text-lg font-bold text-[var(--text-primary)]">{t('plan_title')}</h2>
-              <p className="mt-0.5 text-xs leading-relaxed text-[var(--text-muted)]">
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-sm sm:text-base font-bold text-[var(--text-primary)]">{t('plan_title')}</h2>
+                {plan && (
+                  <span
+                    className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                      plan.mode === 'ai'
+                        ? 'bg-[var(--accent-2-soft)] text-[var(--accent-2-text)] border border-[var(--accent-2-border)]/50'
+                        : 'bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-300'
+                    }`}
+                  >
+                    <Sparkles className="h-2.5 w-2.5" aria-hidden="true" />
+                    {plan.mode === 'ai' ? t('plan_badge_ai') : t('plan_badge_offline')}
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] text-[var(--text-muted)] truncate">
                 {t(tasks.length === 1 ? 'plan_hdr_items_one' : 'plan_hdr_items_other', { count: tasks.length })}
                 {hasMeetingFeed ? t(busySpans.length === 1 ? 'plan_hdr_busy_one' : 'plan_hdr_busy_other', { count: busySpans.length }) : ''}
                 {plan ? t('plan_hdr_hours', { hours: Math.round(totalStudyMin / 60) }) : ''}
+                {plan ? ` · ${t('plan_built_at')} ${formatDate(new Date(plan.generatedAt), { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}` : ''}
               </p>
             </div>
           </div>
@@ -1361,7 +1378,7 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
               <button
                 type="button"
                 onClick={() => setDemoActive(false)}
-                className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-[var(--accent-border)] bg-[var(--accent-soft)] px-3 py-2 text-xs font-bold text-[var(--accent-text)] cursor-pointer"
+                className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-[var(--accent-border)] bg-[var(--accent-soft)] px-3 py-1.5 text-xs font-bold text-[var(--accent-text)] cursor-pointer"
               >
                 {t('plan_demo_exit')}
               </button>
@@ -1372,9 +1389,9 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
                 onClick={undoLast}
                 disabled={phase !== null}
                 aria-label={t('plan_undo_aria')}
-                className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] px-3 py-2 text-xs font-bold text-[var(--text-secondary)] transition hover:border-[var(--accent-border)] hover:text-[var(--accent-text)] disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
+                className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] px-3 py-1.5 text-xs font-bold text-[var(--text-secondary)] transition hover:border-[var(--accent-border)] hover:text-[var(--accent-text)] disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
               >
-                <Undo2 className="h-4 w-4" aria-hidden="true" />
+                <Undo2 className="h-3.5 w-3.5" aria-hidden="true" />
                 {t('plan_undo_btn')}
               </button>
             )}
@@ -1383,52 +1400,38 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
               onClick={handleRegenerate}
               disabled={phase !== null}
               aria-label={t('plan_regen_aria')}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--accent-fill)] px-4 py-2 text-xs font-bold text-white transition hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-[var(--accent-fill)] px-3.5 py-1.5 text-xs font-bold text-white transition hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
             >
-              {phase ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <RefreshCw className="h-4 w-4" aria-hidden="true" />}
+              {phase ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" />}
               {phase ? t('plan_planning_btn') : t('plan_regen')}
             </button>
           </div>
         </div>
 
-        {plan && (
-          <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px]">
-            <span
-              className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-semibold ${
-                plan.mode === 'ai'
-                  ? 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300'
-                  : 'bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-300'
-              }`}
-            >
-              <Sparkles className="h-3 w-3" aria-hidden="true" />
-              {plan.mode === 'ai' ? t('plan_badge_ai') : t('plan_badge_offline')}
-            </span>
-            <span className="text-[var(--text-muted)]">
-              {t('plan_built_at')}{' '}
-              {formatDate(new Date(plan.generatedAt), { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
-            </span>
+        {(constraints.avoidMornings || constraints.moreBreaks || constraints.maxSessionMin || constraints.latestEndMin || constraints.blockedDays.length > 0) && (
+          <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[10px]">
             {constraints.avoidMornings && (
-              <span className="rounded-full bg-[var(--status-warn-bg)] px-2.5 py-1 font-semibold text-[var(--status-warn-text)] border border-[var(--status-warn-border)]">
+              <span className="rounded-full bg-[var(--status-warn-bg)] px-2 py-0.5 font-semibold text-[var(--status-warn-text)] border border-[var(--status-warn-border)]">
                 {t('plan_chip_no_mornings')}
               </span>
             )}
             {constraints.moreBreaks && (
-              <span className="rounded-full bg-emerald-100 px-2.5 py-1 font-semibold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+              <span className="rounded-full bg-emerald-100 px-2 py-0.5 font-semibold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
                 {t('plan_chip_extra_breaks')}
               </span>
             )}
             {constraints.maxSessionMin && (
-              <span className="rounded-full bg-emerald-100 px-2.5 py-1 font-semibold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+              <span className="rounded-full bg-emerald-100 px-2 py-0.5 font-semibold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
                 {t('plan_chip_max_min', { min: constraints.maxSessionMin })}
               </span>
             )}
             {constraints.latestEndMin && (
-              <span className="rounded-full bg-violet-100 px-2.5 py-1 font-semibold text-violet-700 dark:bg-violet-900/30 dark:text-violet-300">
+              <span className="rounded-full bg-violet-100 px-2 py-0.5 font-semibold text-violet-700 dark:bg-violet-900/30 dark:text-violet-300">
                 {t('plan_chip_done_by', { time: fmtTime(constraints.latestEndMin) })}
               </span>
             )}
             {constraints.blockedDays.length > 0 && (
-              <span className="rounded-full bg-sky-100 px-2.5 py-1 font-semibold text-sky-700 dark:bg-sky-900/30 dark:text-sky-300">
+              <span className="rounded-full bg-sky-100 px-2 py-0.5 font-semibold text-sky-700 dark:bg-sky-900/30 dark:text-sky-300">
                 {t(constraints.blockedDays.length === 1 ? 'plan_chip_clear_one' : 'plan_chip_clear_other', {
                   count: constraints.blockedDays.length,
                 })}
@@ -1440,410 +1443,411 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
         {aiError && (
           <div
             role="alert"
-            className="mt-3 flex items-start gap-2 rounded-2xl border border-[var(--status-warn-border)] bg-[var(--status-warn-bg)] p-3 text-xs leading-relaxed text-[var(--status-warn-text)]"
+            className="mt-2 flex items-start gap-2 rounded-xl border border-[var(--status-warn-border)] bg-[var(--status-warn-bg)] p-2.5 text-xs leading-relaxed text-[var(--status-warn-text)]"
           >
-            <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+            <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
             <p>
-              <KeyRound className="mr-1 inline h-3.5 w-3.5" aria-hidden="true" />
+              <KeyRound className="mr-1 inline h-3 w-3" aria-hidden="true" />
               {aiError}
             </p>
           </div>
         )}
         {!hasMeetingFeed && tasks.length > 0 && (
-          <p className="mt-3 flex items-start gap-2 text-xs leading-relaxed text-[var(--text-muted)]">
-            <CalendarX2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+          <p className="mt-1.5 flex items-center gap-1.5 text-[11px] text-[var(--text-muted)]">
+            <CalendarX2 className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
             {t('plan_connect_gcal_tip')}
           </p>
         )}
-        {pending?.origin === 'regen' && <div className="mt-3">{renderPending('regen')}</div>}
+        {pending?.origin === 'regen' && <div className="mt-2">{renderPending('regen')}</div>}
       </div>
 
       {/* Loading skeleton */}
       {phase && (
-        <div aria-busy="true" aria-label={t('plan_busy_aria')} className="rounded-3xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-5 shadow-card">
-          <p className="flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]">
+        <div aria-busy="true" aria-label={t('plan_busy_aria')} className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-4 shadow-xs shrink-0">
+          <p className="flex items-center gap-2 text-xs font-semibold text-[var(--text-primary)]">
             <Loader2 className="h-4 w-4 animate-spin text-[var(--accent-text)]" aria-hidden="true" />
             {phase}
           </p>
-          <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3" aria-hidden="true">
-            {[0, 1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="animate-pulse rounded-2xl border border-[var(--border-default)] p-3 ">
-                <div className="h-3 w-2/3 rounded bg-stone-200 dark:bg-stone-700" />
-                <div className="mt-2 h-2 w-1/2 rounded bg-stone-100 dark:bg-stone-800" />
-                <div className="mt-2 h-2 w-full rounded bg-stone-100 dark:bg-stone-800" />
-              </div>
-            ))}
-          </div>
         </div>
       )}
 
-      {/* Day focus — one roomy day at a time, times editable */}
-      {plan && !phase && (() => {
-        const dayBlocks = (blocksByDay[selectedDay] || []).filter((b) => b.kind !== 'break');
-        const breaks = (blocksByDay[selectedDay] || []).filter((b) => b.kind === 'break');
-        const meetingsToday = busyByDay[selectedDay] || [];
-        const dayMin = dayBlocks.reduce((s, b) => s + (b.endMin - b.startMin), 0);
-        const isEmpty = dayBlocks.length === 0 && meetingsToday.length === 0;
-        return (
-          <div ref={planLiveRef} aria-live="polite" className="mx-auto w-full max-w-3xl space-y-3">
-            <div className="flex gap-1.5 overflow-x-auto pb-1" role="tablist" aria-label={t('plan_pick_day_aria')}>
-              {days.map((day) => {
-                const n = (blocksByDay[day] || []).filter((b) => b.kind !== 'break').length;
-                const active = day === selectedDay;
-                const d = new Date(`${day}T12:00:00`);
-                return (
-                  <button
-                    key={day}
-                    type="button"
-                    role="tab"
-                    aria-selected={active}
-                    onClick={() => setSelectedDay(day)}
-                    className={`flex min-w-[64px] flex-1 flex-col items-center gap-0.5 rounded-2xl border px-2 py-2 text-xs font-bold transition cursor-pointer ${
-                      active
-                        ? 'border-[var(--accent-fill)] bg-[var(--accent-fill)] text-white shadow-sm'
-                        : 'border-[var(--border-default)] bg-[var(--bg-surface)] text-[var(--text-muted)] hover:border-[var(--accent-border)]'
-                    }`}
-                  >
-                    <span className="text-[10px] font-semibold uppercase tracking-wide opacity-80">
-                      {shortWeekday(day)}
-                    </span>
-                    <span className="text-sm">{d.getDate()}</span>
-                    <span className={`rounded-full px-1.5 text-[10px] font-bold ${active ? 'bg-white/25 text-white' : 'bg-[var(--accent-soft)] text-[var(--accent-text)]'}`}>
-                      {n === 0 ? '·' : t(n === 1 ? 'plan_block_one' : 'plan_block_other', { count: n })}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-
-            <section
-              aria-label={dayLabel(selectedDay)}
-              className="rounded-3xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-5 shadow-card"
-            >
-              <div className="flex items-center justify-between gap-2">
-                <div>
-                  <h3 className="text-base font-bold text-[var(--text-primary)]">{dayLabel(selectedDay)}</h3>
-                  <p className="text-xs text-[var(--text-muted)]">
-                    {dayBlocks.length === 0 && meetingsToday.length === 0
-                      ? t('plan_nothing_scheduled')
-                      : t(dayBlocks.length === 1 ? 'plan_day_summary_one' : 'plan_day_summary_other', {
-                          count: dayBlocks.length,
-                          hours: Math.floor(dayMin / 60),
-                          mins: dayMin % 60,
-                        })}
-                  </p>
+      {/* Single-Page Split Grid: Left = 7-Day Plan, Right = Chat + Collapsible Sources/Undated/History */}
+      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-4 overflow-hidden">
+        {/* Left: Day Focus */}
+        <div className="lg:col-span-7 min-h-0 flex flex-col gap-2.5 overflow-hidden">
+          {plan && !phase && (() => {
+            const dayBlocks = (blocksByDay[selectedDay] || []).filter((b) => b.kind !== 'break');
+            const breaks = (blocksByDay[selectedDay] || []).filter((b) => b.kind === 'break');
+            const meetingsToday = busyByDay[selectedDay] || [];
+            const dayMin = dayBlocks.reduce((s, b) => s + (b.endMin - b.startMin), 0);
+            const isEmpty = dayBlocks.length === 0 && meetingsToday.length === 0;
+            return (
+              <div ref={planLiveRef} aria-live="polite" className="flex-1 min-h-0 flex flex-col gap-2.5 overflow-hidden">
+                <div className="flex gap-1.5 overflow-x-auto pb-0.5 shrink-0" role="tablist" aria-label={t('plan_pick_day_aria')}>
+                  {days.map((day) => {
+                    const n = (blocksByDay[day] || []).filter((b) => b.kind !== 'break').length;
+                    const active = day === selectedDay;
+                    const d = new Date(`${day}T12:00:00`);
+                    return (
+                      <button
+                        key={day}
+                        type="button"
+                        role="tab"
+                        aria-selected={active}
+                        onClick={() => setSelectedDay(day)}
+                        className={`flex min-w-[58px] flex-1 flex-col items-center gap-0.5 rounded-xl border px-1.5 py-1.5 text-xs font-bold transition cursor-pointer ${
+                          active
+                            ? 'border-[var(--accent-fill)] bg-[var(--accent-fill)] text-white shadow-xs'
+                            : 'border-[var(--border-default)] bg-[var(--bg-surface)] text-[var(--text-muted)] hover:border-[var(--accent-border)]'
+                        }`}
+                      >
+                        <span className="text-[10px] font-semibold uppercase tracking-wide opacity-80">
+                          {shortWeekday(day)}
+                        </span>
+                        <span className="text-xs sm:text-sm">{d.getDate()}</span>
+                        <span className={`rounded-full px-1.5 text-[9px] font-bold ${active ? 'bg-white/25 text-white' : 'bg-[var(--accent-soft)] text-[var(--accent-text)]'}`}>
+                          {n === 0 ? '·' : t(n === 1 ? 'plan_block_one' : 'plan_block_other', { count: n })}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
-                <div className="flex items-center gap-1">
-                  <button type="button" onClick={() => stepDay(-1)} disabled={days.indexOf(selectedDay) === 0} aria-label={t('plan_prev_day_aria')} className="rounded-xl border border-[var(--border-default)] p-2 text-[var(--text-muted)] transition hover:border-[var(--accent-border)] disabled:opacity-40  ">
-                    <ChevronLeft className="h-4 w-4" aria-hidden="true" />
-                  </button>
-                  <button type="button" onClick={() => stepDay(1)} disabled={days.indexOf(selectedDay) === days.length - 1} aria-label={t('plan_next_day_aria')} className="rounded-xl border border-[var(--border-default)] p-2 text-[var(--text-muted)] transition hover:border-[var(--accent-border)] disabled:opacity-40  ">
-                    <ChevronRight className="h-4 w-4" aria-hidden="true" />
-                  </button>
-                </div>
-              </div>
 
-              <div className="mt-4 space-y-3">
-                {meetingsToday.map((m, i) => (
-                  <div
-                    key={`m-${i}`}
-                    className="rounded-2xl border border-sky-200 bg-sky-50 p-3 dark:border-sky-900 dark:bg-sky-950/40"
-                  >
-                    <p className="flex items-center gap-1.5 text-sm font-bold text-sky-800 dark:text-sky-200">
-                      <Clock className="h-4 w-4 shrink-0" aria-hidden="true" />
-                      {fmtTime(m.startMin)} – {fmtTime(m.endMin)}
-                    </p>
-                    <p className="mt-1 text-sm font-semibold text-sky-900 dark:text-sky-100">{m.label}</p>
-                    <p className="text-xs text-sky-600 dark:text-sky-400">{t('plan_busy_kept_clear')}</p>
-                  </div>
-                ))}
-                {dayBlocks.map((b) => {
-                  const dur = b.endMin - b.startMin;
-                  const s = inputToMin(editStart);
-                  const e = inputToMin(editEnd);
-                  const valid = editingId === b.id && s !== null && e !== null && e - s >= 15 && s >= 0 && e <= 1440;
-                  const targetDay = editingId === b.id && editDay ? editDay : selectedDay;
-                  const clash =
-                    valid &&
-                    ((blocksByDay[targetDay] || []).some(
-                      (o) => o.id !== b.id && o.kind !== 'break' && (s as number) < o.endMin && o.startMin < (e as number),
-                    ) ||
-                      (busyByDay[targetDay] || []).some((o) => (s as number) < o.endMin && o.startMin < (e as number)));
-                  return (
-                    <article
-                      key={b.id}
-                      className={`rounded-2xl border p-4 ${b.tentative ? 'border-dashed border-2' : ''} ${
-                        b.kind === 'review'
-                          ? `${b.tentative ? 'border-[var(--status-warn-border)]' : 'border-[var(--status-ok-border)]'} bg-[var(--status-ok-bg)]`
-                          : `${b.tentative ? 'border-[var(--status-warn-border)]' : 'border-[var(--border-default)]'} bg-[var(--bg-subtle)]`
-                      } ${b.locked ? 'ring-2 ring-[var(--accent-fill)]/40' : ''}`}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="flex items-center gap-1.5 text-sm font-bold text-[var(--text-primary)]">
-                          {b.kind === 'review'
-                            ? <BookOpen className="h-4 w-4 shrink-0 text-emerald-600" aria-hidden="true" />
-                            : <CalendarCheck className="h-4 w-4 shrink-0 text-violet-600" aria-hidden="true" />}
-                          {fmtTime(b.startMin)} – {fmtTime(b.endMin)}
-                          <span className="text-xs font-semibold text-[var(--text-muted)]">({t('plan_min_short', { count: dur })})</span>
-                        </p>
-                        <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
-                          <button
-                            type="button"
-                            onClick={() => toggleLock(b)}
-                            aria-pressed={!!b.locked}
-                            aria-label={b.locked ? t('plan_unlock_aria', { title: b.title }) : t('plan_lock_aria', { title: b.title })}
-                            className={`inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-[11px] font-bold transition ${
-                              b.locked
-                                ? 'border-[var(--accent-fill)] bg-[var(--accent-fill)] text-white hover:bg-[var(--accent-hover)]'
-                                : 'border-[var(--border-default)] text-[var(--text-muted)] hover:border-[var(--accent-border)] hover:text-[var(--accent-text)]  '
-                            }`}
-                          >
-                            {b.locked ? <LockOpen className="h-3 w-3" aria-hidden="true" /> : <Lock className="h-3 w-3" aria-hidden="true" />}
-                            {b.locked ? t('plan_unlock_btn') : t('plan_lock_btn')}
-                          </button>
-                          {editingId !== b.id && (
-                            <button
-                              type="button"
-                              onClick={() => beginEdit(b)}
-                              aria-label={t('plan_edit_time_aria', { title: b.title })}
-                              className="inline-flex items-center gap-1 rounded-lg border border-[var(--border-default)] px-2 py-1 text-[11px] font-bold text-[var(--text-muted)] transition hover:border-[var(--accent-border)] hover:text-[var(--accent-text)]  "
-                            >
-                              <Pencil className="h-3 w-3" aria-hidden="true" />
-                              {t('plan_edit_time_btn')}
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                      <p className="mt-1 text-sm font-bold leading-snug text-[var(--text-primary)]">
-                        {b.title}
-                      </p>
-                      <p className="text-xs font-medium text-[var(--text-muted)]">{b.subject}</p>
-                      {(b.locked || b.tentative) && (
-                        <p className="mt-1.5 flex flex-wrap gap-1.5">
-                          {b.locked && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-[var(--accent-soft)] px-2 py-0.5 text-[10px] font-bold text-[var(--accent-text)]">
-                              🔒 {t('plan_locked_badge')}
-                            </span>
-                          )}
-                          {b.tentative && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-[var(--status-warn-bg)] px-2 py-0.5 text-[10px] font-bold text-[var(--status-warn-text)] border border-[var(--status-warn-border)]">
-                              <TriangleAlert className="h-3 w-3" aria-hidden="true" />
-                              {t('plan_tentative_badge')}
-                            </span>
-                          )}
-                        </p>
-                      )}
-                      {b.manual && b.locked && (
-                        <p className="mt-1 text-[11px] font-semibold text-[var(--accent-text)]">
-                          {t('plan_manual_locked_note')}
-                        </p>
-                      )}
-                      <p className="mt-1 text-xs italic leading-snug text-[var(--text-muted)]">
-                        {b.reason}
-                      </p>
-                      {editingId === b.id && (
-                        <div className="mt-3 rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-3">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <label className="sr-only" htmlFor={`day-${b.id}`}>{t('plan_field_day')}</label>
-                            <select
-                              id={`day-${b.id}`}
-                              value={editDay}
-                              onChange={(ev) => setEditDay(ev.target.value)}
-                              className="rounded-lg border border-[var(--border-default)] bg-white px-2 py-1.5 text-xs font-bold text-[var(--text-primary)]"
-                            >
-                              {days.map((d) => (
-                                <option key={d} value={d}>
-                                  {dayLabel(d)}
-                                </option>
-                              ))}
-                            </select>
-                            <label className="sr-only" htmlFor={`start-${b.id}`}>{t('plan_field_start')}</label>
-                            <input
-                              id={`start-${b.id}`}
-                              type="time"
-                              value={editStart}
-                              onChange={(ev) => setEditStart(ev.target.value)}
-                              className="rounded-lg border border-[var(--border-default)] bg-white px-2 py-1.5 text-xs font-bold text-[var(--text-primary)]"
-                            />
-                            <span className="text-xs font-bold text-[var(--text-muted)]">–</span>
-                            <label className="sr-only" htmlFor={`end-${b.id}`}>{t('plan_field_end')}</label>
-                            <input
-                              id={`end-${b.id}`}
-                              type="time"
-                              value={editEnd}
-                              onChange={(ev) => setEditEnd(ev.target.value)}
-                              className="rounded-lg border border-[var(--border-default)] bg-white px-2 py-1.5 text-xs font-bold text-[var(--text-primary)]"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => saveEdit(b)}
-                              disabled={!valid}
-                              className="rounded-lg bg-[var(--accent-fill)] px-3 py-1.5 text-xs font-bold text-white transition hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                              {t('common_save')}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setEditingId(null)}
-                              className="rounded-lg border border-[var(--border-default)] px-3 py-1.5 text-xs font-bold text-[var(--text-muted)]"
-                            >
-                              {t('cancel')}
-                            </button>
-                          </div>
-                          {!valid && (
-                            <p className="mt-2 text-[11px] font-semibold text-[var(--status-warn-text)]">
-                              {t('plan_edit_invalid')}
-                            </p>
-                          )}
-                          {valid && clash && (
-                            <p className="mt-2 text-[11px] font-semibold text-[var(--status-warn-text)]">
-                              {t('plan_edit_clash', { day: dayLabel(targetDay).split('·')[0].trim() })}.
-                            </p>
-                          )}
-                          <p className="mt-1 text-[11px] text-[var(--text-muted)]">
-                            {t('plan_edit_locks_note')}
-                          </p>
-                        </div>
-                      )}
-                    </article>
-                  );
-                })}
-                {breaks.length > 0 && (
-                  <p className="flex items-center gap-1.5 px-1 text-xs font-medium text-[var(--text-muted)]">
-                    <Coffee className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                    {t(breaks.length === 1 ? 'plan_breather_one' : 'plan_breather_other', { count: breaks.length })}
-                  </p>
-                )}
-                {isEmpty && (
-                  <p className="rounded-2xl border border-dashed border-[var(--border-default)] p-6 text-center text-xs text-[var(--text-muted)] ">
-                    {t('plan_open_day')}
-                  </p>
-                )}
-              </div>
-            </section>
-          </div>
-        );
-      })()}
-
-      {/* Connected resources — the todo lists behind this plan, no tab-hopping */}
-      {plan && !phase && (
-        <div className="mx-auto w-full max-w-3xl rounded-3xl border border-[var(--border-default)] bg-[var(--bg-surface)] shadow-card">
-          <button
-            type="button"
-            onClick={() => setShowSources((v) => !v)}
-            aria-expanded={showSources}
-            className="flex w-full items-center justify-between gap-2 p-5 text-left"
-          >
-            <span className="flex min-w-0 items-center gap-2 text-sm font-bold text-[var(--text-primary)]">
-              <ListTodo className="h-4 w-4 shrink-0 text-[var(--accent-text)]" aria-hidden="true" />
-              <span className="truncate">{t(tasks.length === 1 ? 'plan_from_items_one' : 'plan_from_items_other', { count: tasks.length })}</span>
-            </span>
-            <ChevronRight className={`h-4 w-4 shrink-0 text-[var(--text-muted)] transition-transform  ${showSources ? 'rotate-90' : ''}`} aria-hidden="true" />
-          </button>
-          {showSources && (
-            <ul className="space-y-2 px-5 pb-5">
-              {tasks.map((item) => {
-                const placed = placedByKey[item.key] || 0;
-                const meta = ORIGIN_META[item.origin];
-                return (
-                  <li
-                    key={item.key}
-                    className="flex items-start justify-between gap-3 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-subtle)] p-3"
-                  >
-                    <div className="min-w-0">
-                      <p className="flex flex-wrap items-center gap-1.5">
-                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${meta.chip}`}>{t(meta.labelKey)}</span>
-                        <span className="min-w-0 break-words text-xs font-bold text-[var(--text-primary)]">{item.title}</span>
-                        {item.tentative && (
-                          <span className="rounded-full bg-[var(--status-warn-bg)] px-2 py-0.5 text-[10px] font-bold text-[var(--status-warn-text)] border border-[var(--status-warn-border)]">
-                            {t('plan_tentative_badge')}
-                          </span>
-                        )}
-                      </p>
-                      <p className="mt-1 text-[11px] text-[var(--text-muted)]">
-                        {item.subject} · {dueNote(item.dueISO)} · ~{item.minutes} {t('plan_min_unit')}
-                      </p>
-                      <p className={`mt-0.5 text-[11px] font-semibold ${placed > 0 ? 'text-[var(--status-ok-text)]' : 'text-[var(--status-warn-text)]'}`}>
-                        {placed > 0
-                          ? t(placed === 1 ? 'plan_placed_one' : 'plan_placed_other', { count: placed })
-                          : t('plan_not_placed')}
+                <section
+                  aria-label={dayLabel(selectedDay)}
+                  className="flex-1 min-h-0 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-4 shadow-xs flex flex-col overflow-hidden"
+                >
+                  <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-[var(--border-hairline)] shrink-0">
+                    <div>
+                      <h3 className="text-sm sm:text-base font-bold text-[var(--text-primary)]">{dayLabel(selectedDay)}</h3>
+                      <p className="text-[11px] text-[var(--text-muted)]">
+                        {dayBlocks.length === 0 && meetingsToday.length === 0
+                          ? t('plan_nothing_scheduled')
+                          : t(dayBlocks.length === 1 ? 'plan_day_summary_one' : 'plan_day_summary_other', {
+                              count: dayBlocks.length,
+                              hours: Math.floor(dayMin / 60),
+                              mins: dayMin % 60,
+                            })}
                       </p>
                     </div>
-                    {item.url && (
-                      <a
-                        href={item.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-[var(--border-default)] px-2 py-1 text-[11px] font-bold text-[var(--text-muted)] transition hover:border-[var(--accent-border)] hover:text-[var(--accent-text)]  "
+                    <div className="flex items-center gap-1">
+                      <button type="button" onClick={() => stepDay(-1)} disabled={days.indexOf(selectedDay) === 0} aria-label={t('plan_prev_day_aria')} className="rounded-xl border border-[var(--border-default)] p-1.5 text-[var(--text-muted)] transition hover:border-[var(--accent-border)] disabled:opacity-40 cursor-pointer">
+                        <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+                      </button>
+                      <button type="button" onClick={() => stepDay(1)} disabled={days.indexOf(selectedDay) === days.length - 1} aria-label={t('plan_next_day_aria')} className="rounded-xl border border-[var(--border-default)] p-1.5 text-[var(--text-muted)] transition hover:border-[var(--accent-border)] disabled:opacity-40 cursor-pointer">
+                        <ChevronRight className="h-4 w-4" aria-hidden="true" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 flex-1 min-h-0 overflow-y-auto space-y-2.5 pr-1">
+                    {meetingsToday.map((m, i) => (
+                      <div
+                        key={`m-${i}`}
+                        className="rounded-xl border border-sky-200 bg-sky-50 p-3 dark:border-sky-900 dark:bg-sky-950/40"
                       >
-                        <ExternalLink className="h-3 w-3" aria-hidden="true" />
-                        {t('common_open')}
-                      </a>
+                        <p className="flex items-center gap-1.5 text-xs font-bold text-sky-800 dark:text-sky-200">
+                          <Clock className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                          {fmtTime(m.startMin)} – {fmtTime(m.endMin)}
+                        </p>
+                        <p className="mt-0.5 text-xs font-semibold text-sky-900 dark:text-sky-100">{m.label}</p>
+                        <p className="text-[11px] text-sky-600 dark:text-sky-400">{t('plan_busy_kept_clear')}</p>
+                      </div>
+                    ))}
+                    {dayBlocks.map((b) => {
+                      const dur = b.endMin - b.startMin;
+                      const s = inputToMin(editStart);
+                      const e = inputToMin(editEnd);
+                      const valid = editingId === b.id && s !== null && e !== null && e - s >= 15 && s >= 0 && e <= 1440;
+                      const targetDay = editingId === b.id && editDay ? editDay : selectedDay;
+                      const clash =
+                        valid &&
+                        ((blocksByDay[targetDay] || []).some(
+                          (o) => o.id !== b.id && o.kind !== 'break' && (s as number) < o.endMin && o.startMin < (e as number),
+                        ) ||
+                          (busyByDay[targetDay] || []).some((o) => (s as number) < o.endMin && o.startMin < (e as number)));
+                      return (
+                        <article
+                          key={b.id}
+                          className={`rounded-xl border p-3.5 ${b.tentative ? 'border-dashed border-2' : ''} ${
+                            b.kind === 'review'
+                              ? `${b.tentative ? 'border-[var(--status-warn-border)]' : 'border-[var(--status-ok-border)]'} bg-[var(--status-ok-bg)]`
+                              : `${b.tentative ? 'border-[var(--status-warn-border)]' : 'border-[var(--border-default)]'} bg-[var(--bg-subtle)]`
+                          } ${b.locked ? 'ring-2 ring-[var(--accent-fill)]/40' : ''}`}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <p className="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-[var(--text-primary)]">
+                              {b.kind === 'review'
+                                ? <BookOpen className="h-3.5 w-3.5 shrink-0 text-emerald-600" aria-hidden="true" />
+                                : <CalendarCheck className="h-3.5 w-3.5 shrink-0 text-violet-600" aria-hidden="true" />}
+                              {fmtTime(b.startMin)} – {fmtTime(b.endMin)}
+                              <span className="text-xs font-semibold text-[var(--text-muted)]">{t('plan_min_short', { count: dur })}</span>
+                            </p>
+                            <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
+                              <button
+                                type="button"
+                                onClick={() => toggleLock(b)}
+                                aria-pressed={!!b.locked}
+                                aria-label={b.locked ? t('plan_unlock_aria', { title: b.title }) : t('plan_lock_aria', { title: b.title })}
+                                className={`inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-[11px] font-bold transition cursor-pointer ${
+                                  b.locked
+                                    ? 'border-[var(--accent-fill)] bg-[var(--accent-fill)] text-white hover:bg-[var(--accent-hover)]'
+                                    : 'border-[var(--border-default)] text-[var(--text-muted)] hover:border-[var(--accent-border)] hover:text-[var(--accent-text)]'
+                                }`}
+                              >
+                                {b.locked ? <LockOpen className="h-3 w-3" aria-hidden="true" /> : <Lock className="h-3 w-3" aria-hidden="true" />}
+                                {b.locked ? t('plan_unlock_btn') : t('plan_lock_btn')}
+                              </button>
+                              {editingId !== b.id && (
+                                <button
+                                  type="button"
+                                  onClick={() => beginEdit(b)}
+                                  aria-label={t('plan_edit_time_aria', { title: b.title })}
+                                  className="inline-flex items-center gap-1 rounded-lg border border-[var(--border-default)] px-2 py-1 text-[11px] font-bold text-[var(--text-muted)] transition hover:border-[var(--accent-border)] hover:text-[var(--accent-text)] cursor-pointer"
+                                >
+                                  <Pencil className="h-3 w-3" aria-hidden="true" />
+                                  {t('plan_edit_time_btn')}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                          <p className="mt-1 text-xs sm:text-sm font-bold leading-snug text-[var(--text-primary)]">
+                            {b.title}
+                          </p>
+                          <p className="text-[11px] font-medium text-[var(--text-muted)]">{b.subject}</p>
+                          {(b.locked || b.tentative) && (
+                            <p className="mt-1 flex flex-wrap gap-1.5">
+                              {b.locked && (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-[var(--accent-soft)] px-2 py-0.5 text-[10px] font-bold text-[var(--accent-text)]">
+                                  🔒 {t('plan_locked_badge')}
+                                </span>
+                              )}
+                              {b.tentative && (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-[var(--status-warn-bg)] px-2 py-0.5 text-[10px] font-bold text-[var(--status-warn-text)] border border-[var(--status-warn-border)]">
+                                  <TriangleAlert className="h-3 w-3" aria-hidden="true" />
+                                  {t('plan_tentative_badge')}
+                                </span>
+                              )}
+                            </p>
+                          )}
+                          {b.manual && b.locked && (
+                            <p className="mt-1 text-[11px] font-semibold text-[var(--accent-text)]">
+                              {t('plan_manual_locked_note')}
+                            </p>
+                          )}
+                          <p className="mt-1 text-[11px] italic leading-snug text-[var(--text-muted)]">
+                            {b.reason}
+                          </p>
+                          {editingId === b.id && (
+                            <div className="mt-2.5 rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-2.5">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <label className="sr-only" htmlFor={`day-${b.id}`}>{t('plan_field_day')}</label>
+                                <select
+                                  id={`day-${b.id}`}
+                                  value={editDay}
+                                  onChange={(ev) => setEditDay(ev.target.value)}
+                                  className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-surface)] px-2 py-1 text-xs font-bold text-[var(--text-primary)]"
+                                >
+                                  {days.map((d) => (
+                                    <option key={d} value={d}>
+                                      {dayLabel(d)}
+                                    </option>
+                                  ))}
+                                </select>
+                                <label className="sr-only" htmlFor={`start-${b.id}`}>{t('plan_field_start')}</label>
+                                <input
+                                  id={`start-${b.id}`}
+                                  type="time"
+                                  value={editStart}
+                                  onChange={(ev) => setEditStart(ev.target.value)}
+                                  className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-surface)] px-2 py-1 text-xs font-bold text-[var(--text-primary)]"
+                                />
+                                <span className="text-xs font-bold text-[var(--text-muted)]">–</span>
+                                <label className="sr-only" htmlFor={`end-${b.id}`}>{t('plan_field_end')}</label>
+                                <input
+                                  id={`end-${b.id}`}
+                                  type="time"
+                                  value={editEnd}
+                                  onChange={(ev) => setEditEnd(ev.target.value)}
+                                  className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-surface)] px-2 py-1 text-xs font-bold text-[var(--text-primary)]"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => saveEdit(b)}
+                                  disabled={!valid}
+                                  className="rounded-lg bg-[var(--accent-fill)] px-3 py-1 text-xs font-bold text-white transition hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                  {t('common_save')}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingId(null)}
+                                  className="rounded-lg border border-[var(--border-default)] px-3 py-1 text-xs font-bold text-[var(--text-muted)]"
+                                >
+                                  {t('cancel')}
+                                </button>
+                              </div>
+                              {!valid && (
+                                <p className="mt-1.5 text-[11px] font-semibold text-[var(--status-warn-text)]">
+                                  {t('plan_edit_invalid')}
+                                </p>
+                              )}
+                              {valid && clash && (
+                                <p className="mt-1.5 text-[11px] font-semibold text-[var(--status-warn-text)]">
+                                  {t('plan_edit_clash', { day: dayLabel(targetDay).split('·')[0].trim() })}.
+                                </p>
+                              )}
+                              <p className="mt-1 text-[11px] text-[var(--text-muted)]">
+                                {t('plan_edit_locks_note')}
+                              </p>
+                            </div>
+                          )}
+                        </article>
+                      );
+                    })}
+                    {breaks.length > 0 && (
+                      <p className="flex items-center gap-1.5 px-1 text-xs font-medium text-[var(--text-muted)]">
+                        <Coffee className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                        {t(breaks.length === 1 ? 'plan_breather_one' : 'plan_breather_other', { count: breaks.length })}
+                      </p>
                     )}
-                  </li>
-                );
-              })}
-            </ul>
-          )}
+                    {isEmpty && (
+                      <p className="rounded-2xl border border-dashed border-[var(--border-default)] p-6 text-center text-xs text-[var(--text-muted)] ">
+                        {t('plan_open_day')}
+                      </p>
+                    )}
+                  </div>
+                </section>
+              </div>
+            );
+          })()}
         </div>
-      )}
 
-      {renderUndated()}
-      {renderHistory()}
-
-      {/* Chat re-plan */}
-      <div className="rounded-3xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-5 shadow-card sm:p-6">
-        <h3 className="flex items-center gap-2 text-sm font-bold text-[var(--text-primary)]">
-          <MessageSquareText className="h-4 w-4 text-[var(--accent-text)]" aria-hidden="true" />
-          {t('plan_chat_title')}
-        </h3>
-        <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
-          {t('plan_chat_sub')}
-        </p>
-        <div aria-live="polite" className="mt-3 space-y-2">
-          {chat.length === 0 && (
-            <p className="rounded-2xl bg-[var(--bg-subtle)] p-3 text-xs text-[var(--text-muted)]">
-              {t('plan_chat_empty')}
-            </p>
-          )}
-          {chat.slice(-10).map((m, i) => (
-            <div
-              key={i}
-              className={`max-w-full whitespace-pre-line break-words rounded-2xl p-3 text-xs leading-relaxed ${
-                m.role === 'user'
-                  ? 'ml-auto w-fit max-w-[90%] bg-[var(--accent-fill)] font-medium text-white'
-                  : 'mr-auto w-fit max-w-[90%] border border-[var(--border-default)] bg-[var(--bg-subtle)] text-[var(--text-secondary)]'
-              }`}
-            >
-              {m.text}
+        {/* Right: Chat Re-plan + Collapsible Sources/Undated/History */}
+        <div className="lg:col-span-5 min-h-0 flex flex-col gap-3 overflow-y-auto pr-1">
+          {/* Chat re-plan */}
+          <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-4 shadow-xs flex flex-col gap-2.5 shrink-0">
+            <div>
+              <h3 className="flex items-center gap-2 text-xs font-bold text-[var(--text-primary)]">
+                <MessageSquareText className="h-4 w-4 text-[var(--accent-text)]" aria-hidden="true" />
+                {t('plan_chat_title')}
+              </h3>
+              <p className="mt-0.5 text-[11px] leading-relaxed text-[var(--text-muted)]">
+                {t('plan_chat_sub')}
+              </p>
             </div>
-          ))}
+            <div aria-live="polite" className="max-h-44 overflow-y-auto space-y-2 pr-1">
+              {chat.length === 0 && (
+                <p className="rounded-xl bg-[var(--bg-subtle)] p-2.5 text-xs text-[var(--text-muted)]">
+                  {t('plan_chat_empty')}
+                </p>
+              )}
+              {chat.slice(-10).map((m, i) => (
+                <div
+                  key={i}
+                  className={`max-w-full whitespace-pre-line break-words rounded-xl p-2.5 text-xs leading-relaxed ${
+                    m.role === 'user'
+                      ? 'ml-auto w-fit max-w-[90%] bg-[var(--accent-fill)] font-medium text-white'
+                      : 'mr-auto w-fit max-w-[90%] border border-[var(--border-default)] bg-[var(--bg-subtle)] text-[var(--text-secondary)]'
+                  }`}
+                >
+                  {m.text}
+                </div>
+              ))}
+            </div>
+            {pending?.origin === 'chat' && <div>{renderPending('chat')}</div>}
+            <form onSubmit={handleChatSubmit} className="flex flex-col gap-2 sm:flex-row">
+              <label htmlFor="ai-planner-chat" className="sr-only">
+                {t('plan_chat_input_label')}
+              </label>
+              <input
+                id="ai-planner-chat"
+                type="text"
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                placeholder={t('plan_chat_ph')}
+                autoComplete="off"
+                disabled={phase !== null}
+                className="min-w-0 flex-1 rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] px-3 py-2 text-xs text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)] focus:border-[var(--accent-fill)] focus:ring-2 focus:ring-[var(--accent-fill)]/30"
+              />
+              <button
+                type="submit"
+                disabled={phase !== null || !draft.trim()}
+                aria-label={t('plan_chat_send_aria')}
+                className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl bg-[var(--text-primary)] px-3.5 py-2 text-xs font-bold text-[var(--bg-canvas)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
+              >
+                {phase ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <Send className="h-3.5 w-3.5" aria-hidden="true" />}
+                {t('plan_chat_send_btn')}
+              </button>
+            </form>
+          </div>
+
+          {/* Connected resources */}
+          {plan && !phase && (
+            <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-surface)] shadow-xs shrink-0">
+              <button
+                type="button"
+                onClick={() => setShowSources((v) => !v)}
+                aria-expanded={showSources}
+                className="flex w-full items-center justify-between gap-2 p-4 text-left cursor-pointer"
+              >
+                <span className="flex min-w-0 items-center gap-2 text-xs font-bold text-[var(--text-primary)]">
+                  <ListTodo className="h-4 w-4 shrink-0 text-[var(--accent-text)]" aria-hidden="true" />
+                  <span className="truncate">{t(tasks.length === 1 ? 'plan_from_items_one' : 'plan_from_items_other', { count: tasks.length })}</span>
+                </span>
+                <ChevronRight className={`h-4 w-4 shrink-0 text-[var(--text-muted)] transition-transform ${showSources ? 'rotate-90' : ''}`} aria-hidden="true" />
+              </button>
+              {showSources && (
+                <ul className="space-y-2 px-4 pb-4 max-h-60 overflow-y-auto">
+                  {tasks.map((item) => {
+                    const placed = placedByKey[item.key] || 0;
+                    const meta = ORIGIN_META[item.origin];
+                    return (
+                      <li
+                        key={item.key}
+                        className="flex items-start justify-between gap-3 rounded-xl border border-[var(--border-default)] bg-[var(--bg-subtle)] p-2.5"
+                      >
+                        <div className="min-w-0">
+                          <p className="flex flex-wrap items-center gap-1.5">
+                            <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${meta.chip}`}>{t(meta.labelKey)}</span>
+                            <span className="min-w-0 break-words text-xs font-bold text-[var(--text-primary)]">{item.title}</span>
+                            {item.tentative && (
+                              <span className="rounded-full bg-[var(--status-warn-bg)] px-2 py-0.5 text-[10px] font-bold text-[var(--status-warn-text)] border border-[var(--status-warn-border)]">
+                                {t('plan_tentative_badge')}
+                              </span>
+                            )}
+                          </p>
+                          <p className="mt-1 text-[11px] text-[var(--text-muted)]">
+                            {item.subject} · {dueNote(item.dueISO)} · ~{item.minutes} {t('plan_min_unit')}
+                          </p>
+                          <p className={`mt-0.5 text-[11px] font-semibold ${placed > 0 ? 'text-[var(--status-ok-text)]' : 'text-[var(--status-warn-text)]'}`}>
+                            {placed > 0
+                              ? t(placed === 1 ? 'plan_placed_one' : 'plan_placed_other', { count: placed })
+                              : t('plan_not_placed')}
+                          </p>
+                        </div>
+                        {item.url && (
+                          <a
+                            href={item.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-[var(--border-default)] px-2 py-1 text-[11px] font-bold text-[var(--text-muted)] transition hover:border-[var(--accent-border)] hover:text-[var(--accent-text)]"
+                          >
+                            <ExternalLink className="h-3 w-3" aria-hidden="true" />
+                            {t('common_open')}
+                          </a>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          )}
+
+          {renderUndated()}
+          {renderHistory()}
         </div>
-        {pending?.origin === 'chat' && <div className="mt-3">{renderPending('chat')}</div>}
-        <form onSubmit={handleChatSubmit} className="mt-3 flex flex-col gap-2 sm:flex-row">
-          <label htmlFor="ai-planner-chat" className="sr-only">
-            {t('plan_chat_input_label')}
-          </label>
-          <input
-            id="ai-planner-chat"
-            type="text"
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            placeholder={t('plan_chat_ph')}
-            autoComplete="off"
-            disabled={phase !== null}
-            className="min-w-0 flex-1 rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] px-3 py-2.5 text-sm text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)] focus:border-[var(--accent-fill)] focus:ring-2 focus:ring-[var(--accent-fill)]/30"
-          />
-          <button
-            type="submit"
-            disabled={phase !== null || !draft.trim()}
-            aria-label={t('plan_chat_send_aria')}
-            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2.5 text-xs font-bold text-[var(--bg-canvas)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {phase ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Send className="h-4 w-4" aria-hidden="true" />}
-            {t('plan_chat_send_btn')}
-          </button>
-        </form>
       </div>
     </div>
   );

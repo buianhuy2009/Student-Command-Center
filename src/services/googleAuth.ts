@@ -29,12 +29,13 @@ import {
 } from './firebase';
 import { t } from './i18n';
 
-export type GoogleFeature = 'calendar' | 'gmail' | 'drive' | 'sheets' | 'classroom';
+export type GoogleFeature = 'calendar' | 'gmail' | 'drive' | 'drive-all' | 'sheets' | 'classroom';
 
 export const FEATURE_SCOPES: Record<GoogleFeature, string[]> = {
   calendar: ['https://www.googleapis.com/auth/calendar.events'],
   gmail: ['https://www.googleapis.com/auth/gmail.readonly'],
   drive: ['https://www.googleapis.com/auth/drive.file'],
+  'drive-all': ['https://www.googleapis.com/auth/drive.readonly'],
   sheets: ['https://www.googleapis.com/auth/drive.file'],
   classroom: [
     'https://www.googleapis.com/auth/classroom.courses.readonly',
@@ -1257,7 +1258,7 @@ async function runGisTokenClientDetailed(params: {
 }
 
 function collectActiveFeatureScopes(uid?: string | null): string[] {
-  const features: GoogleFeature[] = ['calendar', 'gmail', 'drive', 'sheets', 'classroom'];
+  const features: GoogleFeature[] = ['calendar', 'gmail', 'drive', 'drive-all', 'sheets', 'classroom'];
   const out: string[] = [];
   for (const f of features) {
     if (hasFeatureAccess(f, uid)) {

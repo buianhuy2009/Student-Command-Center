@@ -335,9 +335,9 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
   };
 
   return (
-    <div className="space-y-5 animate-in fade-in duration-200">
+    <div className="h-full min-h-0 flex-1 flex flex-col gap-3 overflow-hidden animate-in fade-in duration-200">
       {/* Header & Sub-Tab Bar */}
-      <div className="bg-[var(--bg-surface)] rounded-2xl p-4 border border-[var(--border-default)] flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs">
+      <div className="bg-[var(--bg-surface)] rounded-2xl p-3.5 border border-[var(--border-default)] flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center shrink-0 shadow-xs">
             <FileText className="w-5 h-5" />
@@ -382,9 +382,9 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
 
       {/* 1. Markdown & LaTeX Note-Taker with Live Split Preview */}
       {activeTab === 'notes' && (
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 min-w-0">
+        <div className="flex-1 min-h-0 grid grid-cols-1 xl:grid-cols-12 gap-4 overflow-hidden">
           {/* Notes Sidebar */}
-          <div className="xl:col-span-3 min-w-0 bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-4 shadow-xs space-y-3">
+          <div className="xl:col-span-3 min-w-0 min-h-0 bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-3.5 shadow-xs flex flex-col gap-2.5 overflow-hidden">
             <div className="flex items-center justify-between pb-2 border-b border-[var(--border-default)]">
               <span className="text-xs font-bold text-[var(--text-primary)] uppercase tracking-wider">
                 {t('dochub_saved_notes', { count: notes.length })}
@@ -405,7 +405,7 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
               ))}
             </div>
 
-            <div className="space-y-3 max-h-[260px] xl:max-h-[550px] overflow-y-auto pr-1">
+            <div className="flex-1 min-h-0 space-y-3 overflow-y-auto pr-1">
               {Object.entries(groupedNotes).length === 0 ? (
                 <p className="text-xs text-[var(--text-muted)] text-center py-6">{t('dochub_empty_folder')}</p>
               ) : (
@@ -450,7 +450,7 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
           </div>
 
           {/* Live Split Editor & Preview */}
-          <div className="xl:col-span-9 min-w-0 bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-4 sm:p-5 shadow-xs flex flex-col space-y-4">
+          <div className="xl:col-span-9 min-w-0 min-h-0 bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-3.5 sm:p-4 shadow-xs flex flex-col gap-3 overflow-hidden">
             {activeNote && (
               <>
                 <div className="flex flex-col gap-3 pb-3 border-b border-[var(--border-default)]">
@@ -528,9 +528,9 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 min-h-[420px] xl:h-[58vh]">
+                <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-2 gap-3 overflow-hidden">
                   {/* Editor */}
-                  <div className="flex flex-col min-h-[260px] h-full min-w-0">
+                  <div className="flex flex-col min-h-0 h-full min-w-0">
                     <span className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider mb-1">
                       {t('dochub_raw_editor')}
                     </span>
@@ -559,6 +559,8 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
       )}
 
       {/* 2. Essay & Thesis Proofreader */}
+      {activeTab !== 'notes' && (
+        <div className="flex-1 min-h-0 overflow-y-auto pr-1">
       {activeTab === 'essay-proof' && (
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 min-w-0">
           {/* Input column */}
@@ -949,6 +951,8 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
               </button>
             </div>
           </form>
+        </div>
+      )}
         </div>
       )}
     </div>

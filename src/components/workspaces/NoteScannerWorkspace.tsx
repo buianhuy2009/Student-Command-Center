@@ -223,9 +223,9 @@ export const NoteScannerWorkspace: React.FC<NoteScannerWorkspaceProps> = ({ onOp
   ];
 
   return (
-    <div className="space-y-5 animate-in fade-in duration-200">
+    <div className="h-full min-h-0 flex-1 flex flex-col gap-3 overflow-hidden animate-in fade-in duration-200">
       {/* Header Bar */}
-      <div className="bg-[var(--bg-surface)] rounded-2xl p-4 sm:p-5 border border-[var(--border-default)] flex flex-col gap-3.5 shadow-xs">
+      <div className="bg-[var(--bg-surface)] rounded-2xl p-3.5 border border-[var(--border-default)] flex flex-col gap-2.5 shadow-xs shrink-0">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="flex items-center gap-3.5">
             <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-teal-500 to-cyan-600 text-white flex items-center justify-center shrink-0 shadow-xs">
@@ -370,21 +370,23 @@ export const NoteScannerWorkspace: React.FC<NoteScannerWorkspaceProps> = ({ onOp
 
       {/* Unified Live Progress Bar */}
       {isScanning && scanProgress && (
-        <AiProgressBar
-          percent={scanProgress.percent}
-          label={scanProgress.label}
-          detail={scanProgress.detail}
-          currentItem={scanProgress.currentItem}
-          totalItems={scanProgress.totalItems}
-          etaText={t('ai_bg_switch_safe')}
-          onCancel={cancelScan}
-        />
+        <div className="shrink-0">
+          <AiProgressBar
+            percent={scanProgress.percent}
+            label={scanProgress.label}
+            detail={scanProgress.detail}
+            currentItem={scanProgress.currentItem}
+            totalItems={scanProgress.totalItems}
+            etaText={t('ai_bg_switch_safe')}
+            onCancel={cancelScan}
+          />
+        </div>
       )}
 
       {/* Main Split Workspace */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 min-w-0">
+      <div className="flex-1 min-h-0 grid grid-cols-1 xl:grid-cols-12 gap-4 overflow-hidden">
         {/* Left: Upload & Image Preview */}
-        <div className="xl:col-span-5 min-w-0 bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-4 sm:p-5 shadow-xs flex flex-col gap-4">
+        <div className="xl:col-span-5 min-w-0 min-h-0 bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-3.5 sm:p-4 shadow-xs flex flex-col gap-3 overflow-hidden">
           {images.length === 0 ? (
             <div
               onDragOver={(e) => {
@@ -397,7 +399,7 @@ export const NoteScannerWorkspace: React.FC<NoteScannerWorkspaceProps> = ({ onOp
                 setIsDragging(false);
                 if (e.dataTransfer.files) addFiles(e.dataTransfer.files);
               }}
-              className={`flex-1 min-h-[380px] rounded-2xl border-2 border-dashed flex flex-col items-center justify-center p-8 text-center transition-colors ${
+              className={`flex-1 min-h-0 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center p-6 text-center transition-colors ${
                 isDragging
                   ? 'border-[var(--accent-fill)] bg-[var(--accent-soft)]/50'
                   : 'border-[var(--border-default)] bg-[var(--bg-subtle)]/50 hover:border-[var(--border-strong)]'
@@ -472,18 +474,18 @@ export const NoteScannerWorkspace: React.FC<NoteScannerWorkspaceProps> = ({ onOp
                     setIsDragging(false);
                     if (e.dataTransfer.files) addFiles(e.dataTransfer.files);
                   }}
-                  className="relative rounded-2xl border border-[var(--border-default)] bg-[var(--bg-subtle)] overflow-hidden flex items-center justify-center min-h-[300px] max-h-[460px]"
+                  className="relative flex-1 min-h-0 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-subtle)] overflow-hidden flex items-center justify-center p-2"
                 >
                   <img
                     src={activeImage.dataUrl}
                     alt={activeImage.name}
-                    className="max-h-[450px] w-auto object-contain"
+                    className="max-h-full max-w-full w-auto h-auto object-contain"
                   />
                 </div>
               )}
 
               {/* Scan Controls */}
-              <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-1 shrink-0">
                 <button
                   type="button"
                   disabled={isScanning}
@@ -549,8 +551,8 @@ export const NoteScannerWorkspace: React.FC<NoteScannerWorkspaceProps> = ({ onOp
         </div>
 
         {/* Right: Extracted Text Editor / Rendered Markdown */}
-        <div className="xl:col-span-7 min-w-0 bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-4 sm:p-5 shadow-xs flex flex-col gap-4">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2 pb-3 border-b border-[var(--border-default)]">
+        <div className="xl:col-span-7 min-w-0 min-h-0 bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-3.5 sm:p-4 shadow-xs flex flex-col gap-3 overflow-hidden">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 pb-2.5 border-b border-[var(--border-default)] shrink-0">
             <input
               type="text"
               value={extractedTitle}
@@ -606,26 +608,26 @@ export const NoteScannerWorkspace: React.FC<NoteScannerWorkspaceProps> = ({ onOp
           )}
 
           {!extractedText.trim() ? (
-            <div className="flex-1 min-h-[340px] rounded-2xl border border-[var(--border-hairline)] bg-[var(--bg-subtle)]/40 flex flex-col items-center justify-center p-8 text-center text-[var(--text-muted)]">
+            <div className="flex-1 min-h-0 rounded-2xl border border-[var(--border-hairline)] bg-[var(--bg-subtle)]/40 flex flex-col items-center justify-center p-6 text-center text-[var(--text-muted)]">
               <ImageIcon className="w-10 h-10 opacity-30 mb-3" />
               <p className="text-xs font-medium max-w-sm leading-relaxed">
                 {t('scanner_output_empty')}
               </p>
             </div>
           ) : viewMode === 'preview' ? (
-            <div className="flex-1 min-h-[340px] max-h-[540px] p-5 bg-[var(--bg-subtle)]/50 border border-[var(--border-default)] rounded-2xl overflow-y-auto prose prose-sm dark:prose-invert max-w-none text-[var(--text-primary)]">
+            <div className="flex-1 min-h-0 p-4 bg-[var(--bg-subtle)]/50 border border-[var(--border-default)] rounded-2xl overflow-y-auto prose prose-sm dark:prose-invert max-w-none text-[var(--text-primary)]">
               <MathMarkdown>{extractedText}</MathMarkdown>
             </div>
           ) : (
             <textarea
               value={extractedText}
               onChange={(e) => setExtractedText(e.target.value)}
-              className="flex-1 min-h-[340px] max-h-[540px] w-full p-4 text-xs font-mono bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-2xl focus:outline-none focus:ring-2 focus:ring-[var(--accent-fill)] text-[var(--text-primary)] resize-none leading-relaxed"
+              className="flex-1 min-h-0 w-full p-4 text-xs font-mono bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-2xl focus:outline-none focus:ring-2 focus:ring-[var(--accent-fill)] text-[var(--text-primary)] resize-none leading-relaxed overflow-y-auto"
             />
           )}
 
           {/* Action Bar */}
-          <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-[var(--border-hairline)]">
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-[var(--border-hairline)] shrink-0">
             <div className="flex items-center gap-2">
               {savedNotice && (
                 <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--status-ok-text)]">

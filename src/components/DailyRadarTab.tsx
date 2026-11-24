@@ -357,9 +357,9 @@ export const DailyRadarTab: React.FC<DailyRadarTabProps> = ({
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-200">
+    <div className="h-full min-h-0 flex-1 flex flex-col gap-3 overflow-hidden animate-in fade-in duration-200">
       {/* Top Clean Header */}
-      <div className="bg-[var(--bg-surface)] rounded-2xl p-5 border border-[var(--border-default)] flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs">
+      <div className="bg-[var(--bg-surface)] rounded-2xl p-3 sm:px-4 border border-[var(--border-default)] flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-[var(--accent-soft)] text-[var(--accent-text)] border border-[var(--accent-border)] flex items-center justify-center shrink-0">
             <CalendarIcon className="w-5 h-5" />
@@ -450,7 +450,7 @@ export const DailyRadarTab: React.FC<DailyRadarTabProps> = ({
           meetings={events}
         />
       ) : (
-      <>
+      <div className="flex-1 min-h-0 overflow-y-auto space-y-4 pr-1">
       {showChronotypePanel && (
         <div className="p-4 bg-[var(--accent-soft)] border border-[var(--accent-border)] rounded-2xl space-y-4 animate-in slide-in-from-top-3 duration-250">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -855,7 +855,7 @@ export const DailyRadarTab: React.FC<DailyRadarTabProps> = ({
           </div>
         </div>
       )}
-      </>
+      </div>
       )}
     </div>
   );
