@@ -3738,4 +3738,15 @@ export const vi = {
   changelog_r_3_1_0_d2: 'Note Scanner Offline đã sửa lỗi chuẩn hoá ảnh [0, 1] cho VietOCR, nâng cấp Chữ viết tay Anh lên PP-OCRv5 English (~11 MB, không ảo giác), giữ nguyên tỷ lệ chữ khi cắt dòng và giữ xuống dòng cho các ghi chú dạng danh sách.',
   changelog_r_3_1_0_d3: 'Trong AI Study Coach, bộ chọn chế độ phản hồi nay nằm ngay thanh soạn thảo phía dưới (xổ lên trên) cùng nhãn mới sinh động thay cho các nhãn hạn mức cũ; bản v2.24.0 cũng được đổi số phiên bản thành v3.0.0.',
 
+  // Changelog v3.2.0
+  changelog_r_3_2_0_t: 'Không gian 1 màn hình, Gửi ảnh cho AI Coach, Sửa OCR & Tóm tắt Gemma',
+  changelog_r_3_2_0_h1: 'Mọi công cụ vừa gọn trong một màn hình (Bài giảng chia 2 bước, Kế hoạch tuần 2 cột, Quét ghi chú, Drive & Hộp thư)',
+  changelog_r_3_2_0_h2: 'Tên ứng dụng ngắn gọn kèm logo chuẩn, bảng màu nhấn dịu mắt đa sắc, App Store biểu tượng lớn và tích hợp tràn viền toàn màn hình',
+  changelog_r_3_2_0_h3: 'Sửa triệt để tóm tắt Gemma 3 270M, gộp đoạn văn OCR chữ in và tăng độ nét nhận diện chữ viết tay tiếng Việt',
+  changelog_r_3_2_0_h4: 'AI Coach đọc được ảnh ở cả 4 cấp độ model, Google Drive gọn chỉ hiện tên tệp kèm nút mở toàn bộ, và email gửi từ studentos.service@gmail.com',
+  changelog_r_3_2_0_d1: 'Thay Google Classroom trong Luồng chính bằng Bài giảng (Lectures), bỏ bảng Check-in buổi sáng, rút gọn tên công cụ (GeoGebra, Desmos, PhET, Ghi chú...), thêm nút Quyền riêng tư (/privacy) & Điều khoản (/terms) ở trang đầu, và bố cục vừa khít khung nhìn.',
+  changelog_r_3_2_0_d2: 'Thiết kế lại App Store với biểu tượng và tên lớn nổi bật, bổ sung sắc chàm & xanh ngọc hài hòa cùng màu cam đất, gỡ bỏ Bảng vẽ Excalidraw, và giúp Desmos, GeoGebra, PhET, arXiv, Open Library giãn full màn hình.',
+  changelog_r_3_2_0_d3: 'Cải tiến prompt và bộ kiểm tra tóm tắt Gemma 3 270M để không lặp mẫu hay chép nguyên bản chép lời, gộp lại các dòng xuống hàng thành đoạn văn mượt trong OCR chữ in, và bổ sung cân bằng sáng/tách dòng cho chữ viết tay tiếng Việt.',
+  changelog_r_3_2_0_d4: 'Hỗ trợ đính kèm, dán hoặc kéo thả ảnh cho cả 4 cấp độ AI Coach (Nhanh, Cân bằng, Suy luận, Tối đa), thu gọn Google Drive chỉ hiển thị tên tệp kèm nút "Truy cập tất cả tệp", và gửi báo cáo qua studentos.service@gmail.com.',
+
 } satisfies Record<TranslationKey, string>;

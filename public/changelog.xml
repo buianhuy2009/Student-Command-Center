@@ -6,6 +6,12 @@
     <description>Plain-English updates to StudentOS — what changed and why it matters for studying.</description>
     <language>en-us</language>
     <item>
+      <title>v3.2.0 — Single-Screen Workspaces, Multimodal AI Coach, OCR &amp; Gemma Summary Fixes</title>
+      <link>https://sutdent-command-center.vercel.app/?changelog=3.2.0</link>
+      <pubDate>Tue, 24 Nov 2026 09:24:07 GMT</pubDate>
+      <description>StudentOS v3.2.0 fits workspaces onto a single screen with a 2-step Lectures flow, adds image input across all 4 AI Coach tiers, fixes Gemma 3 270M summaries, merges Printed OCR paragraphs, improves Vietnamese handwriting OCR, updates integrations to full-bleed with real logos, and adds /privacy, /terms, and on-demand full Drive access.</description>
+    </item>
+    <item>
       <title>v3.1.0 — Offline Lecture Summaries (Gemma 3 270M), Scannable Summary Formatting, Fixed Offline OCR &amp; Composer Model Picker</title>
       <link>https://sutdent-command-center.vercel.app/?changelog=3.1.0</link>
       <pubDate>Tue, 24 Nov 2026 07:45:00 GMT</pubDate>

@@ -3746,6 +3746,17 @@ export const en = {
   changelog_r_3_1_0_d2: 'Note Scanner offline OCR fixed VietOCR [0, 1] normalization, upgraded EN Handwriting to PP-OCRv5 English (~11 MB, zero hallucinations), fixed aspect-ratio cropping, and preserved line breaks for short/key-value notes.',
   changelog_r_3_1_0_d3: 'In AI Study Coach (both full-screen and drawer), the 4-tier Response Mode selector now opens upward right from the composer toolbar with refreshed Lightning, Daily Driver, Deep Think, and Peak Power badges; v2.24.0 has also been re-versioned to v3.0.0.',
 
+  // Changelog v3.2.0
+  changelog_r_3_2_0_t: 'Single-Screen Workspaces, AI Coach Image Upload, OCR & Gemma Summary Fixes',
+  changelog_r_3_2_0_h1: 'Fit every workspace cleanly inside one screen (with a 2-step flow in Lectures and split-pane Weekly Plan, Scanner, Drive & Inbox)',
+  changelog_r_3_2_0_h2: 'Simplified app names & official logos, balanced multi-accent palette, oversized App Store tiles, and full-bleed responsive integrations (no Excalidraw)',
+  changelog_r_3_2_0_h3: 'Fixed offline Gemma 3 270M lecture summaries, Printed OCR paragraph line merging, and Vietnamese handwriting OCR clarity',
+  changelog_r_3_2_0_h4: 'AI Coach now reads attached or pasted images across all 4 tiers, Drive adds on-demand full access, and reports send from studentos.service@gmail.com',
+  changelog_r_3_2_0_d1: 'Replaced Google Classroom in Main Flow with Lectures, removed the Daily Morning Check-in popup, simplified app titles (e.g. GeoGebra, Desmos, PhET, Lectures, Notes), added Starter top-bar Privacy (/privacy) and Terms (/terms) links, and fitted core workspaces to the viewport.',
+  changelog_r_3_2_0_d2: 'Redesigned App Store cards with large icons and bold titles, added indigo/sage-teal secondary palette accents alongside terracotta, removed Excalidraw, and made Desmos, GeoGebra, PhET, arXiv, and Open Library expand full-bleed with a fullscreen widen button.',
+  changelog_r_3_2_0_d3: 'Updated offline Gemma 3 270M prompting + validation so summaries never repeat template placeholders or raw transcripts, merged wrapped lines back into paragraphs in Printed OCR, and upgraded Vietnamese handwriting preprocessing & wide-line cropping.',
+  changelog_r_3_2_0_d4: 'Added image attachments (upload, paste, drag-drop) across all 4 AI Coach model tiers (Quick, Balanced, Reasoning, Apex), switched Google Drive to a filename-only view with an on-demand "Access all files" button, and set report emails to send from studentos.service@gmail.com.',
+
 } as const;
 
 export type TranslationKey = keyof typeof en;
