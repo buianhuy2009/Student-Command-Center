@@ -90,7 +90,11 @@ export function sanitizeConfigForModel(model, config) {
 }
 
 export async function generateWithModelFallback(params) {
-  const ai = getGenAI();
+  const customKey =
+    typeof params?.apiKey === "string" && params.apiKey.trim()
+      ? params.apiKey.trim()
+      : "";
+  const ai = customKey ? new GoogleGenAI({ apiKey: customKey }) : getGenAI();
   const errors = [];
   const requested = params?.model;
   const candidateModels =

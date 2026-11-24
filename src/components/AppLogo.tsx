@@ -11,6 +11,7 @@ import {
   Bookmark,
   LayoutDashboard,
   ScanText,
+  AudioLines,
 } from 'lucide-react';
 import { useT } from '../services/i18n';
 
@@ -193,6 +194,13 @@ export const AppLogo: React.FC<AppLogoProps> = ({ id, size = 'md', className = '
       return (
         <div aria-label={t('logo_note_scanner')} className={`${sizeClasses} bg-gradient-to-br from-[#0D9488] to-[#0891B2] text-white flex items-center justify-center font-bold shadow-sm shrink-0 ${className}`}>
           <ScanText className={iconSizes} aria-hidden="true" />
+        </div>
+      );
+
+    case 'lecture-studio':
+      return (
+        <div aria-label={t('logo_lecture_studio')} className={`${sizeClasses} bg-gradient-to-br from-[#6366F1] to-[#7C3AED] text-white flex items-center justify-center font-bold shadow-sm shrink-0 ${className}`}>
+          <AudioLines className={iconSizes} aria-hidden="true" />
         </div>
       );
 

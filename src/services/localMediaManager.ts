@@ -1,4 +1,5 @@
 import { LOCAL_MODEL_CACHE_NAME, type OcrMode } from './localAiConfig';
+import type { OfflineAudioClip, OnlineAudioChunk } from '../utils/audioChunking';
 
 export interface LocalOcrProgress {
   stage: 'downloading' | 'detecting' | 'reading' | 'formatting';
@@ -19,6 +20,7 @@ const IDLE_TERMINATE_MS = 60_000;
 
 let activeWorkerKind: 'ocr' | 'vad' | 'asr' | null = null;
 let ocrWorker: Worker | null = null;
+let vadWorker: Worker | null = null;
 let ocrIdleTimer: number | null = null;
 
 function clearOcrIdleTimer() {
@@ -51,6 +53,20 @@ export function terminateOcrWorker(): void {
   }
 }
 
+export function terminateVadWorker(): void {
+  if (vadWorker) {
+    try {
+      vadWorker.terminate();
+    } catch {
+      // Ignore termination error.
+    }
+    vadWorker = null;
+  }
+  if (activeWorkerKind === 'vad') {
+    activeWorkerKind = null;
+  }
+}
+
 /**
  * Ensures at most ONE heavy ML worker is alive at a time so 8 GB laptops stay safe.
  */
@@ -58,6 +74,8 @@ export function claimWorkerSlot(kind: 'ocr' | 'vad' | 'asr'): void {
   if (activeWorkerKind && activeWorkerKind !== kind) {
     if (activeWorkerKind === 'ocr') {
       terminateOcrWorker();
+    } else if (activeWorkerKind === 'vad') {
+      terminateVadWorker();
     }
   }
   activeWorkerKind = kind;
@@ -213,8 +231,107 @@ export async function getOfflineModelCacheStats(): Promise<{
   };
 }
 
+export interface LocalVadResult {
+  originalDurationSec: number;
+  speechDurationSec: number;
+  onlineChunks: OnlineAudioChunk[];
+  offlineClips: OfflineAudioClip[];
+}
+
+export async function runLocalVadProcess(params: {
+  pcm16k: Float32Array;
+  sampleRate: number;
+  mode: 'online' | 'offline';
+  onProgress?: (p: { stage: string; percent: number }) => void;
+  signal?: AbortSignal;
+}): Promise<LocalVadResult> {
+  const { pcm16k, sampleRate, mode, onProgress, signal } = params;
+  if (signal?.aborted) throw new Error('ABORTED');
+
+  claimWorkerSlot('vad');
+  if (vadWorker) terminateVadWorker();
+  vadWorker = new Worker(new URL('../workers/vad.worker.ts', import.meta.url), {
+    type: 'module',
+  });
+
+  const worker = vadWorker;
+  const requestId = `vad-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+
+  return new Promise<LocalVadResult>((resolve, reject) => {
+    let settled = false;
+
+    const cleanup = () => {
+      worker.removeEventListener('message', onMessage);
+      worker.removeEventListener('error', onError);
+      if (signal) signal.removeEventListener('abort', onAbort);
+      terminateVadWorker();
+    };
+
+    const onAbort = () => {
+      if (settled) return;
+      settled = true;
+      try {
+        worker.postMessage({ type: 'abort', id: requestId });
+      } catch {}
+      cleanup();
+      reject(new Error('ABORTED'));
+    };
+
+    const onError = (ev: ErrorEvent) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(new Error(ev.message || 'VAD worker failed.'));
+    };
+
+    const onMessage = (event: MessageEvent<any>) => {
+      const msg = event.data;
+      if (!msg || msg.id !== requestId) return;
+
+      if (msg.type === 'progress') {
+        onProgress?.({
+          stage: String(msg.stage || 'vad'),
+          percent: typeof msg.percent === 'number' ? msg.percent : 0,
+        });
+      } else if (msg.type === 'done') {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        resolve({
+          originalDurationSec: Number(msg.originalDurationSec || 0),
+          speechDurationSec: Number(msg.speechDurationSec || 0),
+          onlineChunks: Array.isArray(msg.onlineChunks) ? msg.onlineChunks : [],
+          offlineClips: Array.isArray(msg.offlineClips) ? msg.offlineClips : [],
+        });
+      } else if (msg.type === 'error') {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        reject(new Error(String(msg.error || 'Audio processing failed.')));
+      }
+    };
+
+    worker.addEventListener('message', onMessage);
+    worker.addEventListener('error', onError);
+    if (signal) signal.addEventListener('abort', onAbort, { once: true });
+
+    // Transfer the Float32Array buffer directly so we never duplicate 1-hour audio in RAM.
+    worker.postMessage(
+      {
+        type: 'process',
+        id: requestId,
+        pcm16k,
+        sampleRate,
+        mode,
+      },
+      [pcm16k.buffer]
+    );
+  });
+}
+
 export async function clearOfflineModels(): Promise<void> {
   terminateOcrWorker();
+  terminateVadWorker();
   if (typeof caches === 'undefined') return;
   for (const name of [LOCAL_MODEL_CACHE_NAME, 'transformers-cache']) {
     try {

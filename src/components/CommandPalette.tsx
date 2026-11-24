@@ -22,6 +22,7 @@ import {
   Compass,
   Grid2x2,
   ScanText,
+  AudioLines,
 } from 'lucide-react';
 import { Assignment, AppTab } from '../types';
 import { useT } from '../services/i18n';
@@ -226,6 +227,13 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       category: t('pal_cat_workspaces'),
       icon: ScanText,
       run: () => { onSelectWorkspace('note-scanner'); onClose(); },
+    },
+    {
+      id: 'ws-lecture-studio',
+      title: t('pal_ws_lecture_studio'),
+      category: t('pal_cat_workspaces'),
+      icon: AudioLines,
+      run: () => { onSelectWorkspace('lecture-studio'); onClose(); },
     },
     {
       id: 'ws-flashcards',

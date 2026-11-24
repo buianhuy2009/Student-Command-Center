@@ -226,6 +226,7 @@ export type AppTab =
   | 'tracker'
   | 'notes-markdown'
   | 'note-scanner'
+  | 'lecture-studio'
   | 'flashcards'
   | 'excalidraw'
   | 'geogebra'
@@ -252,6 +253,7 @@ export const IA_CATEGORY_MAP: Record<AppTab, IACategory> = {
   drive: 'Research',
   'notes-markdown': 'Research',
   'note-scanner': 'Research',
+  'lecture-studio': 'Research',
   arxiv: 'Research',
   'open-library': 'Research',
 };

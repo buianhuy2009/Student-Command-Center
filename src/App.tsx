@@ -38,6 +38,7 @@ function lazyRetry<T extends { default: React.ComponentType<any> }>(importer: ()
 }
 const DocumentHubWorkspace = lazyRetry(() => import('./components/workspaces/DocumentHubWorkspace').then(m => ({ default: m.DocumentHubWorkspace })));
 const NoteScannerWorkspace = lazyRetry(() => import('./components/workspaces/NoteScannerWorkspace').then(m => ({ default: m.NoteScannerWorkspace })));
+const LectureStudioWorkspace = lazyRetry(() => import('./components/workspaces/LectureStudioWorkspace').then(m => ({ default: m.LectureStudioWorkspace })));
 const DesmosWorkspace = lazyRetry(() => import('./components/workspaces/DesmosWorkspace').then(m => ({ default: m.DesmosWorkspace })));
 const GeoGebraWorkspace = lazyRetry(() => import('./components/workspaces/GeoGebraWorkspace').then(m => ({ default: m.GeoGebraWorkspace })));
 const ExcalidrawWorkspace = lazyRetry(() => import('./components/workspaces/ExcalidrawWorkspace').then(m => ({ default: m.ExcalidrawWorkspace })));
@@ -199,6 +200,7 @@ const KEPT_APP_TABS: ReadonlySet<string> = new Set<AppTab>([
   'tracker',
   'notes-markdown',
   'note-scanner',
+  'lecture-studio',
   'flashcards',
   'excalidraw',
   'geogebra',
@@ -219,6 +221,7 @@ const TAB_LABEL_KEYS: Record<AppTab, string> = {
   tracker: 'app_tab_tracker',
   'notes-markdown': 'app_tab_notes',
   'note-scanner': 'app_tab_note_scanner',
+  'lecture-studio': 'app_tab_lecture_studio',
   flashcards: 'app_tab_flashcards',
   excalidraw: 'app_tab_excalidraw',
   geogebra: 'app_tab_geogebra',
@@ -3974,6 +3977,16 @@ export default function App() {
                 {activeTab === 'note-scanner' && (
                   <NoteScannerWorkspace
                     onOpenNotes={() => handleTabTransition('notes-markdown')}
+                  />
+                )}
+
+                {activeTab === 'lecture-studio' && (
+                  <LectureStudioWorkspace
+                    onOpenNotes={() => handleTabTransition('notes-markdown')}
+                    onOpenFlashcards={() => handleTabTransition('flashcards')}
+                    assignments={assignments}
+                    events={calendarEvents}
+                    alerts={emailAlerts}
                   />
                 )}
 

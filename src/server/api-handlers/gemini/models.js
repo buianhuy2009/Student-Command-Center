@@ -48,6 +48,22 @@ export const VISION_CHEAPEST_MODELS = [
   "gemini-3-flash-preview",
 ];
 
+// Audio transcription strictly uses audio-capable Gemini Flash models (no Gemma models).
+export const AUDIO_MODELS = [
+  "gemini-3.5-flash-lite",
+  "gemini-3.1-flash-lite",
+  "gemini-3-flash-preview",
+  "gemini-3.6-flash",
+];
+
+// Lecture map-reduce synthesis is text-only so Gemma 4 31B works as a strong free fallback.
+export const LECTURE_SUMMARY_MODELS = [
+  "gemini-3-flash-preview",
+  "gemini-3.6-flash",
+  "gemini-3.1-flash-lite",
+  "gemma-4-31b-it",
+];
+
 export function normalizeCoachMode(rawMode) {
   switch (rawMode) {
     case "quick":

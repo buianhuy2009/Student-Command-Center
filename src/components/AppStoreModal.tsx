@@ -253,6 +253,22 @@ export const APP_CATALOG: AppStoreItem[] = [
     rating: 5.0,
   },
   {
+    id: 'lecture-studio',
+    name: 'Lecture Studio (Audio Notes)',
+    nameKey: 'store_app_lecture_n',
+    category: 'Research',
+    description: 'Turn 1-hour lecture recordings into timestamped transcripts, summaries, and flashcards.',
+    descKey: 'store_app_lecture_d',
+    longOverview: 'Upload MP3/M4A/WAV lecture recordings. On-device silence trimming keeps audio compact while fast online or offline speech models transcribe and synthesize clean study notes.',
+    overviewKey: 'store_app_lecture_o',
+    features: ['On-device silence trimming before transcription', 'Fast Gemini audio mode or 100% offline transcription', 'Clickable [mm:ss] outline & transcript player', '1-click save to Notes, Flashcards, or AI Coach'],
+    featureKeys: ['store_app_lecture_f1', 'store_app_lecture_f2', 'store_app_lecture_f3', 'store_app_lecture_f4'],
+    badge: 'New · Audio AI',
+    badgeKey: 'store_app_lecture_b',
+    developer: 'StudentOS Audio',
+    rating: 5.0,
+  },
+  {
     id: 'drive',
     name: 'Google Drive',
     nameKey: 'store_app_drive_n',
@@ -394,6 +410,18 @@ const APP_VISUALS: Record<string, AppVisualStyle> = {
           ∫ eˣ dx → Markdown
         </div>
         <span className="px-1.5 py-0.5 rounded bg-teal-600 text-white font-bold">OCR</span>
+      </div>
+    ),
+  },
+  'lecture-studio': {
+    gradient: 'from-indigo-500/20 via-violet-500/10 to-purple-500/15',
+    accentHex: '#6366F1',
+    preview: (
+      <div className="flex items-center gap-2 text-[10px] font-mono">
+        <div className="px-2 py-1 rounded-md bg-white/80 dark:bg-black/35 border border-indigo-500/30 text-indigo-800 dark:text-indigo-200 shadow-2xs">
+          [04:12] → Outline & Cards
+        </div>
+        <span className="px-1.5 py-0.5 rounded bg-indigo-600 text-white font-bold">VAD</span>
       </div>
     ),
   },
@@ -577,7 +605,7 @@ const STARTER_PACKS = [
     titleKey: 'store_pack_research_t' as const,
     descKey: 'store_pack_research_d' as const,
     gradient: 'from-teal-500/15 to-indigo-500/15 border-teal-500/25',
-    appIds: ['note-scanner', 'notes-markdown', 'arxiv', 'open-library'],
+    appIds: ['note-scanner', 'lecture-studio', 'notes-markdown', 'arxiv', 'open-library'],
   },
 ] as const;
 

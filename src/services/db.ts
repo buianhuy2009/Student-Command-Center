@@ -7,6 +7,38 @@ export interface PersistedBrief { id: string; topic: string; subject: string; br
 export interface QueuedAssignment { id: string; assignmentName: string; subject: string; dueDate: string; priority: string; status: string; sheetRowIndex?: number; source?: string; queuedAt?: string; }
 
 export interface StoredAssignment { id: string; data: any; updatedAt: string; }
+
+export interface LectureRecord {
+  id: string;
+  title: string;
+  subject?: string;
+  language: 'auto' | 'vi' | 'en';
+  mode: 'online' | 'offline-tiny' | 'offline-base';
+  status: 'vad' | 'transcribing' | 'summarizing' | 'paused' | 'done' | 'error';
+  originalDurationSec: number;
+  speechDurationSec: number;
+  totalChunks: number;
+  completedChunks: number;
+  summaryMarkdown?: string;
+  outlineJson?: string;
+  keyTerms?: string[];
+  flashcardsJson?: string;
+  error?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LectureSegment {
+  id: string;
+  lectureId: string;
+  chunkIndex: number;
+  startSec: number;
+  endSec: number;
+  text: string;
+  chunkBullets?: string[];
+  keyTerms?: string[];
+}
+
 export class StudentOSDatabase extends Dexie {
   notes!: Table<MarkdownNote, string>;
   srsCards!: Table<SRSCard & { deckId: string }, string>;
@@ -19,6 +51,8 @@ export class StudentOSDatabase extends Dexie {
   prompts!: Table<{ id: string; title: string; category: string; body: string; shared?: boolean }, string>;
   tokenUsage!: Table<{ id: string; date: string; model: string; tokens: number; task: string }, string>;
   dashboard!: Table<{ id: string; order: string[]; hidden: string[]; sizes?: Record<string, string> }, string>;
+  lectures!: Table<LectureRecord, string>;
+  lectureSegments!: Table<LectureSegment, string>;
 
   constructor() {
     super('StudentOSDatabase');
@@ -76,6 +110,26 @@ export class StudentOSDatabase extends Dexie {
       evidenceSnapshots: 'id, feature, timestamp',
       trainedModels: 'id, type, savedAt',
       vaultIndex: 'docId, title',
+    });
+    this.version(6).stores({
+      notes: 'id, subject, title, updatedAt',
+      srsCards: 'id, deckId, dueDate, easeFactor, repetitions',
+      briefs: 'id, subject, topic, createdAt',
+      assignmentsQueue: 'id, dueDate, status, sheetRowIndex',
+      bibliography: 'id, source, year',
+      assignments: 'id, updatedAt',
+      preferences: 'key',
+      quota: 'id, date',
+      trash: 'id, kind, deletedAt, expiresAt',
+      prompts: 'id, category',
+      tokenUsage: 'id, date, model',
+      dashboard: 'id',
+      promptLogs: 'id, feature, timestamp',
+      evidenceSnapshots: 'id, feature, timestamp',
+      trainedModels: 'id, type, savedAt',
+      vaultIndex: 'docId, title',
+      lectures: 'id, title, subject, status, createdAt, updatedAt',
+      lectureSegments: 'id, lectureId, chunkIndex, startSec',
     });
     // @ts-ignore extra table for BIB
     (this as any).bibliography = (this as any).table('bibliography');
