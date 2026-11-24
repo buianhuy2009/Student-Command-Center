@@ -3665,6 +3665,8 @@ export const vi = {
   lecture_prog_vad_download: 'Đang tải bộ lọc khoảng lặng...',
   lecture_prog_vad_scan: 'Đang cắt bỏ khoảng lặng lớp học...',
   lecture_prog_chunk: 'Đang chép lời phần {current} / {total}',
+  lecture_prog_asr_download: 'Đang kiểm tra / tải mô hình giọng nói offline...',
+  lecture_prog_clip: 'Đang chép lời đoạn {current} / {total} (trên máy)',
   lecture_prog_summarizing: 'Đang tổng hợp tóm tắt, mục lục & flashcard...',
   lecture_prog_resuming: 'Đang tiếp tục chép lời bài giảng...',
   lecture_prog_done: 'Bài giảng đã sẵn sàng',
@@ -3673,5 +3675,14 @@ export const vi = {
   lecture_err_no_transcript: 'Chưa có đoạn chép lời nào để tóm tắt.',
   lecture_err_resume_expired: 'Các đoạn âm thanh từ phiên trước không còn trong RAM; bạn có thể tóm tắt bản chép đã lưu hoặc tải lại tệp.',
   lecture_err_offline_unavailable: 'Bộ xử lý giọng nói offline chưa sẵn sàng — vui lòng dùng chế độ Online.',
+
+  // Changelog v2.24.0
+  changelog_r_2_24_0_t: 'Quét ghi chú Offline (3 chế độ), Lecture Studio & Tác vụ AI chạy nền',
+  changelog_r_2_24_0_h1: 'Note Scanner bổ sung 3 chế độ OCR offline trên máy (Sách/Slide EN+VI, Chữ viết tay Việt, Chữ viết tay Anh) bên cạnh Gemini Vision',
+  changelog_r_2_24_0_h2: 'Ra mắt Lecture Studio biến bản ghi bài giảng dài 1 giờ thành bản chép có mốc thời gian, đề cương, ghi chú và flashcard — có cắt khoảng lặng và chế độ Online/Offline',
+  changelog_r_2_24_0_h3: 'Thanh tiến độ 0%–100% đồng nhất và chạy nền giúp Lecture Studio, Note Scanner, Gmail Radar và AI Coach tiếp tục chạy khi bạn chuyển tab',
+  changelog_r_2_24_0_d1: 'Chuyển đổi linh hoạt giữa Online (Gemini) và Offline (Trên máy) trong Note Scanner với mô hình riêng cho tài liệu in (~13 MB), chữ viết tay Việt (~41 MB) và chữ viết tay Anh (~64 MB) cùng tự động giải phóng RAM.',
+  changelog_r_2_24_0_d2: 'Tải lên file MP3, M4A, WAV hoặc OGG trong Lecture Studio: bộ lọc khoảng lặng trên máy cắt bớt đoạn nghỉ trước, sau đó chép lời trong ~1.5–3 phút online hoặc chạy 100% offline với PhoWhisper Tiny/Base và tự lưu vào IndexedDB.',
+  changelog_r_2_24_0_d3: 'Theo dõi % tiến độ trực tiếp trên thanh Navbar, quay lại nhanh công cụ đang chạy, nhận thông báo khi xong hoặc bấm Dừng bất kỳ lúc nào mà không bị mất tiến độ khi chuyển sang Gmail, Canvas hay Ghi chú.',
 
 } satisfies Record<TranslationKey, string>;

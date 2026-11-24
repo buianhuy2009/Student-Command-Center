@@ -21,6 +21,7 @@ const IDLE_TERMINATE_MS = 60_000;
 let activeWorkerKind: 'ocr' | 'vad' | 'asr' | null = null;
 let ocrWorker: Worker | null = null;
 let vadWorker: Worker | null = null;
+let asrWorker: Worker | null = null;
 let ocrIdleTimer: number | null = null;
 
 function clearOcrIdleTimer() {
@@ -67,6 +68,20 @@ export function terminateVadWorker(): void {
   }
 }
 
+export function terminateAsrWorker(): void {
+  if (asrWorker) {
+    try {
+      asrWorker.terminate();
+    } catch {
+      // Ignore termination error.
+    }
+    asrWorker = null;
+  }
+  if (activeWorkerKind === 'asr') {
+    activeWorkerKind = null;
+  }
+}
+
 /**
  * Ensures at most ONE heavy ML worker is alive at a time so 8 GB laptops stay safe.
  */
@@ -76,6 +91,8 @@ export function claimWorkerSlot(kind: 'ocr' | 'vad' | 'asr'): void {
       terminateOcrWorker();
     } else if (activeWorkerKind === 'vad') {
       terminateVadWorker();
+    } else if (activeWorkerKind === 'asr') {
+      terminateAsrWorker();
     }
   }
   activeWorkerKind = kind;
@@ -329,9 +346,132 @@ export async function runLocalVadProcess(params: {
   });
 }
 
+export interface LocalAsrProgress {
+  stage: 'downloading' | 'transcribing';
+  percent: number;
+  file?: string;
+  loaded?: number;
+  total?: number;
+  currentClip?: number;
+  totalClips?: number;
+}
+
+export async function runLocalAsrClips(params: {
+  modelTier: 'offline-tiny' | 'offline-base';
+  language: 'auto' | 'vi' | 'en';
+  clips: OfflineAudioClip[];
+  onProgress?: (p: LocalAsrProgress) => void;
+  onClipDone: (
+    segment: { chunkIndex: number; startSec: number; endSec: number; text: string },
+    completed: number,
+    total: number
+  ) => Promise<void> | void;
+  signal?: AbortSignal;
+}): Promise<void> {
+  const { modelTier, language, clips, onProgress, onClipDone, signal } = params;
+  if (signal?.aborted) throw new Error('ABORTED');
+  if (clips.length === 0) return;
+
+  claimWorkerSlot('asr');
+  if (asrWorker) terminateAsrWorker();
+  asrWorker = new Worker(new URL('../workers/asr.worker.ts', import.meta.url), {
+    type: 'module',
+  });
+
+  const worker = asrWorker;
+  const requestId = `asr-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+
+  return new Promise<void>((resolve, reject) => {
+    let settled = false;
+    let clipChain = Promise.resolve();
+
+    const cleanup = () => {
+      worker.removeEventListener('message', onMessage);
+      worker.removeEventListener('error', onError);
+      if (signal) signal.removeEventListener('abort', onAbort);
+      // Immediately terminate ASR worker so PhoWhisper WASM heap returns to 0 MB.
+      terminateAsrWorker();
+    };
+
+    const onAbort = () => {
+      if (settled) return;
+      settled = true;
+      try {
+        worker.postMessage({ type: 'abort', id: requestId });
+      } catch {}
+      cleanup();
+      reject(new Error('ABORTED'));
+    };
+
+    const onError = (ev: ErrorEvent) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(new Error(ev.message || 'Offline ASR worker failed.'));
+    };
+
+    const onMessage = (event: MessageEvent<any>) => {
+      const msg = event.data;
+      if (!msg || msg.id !== requestId) return;
+
+      if (msg.type === 'progress') {
+        onProgress?.({
+          stage: msg.stage,
+          percent: typeof msg.percent === 'number' ? msg.percent : 0,
+          file: msg.file,
+          loaded: msg.loaded,
+          total: msg.total,
+          currentClip: msg.currentClip,
+          totalClips: msg.totalClips,
+        });
+      } else if (msg.type === 'clip-done') {
+        clipChain = clipChain.then(() =>
+          onClipDone(msg.segment, Number(msg.completed || 0), Number(msg.total || clips.length))
+        );
+      } else if (msg.type === 'done') {
+        clipChain
+          .then(() => {
+            if (settled) return;
+            settled = true;
+            cleanup();
+            resolve();
+          })
+          .catch((e) => {
+            if (settled) return;
+            settled = true;
+            cleanup();
+            reject(e);
+          });
+      } else if (msg.type === 'error') {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        reject(new Error(String(msg.error || 'Offline transcription failed.')));
+      }
+    };
+
+    worker.addEventListener('message', onMessage);
+    worker.addEventListener('error', onError);
+    if (signal) signal.addEventListener('abort', onAbort, { once: true });
+
+    const transferables = clips.map((c) => c.pcm16k.buffer);
+    worker.postMessage(
+      {
+        type: 'transcribe-clips',
+        id: requestId,
+        modelTier,
+        language,
+        clips,
+      },
+      transferables
+    );
+  });
+}
+
 export async function clearOfflineModels(): Promise<void> {
   terminateOcrWorker();
   terminateVadWorker();
+  terminateAsrWorker();
   if (typeof caches === 'undefined') return;
   for (const name of [LOCAL_MODEL_CACHE_NAME, 'transformers-cache']) {
     try {

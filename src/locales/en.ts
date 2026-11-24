@@ -3673,6 +3673,8 @@ export const en = {
   lecture_prog_vad_download: 'Loading silence detector...',
   lecture_prog_vad_scan: 'Trimming classroom silence...',
   lecture_prog_chunk: 'Transcribing chunk {current} of {total}',
+  lecture_prog_asr_download: 'Checking/downloading offline speech model...',
+  lecture_prog_clip: 'Transcribing clip {current} of {total} (on-device)',
   lecture_prog_summarizing: 'Generating executive summary, outline & flashcards...',
   lecture_prog_resuming: 'Resuming lecture transcription...',
   lecture_prog_done: 'Lecture notes ready',
@@ -3680,7 +3682,16 @@ export const en = {
   lecture_err_generic: 'Lecture processing failed. You can resume or summarize what was already saved.',
   lecture_err_no_transcript: 'No transcript segments available to summarize yet.',
   lecture_err_resume_expired: 'Audio chunks from an earlier browser session are not in memory; you can summarize the saved transcript or re-upload.',
-  lecture_err_offline_unavailable: 'Offline speech model engine is loading — please switch to Online or update to Checkpoint 3.',
+  lecture_err_offline_unavailable: 'Offline speech model engine is not available in this browser — please switch to Online mode.',
+
+  // Changelog v2.24.0
+  changelog_r_2_24_0_t: 'Hybrid AI Note Scanner (3 Offline Modes), Lecture Studio & Background AI Tasks',
+  changelog_r_2_24_0_h1: 'Note Scanner now includes 3 on-device offline OCR modes (Printed EN+VI, Vietnamese Handwriting, English Handwriting) alongside Online Gemini Vision',
+  changelog_r_2_24_0_h2: 'New Lecture Studio turns 1-hour lecture recordings into timestamped transcripts, study outlines, notes, and flashcards — with silence trimming and both Online & Offline modes',
+  changelog_r_2_24_0_h3: 'Unified 0%–100% progress bars and background execution let Lecture Studio, Note Scanner, Gmail Radar, and AI Coach keep running while you switch tabs',
+  changelog_r_2_24_0_d1: 'Switch Note Scanner between Online (Gemini) and Offline (On-Device) with dedicated models for printed pages (~13 MB), Vietnamese handwriting (~41 MB), and English handwriting (~64 MB), plus automatic RAM cleanup.',
+  changelog_r_2_24_0_d2: 'Upload MP3, M4A, WAV, or OGG lectures in Lecture Studio: on-device silence detection trims classroom pauses first, then transcribes in ~1.5–3 min online or runs 100% offline with PhoWhisper Tiny/Base and saves every segment to IndexedDB.',
+  changelog_r_2_24_0_d3: 'Watch live % progress in the top Navbar AI Tasks pill, jump back to any running tool, receive completion toasts, or click Stop anytime without losing work when switching to Gmail, Canvas, or Notes.',
 
 } as const;
 

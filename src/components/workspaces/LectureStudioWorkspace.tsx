@@ -22,6 +22,7 @@ import { MathMarkdown } from '../MathMarkdown';
 import { AiProgressBar } from '../ui/AiProgressBar';
 import { db } from '../../services/db';
 import { detectAudioFileDurationSec, type LectureSummaryPayload } from '../../services/lectureAudio';
+import '../../services/lectureOfflineAsr';
 import type { LectureTranscriptionMode } from '../../services/localAiConfig';
 import { clearOfflineModels, getOfflineModelCacheStats } from '../../services/localMediaManager';
 import { loadSRSDecks, saveSRSDecks, type SRSCard, type SRSDeck } from '../../services/srsEngine';
