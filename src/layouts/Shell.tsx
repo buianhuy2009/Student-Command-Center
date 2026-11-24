@@ -9,6 +9,7 @@ export interface ShellProps {
   sidebarProps: React.ComponentProps<typeof Sidebar>;
   navbarProps: React.ComponentProps<typeof Navbar> & { hidden?: boolean };
   isZen: boolean;
+  viewportFit?: boolean;
   mobileNavOpen?: boolean;
   onMobileNavChange?: (open: boolean) => void;
   topBanner?: React.ReactNode;
@@ -21,6 +22,7 @@ export const Shell: React.FC<ShellProps> = ({
   sidebarProps,
   navbarProps,
   isZen,
+  viewportFit = false,
   mobileNavOpen = false,
   onMobileNavChange,
   topBanner,
@@ -148,7 +150,11 @@ export const Shell: React.FC<ShellProps> = ({
           ) : (
             <main
               id="main-content"
-              className="flex-1 overflow-y-auto overflow-x-hidden px-3 sm:px-6 lg:px-8 py-4 sm:py-6 min-h-0"
+              className={
+                viewportFit
+                  ? 'flex-1 min-h-0 flex flex-col overflow-hidden px-3 sm:px-5 py-3'
+                  : 'flex-1 overflow-y-auto overflow-x-hidden px-3 sm:px-6 lg:px-8 py-4 sm:py-6 min-h-0'
+              }
               aria-label={t('shell_content_aria')}
             >
               <ErrorBoundary

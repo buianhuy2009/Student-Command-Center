@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { AlertCircle, BarChart3, Box, Calculator, ExternalLink, Loader2, Maximize2, Minimize2, RefreshCw, Shapes, Sigma } from 'lucide-react';
 import { t, useT } from '../../services/i18n';
 
@@ -110,7 +110,10 @@ export const GeoGebraWorkspace: React.FC = () => {
   const [activeTab, setActiveTab] = useState<GeoTab>('graphing');
   const [phase, setPhase] = useState<EmbedPhase>('applet-loading');
   const [iframeLoaded, setIframeLoaded] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
+  const embedBoxRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const ggbApiRef = useRef<any>(null);
   const iframeLoadedRef = useRef(false);
   const url = GEO_URLS[activeTab];
   const GEO_LABELS: Record<GeoTab, string> = {
@@ -120,6 +123,52 @@ export const GeoGebraWorkspace: React.FC = () => {
     cas: 'CAS',
     probability: t('geo_probability'),
   };
+
+  useEffect(() => {
+    const onFsChange = () => {
+      if (!document.fullscreenElement) setIsFullscreen(false);
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isFullscreen) setIsFullscreen(false);
+    };
+    document.addEventListener('fullscreenchange', onFsChange);
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('fullscreenchange', onFsChange);
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [isFullscreen]);
+
+  const toggleFullscreen = useCallback(async () => {
+    const next = !isFullscreen;
+    setIsFullscreen(next);
+    try {
+      if (next && wrapperRef.current?.requestFullscreen) {
+        await wrapperRef.current.requestFullscreen();
+      } else if (!next && document.fullscreenElement) {
+        await document.exitFullscreen();
+      }
+    } catch {}
+  }, [isFullscreen]);
+
+  // Keep GeoGebra applet stretched to 100% of container width & height on resize/fullscreen
+  useEffect(() => {
+    const box = embedBoxRef.current;
+    if (!box || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (!entry) return;
+      const w = Math.round(entry.contentRect.width);
+      const h = Math.round(entry.contentRect.height);
+      if (w > 100 && h > 100 && typeof ggbApiRef.current?.setSize === 'function') {
+        try {
+          ggbApiRef.current.setSize(w, h);
+        } catch {}
+      }
+    });
+    ro.observe(box);
+    return () => ro.disconnect();
+  }, [phase, isFullscreen]);
 
   const handleTabChange = (tab: GeoTab) => {
     setActiveTab(tab);
@@ -156,8 +205,9 @@ export const GeoGebraWorkspace: React.FC = () => {
           return;
         }
         host.innerHTML = '';
-        const width = host.clientWidth || 800;
-        const height = Math.max(host.clientHeight || 550, 550);
+        ggbApiRef.current = null;
+        const width = embedBoxRef.current?.clientWidth || host.clientWidth || 960;
+        const height = embedBoxRef.current?.clientHeight || host.clientHeight || 640;
         try {
           const applet = new GGB(
             {
@@ -168,10 +218,17 @@ export const GeoGebraWorkspace: React.FC = () => {
               showAlgebraInput: true,
               showMenuBar: true,
               enableFileFeatures: true,
-              appletOnLoad: () => {
+              appletOnLoad: (api: any) => {
                 if (!cancelled) {
+                  ggbApiRef.current = api;
                   window.clearTimeout(timer);
                   setPhase('applet-ready');
+                  const box = embedBoxRef.current;
+                  if (box && typeof api?.setSize === 'function') {
+                    try {
+                      api.setSize(box.clientWidth, box.clientHeight);
+                    } catch {}
+                  }
                 }
               },
             },
@@ -213,35 +270,39 @@ export const GeoGebraWorkspace: React.FC = () => {
   };
 
   return (
-    <div className={`flex flex-col h-full w-full select-none ${isFullscreen ? 'fixed inset-0 z-50 bg-[var(--bg-canvas)] p-4' : ''}`}>
-      {/* 5-Tab Switcher */}
-      <div className="flex items-center gap-1.5 p-1 bg-[var(--bg-subtle)] rounded-xl border border-[var(--border-default)] mb-3 w-fit overflow-x-auto">
-        {([
-          { id: 'graphing' as GeoTab, label: t('geo_graphing'), icon: Calculator },
-          { id: 'geometry' as GeoTab, label: t('geo_geometry'), icon: Shapes },
-          { id: '3d' as GeoTab, label: '3D', icon: Box },
-          { id: 'cas' as GeoTab, label: 'CAS', icon: Sigma },
-          { id: 'probability' as GeoTab, label: t('geo_probability'), icon: BarChart3 },
-        ]).map(tab => {
-          const Icon = tab.icon;
-          return (
-            <button key={tab.id} onClick={() => handleTabChange(tab.id)} className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer ${activeTab === tab.id ? 'bg-[var(--accent-fill)] text-white shadow-xs' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'}`}>
-              <Icon className="w-3.5 h-3.5" /><span>{tab.label}</span>
-            </button>
-          );
-        })}
-      </div>
-      {/* Toolbar */}
-      <div className="flex items-center justify-between pb-2 mb-2 border-b border-[var(--border-default)] shrink-0 text-xs select-none">
-        <div className="flex items-center gap-2">
-          <span className="font-bold text-[var(--text-primary)]">GeoGebra {GEO_LABELS[activeTab]}</span>
-          <span className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--status-info-bg)] text-[var(--status-info-text)] border border-[var(--status-info-border)] font-semibold">
-            {t('geo_suite_badge')}
+    <div
+      ref={wrapperRef}
+      className={`flex flex-col flex-1 h-full w-full min-h-0 select-none ${
+        isFullscreen ? 'fixed inset-0 z-[80] w-screen h-dvh bg-[var(--bg-canvas)] p-3 sm:p-4' : ''
+      }`}
+    >
+      {/* Single Compact Top Bar: Tabs + Actions */}
+      <div className="flex flex-wrap items-center justify-between gap-2 pb-2 mb-2 border-b border-[var(--border-default)] shrink-0 text-xs select-none">
+        <div className="flex items-center gap-2 flex-wrap min-w-0">
+          <span className="font-bold text-[var(--text-primary)] whitespace-nowrap">
+            GeoGebra · {GEO_LABELS[activeTab]}
           </span>
+          <div className="flex items-center gap-1 p-1 bg-[var(--bg-subtle)] rounded-xl border border-[var(--border-default)] overflow-x-auto">
+            {([
+              { id: 'graphing' as GeoTab, label: t('geo_graphing'), icon: Calculator },
+              { id: 'geometry' as GeoTab, label: t('geo_geometry'), icon: Shapes },
+              { id: '3d' as GeoTab, label: '3D', icon: Box },
+              { id: 'cas' as GeoTab, label: 'CAS', icon: Sigma },
+              { id: 'probability' as GeoTab, label: t('geo_probability'), icon: BarChart3 },
+            ]).map(tab => {
+              const Icon = tab.icon;
+              return (
+                <button key={tab.id} type="button" onClick={() => handleTabChange(tab.id)} className={`px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer ${activeTab === tab.id ? 'bg-[var(--accent-fill)] text-white shadow-xs' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'}`}>
+                  <Icon className="w-3.5 h-3.5" /><span>{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <button
+            type="button"
             onClick={handleRetry}
             className="p-1.5 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--accent-border)] hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] transition-colors cursor-pointer"
             title={t('geo_reload')}
@@ -250,9 +311,11 @@ export const GeoGebraWorkspace: React.FC = () => {
           </button>
 
           <button
-            onClick={() => setIsFullscreen(!isFullscreen)}
+            type="button"
+            onClick={toggleFullscreen}
             className="p-1.5 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--accent-border)] hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] transition-colors cursor-pointer"
             title={isFullscreen ? t('desm_exit') : t('desm_expand')}
+            aria-label={isFullscreen ? t('desm_exit') : t('desm_expand')}
           >
             {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
           </button>
@@ -269,22 +332,22 @@ export const GeoGebraWorkspace: React.FC = () => {
         </div>
       </div>
 
-      {/* Embed */}
-      <div key={`${activeTab}-${reloadKey}`} className="flex-1 w-full min-h-[380px] sm:min-h-[520px] rounded-2xl overflow-hidden border border-[var(--border-default)] bg-[var(--bg-surface)] shadow-xs">
+      {/* Full-Bleed Embed */}
+      <div ref={embedBoxRef} key={`${activeTab}-${reloadKey}`} className="flex-1 w-full h-full min-h-0 rounded-2xl overflow-hidden border border-[var(--border-default)] bg-[var(--bg-surface)] shadow-xs">
         {(phase === 'applet-loading' || phase === 'applet-ready') && (
-          <div className="relative w-full h-full min-h-[380px] sm:min-h-[520px]">
+          <div className="relative w-full h-full min-h-0">
             {phase === 'applet-loading' && (
               <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-[var(--bg-surface)]">
                 <Loader2 className="w-6 h-6 text-[var(--accent-fill)] animate-spin" />
                 <p className="text-xs text-[var(--text-muted)] font-medium">{t('geo_loading', { tool: GEO_LABELS[activeTab] })}</p>
               </div>
             )}
-            <div id={APPLET_CONTAINER_ID} ref={containerRef} className="w-full h-full min-h-[380px] sm:min-h-[520px]" />
+            <div id={APPLET_CONTAINER_ID} ref={containerRef} className="w-full h-full" />
           </div>
         )}
 
         {phase === 'iframe' && (
-          <div className="relative w-full h-full min-h-[380px] sm:min-h-[520px]">
+          <div className="relative w-full h-full min-h-0">
             {!iframeLoaded && (
               <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-[var(--bg-surface)]">
                 <Loader2 className="w-6 h-6 text-[var(--accent-fill)] animate-spin" />
@@ -296,14 +359,14 @@ export const GeoGebraWorkspace: React.FC = () => {
               title={t('geo_iframe_title')}
               onLoad={handleIframeLoad}
               onError={() => setPhase('error')}
-              className="w-full h-full border-0 min-h-[380px] sm:min-h-[520px]"
+              className="w-full h-full border-0"
               allowFullScreen
             />
           </div>
         )}
 
         {phase === 'error' && (
-          <div className="flex flex-col items-center justify-center p-6 text-center w-full h-full min-h-[380px] sm:min-h-[520px] bg-[var(--bg-subtle)]">
+          <div className="flex flex-col items-center justify-center p-6 text-center w-full h-full bg-[var(--bg-subtle)]">
             <AlertCircle className="w-10 h-10 text-[var(--status-warn-text)] mb-2" />
             <h4 className="text-sm font-bold text-[var(--text-primary)]">
               {t('geo_load_error_title')}

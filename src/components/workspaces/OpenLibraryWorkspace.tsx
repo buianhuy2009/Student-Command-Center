@@ -87,7 +87,7 @@ export const OpenLibraryWorkspace: React.FC = () => {
   };
 
   return (
-    <div className="h-full flex flex-col overflow-hidden bg-[var(--bg-canvas)] p-4 sm:p-6 space-y-5 animate-in fade-in select-none">
+    <div className="h-full min-h-0 flex-1 flex flex-col overflow-hidden space-y-4 animate-in fade-in select-none">
       
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[var(--border-default)] shrink-0">

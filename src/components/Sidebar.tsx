@@ -164,7 +164,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       aria-label={t('side_primary_nav')}
       data-tour="sidebar"
       role="navigation"
-      className={`h-dvh shrink-0 bg-[var(--bg-subtle)]/65 border-r border-[var(--border-hairline)] flex flex-col transition-all duration-200 z-30 select-none ${
+      className={`h-dvh shrink-0 bg-[var(--bg-sidebar,var(--bg-subtle))]/90 border-r border-[var(--border-hairline)] flex flex-col transition-all duration-200 z-30 select-none ${
         isExpanded ? 'w-60 px-2.5 py-3' : 'w-16 p-2'
       }`}
     >
@@ -244,8 +244,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 isExpanded ? 'px-2.5 py-1.5 justify-between gap-2 min-h-[36px]' : 'w-10 h-9 mx-auto justify-center'
               } ${
                 isAiChatOpen
-                  ? 'bg-[var(--accent-fill)] text-white font-semibold'
-                  : 'bg-[var(--accent-soft)]/70 text-[var(--accent-text)] hover:bg-[var(--accent-soft)] font-semibold'
+                  ? 'bg-[var(--accent-2-fill,var(--accent-fill))] text-white font-semibold shadow-xs'
+                  : 'bg-[var(--accent-2-soft,var(--accent-soft))] text-[var(--accent-2-text,var(--accent-text))] border border-[var(--accent-2-border,var(--accent-border))]/50 hover:brightness-95 font-semibold'
               }`}
             >
               <div className="flex items-center gap-2 min-w-0">

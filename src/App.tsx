@@ -228,6 +228,14 @@ const TAB_LABEL_KEYS: Record<AppTab, string> = {
   pomodoro: 'app_tab_pomodoro',
 };
 
+const VIEWPORT_FIT_TABS: ReadonlySet<AppTab> = new Set<AppTab>([
+  'desmos-graphing',
+  'geogebra',
+  'phet',
+  'arxiv',
+  'open-library',
+]);
+
 function normalizeAppTab(raw: string): AppTab {
   if (raw === 'academic' || raw === 'ws-academic') return 'canvas';
   if (raw === 'ai-planner') return 'radar';
@@ -3673,6 +3681,7 @@ export default function App() {
     <>
       <Shell
         isZen={zenFocusMode}
+        viewportFit={VIEWPORT_FIT_TABS.has(activeTab)}
         mobileNavOpen={mobileNavOpen}
         onMobileNavChange={setMobileNavOpen}
         topBanner={demoBanner}
@@ -3750,7 +3759,7 @@ export default function App() {
       >
         <ErrorBoundary fallback={<div className="p-6 rounded-xl border border-[var(--status-err-border)] bg-[var(--status-err-bg)] text-[var(--status-err-text)] text-sm">{t('app_workspace_fallback')}</div>}>
           <Suspense fallback={<div className="p-8 flex items-center justify-center"><div className="w-6 h-6 border-2 border-[var(--accent-fill)] border-t-transparent rounded-full animate-spin" /><span className="ml-2 text-xs text-[var(--text-muted)]">{t('app_loading_workspace')}</span></div>}>
-            <div className="max-w-7xl mx-auto space-y-6 enter">
+            <div className={VIEWPORT_FIT_TABS.has(activeTab) ? 'w-full h-full min-h-0 flex flex-col enter' : 'max-w-7xl mx-auto space-y-6 enter'}>
                 {/* Google Workspace Connection Banner: only when no usable grant
                     exists. Access renews silently via the offline grant, so no
                     expiry state is ever surfaced — reconnecting once upgrades

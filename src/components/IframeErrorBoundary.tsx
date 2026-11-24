@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   ExternalLink,
   RefreshCw,
@@ -16,6 +16,7 @@ interface IframeErrorBoundaryProps {
   allow?: string;
   sandbox?: string;
   allowFullscreen?: boolean;
+  hideHeader?: boolean;
 }
 
 export const IframeErrorBoundary: React.FC<IframeErrorBoundaryProps> = ({
@@ -26,27 +27,58 @@ export const IframeErrorBoundary: React.FC<IframeErrorBoundaryProps> = ({
   allow = 'clipboard-read; clipboard-write; fullscreen',
   sandbox = 'allow-forms allow-modals allow-popups allow-presentation allow-same-origin allow-scripts',
   allowFullscreen = true,
+  hideHeader = false,
 }) => {
   const { t } = useT();
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
+  const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setIsLoading(true);
     setHasError(false);
 
-    // Fallback timer: if iframe does not fire onLoad after 12s, check if user needs external link
     const timer = setTimeout(() => {
-      // If still loading after 12 seconds, display helper fallback
-      if (isLoading) {
-        setIsLoading(false);
-      }
+      setIsLoading(false);
     }, 12000);
 
     return () => clearTimeout(timer);
   }, [src, reloadKey]);
+
+  useEffect(() => {
+    const onFsChange = () => {
+      if (!document.fullscreenElement) {
+        setIsFullscreen(false);
+      }
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isFullscreen) {
+        setIsFullscreen(false);
+      }
+    };
+    document.addEventListener('fullscreenchange', onFsChange);
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('fullscreenchange', onFsChange);
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [isFullscreen]);
+
+  const toggleFullscreen = useCallback(async () => {
+    const next = !isFullscreen;
+    setIsFullscreen(next);
+    try {
+      if (next && rootRef.current?.requestFullscreen) {
+        await rootRef.current.requestFullscreen();
+      } else if (!next && document.fullscreenElement) {
+        await document.exitFullscreen();
+      }
+    } catch {
+      // CSS fixed inset-0 fallback still applies cleanly
+    }
+  }, [isFullscreen]);
 
   const handleReload = () => {
     setReloadKey((prev) => prev + 1);
@@ -56,11 +88,15 @@ export const IframeErrorBoundary: React.FC<IframeErrorBoundaryProps> = ({
 
   return (
     <div
-      className={`relative flex flex-col bg-[var(--bg-raised)] text-[var(--text-primary)] rounded-2xl border border-[var(--border-default)] shadow-xs overflow-hidden transition-all ${
-        isFullscreen ? 'fixed inset-4 z-50 shadow-2xl' : className
+      ref={rootRef}
+      className={`relative flex flex-col bg-[var(--bg-raised)] text-[var(--text-primary)] overflow-hidden transition-all ${
+        isFullscreen
+          ? 'fixed inset-0 z-[80] w-screen h-dvh rounded-none border-0 shadow-none'
+          : `rounded-2xl border border-[var(--border-default)] shadow-xs flex-1 min-h-0 w-full h-full ${className}`
       }`}
     >
       {/* Top Utility Header Bar */}
+      {!hideHeader && (
       <div className="h-10 px-4 bg-[var(--bg-surface)] border-b border-[var(--border-default)] flex items-center justify-between shrink-0 select-none">
         <div className="flex items-center gap-2 min-w-0">
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
@@ -75,6 +111,7 @@ export const IframeErrorBoundary: React.FC<IframeErrorBoundaryProps> = ({
 
         <div className="flex items-center gap-1.5 shrink-0">
           <button
+            type="button"
             onClick={handleReload}
             className="p-1.5 text-[var(--text-secondary)] hover:text-[var(--accent-text)] hover:bg-[var(--bg-hover)] rounded-lg transition-colors cursor-pointer"
             title={t('iframe_reload_title')}
@@ -94,7 +131,8 @@ export const IframeErrorBoundary: React.FC<IframeErrorBoundaryProps> = ({
           </a>
 
           <button
-            onClick={() => setIsFullscreen(!isFullscreen)}
+            type="button"
+            onClick={toggleFullscreen}
             className="p-1.5 text-[var(--text-secondary)] hover:text-[var(--accent-text)] hover:bg-[var(--bg-hover)] rounded-lg transition-colors cursor-pointer"
             title={isFullscreen ? t('desm_exit') : t('iframe_fullscreen')}
           >
@@ -102,9 +140,10 @@ export const IframeErrorBoundary: React.FC<IframeErrorBoundaryProps> = ({
           </button>
         </div>
       </div>
+      )}
 
       {/* Frame Container */}
-      <div className="relative flex-1 w-full h-full min-h-[450px] bg-[var(--bg-canvas)] overflow-hidden">
+      <div className="relative flex-1 w-full h-full min-h-0 bg-[var(--bg-canvas)] overflow-hidden">
         {/* Loading Spinner */}
         {isLoading && (
           <div className="absolute inset-0 bg-[var(--bg-canvas)]/90 backdrop-blur-xs flex flex-col items-center justify-center gap-2 z-10">

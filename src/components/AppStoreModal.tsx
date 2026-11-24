@@ -1191,73 +1191,48 @@ export const AppStoreModal: React.FC<AppStoreModalProps> = ({
     return (
       <div
         key={app.id}
-        style={{ contentVisibility: 'auto' as any, containIntrinsicSize: '230px' } as any}
+        style={{ contentVisibility: 'auto' as any, containIntrinsicSize: '210px' } as any}
         className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] hover:border-[var(--accent-border)] overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg group flex flex-col justify-between"
       >
-        {/* Visual Preview Header Strip */}
         <button
           type="button"
           onClick={() => setViewingApp(app)}
-          className="text-left cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--accent-fill)] block w-full"
+          className={`text-left cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--accent-fill)] block w-full p-5 bg-gradient-to-br ${
+            visual?.gradient || 'from-[var(--bg-subtle)]/60 to-[var(--bg-surface)]'
+          } flex-1`}
         >
-          <div
-            className={`h-20 px-4 py-3 bg-gradient-to-br ${
-              visual?.gradient || 'from-[var(--bg-subtle)] to-[var(--bg-canvas)]'
-            } border-b border-[var(--border-hairline)] flex items-center justify-between gap-3 relative overflow-hidden`}
-          >
-            <div className="flex items-center gap-3 min-w-0 z-10">
-              <AppLogo id={app.id} size="md" className="shrink-0 ring-2 ring-[var(--bg-surface)]" />
-              <div className="min-w-0">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] block">
+          <div className="flex items-center gap-4">
+            <AppLogo id={app.id} size="xl" className="w-16 h-16 shrink-0 rounded-2xl ring-2 ring-[var(--bg-surface)] shadow-md" />
+            <div className="min-w-0 flex-1 space-y-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
                   {t(CATEGORY_KEY_MAP[app.category])}
                 </span>
                 {app.badgeKey && (
-                  <span className="inline-block mt-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[var(--bg-surface)]/90 text-[var(--text-primary)] border border-[var(--border-hairline)]">
+                  <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-[var(--bg-surface)]/90 text-[var(--text-primary)] border border-[var(--border-hairline)]">
                     {t(app.badgeKey)}
                   </span>
                 )}
               </div>
-            </div>
-            <div className="shrink-0 z-10">{visual?.preview}</div>
-          </div>
-
-          <div className="p-4 space-y-2.5">
-            <div>
-              <h3 className="text-sm font-extrabold text-[var(--text-primary)] group-hover:text-[var(--accent-text)] transition-colors truncate leading-tight">
+              <h3 className="text-xl sm:text-2xl font-extrabold text-[var(--text-primary)] group-hover:text-[var(--accent-text)] transition-colors truncate leading-tight tracking-tight">
                 {t(app.nameKey)}
               </h3>
-              <p className="text-[11px] text-[var(--text-muted)] truncate mt-0.5">
-                {app.developer}
-              </p>
-            </div>
-
-            <p className="text-xs text-[var(--text-secondary)] line-clamp-2 leading-relaxed">
-              {t(app.descKey)}
-            </p>
-
-            {/* Quick Capability Pills */}
-            <div className="flex flex-wrap gap-1.5 pt-0.5">
-              {app.featureKeys.slice(0, 2).map((fk, idx) => (
-                <span
-                  key={idx}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-[var(--bg-subtle)] text-[var(--text-secondary)] border border-[var(--border-hairline)] max-w-full truncate"
-                >
-                  <Zap className="w-2.5 h-2.5 text-[var(--accent-text)] shrink-0" aria-hidden="true" />
-                  <span className="truncate">{t(fk)}</span>
-                </span>
-              ))}
             </div>
           </div>
+
+          <p className="mt-3 text-[11px] text-[var(--text-muted)] line-clamp-2 leading-snug">
+            {t(app.descKey)}
+          </p>
         </button>
 
         {/* Open & Pin Controls */}
-        <div className="px-4 py-3 bg-[var(--bg-subtle)]/40 border-t border-[var(--border-hairline)] flex items-center justify-between gap-2 shrink-0">
+        <div className="px-4 py-2.5 bg-[var(--bg-surface)] border-t border-[var(--border-hairline)] flex items-center justify-between gap-2 shrink-0">
           <button
             type="button"
             onClick={() => onTogglePinApp(app.id)}
             className={`text-[11px] font-semibold transition-colors cursor-pointer flex items-center gap-1 px-2.5 py-1 rounded-lg border ${
               isPinned
-                ? 'bg-[var(--bg-surface)] text-[var(--status-ok-text)] border-[var(--status-ok-border)]/40 hover:opacity-85'
+                ? 'bg-[var(--bg-subtle)] text-[var(--status-ok-text)] border-[var(--status-ok-border)]/40 hover:opacity-85'
                 : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]'
             }`}
           >
@@ -1277,7 +1252,7 @@ export const AppStoreModal: React.FC<AppStoreModalProps> = ({
             className={`px-4 py-1.5 rounded-full text-xs font-bold transition-colors cursor-pointer min-w-[76px] min-h-[32px] ${
               isPinned
                 ? 'bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white shadow-2xs'
-                : 'bg-[var(--bg-surface)] hover:bg-[var(--accent-fill)] text-[var(--text-primary)] hover:text-white border border-[var(--border-default)]'
+                : 'bg-[var(--bg-subtle)] hover:bg-[var(--accent-fill)] text-[var(--text-primary)] hover:text-white border border-[var(--border-default)]'
             }`}
           >
             {isPinned ? t('store_open_btn') : t('store_get_btn')}

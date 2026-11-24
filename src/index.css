@@ -18,6 +18,7 @@
   --bg-surface: #FFFFFF;
   --bg-raised: #FFFFFF;
   --bg-subtle: #EFECE4;
+  --bg-sidebar: #F2EFE7;
   --bg-hover: #E5E0D5;
 
   /* Borders (1px neutral; --border-hairline for quiet internal dividers, --border-strong >= 3:1) */
@@ -30,12 +31,26 @@
   --text-secondary: #4A463E;
   --text-muted: #635D52;
 
-  /* Terracotta Accent */
+  /* Primary Accent: Terracotta */
   --accent-fill: #B54B27;
   --accent-hover: #993D1E;
   --accent-text: #A8421F;
   --accent-soft: #FCEEE7;
   --accent-border: #C97050;
+
+  /* Secondary Accent: Calm Indigo (AI Coach, Lectures, Learning) */
+  --accent-2-fill: #4355B9;
+  --accent-2-hover: #364599;
+  --accent-2-text: #37479F;
+  --accent-2-soft: #EEF1FC;
+  --accent-2-border: #9FAEE8;
+
+  /* Tertiary Accent: Restful Sage Teal (Planning, Progress, Scanner) */
+  --accent-3-fill: #1E7A68;
+  --accent-3-hover: #176152;
+  --accent-3-text: #166052;
+  --accent-3-soft: #EAF6F3;
+  --accent-3-border: #82C4B5;
 
   /* Semantic Status (calm, static, WCAG AA) */
   --status-warn-bg: #FDF3E7;
@@ -102,6 +117,7 @@
   --bg-surface: #1C2028;
   --bg-raised: #242934;
   --bg-subtle: #242934;
+  --bg-sidebar: #181B22;
   --bg-hover: #2D3340;
 
   --border-hairline: #272D38;
@@ -117,6 +133,18 @@
   --accent-text: #F09472;
   --accent-soft: #33221C;
   --accent-border: #8F4F37;
+
+  --accent-2-fill: #5A6FE0;
+  --accent-2-hover: #4A5EC9;
+  --accent-2-text: #A6B4FF;
+  --accent-2-soft: #1D223B;
+  --accent-2-border: #3F4E99;
+
+  --accent-3-fill: #2A9D84;
+  --accent-3-hover: #22826D;
+  --accent-3-text: #7BE0C8;
+  --accent-3-soft: #142B26;
+  --accent-3-border: #2B6E60;
 
   --status-warn-bg: #2B2216;
   --status-warn-border: #8C6229;
@@ -271,6 +299,10 @@
   body {
     @apply antialiased;
     background-color: var(--bg-canvas);
+    background-image:
+      radial-gradient(ellipse 80% 50% at 15% 0%, color-mix(in srgb, var(--accent-soft) 55%, transparent), transparent 65%),
+      radial-gradient(ellipse 65% 45% at 88% 0%, color-mix(in srgb, var(--accent-2-soft) 55%, transparent), transparent 65%);
+    background-attachment: fixed;
     color: var(--text-primary);
     font-family: var(--font-sans);
   }

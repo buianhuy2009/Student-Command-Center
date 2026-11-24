@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Atom, ExternalLink, Maximize2, Minimize2, ArrowLeft, Search, X } from 'lucide-react';
 import { IframeErrorBoundary } from '../IframeErrorBoundary';
 import { useT } from '../../services/i18n';
@@ -241,6 +241,34 @@ export const PhETWorkspace: React.FC = () => {
   const [category, setCategory] = useState<PhetFilter>('All');
   const [search, setSearch] = useState<string>('');
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const onFsChange = () => {
+      if (!document.fullscreenElement) setIsFullscreen(false);
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isFullscreen) setIsFullscreen(false);
+    };
+    document.addEventListener('fullscreenchange', onFsChange);
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('fullscreenchange', onFsChange);
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [isFullscreen]);
+
+  const toggleFullscreen = useCallback(async () => {
+    const next = !isFullscreen;
+    setIsFullscreen(next);
+    try {
+      if (next && wrapperRef.current?.requestFullscreen) {
+        await wrapperRef.current.requestFullscreen();
+      } else if (!next && document.fullscreenElement) {
+        await document.exitFullscreen();
+      }
+    } catch {}
+  }, [isFullscreen]);
 
   const filtered = PHET_SIMS.filter((s) => {
     if (category !== 'All' && s.category !== category) return false;
@@ -252,13 +280,19 @@ export const PhETWorkspace: React.FC = () => {
   });
 
   return (
-    <div className={`flex flex-col h-full w-full select-none ${isFullscreen ? 'fixed inset-0 z-50 bg-[var(--bg-canvas)] p-4' : ''}`}>
+    <div
+      ref={wrapperRef}
+      className={`flex flex-col flex-1 h-full w-full min-h-0 select-none ${
+        isFullscreen ? 'fixed inset-0 z-[80] w-screen h-dvh bg-[var(--bg-canvas)] p-3 sm:p-4' : ''
+      }`}
+    >
       
       {/* Active Sim Viewer */}
       {activeSim ? (
-        <div className="flex flex-col h-full space-y-3">
-          <div className="flex items-center justify-between pb-2 border-b border-[var(--border-default)] text-xs">
+        <div className="flex flex-col flex-1 h-full min-h-0 space-y-2">
+          <div className="flex items-center justify-between pb-2 border-b border-[var(--border-default)] text-xs shrink-0">
             <button
+              type="button"
               onClick={() => setActiveSim(null)}
               className="px-3 py-1.5 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--accent-border)] text-[var(--text-primary)] font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
             >
@@ -269,7 +303,8 @@ export const PhETWorkspace: React.FC = () => {
             <div className="flex items-center gap-2">
               <span className="font-bold text-[var(--text-primary)]">{t(activeSim.titleKey)}</span>
               <button
-                onClick={() => setIsFullscreen(!isFullscreen)}
+                type="button"
+                onClick={toggleFullscreen}
                 title={isFullscreen ? t('desm_exit') : t('desm_expand')}
                 aria-label={isFullscreen ? t('desm_exit') : t('desm_expand')}
                 className="p-1.5 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--accent-border)] text-[var(--text-secondary)] transition-colors cursor-pointer"
@@ -288,18 +323,19 @@ export const PhETWorkspace: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex-1 w-full min-h-[380px] sm:min-h-[520px] rounded-2xl overflow-hidden border border-[var(--border-default)] bg-white shadow-xs">
+          <div className="flex-1 w-full h-full min-h-0 rounded-2xl overflow-hidden border border-[var(--border-default)] bg-white shadow-xs flex flex-col">
             <IframeErrorBoundary
               title={t(activeSim.titleKey)}
               src={activeSim.url}
-              className="w-full h-full border-0 min-h-[380px] sm:min-h-[520px]"
+              hideHeader={true}
+              className="w-full h-full border-0 rounded-none"
             />
           </div>
         </div>
       ) : (
         /* Catalog View */
-        <div className="space-y-6">
-          <div className="bg-[var(--bg-surface)] rounded-3xl border border-[var(--border-default)] p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex-1 min-h-0 flex flex-col gap-3">
+          <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-4 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
             <div className="flex items-center gap-3.5">
               <div className="w-11 h-11 rounded-2xl bg-[var(--accent-fill)] text-white flex items-center justify-center shadow-md shadow-[var(--accent-fill)]/20">
                 <Atom className="w-5 h-5" />
@@ -378,7 +414,8 @@ export const PhETWorkspace: React.FC = () => {
               </button>
             </div>
           ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="flex-1 min-h-0 overflow-y-auto pr-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5">
             {filtered.map((sim) => (
               <div
                 key={sim.id}
@@ -402,6 +439,7 @@ export const PhETWorkspace: React.FC = () => {
                 </button>
               </div>
             ))}
+          </div>
           </div>
           )}
         </div>

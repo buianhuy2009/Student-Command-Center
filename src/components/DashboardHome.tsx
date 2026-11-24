@@ -404,25 +404,35 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
 
           {/* Gentle Study Vibe Selector */}
           <div className="flex flex-wrap items-center gap-2 pt-1">
-            {VIBE_CHIPS.map((vibe) => (
-              <button
-                key={vibe.id}
-                type="button"
-                onClick={() => handleSelectVibe(vibe.id)}
-                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors cursor-pointer border ${
-                  selectedVibe === vibe.id
-                    ? 'bg-[var(--accent-soft)] text-[var(--accent-text)] border-[var(--accent-border)]'
-                    : 'bg-[var(--bg-surface)]/70 text-[var(--text-muted)] border-[var(--border-hairline)] hover:text-[var(--text-primary)]'
-                }`}
-              >
-                {vibe.label}
-              </button>
-            ))}
+            {VIBE_CHIPS.map((vibe) => {
+              const activeCls =
+                vibe.id === 'calm'
+                  ? 'bg-[var(--accent-3-soft)] text-[var(--accent-3-text)] border-[var(--accent-3-border)]'
+                  : vibe.id === 'creative'
+                    ? 'bg-[var(--accent-2-soft)] text-[var(--accent-2-text)] border-[var(--accent-2-border)]'
+                    : vibe.id === 'recharge'
+                      ? 'bg-[var(--status-ok-bg)] text-[var(--status-ok-text)] border-[var(--status-ok-border)]'
+                      : 'bg-[var(--accent-soft)] text-[var(--accent-text)] border-[var(--accent-border)]';
+              return (
+                <button
+                  key={vibe.id}
+                  type="button"
+                  onClick={() => handleSelectVibe(vibe.id)}
+                  className={`px-3 py-1 rounded-full text-xs font-medium transition-colors cursor-pointer border ${
+                    selectedVibe === vibe.id
+                      ? activeCls
+                      : 'bg-[var(--bg-surface)]/80 text-[var(--text-muted)] border-[var(--border-hairline)] hover:text-[var(--text-primary)]'
+                  }`}
+                >
+                  {vibe.label}
+                </button>
+              );
+            })}
           </div>
         </header>
 
         {/* Quiet Reflection Quote */}
-        <section className="rounded-2xl bg-[var(--bg-subtle)]/45 border border-[var(--border-hairline)] px-6 py-5 flex items-start justify-between gap-4">
+        <section className="rounded-2xl bg-gradient-to-br from-[var(--bg-surface)] via-[var(--bg-surface)] to-[var(--accent-soft)]/35 border border-[var(--border-default)]/70 px-6 py-5 flex items-start justify-between gap-4 shadow-xs">
           <div className="space-y-1.5 min-w-0">
             <blockquote className="text-base sm:text-lg font-serif italic text-[var(--text-primary)] leading-relaxed">
               &ldquo;{quote.quote}&rdquo;
@@ -447,9 +457,9 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
           <button
             type="button"
             onClick={() => onNavigateWorkspace('pomodoro')}
-            className="p-5 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-hairline)] hover:border-[var(--border-default)] text-left space-y-2.5 transition-colors cursor-pointer group"
+            className="p-5 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-default)]/75 hover:border-[var(--accent-border)] text-left space-y-2.5 transition-all cursor-pointer group shadow-xs"
           >
-            <div className="w-9 h-9 rounded-xl bg-[var(--accent-soft)] text-[var(--accent-text)] flex items-center justify-center">
+            <div className="w-9 h-9 rounded-xl bg-[var(--accent-soft)] text-[var(--accent-text)] border border-[var(--accent-border)]/40 flex items-center justify-center">
               <Timer className="w-4 h-4" strokeWidth={1.75} />
             </div>
             <div className="text-sm font-semibold text-[var(--text-primary)] group-hover:text-[var(--accent-text)] transition-colors">
@@ -463,12 +473,12 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
           <button
             type="button"
             onClick={() => onNavigateWorkspace('radar')}
-            className="p-5 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-hairline)] hover:border-[var(--border-default)] text-left space-y-2.5 transition-colors cursor-pointer group"
+            className="p-5 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-default)]/75 hover:border-[var(--accent-3-border)] text-left space-y-2.5 transition-all cursor-pointer group shadow-xs"
           >
-            <div className="w-9 h-9 rounded-xl bg-[var(--status-ok-bg)] text-[var(--status-ok-text)] flex items-center justify-center">
+            <div className="w-9 h-9 rounded-xl bg-[var(--accent-3-soft)] text-[var(--accent-3-text)] border border-[var(--accent-3-border)]/40 flex items-center justify-center">
               <Calendar className="w-4 h-4" strokeWidth={1.75} />
             </div>
-            <div className="text-sm font-semibold text-[var(--text-primary)] group-hover:text-[var(--accent-text)] transition-colors">
+            <div className="text-sm font-semibold text-[var(--text-primary)] group-hover:text-[var(--accent-3-text)] transition-colors">
               {t('dash_calm_card_rhythm_title')}
             </div>
             <p className="text-xs text-[var(--text-muted)] leading-relaxed">
@@ -479,12 +489,12 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
           <button
             type="button"
             onClick={() => (onOpenAiCoach ? onOpenAiCoach() : onNavigateWorkspace('notes-markdown'))}
-            className="p-5 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-hairline)] hover:border-[var(--border-default)] text-left space-y-2.5 transition-colors cursor-pointer group"
+            className="p-5 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-default)]/75 hover:border-[var(--accent-2-border)] text-left space-y-2.5 transition-all cursor-pointer group shadow-xs"
           >
-            <div className="w-9 h-9 rounded-xl bg-[var(--status-info-bg)] text-[var(--status-info-text)] flex items-center justify-center">
+            <div className="w-9 h-9 rounded-xl bg-[var(--accent-2-soft)] text-[var(--accent-2-text)] border border-[var(--accent-2-border)]/40 flex items-center justify-center">
               <Sparkles className="w-4 h-4" strokeWidth={1.75} />
             </div>
-            <div className="text-sm font-semibold text-[var(--text-primary)] group-hover:text-[var(--accent-text)] transition-colors">
+            <div className="text-sm font-semibold text-[var(--text-primary)] group-hover:text-[var(--accent-2-text)] transition-colors">
               {t('dash_calm_card_coach_title')}
             </div>
             <p className="text-xs text-[var(--text-muted)] leading-relaxed">

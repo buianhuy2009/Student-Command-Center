@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { ExternalLink, Maximize2, Minimize2, RefreshCw } from 'lucide-react';
 import { IframeErrorBoundary } from '../IframeErrorBoundary';
 import { useT } from '../../services/i18n';
@@ -11,6 +11,34 @@ export const DesmosWorkspace: React.FC<DesmosWorkspaceProps> = ({ mode = 'graphi
   const { t } = useT();
   const [reloadKey, setReloadKey] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const onFsChange = () => {
+      if (!document.fullscreenElement) setIsFullscreen(false);
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isFullscreen) setIsFullscreen(false);
+    };
+    document.addEventListener('fullscreenchange', onFsChange);
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('fullscreenchange', onFsChange);
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [isFullscreen]);
+
+  const toggleFullscreen = useCallback(async () => {
+    const next = !isFullscreen;
+    setIsFullscreen(next);
+    try {
+      if (next && wrapperRef.current?.requestFullscreen) {
+        await wrapperRef.current.requestFullscreen();
+      } else if (!next && document.fullscreenElement) {
+        await document.exitFullscreen();
+      }
+    } catch {}
+  }, [isFullscreen]);
 
   const url =
     mode === 'scientific'
@@ -31,8 +59,13 @@ export const DesmosWorkspace: React.FC<DesmosWorkspaceProps> = ({ mode = 'graphi
       : t('desm_title_graphing');
 
   return (
-    <div className={`flex flex-col h-full w-full select-none ${isFullscreen ? 'fixed inset-0 z-50 bg-[var(--bg-canvas)] p-4' : ''}`}>
-      {/* Sleek Minimal Toolbar */}
+    <div
+      ref={wrapperRef}
+      className={`flex flex-col flex-1 h-full w-full min-h-0 select-none ${
+        isFullscreen ? 'fixed inset-0 z-[80] w-screen h-dvh bg-[var(--bg-canvas)] p-3 sm:p-4' : ''
+      }`}
+    >
+      {/* Sleek Single Toolbar */}
       <div className="flex items-center justify-between pb-2 mb-2 border-b border-[var(--border-default)] shrink-0 text-xs select-none">
         <div className="flex items-center gap-2">
           <span className="font-bold text-[var(--text-primary)]">{title}</span>
@@ -43,6 +76,7 @@ export const DesmosWorkspace: React.FC<DesmosWorkspaceProps> = ({ mode = 'graphi
 
         <div className="flex items-center gap-2">
           <button
+            type="button"
             onClick={() => setReloadKey((k) => k + 1)}
             className="p-1.5 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--accent-border)] hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] transition-colors cursor-pointer"
             title={t('desm_reload')}
@@ -51,9 +85,11 @@ export const DesmosWorkspace: React.FC<DesmosWorkspaceProps> = ({ mode = 'graphi
           </button>
 
           <button
-            onClick={() => setIsFullscreen(!isFullscreen)}
+            type="button"
+            onClick={toggleFullscreen}
             className="p-1.5 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--accent-border)] hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] transition-colors cursor-pointer"
             title={isFullscreen ? t('desm_exit') : t('desm_expand')}
+            aria-label={isFullscreen ? t('desm_exit') : t('desm_expand')}
           >
             {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
           </button>
@@ -71,11 +107,12 @@ export const DesmosWorkspace: React.FC<DesmosWorkspaceProps> = ({ mode = 'graphi
       </div>
 
       {/* Full-Bleed Embed Canvas */}
-      <div key={reloadKey} className="flex-1 w-full min-h-[380px] sm:min-h-[520px] rounded-2xl overflow-hidden border border-[var(--border-default)] bg-[var(--bg-surface)] shadow-xs">
+      <div key={reloadKey} className="flex-1 w-full h-full min-h-0 rounded-2xl overflow-hidden border border-[var(--border-default)] bg-[var(--bg-surface)] shadow-xs flex flex-col">
         <IframeErrorBoundary
           title={title}
           src={url}
-          className="w-full h-full border-0 min-h-[380px] sm:min-h-[520px]"
+          hideHeader={true}
+          className="w-full h-full border-0 rounded-none"
         />
       </div>
     </div>
