@@ -167,10 +167,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               {t('landing_nav_faq')}
             </a>
             <a
-              href="#privacy"
+              href="/privacy"
               className="px-3 py-1.5 rounded-full hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] transition-colors whitespace-nowrap"
             >
               {t('landing_nav_privacy')}
+            </a>
+            <a
+              href="/terms"
+              className="px-3 py-1.5 rounded-full hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] transition-colors whitespace-nowrap"
+            >
+              {t('landing_nav_terms')}
             </a>
           </nav>
 

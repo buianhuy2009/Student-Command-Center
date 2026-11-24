@@ -346,8 +346,6 @@ describe("Server models & unified API surface", () => {
 
       const frameSrc: string[] = directives["frame-src"] || [];
       for (const expected of [
-        "https://excalidraw.com",
-        "https://*.excalidraw.com",
         "https://phet.colorado.edu",
         "https://*.phet.colorado.edu",
         "https://geogebra.org",
@@ -365,6 +363,8 @@ describe("Server models & unified API surface", () => {
       }
 
       for (const removed of [
+        "https://excalidraw.com",
+        "https://*.excalidraw.com",
         "https://*.notion.so",
         "https://*.figma.com",
         "https://*.wolframalpha.com",
@@ -602,6 +602,7 @@ describe("Server models & unified API surface", () => {
       expect(previewRes.body.delivered).toBe(false);
       expect(previewRes.body.transport).toBe("preview");
       expect(previewRes.body.preview.to).toBe("student@example.com");
+      expect(previewRes.body.preview.from).toBe("studentos.service@gmail.com");
     });
 
     it("sends via Resend when RESEND_API_KEY is configured", async () => {
@@ -621,7 +622,10 @@ describe("Server models & unified API surface", () => {
       expect(okRes.body).toEqual({ ok: true, delivered: true, transport: "resend", id: "email_123" });
       expect(fetchSpy).toHaveBeenCalledWith(
         "https://api.resend.com/emails",
-        expect.objectContaining({ method: "POST" })
+        expect.objectContaining({
+          method: "POST",
+          body: expect.stringContaining("studentos.service@gmail.com"),
+        })
       );
     });
   });

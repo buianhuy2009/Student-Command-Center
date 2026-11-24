@@ -37,8 +37,10 @@ export default async function handler(req, res) {
 
     // 1. Prefer server Resend when configured
     const resendKey = String(process.env.RESEND_API_KEY || "").trim();
+    const senderEmail = "studentos.service@gmail.com";
+    const senderHeader = `StudentOS <${senderEmail}>`;
     if (resendKey) {
-      const from = String(process.env.RESEND_FROM_EMAIL || "StudentOS <onboarding@resend.dev>").trim();
+      const from = String(process.env.RESEND_FROM_EMAIL || senderHeader).trim();
       const resendRes = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: {
@@ -65,6 +67,7 @@ export default async function handler(req, res) {
     const gmailToken = String(googleAccessToken || "").trim();
     if (gmailToken) {
       const rawMime = [
+        `From: ${senderHeader}`,
         `To: ${recipient}`,
         `Subject: ${encodeMimeHeaderUtf8(cleanSubject)}`,
         "MIME-Version: 1.0",
@@ -94,6 +97,7 @@ export default async function handler(req, res) {
       delivered: false,
       transport: "preview",
       preview: {
+        from: senderEmail,
         to: recipient,
         subject: cleanSubject,
         text: cleanText,

@@ -142,11 +142,11 @@ export const MainFlowCard: React.FC<Props> = ({ assignments, emailAlerts, onNavi
             </button>
             <button
               type="button"
-              onClick={() => onNavigate('classroom')}
+              onClick={() => onNavigate('lecture-studio')}
               className="inline-flex items-center gap-1.5 rounded-md border border-[var(--border-hairline)] bg-[var(--bg-subtle)]/60 px-2 py-1 text-[var(--text-primary)] hover:border-[var(--border-default)] hover:text-[var(--accent-text)] cursor-pointer transition-colors"
             >
-              <span className={`w-1.5 h-1.5 rounded-full ${classroomReady ? 'bg-[var(--status-ok-text)]' : 'bg-[var(--text-muted)]/50'}`} aria-hidden="true" />
-              {t('flow_classroom_item', { value: classroomReady ? classroomCount : t('flow_connect') })}
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-fill)]" aria-hidden="true" />
+              {t('flow_lectures_item')}
             </button>
             {canvasHidden ? (
               <button

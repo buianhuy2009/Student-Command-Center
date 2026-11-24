@@ -250,13 +250,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       run: () => { onSelectWorkspace('pomodoro'); onClose(); },
     },
     {
-      id: 'ws-excalidraw',
-      title: t('pal_ws_excalidraw'),
-      category: t('pal_cat_workspaces'),
-      icon: PenTool,
-      run: () => { onSelectWorkspace('excalidraw'); onClose(); },
-    },
-    {
       id: 'ws-desmos',
       title: t('pal_ws_desmos'),
       category: t('pal_cat_workspaces'),

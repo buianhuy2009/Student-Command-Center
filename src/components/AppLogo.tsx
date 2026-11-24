@@ -62,11 +62,11 @@ export const AppLogo: React.FC<AppLogoProps> = ({ id, size = 'md', className = '
       return (
         <div aria-label={t('logo_gmail')} className={`${sizeClasses} ${tileBase} ${tileLight} ${className}`}>
           <svg className={iconSizes} viewBox="0 0 24 24" aria-hidden="true">
-            <rect x="2" y="4.5" width="20" height="15" rx="2.5" fill="#4285F4" />
-            <path d="M2.8 6.2 12 13l9.2-6.8c-.2-.9-1-1.7-2-1.7H4.8c-1 0-1.8.8-2 1.7z" fill="#EA4335" />
-            <path d="M2.8 6.2 12 13l9.2-6.8" stroke="#fff" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M18.5 9.5v7.2l3.5 1.6V8.1l-3.5 1.4z" fill="#34A853" />
-            <path d="M5.5 9.5v7.2L2 18.3V8.1l3.5 1.4z" fill="#188038" opacity=".8" />
+            <path d="M2 6.8V18.5C2 19.3 2.7 20 3.5 20H6.5V11.8L2 8.4V6.8Z" fill="#4285F4" />
+            <path d="M22 6.8V18.5C22 19.3 21.3 20 20.5 20H17.5V11.8L22 8.4V6.8Z" fill="#34A853" />
+            <path d="M17.5 11.8V6.3L20.1 4.4C21.1 3.7 22 4.4 22 5.7V8.4L17.5 11.8Z" fill="#FBBC04" />
+            <path d="M6.5 11.8V6.3L12 10.4L17.5 6.3V11.8L12 15.9L6.5 11.8Z" fill="#EA4335" />
+            <path d="M2 8.4V5.7C2 4.4 2.9 3.7 3.9 4.4L6.5 6.3V11.8L2 8.4Z" fill="#C5221F" />
           </svg>
         </div>
       );
@@ -74,62 +74,76 @@ export const AppLogo: React.FC<AppLogoProps> = ({ id, size = 'md', className = '
     case 'classroom':
     case 'google-classroom':
       return (
-        <div aria-label={t('logo_classroom')} className={`${sizeClasses} ${tileBase} bg-[#137333] border-[#0E5A28] ${className}`}>
+        <div aria-label={t('logo_classroom')} className={`${sizeClasses} ${tileBase} bg-[#0F9D58] border-[#F4B400] border-2 ${className}`}>
           <svg className={iconSizes} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <circle cx="12" cy="8.5" r="2.2" fill="#FFFFFF" />
-            <path d="M8 15c0-2.2 1.8-4 4-4s4 1.8 4 4H8z" fill="#FFFFFF" />
-            <circle cx="6.5" cy="9.5" r="1.5" fill="#F9AB00" />
-            <path d="M3.8 15c0-1.5 1.2-2.7 2.7-2.7.7 0 1.3.3 1.8.7-.6.6-.9 1.3-.9 2H3.8z" fill="#F9AB00" />
-            <circle cx="17.5" cy="9.5" r="1.5" fill="#F9AB00" />
-            <path d="M20.2 15c0-1.5-1.2-2.7-2.7-2.7-.7 0-1.3.3-1.8.7.6.6.9 1.3.9 2h3.6z" fill="#F9AB00" />
+            <circle cx="12" cy="8.5" r="2.3" fill="#FFFFFF" />
+            <path d="M7.8 15.5c0-2.3 1.9-4.1 4.2-4.1s4.2 1.8 4.2 4.1H7.8z" fill="#FFFFFF" />
+            <circle cx="6.2" cy="9.7" r="1.5" fill="#FCE8B2" />
+            <path d="M3.5 15.5c0-1.5 1.2-2.7 2.7-2.7.7 0 1.4.3 1.9.8-.6.6-.9 1.2-.9 1.9H3.5z" fill="#FCE8B2" />
+            <circle cx="17.8" cy="9.7" r="1.5" fill="#FCE8B2" />
+            <path d="M20.5 15.5c0-1.5-1.2-2.7-2.7-2.7-.7 0-1.4.3-1.9.8.6.6.9 1.2.9 1.9h3.7z" fill="#FCE8B2" />
+            <rect x="14.5" y="17.5" width="5" height="1.4" rx="0.7" fill="#FFFFFF" opacity="0.9" />
           </svg>
         </div>
       );
 
     case 'canvas':
       return (
-        <div aria-label={t('logo_canvas')} className={`${sizeClasses} ${tileBase} ${tileGradientBorder} bg-gradient-to-br from-[#E72429] to-[#C91A1E] text-white font-bold ${className}`}>
-          <svg className={iconSizes} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <circle cx="12" cy="3.5" r="2" />
-            <circle cx="18" cy="6" r="2" />
-            <circle cx="20.5" cy="12" r="2" />
-            <circle cx="18" cy="18" r="2" />
-            <circle cx="12" cy="20.5" r="2" />
-            <circle cx="6" cy="18" r="2" />
-            <circle cx="3.5" cy="12" r="2" />
-            <circle cx="6" cy="6" r="2" />
-            <circle cx="12" cy="12" r="3.2" />
+        <div aria-label={t('logo_canvas')} className={`${sizeClasses} ${tileBase} ${tileLight} ${className}`}>
+          <svg className={iconSizes} viewBox="0 0 24 24" fill="#E13F2B" aria-hidden="true">
+            <circle cx="12" cy="3.2" r="2.1" />
+            <circle cx="18.2" cy="5.8" r="2.1" />
+            <circle cx="20.8" cy="12" r="2.1" />
+            <circle cx="18.2" cy="18.2" r="2.1" />
+            <circle cx="12" cy="20.8" r="2.1" />
+            <circle cx="5.8" cy="18.2" r="2.1" />
+            <circle cx="3.2" cy="12" r="2.1" />
+            <circle cx="5.8" cy="5.8" r="2.1" />
+            <circle cx="12" cy="7.3" r="1.15" />
+            <circle cx="15.3" cy="8.7" r="1.15" />
+            <circle cx="16.7" cy="12" r="1.15" />
+            <circle cx="15.3" cy="15.3" r="1.15" />
+            <circle cx="12" cy="16.7" r="1.15" />
+            <circle cx="8.7" cy="15.3" r="1.15" />
+            <circle cx="7.3" cy="12" r="1.15" />
+            <circle cx="8.7" cy="8.7" r="1.15" />
           </svg>
         </div>
       );
 
     case 'desmos-graphing':
       return (
-        <div aria-label={t('logo_desmos')} className={`${sizeClasses} bg-[#0b864a] text-white flex items-center justify-center font-bold shadow-sm shadow-emerald-700/20 shrink-0 ${className}`}>
-          <span className="font-serif italic font-black text-lg lowercase select-none leading-none">d</span>
+        <div aria-label={t('logo_desmos')} className={`${sizeClasses} ${tileBase} bg-[#117A37] border-[#0C5E29] text-white ${className}`}>
+          <svg className={iconSizes} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M3.5 16.5C6.5 16.5 7.5 6.5 12 6.5C16.5 6.5 17.5 16.5 20.5 16.5" stroke="#FFFFFF" strokeWidth="2.2" strokeLinecap="round" />
+            <path d="M3 18.5H21" stroke="#A7F3D0" strokeWidth="1.3" strokeLinecap="round" opacity="0.85" />
+            <circle cx="12" cy="6.5" r="2.1" fill="#A7F3D0" />
+          </svg>
         </div>
       );
 
     case 'geogebra':
       return (
-        <div aria-label={t('logo_geogebra')} className={`${sizeClasses} bg-gradient-to-br from-[#1565C0] to-[#0D47A1] text-white flex items-center justify-center font-bold shadow-sm shadow-blue-600/20 shrink-0 ${className}`}>
-          <svg className={iconSizes} viewBox="0 0 24 24" aria-hidden="true">
-            <ellipse cx="12" cy="12" rx="8.5" ry="5.5" stroke="white" strokeWidth="1.8" fill="none" transform="rotate(-25 12 12)" />
-            <circle cx="7" cy="8" r="2" fill="white" />
-            <circle cx="16" cy="7" r="2" fill="white" />
-            <circle cx="18" cy="14" r="2" fill="white" />
-            <circle cx="11" cy="17" r="2" fill="white" />
+        <div aria-label={t('logo_geogebra')} className={`${sizeClasses} ${tileBase} ${tileLight} ${className}`}>
+          <svg className={iconSizes} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <ellipse cx="12" cy="12" rx="8.6" ry="5.6" stroke="#666666" strokeWidth="1.7" transform="rotate(-24 12 12)" />
+            <circle cx="10.2" cy="6.8" r="2.2" fill="#9999FF" stroke="#333333" strokeWidth="1.1" />
+            <circle cx="18.2" cy="7.4" r="2.2" fill="#9999FF" stroke="#333333" strokeWidth="1.1" />
+            <circle cx="18.5" cy="13.6" r="2.2" fill="#9999FF" stroke="#333333" strokeWidth="1.1" />
+            <circle cx="11.4" cy="17.6" r="2.2" fill="#9999FF" stroke="#333333" strokeWidth="1.1" />
+            <circle cx="4.8" cy="14.2" r="2.2" fill="#9999FF" stroke="#333333" strokeWidth="1.1" />
           </svg>
         </div>
       );
 
     case 'phet':
       return (
-        <div aria-label={t('logo_phet')} className={`${sizeClasses} bg-[#1E398B] text-white flex items-center justify-center font-bold shadow-sm shadow-blue-900/20 shrink-0 ${className}`}>
+        <div aria-label={t('logo_phet')} className={`${sizeClasses} ${tileBase} bg-[#003366] border-[#002244] ${className}`}>
           <svg className={iconSizes} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <ellipse cx="12" cy="12" rx="9" ry="3.5" stroke="#EE7321" strokeWidth="1.8" transform="rotate(30 12 12)" />
-            <ellipse cx="12" cy="12" rx="9" ry="3.5" stroke="#4FC3F7" strokeWidth="1.8" transform="rotate(-30 12 12)" />
-            <circle cx="12" cy="12" r="2.2" fill="#EE7321" />
+            <ellipse cx="12" cy="12" rx="9" ry="3.8" stroke="#00AEEF" strokeWidth="1.8" transform="rotate(28 12 12)" />
+            <ellipse cx="12" cy="12" rx="9" ry="3.8" stroke="#FFD100" strokeWidth="1.8" transform="rotate(-28 12 12)" />
+            <ellipse cx="12" cy="12" rx="3.8" ry="9" stroke="#F26522" strokeWidth="1.5" opacity="0.85" />
+            <circle cx="12" cy="12" r="2.4" fill="#F26522" />
           </svg>
         </div>
       );
@@ -138,13 +152,6 @@ export const AppLogo: React.FC<AppLogoProps> = ({ id, size = 'md', className = '
       return (
         <div aria-label={t('logo_flashcards')} className={`${sizeClasses} bg-gradient-to-br from-[#4257B2] to-[#2E3E85] text-white flex items-center justify-center font-bold shadow-sm shadow-blue-700/20 shrink-0 ${className}`}>
           <Layers className={iconSizes} aria-hidden="true" />
-        </div>
-      );
-
-    case 'excalidraw':
-      return (
-        <div aria-label={t('logo_excalidraw')} className={`${sizeClasses} bg-gradient-to-br from-[#6965DB] to-[#5046E5] text-white flex items-center justify-center font-bold shadow-sm shadow-indigo-500/20 shrink-0 ${className}`}>
-          <PenTool className={iconSizes} aria-hidden="true" />
         </div>
       );
 
@@ -171,15 +178,23 @@ export const AppLogo: React.FC<AppLogoProps> = ({ id, size = 'md', className = '
 
     case 'arxiv':
       return (
-        <div aria-label={t('logo_arxiv')} className={`${sizeClasses} bg-gradient-to-br from-[#B91C1C] to-[#991B1B] text-white flex items-center justify-center font-bold shadow-sm shrink-0 ${className}`}>
-          <BookOpen className={iconSizes} aria-hidden="true" />
+        <div aria-label={t('logo_arxiv')} className={`${sizeClasses} ${tileBase} ${tileLight} ${className}`}>
+          <svg className={iconSizes} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M5.5 4.5L18.5 19.5" stroke="#999999" strokeWidth="3.2" strokeLinecap="round" />
+            <path d="M18.5 4.5L5.5 19.5" stroke="#B31B1B" strokeWidth="3.4" strokeLinecap="round" />
+            <circle cx="12" cy="12" r="2.2" fill="#B31B1B" />
+          </svg>
         </div>
       );
 
     case 'open-library':
       return (
-        <div aria-label={t('logo_open_library')} className={`${sizeClasses} bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] text-white flex items-center justify-center font-bold shadow-sm shrink-0 ${className}`}>
-          <Bookmark className={iconSizes} aria-hidden="true" />
+        <div aria-label={t('logo_open_library')} className={`${sizeClasses} ${tileBase} bg-[#FAF7EE] border-[#D8D0BE] ${className}`}>
+          <svg className={iconSizes} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M3.5 6.5C6.5 5.2 9.5 5.6 12 7.4V19C9.5 17.5 6.5 17.2 3.5 18.4V6.5Z" fill="#0376B8" />
+            <path d="M20.5 6.5C17.5 5.2 14.5 5.6 12 7.4V19C14.5 17.5 17.5 17.2 20.5 18.4V6.5Z" fill="#3B9CD3" />
+            <path d="M12 7.4V19" stroke="#FAF7EE" strokeWidth="1.4" />
+          </svg>
         </div>
       );
 

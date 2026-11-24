@@ -41,10 +41,7 @@ export const GoogleClassroomPanel: React.FC<GoogleClassroomPanelProps> = ({
   missingCourseworkScope: externalMissingCourseworkScope,
 }) => {
   const { t, formatDate } = useT();
-  const missingOptionalScopes = isGoogleConnected ? getMissingOptionalFeatureScopes('classroom') : [];
-  const needsCourseworkScope =
-    Boolean(externalMissingCourseworkScope) ||
-    missingOptionalScopes.some((s) => s.includes('classroom.coursework'));
+  const needsCourseworkScope = Boolean(externalMissingCourseworkScope);
   const [internalAssignments, setInternalAssignments] = useState<CanvasAssignment[]>(() => {
     try {
       const saved = localStorage.getItem('scc_cached_classroom_assignments');

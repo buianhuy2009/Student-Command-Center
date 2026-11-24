@@ -24,7 +24,7 @@ const MAIN_FLOW = [
   { id: 'gmail', labelKey: 'side_flow_gmail_t', descKey: 'side_flow_gmail_d', badgeKey: 'gmail' },
   { id: 'tracker', labelKey: 'side_flow_tracker_t', descKey: 'side_flow_tracker_d', badgeKey: 'tracker' },
   { id: 'radar', labelKey: 'side_flow_radar_t', descKey: 'side_flow_radar_d', badgeKey: 'schedule' },
-  { id: 'classroom', labelKey: 'side_flow_classroom_t', descKey: 'side_flow_classroom_d' },
+  { id: 'lecture-studio', labelKey: 'side_flow_lecture_t', descKey: 'side_flow_lecture_d' },
   { id: 'canvas', labelKey: 'side_flow_canvas_t', descKey: 'side_flow_canvas_d', badgeKey: 'canvas' },
 ] as const;
 const MAIN_FLOW_IDS = new Set<string>(MAIN_FLOW.map((m) => m.id));

@@ -452,7 +452,7 @@ export const StickyWorkflowExplorer: React.FC = () => {
             ['Desmos & GeoGebra', 'Graphing & geometry'],
             ['SM-2 Flashcards', 'Spaced repetition'],
             ['arXiv & OpenLibrary', 'Citations & PDFs'],
-            ['Excalidraw & Notes', 'Diagrams + KaTeX'],
+            ['Lectures & Notes', 'Audio + KaTeX'],
           ].map(([name, sub]) => (
             <div key={name} className="p-3 rounded-xl bg-[var(--bg-canvas)] border border-[var(--border-hairline)]">
               <div className="font-bold text-[var(--text-primary)]">{name}</div>

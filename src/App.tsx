@@ -41,14 +41,12 @@ const NoteScannerWorkspace = lazyRetry(() => import('./components/workspaces/Not
 const LectureStudioWorkspace = lazyRetry(() => import('./components/workspaces/LectureStudioWorkspace').then(m => ({ default: m.LectureStudioWorkspace })));
 const DesmosWorkspace = lazyRetry(() => import('./components/workspaces/DesmosWorkspace').then(m => ({ default: m.DesmosWorkspace })));
 const GeoGebraWorkspace = lazyRetry(() => import('./components/workspaces/GeoGebraWorkspace').then(m => ({ default: m.GeoGebraWorkspace })));
-const ExcalidrawWorkspace = lazyRetry(() => import('./components/workspaces/ExcalidrawWorkspace').then(m => ({ default: m.ExcalidrawWorkspace })));
 const PhETWorkspace = lazyRetry(() => import('./components/workspaces/PhETWorkspace').then(m => ({ default: m.PhETWorkspace })));
 const PomodoroWorkspace = lazyRetry(() => import('./components/workspaces/PomodoroWorkspace').then(m => ({ default: m.PomodoroWorkspace })));
 const ArxivWorkspace = lazyRetry(() => import('./components/workspaces/ArxivWorkspace').then(m => ({ default: m.ArxivWorkspace })));
 const OpenLibraryWorkspace = lazyRetry(() => import('./components/workspaces/OpenLibraryWorkspace').then(m => ({ default: m.OpenLibraryWorkspace })));
 const WikipediaLookupModal = lazyRetry(() => import('./components/WikipediaLookupModal').then(m => ({ default: m.WikipediaLookupModal })));
 const StudyCardModal = lazyRetry(() => import('./components/StudyCardModal').then(m => ({ default: m.StudyCardModal })));
-const MorningCheckInModal = lazyRetry(() => import('./components/MorningCheckInModal').then(m => ({ default: m.MorningCheckInModal })));
 const OnboardingChecklist = lazyRetry(() => import('./components/OnboardingChecklist').then(m => ({ default: m.OnboardingChecklist })));
 const DailyRadarTab = lazyRetry(() => import('./components/DailyRadarTab').then(m => ({ default: m.DailyRadarTab })));
 const GmailRadarTab = lazyRetry(() => import('./components/GmailRadarTab').then(m => ({ default: m.GmailRadarTab })));
@@ -202,7 +200,6 @@ const KEPT_APP_TABS: ReadonlySet<string> = new Set<AppTab>([
   'note-scanner',
   'lecture-studio',
   'flashcards',
-  'excalidraw',
   'geogebra',
   'desmos-graphing',
   'phet',
@@ -223,7 +220,6 @@ const TAB_LABEL_KEYS: Record<AppTab, string> = {
   'note-scanner': 'app_tab_note_scanner',
   'lecture-studio': 'app_tab_lecture_studio',
   flashcards: 'app_tab_flashcards',
-  excalidraw: 'app_tab_excalidraw',
   geogebra: 'app_tab_geogebra',
   'desmos-graphing': 'app_tab_desmos',
   phet: 'app_tab_phet',
@@ -459,7 +455,6 @@ export default function App() {
   const [isWikipediaModalOpen, setIsWikipediaModalOpen] = useState(false);
   const [wikipediaInitialQuery, setWikipediaInitialQuery] = useState('');
   const [isStudyCardOpen, setIsStudyCardOpen] = useState(false);
-  const [isMorningCheckInOpen, setIsMorningCheckInOpen] = useState(false);
   const [isChangelogOpen, setIsChangelogOpen] = useState(false);
   const [isStudyPlanOpen, setIsStudyPlanOpen] = useState(false);
   const [isIntroTourOpen, setIsIntroTourOpen] = useState(false);
@@ -473,55 +468,27 @@ export default function App() {
 
   useEffect(() => {
     try {
-      const todayStr = new Date().toISOString().split('T')[0];
-      const lastCheckIn = localStorage.getItem('scc_last_morning_checkin');
-      if (lastCheckIn !== todayStr) {
-        setIsMorningCheckInOpen(true);
-      }
-
-      // Guided tour: new users only, AFTER morning check-in closes (no stacked modals).
+      // Guided tour: new users only.
       // X = snooze (key stays unset); "Start studying" marks scc_tour_seen_v2.
       const tourSeen = localStorage.getItem('scc_tour_seen_v2');
       if (tourSeen !== 'true') {
-        const delay = lastCheckIn !== todayStr ? 4000 : 1500;
-        const t = setTimeout(() => {
+        const timer = setTimeout(() => {
           try {
             if (localStorage.getItem('scc_tour_seen_v2') !== 'true') setIsIntroTourOpen(true);
           } catch { setIsIntroTourOpen(true); }
-        }, delay);
-        return () => clearTimeout(t);
+        }, 1500);
+        return () => clearTimeout(timer);
       }
-      
+
       // Changelog: show dot not modal — user clicks What's New dot to open
       const lastSeenVersion = localStorage.getItem('scc_last_seen_version');
       if (lastSeenVersion !== CURRENT_VERSION) {
         setShowChangelogDot(true);
       }
     } catch (e) {
-      console.error('Error checking morning checkin and version seen:', e);
+      console.error('Error checking tour and version seen:', e);
     }
   }, []);
-
-  const handleSaveMorningIntention = (intention: string, targetHours: number, mood?: string) => {
-    const todayStr = new Date().toISOString().split('T')[0];
-    localStorage.setItem('scc_last_morning_checkin', todayStr);
-    localStorage.setItem('scc_daily_intention', intention);
-    localStorage.setItem('scc_target_focus_hours', String(targetHours));
-    try { if (mood) localStorage.setItem('scc_last_morning_mood', mood); } catch {}
-    // streak + confetti on 7-day (compatible with pomodoroStore.ts Record<string, number>)
-    try {
-      const history = recordStreakDate(todayStr, { increment: false });
-      const streakDays = Object.keys(history).length;
-      if (streakDays % 7 === 0 && streakDays > 0) {
-        void celebrateWin({ particleCount: 80, spread: 60, origin: { y: 0.6 }, colors: ['#C96442', '#10b981', '#7C3AED'] });
-      }
-    } catch {}
-    addToast({
-      type: 'success',
-      title: t('app_toast_intention_title'),
-      message: t('app_toast_intention_msg', { hours: targetHours }),
-    });
-  };
 
   // Unified AppTab navigation with legacy tab normalization & View Transitions support
   const handleTabTransition = useCallback((rawTab: string) => {
@@ -1224,11 +1191,11 @@ export default function App() {
       }
 
       case 'generateMermaidDiagram': {
-        handleTabTransition('excalidraw');
+        handleTabTransition('notes-markdown');
         addToast({
           type: 'info',
-          title: t('app_toast_whiteboard_title'),
-          message: t('app_toast_whiteboard_msg', { title: action.payload.title }),
+          title: t('app_tab_notes'),
+          message: action.payload.title,
         });
         break;
       }
@@ -3918,12 +3885,7 @@ export default function App() {
                     errorMessage={classroomError}
                     classroomApiInfo={classroomApiInfo}
                     onRefresh={() => loadClassroomData(false)}
-                    missingCourseworkScope={
-                      hasClassroomAccess &&
-                      getMissingOptionalFeatureScopes('classroom', uidForScopes).some((s) =>
-                        s.includes('classroom.coursework')
-                      )
-                    }
+                    missingCourseworkScope={false}
                   />
                 )}
 
@@ -3941,10 +3903,6 @@ export default function App() {
 
                 {activeTab === 'phet' && (
                   <PhETWorkspace />
-                )}
-
-                {activeTab === 'excalidraw' && (
-                  <ExcalidrawWorkspace />
                 )}
 
                 {activeTab === 'pomodoro' && (
@@ -4342,16 +4300,6 @@ export default function App() {
         onClose={() => setIsStudyCardOpen(false)}
         userName={user?.displayName || t('app_student_fallback')}
         completedTasksCount={assignments.filter((a) => a.status === 'Done').length}
-      />
-      )}
-
-      {/* Daily Morning Check-in Modal — gated so its chunk only loads when opened */}
-      {isMorningCheckInOpen && (
-      <MorningCheckInModal
-        isOpen={isMorningCheckInOpen}
-        onClose={() => setIsMorningCheckInOpen(false)}
-        userName={user?.displayName || t('app_student_fallback')}
-        onSaveIntention={handleSaveMorningIntention}
       />
       )}
 

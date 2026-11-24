@@ -228,7 +228,6 @@ export type AppTab =
   | 'note-scanner'
   | 'lecture-studio'
   | 'flashcards'
-  | 'excalidraw'
   | 'geogebra'
   | 'desmos-graphing'
   | 'phet'
@@ -244,7 +243,6 @@ export const IA_CATEGORY_MAP: Record<AppTab, IACategory> = {
   gmail: 'Plan',
   radar: 'Plan',
   tracker: 'Plan',
-  excalidraw: 'Create',
   geogebra: 'Create',
   'desmos-graphing': 'Create',
   phet: 'Create',
@@ -263,7 +261,6 @@ export type SplitScreenToolId =
   | 'canvas'
   | 'desmos-graphing'
   | 'geogebra'
-  | 'excalidraw'
   | 'notes-markdown'
   | 'pomodoro'
   | 'phet'

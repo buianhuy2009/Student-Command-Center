@@ -16,7 +16,7 @@ describe('main flow card', () => {
         classroomCount={3}
       />,
     );
-    for (const s of ['Luồng chính của bạn', 'Nguồn', 'Cần bạn xác nhận', 'Bài tập &amp; hạn nộp', 'Lịch học tuần', 'Classroom · 3', '1 thư AI chưa đọc được', '1 bài chưa có hạn']) {
+    for (const s of ['Luồng chính của bạn', 'Nguồn', 'Cần bạn xác nhận', 'Bài tập &amp; hạn nộp', 'Lịch học tuần', 'Bài giảng', '1 thư AI chưa đọc được', '1 bài chưa có hạn']) {
       expect(html).toContain(s);
     }
   });

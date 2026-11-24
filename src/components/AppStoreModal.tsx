@@ -69,7 +69,7 @@ export const APP_CATALOG: AppStoreItem[] = [
   },
   {
     id: 'radar',
-    name: 'Daily Schedule & AI Planner',
+    name: 'Weekly Plan',
     nameKey: 'store_app_radar_n',
     category: 'Plan',
     description: 'Chronological agenda and day-by-day AI study planner across Calendar, Canvas, Classroom & Gmail.',
@@ -137,24 +137,8 @@ export const APP_CATALOG: AppStoreItem[] = [
 
   // 2. Create — STEM & Visual Thinking
   {
-    id: 'excalidraw',
-    name: 'Excalidraw Whiteboard',
-    nameKey: 'store_app_excalidraw_n',
-    category: 'Create',
-    description: 'Hand-drawn virtual whiteboard for diagrams, brainstorming, and sketching.',
-    descKey: 'store_app_excalidraw_d',
-    longOverview: 'A rapid virtual whiteboard for sketching mind maps, diagramming proofs, drawing anatomy models, and visual brainstorms directly in the browser.',
-    overviewKey: 'store_app_excalidraw_o',
-    features: ['Hand-drawn organic aesthetic', 'Vector shapes, arrows, and text labels', 'Full undo/redo history', 'Local storage autosave & PNG/SVG export'],
-    featureKeys: ['store_app_excalidraw_f1', 'store_app_excalidraw_f2', 'store_app_excalidraw_f3', 'store_app_excalidraw_f4'],
-    badge: 'Diagramming',
-    badgeKey: 'store_app_excalidraw_b',
-    developer: 'Excalidraw Open Source',
-    rating: 4.9,
-  },
-  {
     id: 'geogebra',
-    name: 'GeoGebra Math Suite',
+    name: 'GeoGebra',
     nameKey: 'store_app_geogebra_n',
     category: 'Create',
     description: '3D geometry, algebraic graphing, and calculus animations.',
@@ -170,7 +154,7 @@ export const APP_CATALOG: AppStoreItem[] = [
   },
   {
     id: 'desmos-graphing',
-    name: 'Desmos 2D Graphing',
+    name: 'Desmos',
     nameKey: 'store_app_desmos_n',
     category: 'Create',
     description: 'Plot equations, calculus curves, and functions with live sliders.',
@@ -186,7 +170,7 @@ export const APP_CATALOG: AppStoreItem[] = [
   },
   {
     id: 'phet',
-    name: 'PhET Interactive Simulations',
+    name: 'PhET',
     nameKey: 'store_app_phet_n',
     category: 'Create',
     description: 'Interactive physics, chemistry, and biology laboratory simulations.',
@@ -204,7 +188,7 @@ export const APP_CATALOG: AppStoreItem[] = [
   // 3. Learn — Study & Focus
   {
     id: 'flashcards',
-    name: 'Flashcards (SM-2)',
+    name: 'Flashcards',
     nameKey: 'store_app_flashcards_n',
     category: 'Learn',
     description: 'SM-2 active recall flashcards with review heatmap and TSV import/export.',
@@ -220,7 +204,7 @@ export const APP_CATALOG: AppStoreItem[] = [
   },
   {
     id: 'pomodoro',
-    name: 'Pomodoro Focus Station',
+    name: 'Pomodoro',
     nameKey: 'store_app_pomodoro_n',
     category: 'Learn',
     description: 'Fullscreen focus timer with ambient soundscapes and session history.',
@@ -238,7 +222,7 @@ export const APP_CATALOG: AppStoreItem[] = [
   // 4. Research — Files, Writing & Sources
   {
     id: 'note-scanner',
-    name: 'Note Scanner (Photo to Text)',
+    name: 'Note Scanner',
     nameKey: 'store_app_scanner_n',
     category: 'Research',
     description: 'Extract handwritten or whiteboard notes and equations into Markdown.',
@@ -254,7 +238,7 @@ export const APP_CATALOG: AppStoreItem[] = [
   },
   {
     id: 'lecture-studio',
-    name: 'Lecture Studio (Audio Notes)',
+    name: 'Lectures',
     nameKey: 'store_app_lecture_n',
     category: 'Research',
     description: 'Turn 1-hour lecture recordings into timestamped transcripts, summaries, and flashcards.',
@@ -287,7 +271,7 @@ export const APP_CATALOG: AppStoreItem[] = [
   },
   {
     id: 'notes-markdown',
-    name: 'Markdown Notes & LaTeX',
+    name: 'Notes',
     nameKey: 'store_app_notes_n',
     category: 'Research',
     description: 'Live Markdown and LaTeX math note-taker with 1-click Google Doc export.',
@@ -304,7 +288,7 @@ export const APP_CATALOG: AppStoreItem[] = [
   },
   {
     id: 'arxiv',
-    name: 'arXiv Research Papers',
+    name: 'arXiv',
     nameKey: 'store_app_arxiv_n',
     category: 'Research',
     description: 'Search Cornell arXiv preprints in CS, Math, and Physics with direct PDFs.',
@@ -320,7 +304,7 @@ export const APP_CATALOG: AppStoreItem[] = [
   },
   {
     id: 'open-library',
-    name: 'Open Library Textbooks',
+    name: 'Open Library',
     nameKey: 'store_app_openlib_n',
     category: 'Research',
     description: 'Search course textbooks with ISBNs and Internet Archive borrow links.',
@@ -473,17 +457,6 @@ const APP_VISUALS: Record<string, AppVisualStyle> = {
         <span className="px-2 py-0.5 rounded bg-[#137333] text-white">Stream</span>
         <span className="px-2 py-0.5 rounded bg-white/80 dark:bg-black/35 text-green-900 dark:text-green-200 border border-green-600/30">Coursework</span>
       </div>
-    ),
-  },
-  excalidraw: {
-    gradient: 'from-violet-500/20 via-indigo-500/10 to-fuchsia-500/15',
-    accentHex: '#6965DB',
-    preview: (
-      <svg className="w-24 h-7 opacity-85" viewBox="0 0 120 32" fill="none" aria-hidden="true">
-        <rect x="4" y="5" width="32" height="22" rx="5" stroke="#6965DB" strokeWidth="2" strokeDasharray="3 2" />
-        <path d="M40 16 H74 M68 11 L75 16 L68 21" stroke="#6965DB" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        <circle cx="96" cy="16" r="11" stroke="#8B5CF6" strokeWidth="2" />
-      </svg>
     ),
   },
   geogebra: {
@@ -669,7 +642,7 @@ export const AppStoreModal: React.FC<AppStoreModalProps> = ({
       if (has('math', 'calculus', 'algebra', 'physics', 'geometry', 'trigonometry')) recommended.push('desmos-graphing', 'geogebra');
       if (has('history', 'english', 'literature', 'writing', 'essay')) recommended.push('notes-markdown', 'drive', 'open-library');
       if (has('chemistry', 'chem', 'biology', 'bio', 'organic')) recommended.push('phet', 'arxiv');
-      if (has('computer', 'cs', 'programming', 'code')) recommended.push('excalidraw', 'arxiv');
+      if (has('computer', 'cs', 'programming', 'code')) recommended.push('arxiv', 'notes-markdown');
       if (recommended.length <= 1) {
         try {
           const picks = JSON.parse(localStorage.getItem('scc_onboarding_picks') || '[]');
