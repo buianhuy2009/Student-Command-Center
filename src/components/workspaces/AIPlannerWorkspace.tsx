@@ -1100,47 +1100,58 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
     return '';
   };
 
-  /** "AI muốn đổi N buổi" — nothing changes until the student taps Áp dụng. */
+  /** "AI muốn đổi N buổi" — side-by-side Before/After comparison; nothing changes until the student taps Áp dụng. */
   const renderPending = (where: 'chat' | 'regen') => {
     if (!pending || pending.origin !== where || phase) return null;
     const n = pending.diff.length;
-    const lockedCount = (plan?.blocks || []).filter((b) => b.locked).length;
+    const lockedBlocks = (plan?.blocks || []).filter((b) => b.locked && b.kind !== 'break');
+    const lockedCount = lockedBlocks.length;
     return (
       <div
         role="region"
         aria-label={t('plan_pending_aria')}
-        className="rounded-2xl border-2 border-[var(--accent-border)] bg-[var(--accent-soft)] p-4"
+        className="rounded-2xl border-2 border-[var(--accent-border)] bg-[var(--accent-soft)]/85 p-3.5 sm:p-4 shadow-sm space-y-2.5"
       >
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="flex items-center gap-2 text-sm font-bold text-[var(--text-primary)]">
+          <p className="flex items-center gap-2 text-xs sm:text-sm font-bold text-[var(--text-primary)]">
             <GitCompare className="h-4 w-4 shrink-0 text-[var(--accent-text)]" aria-hidden="true" />
             {n === 0 ? t('plan_pending_none') : t(n === 1 ? 'plan_pending_one' : 'plan_pending_other', { count: n })}
           </p>
-          {lockedCount > 0 && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-[var(--bg-surface)] px-2.5 py-0.5 text-[10px] font-bold text-[var(--accent-text)] border border-[var(--accent-border)]">
-              <Lock className="h-3 w-3" aria-hidden="true" />
-              {t('plan_locked_kept', { count: lockedCount })}
-            </span>
-          )}
+          <div className="flex flex-wrap items-center gap-1.5">
+            {lockedCount > 0 && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-[var(--accent-2-soft,var(--bg-surface))] px-2.5 py-0.5 text-[10px] font-bold text-[var(--accent-2-text,var(--accent-text))] border border-[var(--accent-2-border,var(--accent-border))]">
+                <Lock className="h-3 w-3" aria-hidden="true" />
+                {t('plan_locked_kept', { count: lockedCount })}
+              </span>
+            )}
+          </div>
         </div>
-        {n > 0 && (
-          <ul className="mt-2.5 space-y-1.5">
+
+        {(n > 0 || lockedCount > 0) && (
+          <div className="max-h-[210px] overflow-y-auto space-y-1.5 pr-1">
+            {n > 0 && (
+              <div className="hidden sm:grid sm:grid-cols-2 gap-2 px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
+                <span>{t('plan_diff_before_col')}</span>
+                <span>{t('plan_diff_after_col')}</span>
+              </div>
+            )}
             {pending.diff.slice(0, 12).map((d, i) => (
-              <li
+              <div
                 key={i}
-                className="rounded-xl bg-[var(--bg-surface)]/85 border border-[var(--border-hairline)] px-3 py-2 text-xs leading-relaxed"
+                className="rounded-xl bg-[var(--bg-surface)]/95 border border-[var(--border-hairline)] px-3 py-2 text-xs leading-relaxed"
               >
                 {d.type === 'moved' && d.before && d.after ? (
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2">
-                    <span className="text-[var(--text-muted)] line-through">
-                      <strong className="font-semibold no-underline mr-1">{t('plan_before_label')}:</strong>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-3 items-center">
+                    <div className="text-[var(--text-muted)] line-through decoration-rose-400/70">
+                      <span className="inline-block sm:hidden font-semibold no-underline mr-1">{t('plan_before_label')}:</span>
                       {describeBlock(d.before, lang)}
-                    </span>
-                    <span className="hidden sm:inline text-[var(--accent-text)] font-bold">→</span>
-                    <span className="text-[var(--text-primary)] font-semibold">
-                      <strong className="text-[var(--accent-text)] mr-1">{t('plan_after_label')}:</strong>
-                      {weekdayLabel(d.after.dayISO, lang)} {hhmm(d.after.startMin)}–{hhmm(d.after.endMin)}
-                    </span>
+                    </div>
+                    <div className="text-[var(--text-primary)] font-semibold flex items-center gap-1.5">
+                      <span className="text-[var(--accent-text)] font-bold shrink-0">→</span>
+                      <span>
+                        {weekdayLabel(d.after.dayISO, lang)} {hhmm(d.after.startMin)}–{hhmm(d.after.endMin)} · {d.after.title}
+                      </span>
+                    </div>
                   </div>
                 ) : (
                   <span
@@ -1155,31 +1166,48 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
                     {diffLine(d)}
                   </span>
                 )}
-              </li>
+              </div>
             ))}
-            {n > 12 && <li className="text-xs text-[var(--text-muted)]">{t('plan_more_count', { count: n - 12 })}</li>}
-          </ul>
+            {lockedBlocks.slice(0, 4).map((lb) => (
+              <div
+                key={`locked-${lb.id}`}
+                className="rounded-xl bg-[var(--accent-2-soft,var(--bg-surface))]/60 border border-[var(--accent-2-border,var(--border-default))] px-3 py-1.5 text-[11px] flex flex-wrap items-center justify-between gap-2"
+              >
+                <span className="font-semibold text-[var(--text-primary)] inline-flex items-center gap-1.5">
+                  <Lock className="h-3 w-3 text-[var(--accent-2-text,var(--accent-text))]" aria-hidden="true" />
+                  <span>{describeBlock(lb, lang)}</span>
+                </span>
+                <span className="text-[10px] font-bold text-[var(--accent-2-text,var(--accent-text))]">
+                  {t('plan_diff_locked_kept')}
+                </span>
+              </div>
+            ))}
+            {n > 12 && <p className="text-xs text-[var(--text-muted)] px-1">{t('plan_more_count', { count: n - 12 })}</p>}
+          </div>
         )}
-        <p className="mt-2 text-[11px] text-[var(--text-muted)]">
-          {t('plan_pending_note')}
-        </p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {n > 0 && (
+
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+          <p className="text-[11px] text-[var(--text-muted)]">
+            {t('plan_pending_note')}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {n > 0 && (
+              <button
+                type="button"
+                onClick={applyPending}
+                className="rounded-xl bg-[var(--accent-fill)] px-4 py-1.5 text-xs font-bold text-white transition hover:bg-[var(--accent-hover)] cursor-pointer shadow-xs"
+              >
+                {t('plan_apply_btn')}
+              </button>
+            )}
             <button
               type="button"
-              onClick={applyPending}
-              className="rounded-xl bg-[var(--accent-fill)] px-4 py-2 text-xs font-bold text-white transition hover:bg-[var(--accent-hover)] cursor-pointer"
+              onClick={discardPending}
+              className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] px-4 py-1.5 text-xs font-bold text-[var(--text-secondary)] transition hover:border-[var(--accent-border)] hover:bg-[var(--bg-hover)] cursor-pointer"
             >
-              {t('plan_apply_btn')}
+              {n > 0 ? t('plan_keep_current_btn') : t('close')}
             </button>
-          )}
-          <button
-            type="button"
-            onClick={discardPending}
-            className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] px-4 py-2 text-xs font-bold text-[var(--text-secondary)] transition hover:border-[var(--accent-border)] hover:bg-[var(--bg-hover)] cursor-pointer"
-          >
-            {n > 0 ? t('plan_keep_current_btn') : t('close')}
-          </button>
+          </div>
         </div>
       </div>
     );
@@ -1189,7 +1217,7 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
   const renderUndated = () => {
     if (undated.length === 0) return null;
     return (
-      <div className="mx-auto w-full max-w-3xl rounded-3xl border border-[var(--status-warn-border)] bg-[var(--status-warn-bg)] p-5 shadow-card">
+      <div className="w-full rounded-2xl border border-[var(--status-warn-border)] bg-[var(--status-warn-bg)] p-4 shadow-xs">
         <p className="flex items-center gap-2 text-sm font-bold text-[var(--status-warn-text)]">
           <CalendarClock className="h-4 w-4 shrink-0" aria-hidden="true" />
           {t('plan_undated_title')} ({undated.length})
@@ -1238,7 +1266,7 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
   const renderHistory = () => {
     if (history.length === 0) return null;
     return (
-      <div className="mx-auto w-full max-w-3xl rounded-3xl border border-[var(--border-default)] bg-[var(--bg-surface)] shadow-card">
+      <div className="w-full rounded-2xl border border-[var(--border-default)] bg-[var(--bg-surface)] shadow-xs">
         <button
           type="button"
           onClick={() => setShowHistory((v) => !v)}
@@ -1297,7 +1325,7 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
   if (tasks.length === 0) {
     return (
       <div className="flex-1 min-h-0 overflow-y-auto px-1">
-        <div className="mx-auto w-full max-w-3xl space-y-4">
+        <div className="mx-auto w-full max-w-5xl space-y-4">
         <div className="rounded-3xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-5 shadow-card sm:p-6">
           <div className="flex items-start gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--accent-2-fill,var(--accent-fill))] text-white shadow-sm">
@@ -1458,8 +1486,10 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
             {t('plan_connect_gcal_tip')}
           </p>
         )}
-        {pending?.origin === 'regen' && <div className="mt-2">{renderPending('regen')}</div>}
       </div>
+
+      {/* Prominent Before/After Diff Preview when regenerating */}
+      {pending?.origin === 'regen' && <div className="shrink-0">{renderPending('regen')}</div>}
 
       {/* Loading skeleton */}
       {phase && (
@@ -1618,7 +1648,7 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
                           {(b.locked || b.tentative) && (
                             <p className="mt-1 flex flex-wrap gap-1.5">
                               {b.locked && (
-                                <span className="inline-flex items-center gap-1 rounded-full bg-[var(--accent-soft)] px-2 py-0.5 text-[10px] font-bold text-[var(--accent-text)]">
+                                <span className="inline-flex items-center gap-1 rounded-full bg-[var(--accent-2-soft,var(--accent-soft))] border border-[var(--accent-2-border,var(--accent-border))]/60 px-2 py-0.5 text-[10px] font-bold text-[var(--accent-2-text,var(--accent-text))]">
                                   🔒 {t('plan_locked_badge')}
                                 </span>
                               )}

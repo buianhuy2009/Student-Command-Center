@@ -6,6 +6,12 @@
     <description>Plain-English updates to StudentOS — what changed and why it matters for studying.</description>
     <language>en-us</language>
     <item>
+      <title>v3.2.1 — Roomier Layouts, Inline Original-Email Verification &amp; Before/After Schedule Diff</title>
+      <link>https://sutdent-command-center.vercel.app/?changelog=3.2.1</link>
+      <pubDate>Tue, 24 Nov 2026 11:49:17 GMT</pubDate>
+      <description>StudentOS v3.2.1 widens cramped setup cards so controls never clip, adds inline original-email preview inside assignment confirmation plus an unconfirmed-due filter and 3-case Review demo, and upgrades Weekly Plan with a 2-column Before vs After diff showing locked blocks preserved.</description>
+    </item>
+    <item>
       <title>v3.2.0 — Single-Screen Workspaces, Multimodal AI Coach, OCR &amp; Gemma Summary Fixes</title>
       <link>https://sutdent-command-center.vercel.app/?changelog=3.2.0</link>
       <pubDate>Tue, 24 Nov 2026 09:24:07 GMT</pubDate>

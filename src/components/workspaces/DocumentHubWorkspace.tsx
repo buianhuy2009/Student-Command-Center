@@ -715,7 +715,7 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
 
       {/* 3. Socratic Dialogue Tutor */}
       {activeTab === 'socratic' && (
-        <div className="max-w-3xl mx-auto bg-[var(--bg-surface)] rounded-3xl border border-[var(--border-default)] p-4 sm:p-6 shadow-xs flex flex-col min-h-[440px] h-[min(650px,calc(100dvh-16rem))]">
+        <div className="w-full max-w-5xl mx-auto bg-[var(--bg-surface)] rounded-3xl border border-[var(--border-default)] p-4 sm:p-6 shadow-xs flex flex-col min-h-[440px] h-[min(650px,calc(100dvh-16rem))]">
           <div className="pb-3 border-b border-[var(--border-default)] flex items-center justify-between shrink-0">
             <div>
               <h3 className="text-sm font-bold text-[var(--text-primary)] flex items-center gap-2">
@@ -835,7 +835,7 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
 
       {/* 5. 1-Click Assignment Doc Generator */}
       {activeTab === 'generator' && (
-        <div className="max-w-2xl mx-auto bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-6 shadow-xs space-y-4">
+        <div className="w-full max-w-4xl mx-auto bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-6 shadow-xs space-y-4">
           <div className="pb-3 border-b border-[var(--border-default)]">
             <h3 className="text-sm font-bold text-[var(--text-primary)] flex items-center gap-2">
               <Plus className="w-4 h-4 text-[var(--accent-text)]" />

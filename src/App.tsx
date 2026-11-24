@@ -3358,7 +3358,11 @@ export default function App() {
       dueConfidence: det?.dueDate ? det?.dueConfidence || 'explicit' : 'none',
       evidence: det?.dueEvidence || '',
       sourceLabel: `${fromClassroom ? 'Classroom' : 'Gmail'} · ${alert.sender} · ${alert.subject}`.slice(0, 120),
-      sourceUrl: alert.sourceUrl,
+      sourceUrl:
+        alert.sourceUrl ||
+        (!fromClassroom && alert.id && !alert.id.startsWith('demo-')
+          ? `https://mail.google.com/mail/u/0/#all/${encodeURIComponent(alert.id)}`
+          : undefined),
       sourceText: alert.rawEmail?.body || alert.rawEmail?.snippet,
       aiFailed: alert.aiStatus === 'failed' || alert.aiStatus === 'skipped',
       origin: fromClassroom ? 'classroom' : alert.needsReview ? 'review' : 'gmail',

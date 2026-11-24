@@ -133,6 +133,29 @@ const DEMO_SAMPLE_ALERTS: EmailAlert[] = [
       labelIds: ['INBOX', 'CATEGORY_PROMOTIONS'],
     },
   },
+  {
+    id: 'demo-ai-failed',
+    sender: 'Thầy Tuấn (Vật Lý)',
+    subject: 'Fwd: Đổi lịch kiểm tra 15 phút & bài tập chương Điện học',
+    oneLineSummary: 'AI chưa xử lý được thư này (nằm trong mục Quảng cáo / định dạng phức tạp) — cần bạn tự kiểm tra để không bỏ sót.',
+    urgency: 'HIGH',
+    category: 'GENERAL',
+    aiStatus: 'failed',
+    needsReview: true,
+    reviewReason: 'ai_failed',
+    rawEmail: {
+      id: 'demo-ai-failed',
+      threadId: 'demo-ai-failed',
+      sender: 'Thầy Tuấn (Vật Lý)',
+      senderEmail: 'thaytuan.ly@school.edu.vn',
+      subject: 'Fwd: Đổi lịch kiểm tra 15 phút & bài tập chương Điện học',
+      date: '2 giờ trước',
+      snippet: 'Lịch kiểm tra 15 phút chương Điện học dời sang sáng thứ Năm (26/11), nhớ làm xong bài 1-5 trang 42.',
+      body: 'Chào các em,\n\nLịch kiểm tra 15 phút chương Điện học được dời sang sáng thứ Năm (26/11).\nCác em nhớ hoàn thành bài 1-5 trang 42 SBT trước buổi học.\n\nThầy Tuấn',
+      unread: true,
+      labelIds: ['INBOX', 'CATEGORY_PROMOTIONS'],
+    },
+  },
 ];
 
 interface GmailRadarTabProps {

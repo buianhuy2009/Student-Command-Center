@@ -88,7 +88,7 @@ export const AiConfirmCard: React.FC<Props> = ({ draft, onSave, onReject, onClos
       onClick={onClose}
     >
       <div
-        className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-3xl border border-[var(--border-default)] bg-[var(--bg-raised)] p-5 shadow-2xl text-[var(--text-primary)] sm:rounded-3xl sm:p-6"
+        className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-t-3xl border border-[var(--border-default)] bg-[var(--bg-raised)] p-5 shadow-2xl text-[var(--text-primary)] sm:rounded-3xl sm:p-6"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-3">
@@ -132,13 +132,37 @@ export const AiConfirmCard: React.FC<Props> = ({ draft, onSave, onReject, onClos
         )}
         {draft.evidence && (
           <p className="mt-3 rounded-2xl bg-[var(--bg-subtle)] border border-[var(--border-default)] p-3 text-xs leading-relaxed text-[var(--text-secondary)]">
-            <span className="font-bold">{t('gmail_ai_read_label')}</span> “{draft.evidence}”
+            <span className="font-bold text-[var(--text-primary)]">{t('gmail_ai_read_label')}</span> “{draft.evidence}”
           </p>
+        )}
+
+        {draft.sourceText && (
+          <div className="mt-3 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-3 space-y-1.5">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
+                {t('confirm_original_preview')}
+              </span>
+              {draft.sourceUrl && (
+                <a
+                  href={draft.sourceUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-[var(--accent-text)] hover:underline"
+                >
+                  <ExternalLink className="h-3 w-3" aria-hidden="true" />
+                  {draft.origin === 'classroom' ? t('gmail_open_post') : t('gmail_open_email')}
+                </a>
+              )}
+            </div>
+            <div className="max-h-28 overflow-y-auto whitespace-pre-line text-xs leading-relaxed text-[var(--text-secondary)] pr-1">
+              {draft.sourceText}
+            </div>
+          </div>
         )}
 
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--text-muted)]">
           <span className="min-w-0 truncate">{t('confirm_source_prefix')} {draft.sourceLabel}</span>
-          {draft.sourceUrl && (
+          {draft.sourceUrl && !draft.sourceText && (
             <a
               href={draft.sourceUrl}
               target="_blank"

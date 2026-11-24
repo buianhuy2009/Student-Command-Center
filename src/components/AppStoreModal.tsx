@@ -767,7 +767,7 @@ export const AppStoreModal: React.FC<AppStoreModalProps> = ({
         <div className="flex-1 overflow-y-auto overscroll-contain">
           {viewingApp ? (
             /* VIEW 1: RICH APP DETAIL PAGE */
-            <div className="max-w-4xl mx-auto px-5 sm:px-8 py-8 space-y-6 animate-in fade-in duration-150">
+            <div className="w-full max-w-6xl mx-auto px-5 sm:px-8 py-8 space-y-6 animate-in fade-in duration-150">
               <div
                 className={`rounded-3xl border border-[var(--border-default)] overflow-hidden shadow-card bg-gradient-to-br ${
                   APP_VISUALS[viewingApp.id]?.gradient || 'from-[var(--accent-soft)] to-[var(--bg-surface)]'

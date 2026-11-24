@@ -268,7 +268,7 @@ export const PomodoroWorkspace: React.FC<PomodoroWorkspaceProps> = ({ initialMin
   const progressPercent = ((durationMinutes * 60 - timeLeftSeconds) / (durationMinutes * 60)) * 100;
 
   return (
-    <div className="h-full min-h-0 flex-1 flex flex-col justify-center gap-4 overflow-y-auto select-none animate-in fade-in duration-150 max-w-5xl mx-auto w-full py-1">
+    <div className="h-full min-h-0 flex-1 flex flex-col justify-center gap-4 overflow-y-auto select-none animate-in fade-in duration-150 max-w-6xl mx-auto w-full py-1">
       
       {/* 1. Top Header Bar */}
       <div className="bg-[var(--bg-surface)] rounded-3xl border border-[var(--border-default)] p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">

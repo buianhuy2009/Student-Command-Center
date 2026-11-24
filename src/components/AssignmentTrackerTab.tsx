@@ -133,6 +133,7 @@ export const AssignmentTrackerTab: React.FC<AssignmentTrackerTabProps> = ({
   const [filterSubject, setFilterSubject] = useState('ALL');
   const [filterStatus, setFilterStatus] = useState('ALL');
   const [filterPriority, setFilterPriority] = useState('ALL');
+  const [needsReviewOnly, setNeedsReviewOnly] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   const [isClearingDone, setIsClearingDone] = useState(false);
   const [showAiAdd, setShowAiAdd] = useState(false);
@@ -262,6 +263,12 @@ export const AssignmentTrackerTab: React.FC<AssignmentTrackerTabProps> = ({
       if (filterSubject !== 'ALL' && a.subject !== filterSubject) return false;
       if (filterStatus !== 'ALL' && a.status !== filterStatus) return false;
       if (filterPriority !== 'ALL' && a.priority !== filterPriority) return false;
+      if (needsReviewOnly) {
+        const needsCheck =
+          a.status !== 'Done' &&
+          (a.dueStatus === 'unconfirmed' || a.dueStatus === 'missing' || !a.dueDate);
+        if (!needsCheck) return false;
+      }
 
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
@@ -293,10 +300,13 @@ export const AssignmentTrackerTab: React.FC<AssignmentTrackerTabProps> = ({
     });
 
     return { filteredAssignments: filtered, oldCompletedCount: oldDone };
-  }, [assignments, searchQuery, filterSubject, filterStatus, filterPriority, showArchived, sortByAIFocus, effortEstimates]);
+  }, [assignments, searchQuery, filterSubject, filterStatus, filterPriority, needsReviewOnly, showArchived, sortByAIFocus, effortEstimates]);
 
   const doneCount = assignments.filter((a) => a.status === 'Done').length;
   const highCount = assignments.filter((a) => a.priority === 'High' && a.status !== 'Done').length;
+  const unconfirmedCount = assignments.filter(
+    (a) => a.status !== 'Done' && (a.dueStatus === 'unconfirmed' || a.dueStatus === 'missing' || !a.dueDate)
+  ).length;
 
   const handleSyncClick = () => {
     if (!isGoogleConnected) {
@@ -396,6 +406,20 @@ export const AssignmentTrackerTab: React.FC<AssignmentTrackerTabProps> = ({
           <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
             {doneCount} {t('done')}
           </span>
+          {unconfirmedCount > 0 && (
+            <button
+              type="button"
+              onClick={() => setNeedsReviewOnly((v) => !v)}
+              className={`px-2.5 py-0.5 rounded-md text-[10px] font-bold border border-dashed transition-colors cursor-pointer inline-flex items-center gap-1 ${
+                needsReviewOnly
+                  ? 'bg-[var(--status-warn-text)] text-white border-[var(--status-warn-text)]'
+                  : 'bg-[var(--status-warn-bg)] text-[var(--status-warn-text)] border-[var(--status-warn-border)] hover:opacity-90'
+              }`}
+            >
+              <AlertTriangle className="w-3 h-3" />
+              <span>{t('tracker_unconfirmed_filter')} ({unconfirmedCount})</span>
+            </button>
+          )}
         </div>
 
         {/* Right: Primary actions only */}
@@ -473,6 +497,17 @@ export const AssignmentTrackerTab: React.FC<AssignmentTrackerTabProps> = ({
           >
             <Sparkles className={`w-3.5 h-3.5 ${showAiAdd ? 'text-white' : 'text-[var(--accent-text)]'}`} />
             <span className="hidden sm:inline">{t('smart_add')}</span>
+          </button>
+
+          {/* Main Flow Next Step: Weekly Plan */}
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new CustomEvent('scc-navigate', { detail: 'radar' }))}
+            className="px-3 py-1.5 bg-[var(--accent-3-soft,var(--bg-subtle))] hover:bg-[var(--bg-hover)] text-[var(--accent-3-text,var(--text-primary))] text-xs font-bold rounded-xl border border-[var(--accent-3-border,var(--border-default))] transition-all flex items-center gap-1 cursor-pointer"
+          >
+            <Calendar className="w-3.5 h-3.5" />
+            <span className="hidden md:inline">{t('tracker_plan_week_cta')}</span>
+            <ArrowRight className="w-3 h-3" />
           </button>
 
           {/* New Task Button */}
@@ -907,6 +942,64 @@ export const AssignmentTrackerTab: React.FC<AssignmentTrackerTabProps> = ({
                 </div>
               </div>
             </div>
+
+            {/* Source & Deadline Verification Card (Judge Flow #1) */}
+            {(selectedAssignment.sourceUrl ||
+              selectedAssignment.aiEvidence ||
+              selectedAssignment.dueStatus === 'unconfirmed' ||
+              selectedAssignment.dueStatus === 'missing' ||
+              !selectedAssignment.dueDate) && (
+              <div className="p-3.5 rounded-2xl border border-[var(--status-warn-border)] bg-[var(--status-warn-bg)]/60 space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[11px] font-bold text-[var(--status-warn-text)] flex items-center gap-1.5">
+                    <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                    <span>{t('tracker_source_card_title')}</span>
+                  </span>
+                  <DueTrustBadge
+                    assignment={selectedAssignment}
+                    onConfirm={
+                      onConfirmDue
+                        ? (a) => {
+                            onConfirmDue(a);
+                            setSelectedAssignment({ ...a, dueStatus: 'confirmed' });
+                          }
+                        : undefined
+                    }
+                  />
+                </div>
+                {selectedAssignment.aiEvidence && (
+                  <p className="text-[11px] text-[var(--text-secondary)] italic leading-relaxed">
+                    {t('gmail_ai_read_label')} “{selectedAssignment.aiEvidence}”
+                  </p>
+                )}
+                <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                  {selectedAssignment.dueStatus === 'unconfirmed' && onConfirmDue && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onConfirmDue(selectedAssignment);
+                        setSelectedAssignment({ ...selectedAssignment, dueStatus: 'confirmed' });
+                      }}
+                      className="px-2.5 py-1 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-lg text-[11px] font-bold inline-flex items-center gap-1 cursor-pointer"
+                    >
+                      <Check className="w-3 h-3" />
+                      <span>{t('tracker_confirm_now')}</span>
+                    </button>
+                  )}
+                  {selectedAssignment.sourceUrl && (
+                    <a
+                      href={selectedAssignment.sourceUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-2.5 py-1 bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--accent-fill)] text-[var(--text-primary)] rounded-lg text-[11px] font-bold inline-flex items-center gap-1"
+                    >
+                      <ExternalLink className="w-3 h-3 text-[var(--accent-text)]" />
+                      <span>{t('gmail_open_email')}</span>
+                    </a>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* AI Estimation Card if present */}
             {effortEstimates[selectedAssignment.id] && (
