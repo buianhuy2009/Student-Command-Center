@@ -1,7 +1,11 @@
 /// <reference lib="webworker" />
 import { env, pipeline, TextStreamer, type ProgressInfo } from '@huggingface/transformers';
 import { LOCAL_MODEL_CATALOG } from '../services/localAiConfig';
-import { formatLectureSummaryMarkdown } from '../utils/lectureSummaryFormat';
+import {
+  cleanLectureTitle,
+  formatLectureSummaryMarkdown,
+  sanitizeAndValidateGemmaSummary,
+} from '../utils/lectureSummaryFormat';
 
 env.allowLocalModels = false;
 env.useBrowserCache = true;
@@ -253,36 +257,44 @@ self.onmessage = async (event: MessageEvent<SummaryWorkerRequest>) => {
 
       postProgress(msg.id, { stage: 'summarizing', percent: 58 });
 
-      const compactTranscript = buildCompactTranscriptFor270M(msg.segments, 3200);
+      const compactTranscript = buildCompactTranscriptFor270M(msg.segments, 1600);
       if (!compactTranscript) {
         throw new Error('No transcript text available to summarize.');
       }
 
-      const langDirective =
-        msg.language === 'vi'
-          ? 'Write your entire answer in Vietnamese.'
-          : msg.language === 'en'
-            ? 'Write your entire answer in English.'
-            : 'Write in the same language as the transcript (Vietnamese or English).';
+      const cleanedTopic = cleanLectureTitle(msg.title) || 'Lecture';
+      const isVi =
+        msg.language === 'vi' ||
+        (msg.language !== 'en' &&
+          /[ăâđêôơưàáảãạằắẳẵặầấẩẫậèéẻẽẹềếểễệìíỉĩịòóỏõọồốổỗộờớởỡợùúủũụừứửữựỳýỷỹỵ]/i.test(
+            `${cleanedTopic} ${compactTranscript}`
+          ));
 
-      const prompt = `Summarize this lecture transcript into clean, easy-to-scan study notes.
-${langDirective}
-Use this exact Markdown layout (keep sentences short, no big walls of text):
+      const prompt = isVi
+        ? `Chủ đề: ${cleanedTopic}
+
+Nội dung bài giảng:
+${compactTranscript}
+
+Dựa vào đoạn ghi chép bài giảng trên, hãy viết bản tóm tắt học tập ngắn gọn bằng tiếng Việt theo 3 mục Markdown sau (viết bằng lời tóm tắt, không chép nguyên văn đoạn nói):
+
+### Ý chính
+
+### Điểm chính
+
+### Ôn nhanh`
+        : `Topic: ${cleanedTopic}
+
+Lecture excerpt:
+${compactTranscript}
+
+Write concise English study notes summarizing the excerpt above using these three Markdown headings (synthesize key ideas in your own words, do not repeat the transcript verbatim):
 
 ### Core Idea
-1-2 short sentences explaining the main point.
 
 ### Key Takeaways
-- **Point 1:** concise note
-- **Point 2:** concise note
-- **Point 3:** concise note
 
-### Quick Review
-- 2 short things to remember for an exam or quiz.
-
-Lecture title: ${msg.title}
-Transcript:
-${compactTranscript}`;
+### Quick Review`;
 
       let emittedChars = 0;
       const streamer = new TextStreamer(genPipe.tokenizer, {
@@ -296,9 +308,12 @@ ${compactTranscript}`;
       });
 
       const out = await genPipe([{ role: 'user', content: prompt }], {
-        max_new_tokens: 360,
-        do_sample: false,
-        repetition_penalty: 1.15,
+        max_new_tokens: 280,
+        do_sample: true,
+        temperature: 0.25,
+        top_p: 0.9,
+        repetition_penalty: 1.25,
+        no_repeat_ngram_size: 4,
         return_full_text: false,
         streamer,
       });
@@ -316,10 +331,15 @@ ${compactTranscript}`;
         }
       }
 
-      const formattedSummary = formatLectureSummaryMarkdown(rawGenerated.trim());
-      const outline = buildOfflineOutline(msg.segments, msg.title);
+      const formattedSummary = sanitizeAndValidateGemmaSummary(
+        rawGenerated,
+        msg.segments,
+        cleanedTopic,
+        msg.language
+      );
+      const outline = buildOfflineOutline(msg.segments, cleanedTopic);
       const terms = extractKeyTermsSimple(compactTranscript);
-      const flashcards = extractOfflineFlashcards(formattedSummary, msg.title);
+      const flashcards = extractOfflineFlashcards(formattedSummary, cleanedTopic);
 
       self.postMessage({
         type: 'done',

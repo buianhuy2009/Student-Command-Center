@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { formatLectureSummaryMarkdown } from './lectureSummaryFormat';
+import {
+  cleanLectureTitle,
+  formatLectureSummaryMarkdown,
+  sanitizeAndValidateGemmaSummary,
+} from './lectureSummaryFormat';
 import { formatOcrLinesToMarkdown } from './noteFormatter';
 import { LOCAL_MODEL_CATALOG } from '../services/localAiConfig';
 
@@ -41,5 +45,59 @@ describe('formatOcrLinesToMarkdown & offline model catalog', () => {
     expect(LOCAL_MODEL_CATALOG.gemmaSummary.id).toBe('onnx-community/gemma-3-270m-it-ONNX');
     expect(LOCAL_MODEL_CATALOG.ocrHandwrittenEn.id).toBe('paddleocr-en-v5');
     expect(LOCAL_MODEL_CATALOG.ocrHandwrittenEn.urls[0]).toContain('/languages/english/rec.onnx');
+  });
+});
+
+describe('sanitizeAndValidateGemmaSummary & cleanLectureTitle', () => {
+  it('cleans downloader noise from lecture titles', () => {
+    expect(
+      cleanLectureTitle('YTSave.to_YouTube_Media_xxjJiJBF5kw_Toán-lớp-6-Cộng-trừ-số-nguyên_002_720p')
+    ).toBe('Toán - lớp - 6 - Cộng - trừ - số - nguyên');
+  });
+
+  it('replaces leaked prompt templates and transcript echoes with a structured Vietnamese summary', () => {
+    const broken = `Core Idea
+1-2 short sentences explaining the main point.
+Key Takeaways
+Point 1: Concise note
+Point 2: Concise note
+Point 3: Concise note
+Quick Review
+2 short things to remember for an exam or quiz.
+Lecture Title: YTSave.to_YouTube_Media_xxjJiJBF5kw_Toán-lớp-6-Cộng-trừ-số-nguyên_002_720p
+Transcript: xin chào tất cả các con trong quá trình thầy dạy chúng ta phần số nguyên cộng trừ số nguyên thì có một số bạn bị lúng túng`;
+
+    const segments = [
+      { text: 'Hôm nay thầy hướng dẫn cách cộng trừ số nguyên với các ví dụ số nhỏ dễ hiểu.' },
+      { text: 'Bảy trừ một bằng sáu nhưng một trừ bảy không trừ được theo cách tiểu học mà cho kết quả âm sáu.' },
+      { text: 'Khi chuyển lên cấp hai, phép trừ số nhỏ cho số lớn sẽ cho ra số nguyên âm.' },
+      { text: 'Cần ghi nhớ quy tắc dấu để làm bài kiểm tra chính xác.' },
+    ];
+
+    const repaired = sanitizeAndValidateGemmaSummary(
+      broken,
+      segments,
+      'YTSave.to_YouTube_Media_xxjJiJBF5kw_Toán-lớp-6-Cộng-trừ-số-nguyên_002_720p',
+      'vi'
+    );
+
+    expect(repaired).not.toContain('Point 1: Concise note');
+    expect(repaired).not.toContain('YTSave.to');
+    expect(repaired).not.toContain('Transcript:');
+    expect(repaired).toContain('### Ý chính');
+    expect(repaired).toContain('### Điểm chính');
+    expect(repaired).toContain('### Ôn nhanh');
+  });
+
+  it('keeps genuine structured Gemma summaries untouched', () => {
+    const valid = `### Ý chính\n\nBài giảng giải thích phép cộng trừ số nguyên âm và cách xử lý khi số bị trừ nhỏ hơn số trừ.\n\n### Điểm chính\n\n- Số nguyên âm xuất hiện khi lấy số nhỏ trừ đi số lớn.\n- Ví dụ: 1 trừ 7 bằng -6.\n\n### Ôn nhanh\n\n- Luôn xét dấu của hiệu dựa theo số có giá trị tuyệt đối lớn hơn.`;
+    const out = sanitizeAndValidateGemmaSummary(
+      valid,
+      [{ text: 'Hôm nay học cộng trừ số nguyên.' }],
+      'Toán lớp 6',
+      'vi'
+    );
+    expect(out).toContain('Bài giảng giải thích phép cộng trừ số nguyên âm');
+    expect(out).toContain('Ví dụ: 1 trừ 7 bằng -6');
   });
 });

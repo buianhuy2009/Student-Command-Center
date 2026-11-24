@@ -14,12 +14,13 @@ import {
   Brain,
   Copy,
   Lightbulb,
+  ImagePlus,
 } from 'lucide-react';
 import { MathMarkdown } from './MathMarkdown';
 import {
   AiCoachMode,
 } from '../services/gemini';
-import { useCoachChatStore } from '../store/coachChatStore';
+import { useCoachChatStore, type CoachImageAttachment } from '../store/coachChatStore';
 import { Assignment, CalendarEvent, EmailAlert } from '../types';
 import { useT } from '../services/i18n';
 
@@ -31,6 +32,44 @@ const PROMPT_SUGGESTION_KEYS = [
 ] as const;
 
 const TIER_ORDER: readonly AiCoachMode[] = ['quick', 'balanced', 'reasoning', 'apex'];
+const MAX_COACH_IMAGES = 4;
+
+async function resizeImageFileToAttachment(file: File): Promise<CoachImageAttachment> {
+  const dataUrl = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(reader.error || new Error('Failed to read image'));
+    reader.readAsDataURL(file);
+  });
+
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const el = new Image();
+      el.onload = () => resolve(el);
+      el.onerror = () => reject(new Error('Image decode failed'));
+      el.src = dataUrl;
+    });
+    const maxDim = 1280;
+    const scale = Math.min(1, maxDim / Math.max(img.width || 1, img.height || 1));
+    const w = Math.max(1, Math.round(img.width * scale));
+    const h = Math.max(1, Math.round(img.height * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.drawImage(img, 0, 0, w, h);
+      const jpegUrl = canvas.toDataURL('image/jpeg', 0.82);
+      const base64 = jpegUrl.slice(jpegUrl.indexOf(',') + 1);
+      return { dataUrl: jpegUrl, base64, mimeType: 'image/jpeg', name: file.name };
+    }
+  } catch {
+    // Fallback to raw dataUrl if canvas is unavailable
+  }
+  const mimeType = file.type || 'image/png';
+  const base64 = dataUrl.includes(',') ? dataUrl.slice(dataUrl.indexOf(',') + 1) : dataUrl;
+  return { dataUrl, base64, mimeType, name: file.name };
+}
 
 interface StudyAssistantChatProps {
   isOpen: boolean;
@@ -62,6 +101,7 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
   } = useCoachChatStore();
 
   const [inputText, setInputText] = useState('');
+  const [pendingImages, setPendingImages] = useState<CoachImageAttachment[]>([]);
   const [elapsedSec, setElapsedSec] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
@@ -70,6 +110,7 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
   const triggerRef = useRef<HTMLButtonElement>(null);
   const itemRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const { t } = useT();
 
   useEffect(() => {
@@ -305,12 +346,39 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
     </div>
   );
 
+  const handleAttachFiles = async (fileList: FileList | File[]) => {
+    const files = Array.from(fileList).filter((f) => f.type.startsWith('image/'));
+    if (files.length === 0) return;
+    const remaining = Math.max(0, MAX_COACH_IMAGES - pendingImages.length);
+    const picked = files.slice(0, remaining);
+    if (picked.length === 0) return;
+    const encoded = await Promise.all(picked.map((f) => resizeImageFileToAttachment(f)));
+    setPendingImages((prev) => [...prev, ...encoded].slice(0, MAX_COACH_IMAGES));
+  };
+
+  const handlePasteImages = async (e: React.ClipboardEvent) => {
+    const items = Array.from(e.clipboardData?.items || []);
+    const imgFiles = items
+      .filter((it) => it.type.startsWith('image/'))
+      .map((it) => it.getAsFile())
+      .filter((f): f is File => Boolean(f));
+    if (imgFiles.length > 0) {
+      e.preventDefault();
+      await handleAttachFiles(imgFiles);
+    }
+  };
+
   const handleSend = async (textToSend?: string) => {
-    const text = textToSend || inputText;
-    if (!text.trim() || isSending) return;
-    if (!textToSend) setInputText('');
+    const text = textToSend ?? inputText;
+    const imgs = textToSend ? [] : pendingImages;
+    if ((!text.trim() && imgs.length === 0) || isSending) return;
+    if (!textToSend) {
+      setInputText('');
+      setPendingImages([]);
+    }
     await sendMessage({
       text,
+      images: imgs,
       assignments,
       events,
       alerts,
@@ -420,7 +488,19 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
                   if (msg.role === 'user') {
                     return (
                       <div key={idx} className="flex justify-end">
-                        <div className="max-w-[85%] sm:max-w-[70%] px-4 py-3 rounded-2xl rounded-br-xs bg-[var(--accent-fill)] text-white text-sm shadow-xs leading-relaxed">
+                        <div className="max-w-[85%] sm:max-w-[70%] px-4 py-3 rounded-2xl rounded-br-xs bg-[var(--accent-fill)] text-white text-sm shadow-xs leading-relaxed space-y-2">
+                          {msg.images && msg.images.length > 0 && (
+                            <div className="flex flex-wrap gap-2">
+                              {msg.images.map((img, imgIdx) => (
+                                <img
+                                  key={imgIdx}
+                                  src={img.dataUrl}
+                                  alt={img.name || 'Attached image'}
+                                  className="max-h-40 rounded-xl border border-white/25 object-cover"
+                                />
+                              ))}
+                            </div>
+                          )}
                           <div className="prose prose-sm prose-invert max-w-none leading-relaxed">
                             <MathMarkdown>{text}</MathMarkdown>
                           </div>
@@ -497,15 +577,57 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
           </div>
         </div>
 
+        {/* Hidden Shared Image Input */}
+        <input
+          ref={imageInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          className="hidden"
+          onChange={(e) => {
+            if (e.target.files) void handleAttachFiles(e.target.files);
+            e.target.value = '';
+          }}
+        />
+
         {/* Modern Multi-Line Composer Card (ChatGPT/Claude style) */}
         <div className="px-4 sm:px-8 lg:px-12 pb-4 pt-2 bg-gradient-to-t from-[var(--bg-canvas)] via-[var(--bg-canvas)] to-transparent shrink-0">
           <div className="w-full max-w-[1160px] mx-auto">
-            <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] focus-within:border-[var(--accent-fill)] focus-within:ring-2 focus-within:ring-[var(--accent-fill)]/15 rounded-2xl shadow-card p-3 transition-all">
+            <div
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                if (e.dataTransfer.files?.length) {
+                  e.preventDefault();
+                  void handleAttachFiles(e.dataTransfer.files);
+                }
+              }}
+              className="bg-[var(--bg-surface)] border border-[var(--border-default)] focus-within:border-[var(--accent-fill)] focus-within:ring-2 focus-within:ring-[var(--accent-fill)]/15 rounded-2xl shadow-card p-3 transition-all"
+            >
+              {pendingImages.length > 0 && (
+                <div className="flex flex-wrap items-center gap-2 pb-2 mb-2 border-b border-[var(--border-hairline)]">
+                  {pendingImages.map((img, i) => (
+                    <div key={i} className="relative group w-14 h-14 rounded-xl overflow-hidden border border-[var(--border-default)] bg-[var(--bg-subtle)] shrink-0">
+                      <img src={img.dataUrl} alt={img.name || 'Attachment'} className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => setPendingImages((prev) => prev.filter((_, idx) => idx !== i))}
+                        aria-label={t('coach_remove_image')}
+                        className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-black/70 text-white flex items-center justify-center cursor-pointer"
+                      >
+                        <X className="w-2.5 h-2.5" />
+                      </button>
+                    </div>
+                  ))}
+                  <span className="text-[11px] text-[var(--text-muted)] ml-1">{t('coach_attach_limit')}</span>
+                </div>
+              )}
+
               <textarea
                 ref={textareaRef}
                 rows={1}
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
+                onPaste={(e) => void handlePasteImages(e)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
@@ -520,6 +642,17 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
               <div className="flex flex-wrap items-center justify-between gap-2 pt-2 mt-1 border-t border-[var(--border-hairline)]">
                 <div className="flex flex-wrap items-center gap-2 text-[11px] text-[var(--text-muted)] min-w-0">
                   {renderTierSelector(false, 'up')}
+                  <button
+                    type="button"
+                    onClick={() => imageInputRef.current?.click()}
+                    disabled={isSending || pendingImages.length >= MAX_COACH_IMAGES}
+                    title={t('coach_attach_image')}
+                    aria-label={t('coach_attach_image')}
+                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-[var(--border-default)] bg-[var(--bg-subtle)]/80 hover:bg-[var(--bg-hover)] text-[var(--text-primary)] text-xs font-semibold transition-colors cursor-pointer disabled:opacity-40"
+                  >
+                    <ImagePlus className="w-3.5 h-3.5 text-[var(--accent-text)]" />
+                    <span className="hidden sm:inline">{t('coach_attach_image')}</span>
+                  </button>
                   <span aria-hidden="true" className="hidden md:inline">•</span>
                   <span className="hidden md:inline truncate">
                     {t('coach_context_summary', {
@@ -532,7 +665,7 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
                 <button
                   type="button"
                   onClick={() => handleSend()}
-                  disabled={!inputText.trim() || isSending}
+                  disabled={(!inputText.trim() && pendingImages.length === 0) || isSending}
                   aria-label={t('coach_send')}
                   className="px-4 py-2 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] disabled:opacity-40 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-xs shrink-0"
                 >
@@ -606,12 +739,24 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
               </div>
             )}
             <div
-              className={`max-w-[85%] p-2.5 rounded-xl ${
+              className={`max-w-[85%] p-2.5 rounded-xl space-y-1.5 ${
                 msg.role === 'user'
                   ? 'bg-[var(--accent-fill)] text-white rounded-br-xs shadow-xs'
                   : 'bg-[var(--bg-subtle)]/60 text-[var(--text-primary)] rounded-bl-xs'
               }`}
             >
+              {msg.images && msg.images.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {msg.images.map((img, imgIdx) => (
+                    <img
+                      key={imgIdx}
+                      src={img.dataUrl}
+                      alt={img.name || 'Attached image'}
+                      className="max-h-24 rounded-lg border border-white/25 object-cover"
+                    />
+                  ))}
+                </div>
+              )}
               <div className="prose prose-xs dark:prose-invert max-w-none leading-relaxed">
                 <MathMarkdown>{msg.contentKey ? t(msg.contentKey) : (msg.content || '')}</MathMarkdown>
               </div>
@@ -640,12 +785,52 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
         <div ref={messagesEndRef} />
       </div>
 
+      <input
+        ref={imageInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        className="hidden"
+        onChange={(e) => {
+          if (e.target.files) void handleAttachFiles(e.target.files);
+          e.target.value = '';
+        }}
+      />
+
       <div className="p-2.5 border-t border-[var(--border-default)] bg-[var(--bg-surface)] space-y-2">
+        {pendingImages.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5 pb-1">
+            {pendingImages.map((img, i) => (
+              <div key={i} className="relative w-10 h-10 rounded-lg overflow-hidden border border-[var(--border-default)] bg-[var(--bg-subtle)] shrink-0">
+                <img src={img.dataUrl} alt={img.name || 'Attachment'} className="w-full h-full object-cover" />
+                <button
+                  type="button"
+                  onClick={() => setPendingImages((prev) => prev.filter((_, idx) => idx !== i))}
+                  aria-label={t('coach_remove_image')}
+                  className="absolute top-0 right-0 w-3.5 h-3.5 rounded-bl bg-black/70 text-white flex items-center justify-center cursor-pointer"
+                >
+                  <X className="w-2.5 h-2.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
         <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => imageInputRef.current?.click()}
+            disabled={isSending || pendingImages.length >= MAX_COACH_IMAGES}
+            title={t('coach_attach_image')}
+            aria-label={t('coach_attach_image')}
+            className="p-2 bg-[var(--bg-subtle)] hover:bg-[var(--bg-hover)] border border-[var(--border-default)] text-[var(--text-secondary)] rounded-xl cursor-pointer disabled:opacity-40 shrink-0"
+          >
+            <ImagePlus className="w-3.5 h-3.5 text-[var(--accent-text)]" />
+          </button>
           <input
             type="text"
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
+            onPaste={(e) => void handlePasteImages(e)}
             onKeyDown={(e) => {
               if (e.key === 'Enter') handleSend();
             }}
@@ -656,7 +841,7 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
           <button
             type="button"
             onClick={() => handleSend()}
-            disabled={!inputText.trim() || isSending}
+            disabled={(!inputText.trim() && pendingImages.length === 0) || isSending}
             aria-label={t('coach_send')}
             className="p-2 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-xl cursor-pointer disabled:opacity-40"
           >

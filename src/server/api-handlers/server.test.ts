@@ -629,4 +629,92 @@ describe("Server models & unified API surface", () => {
       );
     });
   });
+
+  describe("AI Coach Multimodal Image Support (/api/gemini/assistant)", () => {
+    const prevGemini = process.env.GEMINI_API_KEY;
+    const prevGroq = process.env.GROQ_API_KEY;
+    const prevFetch = globalThis.fetch;
+
+    beforeEach(() => {
+      process.env.GEMINI_API_KEY = "AIzaTestOnly";
+      resetModelCooldownsForTest();
+      resetRateLimitsForTest();
+      generateContentMock.mockReset();
+    });
+
+    afterEach(() => {
+      if (prevGemini === undefined) delete process.env.GEMINI_API_KEY;
+      else process.env.GEMINI_API_KEY = prevGemini;
+      if (prevGroq === undefined) delete process.env.GROQ_API_KEY;
+      else process.env.GROQ_API_KEY = prevGroq;
+      globalThis.fetch = prevFetch;
+    });
+
+    it("forwards inlineData images on all 4 model tiers (quick, balanced, reasoning, apex)", async () => {
+      for (const mode of ["quick", "balanced", "reasoning", "apex"] as const) {
+        generateContentMock.mockResolvedValueOnce({ text: `Vision reply for ${mode}` });
+        const res = createMockRes();
+        await handleAssistant(
+          {
+            method: "POST",
+            body: {
+              mode,
+              messages: [
+                {
+                  role: "user",
+                  content: "Solve step 1",
+                  images: [{ base64: "AAAA", mimeType: "image/jpeg" }],
+                },
+              ],
+            },
+          },
+          res
+        );
+        expect(res.statusCode).toBe(200);
+        expect(res.body.reply).toBe(`Vision reply for ${mode}`);
+        const callArg = generateContentMock.mock.calls.at(-1)?.[0];
+        expect(callArg.contents[0].parts).toEqual([
+          { inlineData: { data: "AAAA", mimeType: "image/jpeg" } },
+          { text: "Solve step 1" },
+        ]);
+      }
+    });
+
+    it("uses Llama 4 Scout vision format on Groq fallback when quick Gemma fails", async () => {
+      generateContentMock.mockRejectedValue(new Error("429 quota"));
+      process.env.GROQ_API_KEY = "gsk_test";
+      const fetchSpy = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ choices: [{ message: { content: "Groq vision hint" } }] }),
+      } as any);
+      globalThis.fetch = fetchSpy;
+
+      const res = createMockRes();
+      await handleAssistant(
+        {
+          method: "POST",
+          body: {
+            mode: "quick",
+            messages: [
+              {
+                role: "user",
+                content: "Explain this graph",
+                images: [{ base64: "BBBB", mimeType: "image/png" }],
+              },
+            ],
+          },
+        },
+        res
+      );
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.provider).toBe("groq");
+      expect(res.body.model).toBe("meta-llama/llama-4-scout-17b-16e-instruct");
+      const sentBody = JSON.parse(String(fetchSpy.mock.calls[0]?.[1]?.body || "{}"));
+      expect(sentBody.messages[1].content).toEqual([
+        { type: "text", text: "Explain this graph" },
+        { type: "image_url", image_url: { url: "data:image/png;base64,BBBB" } },
+      ]);
+    });
+  });
 });

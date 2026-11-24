@@ -12,10 +12,18 @@ const COACH_MODE_STORAGE_KEY = 'scc_ai_coach_mode_v1';
 const CHAT_STORAGE_KEY = 'scc_chat_messages_v2';
 const COACH_JOB_ID = 'coach-chat';
 
+export interface CoachImageAttachment {
+  dataUrl: string;
+  base64: string;
+  mimeType: string;
+  name?: string;
+}
+
 export interface CoachMessage {
   role: 'user' | 'assistant';
   content?: string;
   contentKey?: 'coach_welcome' | 'coach_cleared_full' | 'coach_cleared_drawer';
+  images?: { dataUrl: string; mimeType: string; name?: string }[];
 }
 
 function loadInitialCoachMode(): AiCoachMode {
@@ -44,7 +52,19 @@ function loadInitialMessages(): CoachMessage[] {
 
 function persistMessages(messages: CoachMessage[]) {
   try {
-    localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(messages));
+    // Strip heavy base64 dataUrl payloads before saving to localStorage so storage quota stays healthy.
+    const slim = messages.map((m) =>
+      m.images?.length
+        ? {
+            role: m.role,
+            content:
+              m.content ||
+              (m.images.length > 0 ? `[${m.images.length} attached image(s)]` : ''),
+            ...(m.contentKey ? { contentKey: m.contentKey } : {}),
+          }
+        : m
+    );
+    localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(slim));
   } catch {
     // Ignore storage quota errors.
   }
@@ -63,6 +83,7 @@ interface CoachChatState {
   cancelSending: () => void;
   sendMessage: (params: {
     text: string;
+    images?: CoachImageAttachment[];
     assignments: Assignment[];
     events: CalendarEvent[];
     alerts: EmailAlert[];
@@ -103,14 +124,27 @@ export const useCoachChatStore = create<CoachChatState>((set, get) => ({
     set({ isSending: false, streamingContent: '', startedAt: null });
   },
 
-  sendMessage: async ({ text, assignments, events, alerts, extraContext }) => {
-    const trimmed = text.trim();
-    if (!trimmed || get().isSending) return;
+  sendMessage: async ({ text, images, assignments, events, alerts, extraContext }) => {
+    const attached = Array.isArray(images) ? images.slice(0, 4) : [];
+    const trimmed = text.trim() || (attached.length > 0 ? t('coach_image_default_prompt') : '');
+    if ((!trimmed && attached.length === 0) || get().isSending) return;
 
     const controller = new AbortController();
     activeChatController = controller;
 
-    const userMessage: CoachMessage = { role: 'user', content: trimmed };
+    const userMessage: CoachMessage = {
+      role: 'user',
+      content: trimmed,
+      ...(attached.length > 0
+        ? {
+            images: attached.map((img) => ({
+              dataUrl: img.dataUrl,
+              mimeType: img.mimeType,
+              name: img.name,
+            })),
+          }
+        : {}),
+    };
     const prevMessages = get().messages;
     const withUser = [...prevMessages, userMessage];
     persistMessages(withUser);
@@ -143,10 +177,27 @@ export const useCoachChatStore = create<CoachChatState>((set, get) => ({
         .map((a) => ({ ...a, oneLineSummary: a.oneLineSummary.slice(0, 300) }));
       const cappedEvents = events.slice(0, 20);
 
+      // Only send raw base64 images for the 2 most recent image-bearing user messages to stay under body limits.
+      const imageMsgIndices = withUser
+        .map((m, idx) => (m.role === 'user' && m.images?.length ? idx : -1))
+        .filter((idx) => idx >= 0);
+      const keepImageIdx = new Set(imageMsgIndices.slice(-2));
+
       const response = await sendStudyAssistantMessage(
-        withUser.map((m) => ({
+        withUser.map((m, idx) => ({
           role: m.role,
           content: m.content ?? (m.contentKey ? t(m.contentKey) : ''),
+          ...(m.role === 'user' && keepImageIdx.has(idx) && m.images?.length
+            ? {
+                images: m.images
+                  .map((img) => {
+                    const comma = img.dataUrl.indexOf(',');
+                    const base64 = comma >= 0 ? img.dataUrl.slice(comma + 1) : img.dataUrl;
+                    return base64 ? { base64, mimeType: img.mimeType } : null;
+                  })
+                  .filter((x): x is { base64: string; mimeType: string } => Boolean(x)),
+              }
+            : {}),
         })),
         {
           assignments: cappedAssignments,

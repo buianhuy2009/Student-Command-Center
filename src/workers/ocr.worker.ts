@@ -206,12 +206,75 @@ function createPageCanvas(
   return { canvas, width, height };
 }
 
+/**
+ * Normalizes uneven phone-camera lighting, suppresses faint ruled notebook lines,
+ * and sharpens handwritten blue/black ink while preserving Vietnamese diacritics.
+ */
+function preprocessHandwritingPage(
+  pageCanvas: OffscreenCanvas,
+  width: number,
+  height: number
+): OffscreenCanvas {
+  const bgW = Math.max(16, Math.round(width / 16));
+  const bgH = Math.max(16, Math.round(height / 16));
+  const lowCanvas = new OffscreenCanvas(bgW, bgH);
+  const lowCtx = lowCanvas.getContext('2d')!;
+  lowCtx.imageSmoothingEnabled = true;
+  lowCtx.imageSmoothingQuality = 'high';
+  lowCtx.drawImage(pageCanvas, 0, 0, bgW, bgH);
+
+  const bgCanvas = new OffscreenCanvas(width, height);
+  const bgCtx = bgCanvas.getContext('2d')!;
+  bgCtx.imageSmoothingEnabled = true;
+  bgCtx.imageSmoothingQuality = 'high';
+  bgCtx.drawImage(lowCanvas, 0, 0, width, height);
+
+  const outCanvas = new OffscreenCanvas(width, height);
+  const outCtx = outCanvas.getContext('2d')!;
+  outCtx.drawImage(pageCanvas, 0, 0, width, height);
+
+  const img = outCtx.getImageData(0, 0, width, height);
+  const bgImg = bgCtx.getImageData(0, 0, width, height);
+  const d = img.data;
+  const bData = bgImg.data;
+  const total = width * height * 4;
+
+  for (let i = 0; i < total; i += 4) {
+    const rN = Math.min(255, Math.round((d[i] / Math.max(40, bData[i])) * 248));
+    const gN = Math.min(255, Math.round((d[i + 1] / Math.max(40, bData[i + 1])) * 248));
+    const bN = Math.min(255, Math.round((d[i + 2] / Math.max(40, bData[i + 2])) * 248));
+
+    const luma = 0.299 * rN + 0.587 * gN + 0.114 * bN;
+    const sat = Math.max(rN, gN, bN) - Math.min(rN, gN, bN);
+
+    if (luma > 212 && sat < 18) {
+      // Gently lift paper & faint ruled lines toward crisp white.
+      d[i] = Math.min(255, Math.round(rN + (255 - rN) * 0.72));
+      d[i + 1] = Math.min(255, Math.round(gN + (255 - gN) * 0.72));
+      d[i + 2] = Math.min(255, Math.round(bN + (255 - bN) * 0.72));
+    } else if (luma < 185) {
+      // Mildly deepen pen ink & diacritics without binary jaggedness.
+      d[i] = Math.max(0, Math.min(255, Math.round((rN - 185) * 1.18 + 185)));
+      d[i + 1] = Math.max(0, Math.min(255, Math.round((gN - 185) * 1.18 + 185)));
+      d[i + 2] = Math.max(0, Math.min(255, Math.round((bN - 185) * 1.18 + 185)));
+    } else {
+      d[i] = rN;
+      d[i + 1] = gN;
+      d[i + 2] = bN;
+    }
+  }
+
+  outCtx.putImageData(img, 0, 0);
+  return outCanvas;
+}
+
 function extractConnectedBoxes(
   probMap: Float32Array,
   detW: number,
   detH: number,
   pageW: number,
-  pageH: number
+  pageH: number,
+  isHandwriting = false
 ): OcrBox[] {
   const threshold = 0.3;
   const visited = new Uint8Array(detW * detH);
@@ -274,9 +337,10 @@ function extractConnectedBoxes(
       const bh = (maxY - minY + 1) * scaleY;
       if (bw < 10 || bh < 6) continue;
 
-      // Expand DBNet box slightly so Vietnamese diacritics and punctuation stay intact.
-      const padX = Math.max(6, bh * 0.25);
-      const padY = Math.max(4, bh * 0.3);
+      // Expand DBNet box slightly so Vietnamese diacritics and punctuation stay intact,
+      // but keep vertical padding tight on ruled notebooks so lines don't bleed together.
+      const padX = isHandwriting ? Math.max(4, bh * 0.2) : Math.max(6, bh * 0.25);
+      const padY = isHandwriting ? Math.max(2, bh * 0.14) : Math.max(4, bh * 0.3);
       const x0 = Math.max(0, Math.floor(minX * scaleX - padX));
       const y0 = Math.max(0, Math.floor(minY * scaleY - padY));
       const x1 = Math.min(pageW, Math.ceil((maxX + 1) * scaleX + padX));
@@ -285,20 +349,21 @@ function extractConnectedBoxes(
     }
   }
 
-  return mergeHorizontalLineFragments(rawBoxes);
+  return mergeHorizontalLineFragments(rawBoxes, isHandwriting);
 }
 
-function mergeHorizontalLineFragments(boxes: OcrBox[]): OcrBox[] {
+function mergeHorizontalLineFragments(boxes: OcrBox[], isHandwriting = false): OcrBox[] {
   if (boxes.length <= 1) return boxes;
   const sorted = [...boxes].sort((a, b) => a.y - b.y || a.x - b.x);
   const merged: OcrBox[] = [];
+  const rowTolFactor = isHandwriting ? 0.42 : 0.55;
 
   for (const box of sorted) {
     const cy = box.y + box.height / 2;
     const match = merged.find((m) => {
       const mCy = m.y + m.height / 2;
       const hRef = Math.min(m.height, box.height);
-      const sameRow = Math.abs(cy - mCy) <= hRef * 0.55;
+      const sameRow = Math.abs(cy - mCy) <= hRef * rowTolFactor;
       const gap = box.x - (m.x + m.width);
       const overlapOrClose = gap <= hRef * 1.45 && box.x + box.width >= m.x - hRef * 1.45;
       return sameRow && overlapOrClose;
@@ -324,7 +389,8 @@ async function detectLinesWithDbNet(
   pageCanvas: OffscreenCanvas,
   pageW: number,
   pageH: number,
-  requestId: string
+  requestId: string,
+  isHandwriting = false
 ): Promise<OcrBox[]> {
   const detUrl = LOCAL_MODEL_CATALOG.ocrDetector.urls[0];
   const detBytes = await fetchWithCacheAndProgress(detUrl, requestId, 'detector', [0, 6]);
@@ -355,16 +421,17 @@ async function detectLinesWithDbNet(
 
     const area = detW * detH;
     const inputArr = new Float32Array(3 * area);
-    const mean = [0.485, 0.456, 0.406];
-    const std = [0.229, 0.224, 0.225];
+    // PaddleOCR det_v3 expects BGR channel order normalized with ImageNet stats.
+    const meanBgr = [0.485, 0.456, 0.406];
+    const stdBgr = [0.229, 0.224, 0.225];
 
     for (let i = 0; i < area; i++) {
       const r = imgData[i * 4] / 255;
       const g = imgData[i * 4 + 1] / 255;
       const b = imgData[i * 4 + 2] / 255;
-      inputArr[i] = (r - mean[0]) / std[0];
-      inputArr[area + i] = (g - mean[1]) / std[1];
-      inputArr[2 * area + i] = (b - mean[2]) / std[2];
+      inputArr[i] = (b - meanBgr[0]) / stdBgr[0];
+      inputArr[area + i] = (g - meanBgr[1]) / stdBgr[1];
+      inputArr[2 * area + i] = (r - meanBgr[2]) / stdBgr[2];
     }
 
     detTensor = new ort.Tensor('float32', inputArr, [1, 3, detH, detW]);
@@ -374,7 +441,7 @@ async function detectLinesWithDbNet(
     outTensor = outputs[outputName];
     const probData = outTensor.data as Float32Array;
 
-    const boxes = extractConnectedBoxes(probData, detW, detH, pageW, pageH);
+    const boxes = extractConnectedBoxes(probData, detW, detH, pageW, pageH, isHandwriting);
     const finalBoxes =
       boxes.length === 0
         ? [{ x: 0, y: 0, width: pageW, height: pageH }]
@@ -552,6 +619,106 @@ async function recognizeEnglishHandwriting(
   );
 }
 
+/**
+ * Recursively splits very wide handwritten notebook lines (>13x aspect ratio) along
+ * inter-word whitespace valleys so VietOCR never squashes long lines into 512px.
+ */
+function splitWideHandwritingBox(pageCanvas: OffscreenCanvas, box: OcrBox, depth = 0): OcrBox[] {
+  const aspect = box.width / Math.max(1, box.height);
+  if (aspect <= 13 || depth >= 3 || box.width < 120) {
+    return [box];
+  }
+
+  const ctx = pageCanvas.getContext('2d')!;
+  const w = Math.max(1, Math.round(box.width));
+  const h = Math.max(1, Math.round(box.height));
+  const sx = Math.max(0, Math.floor(box.x));
+  const sy = Math.max(0, Math.floor(box.y));
+  const data = ctx.getImageData(sx, sy, w, h).data;
+
+  const startCol = Math.floor(w * 0.3);
+  const endCol = Math.ceil(w * 0.7);
+  let bestCol = Math.floor(w * 0.5);
+  let minInk = Infinity;
+
+  for (let x = startCol; x < endCol; x++) {
+    let colInk = 0;
+    for (let y = 0; y < h; y++) {
+      const idx = (y * w + x) * 4;
+      const luma = 0.299 * data[idx] + 0.587 * data[idx + 1] + 0.114 * data[idx + 2];
+      if (luma < 205) colInk += 205 - luma;
+    }
+    if (colInk < minInk) {
+      minInk = colInk;
+      bestCol = x;
+    }
+  }
+
+  const leftW = Math.max(24, bestCol + 4);
+  const rightX = Math.max(sx, sx + bestCol - 4);
+  const rightW = Math.max(24, w - (rightX - sx));
+
+  const leftBox: OcrBox = { x: sx, y: sy, width: leftW, height: h };
+  const rightBox: OcrBox = { x: rightX, y: sy, width: rightW, height: h };
+  return [
+    ...splitWideHandwritingBox(pageCanvas, leftBox, depth + 1),
+    ...splitWideHandwritingBox(pageCanvas, rightBox, depth + 1),
+  ];
+}
+
+/**
+ * Matches VietOCR's official `process_image` preprocessing: height=32, width rounded to a
+ * multiple of 16 up to 512, edge-to-edge draw WITHOUT artificial white right padding.
+ */
+function cropVietOcrLine(
+  pageCanvas: OffscreenCanvas,
+  box: OcrBox
+): { canvas: OffscreenCanvas; width: number; height: number } {
+  const ctxSrc = pageCanvas.getContext('2d')!;
+  const sx = Math.max(0, Math.floor(box.x));
+  const sy = Math.max(0, Math.floor(box.y));
+  const sw = Math.max(1, Math.min(pageCanvas.width - sx, Math.round(box.width)));
+  const sh = Math.max(1, Math.min(pageCanvas.height - sy, Math.round(box.height)));
+  const srcData = ctxSrc.getImageData(sx, sy, sw, sh).data;
+
+  // Softly trim excess blank margin rows at top/bottom while leaving 2px breathing room for accents.
+  let topRow = 0;
+  let bottomRow = sh - 1;
+  rowTop: for (let y = 0; y < sh; y++) {
+    for (let x = 0; x < sw; x++) {
+      const idx = (y * sw + x) * 4;
+      if (srcData[idx] < 215 || srcData[idx + 1] < 215 || srcData[idx + 2] < 215) {
+        topRow = Math.max(0, y - 2);
+        break rowTop;
+      }
+    }
+  }
+  rowBot: for (let y = sh - 1; y >= topRow; y--) {
+    for (let x = 0; x < sw; x++) {
+      const idx = (y * sw + x) * 4;
+      if (srcData[idx] < 215 || srcData[idx + 1] < 215 || srcData[idx + 2] < 215) {
+        bottomRow = Math.min(sh - 1, y + 2);
+        break rowBot;
+      }
+    }
+  }
+
+  const trimmedH = Math.max(8, bottomRow - topRow + 1);
+  const targetHeight = 32;
+  const aspect = Math.max(0.4, sw / trimmedH);
+  const idealW = Math.round(targetHeight * aspect);
+  const width = Math.min(512, Math.max(32, Math.ceil(idealW / 16) * 16));
+
+  const canvas = new OffscreenCanvas(width, targetHeight);
+  const ctx = canvas.getContext('2d')!;
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, width, targetHeight);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(pageCanvas, sx, sy + topRow, sw, trimmedH, 0, 0, width, targetHeight);
+  return { canvas, width, height: targetHeight };
+}
+
 async function recognizeVietnameseHandwriting(
   pageCanvas: OffscreenCanvas,
   boxes: OcrBox[],
@@ -587,96 +754,111 @@ async function recognizeVietnameseHandwriting(
       });
 
       const box = boxes[i];
-      const { canvas, width, height } = cropLineToCanvas(pageCanvas, box, 32, 512, 16);
-      const ctx = canvas.getContext('2d')!;
-      const imgData = ctx.getImageData(0, 0, width, height).data;
-      const area = width * height;
-      const arr = new Float32Array(3 * area);
+      const subBoxes = splitWideHandwritingBox(pageCanvas, box);
+      const subTexts: string[] = [];
 
-      // VietOCR expects RGB float32 normalized strictly to [0, 1] (NOT [-1, 1]).
-      for (let p = 0; p < area; p++) {
-        arr[p] = imgData[p * 4] / 255;
-        arr[area + p] = imgData[p * 4 + 1] / 255;
-        arr[2 * area + p] = imgData[p * 4 + 2] / 255;
-      }
+      for (const subBox of subBoxes) {
+        const { canvas, width, height } = cropVietOcrLine(pageCanvas, subBox);
+        const ctx = canvas.getContext('2d')!;
+        const imgData = ctx.getImageData(0, 0, width, height).data;
+        const area = width * height;
+        const arr = new Float32Array(3 * area);
 
-      const imgTensor = new ort.Tensor('float32', arr, [1, 3, height, width]);
-      let memoryTensor: ort.Tensor | null = null;
-      let crossK: ort.Tensor | null = null;
-      let crossV: ort.Tensor | null = null;
-      let pastK: ort.Tensor | null = null;
-      let pastV: ort.Tensor | null = null;
-
-      try {
-        const encOut = await encSession.run({ image: imgTensor });
-        memoryTensor = encOut.memory;
-        imgTensor.dispose();
-
-        const initOut = await decInitSession.run({ memory: memoryTensor });
-        crossK = initOut.cross_k;
-        crossV = initOut.cross_v;
-        memoryTensor.dispose();
-        memoryTensor = null;
-
-        pastK = new ort.Tensor('float32', new Float32Array(0), [6, 8, 0, 32]);
-        pastV = new ort.Tensor('float32', new Float32Array(0), [6, 8, 0, 32]);
-
-        let currentToken = SOS_ID;
-        let lineText = '';
-
-        for (let step = 0; step < 128; step++) {
-          const tokTensor = new ort.Tensor('int64', BigInt64Array.from([currentToken]), [1]);
-          const posTensor = new ort.Tensor('int64', BigInt64Array.from([BigInt(step)]), [1]);
-          let stepOut: Record<string, ort.Tensor> | null = null;
-
-          try {
-            stepOut = await decStepSession.run({
-              token: tokTensor,
-              pos: posTensor,
-              past_k: pastK,
-              past_v: pastV,
-              cross_k: crossK,
-              cross_v: crossV,
-            });
-          } finally {
-            tokTensor.dispose();
-            posTensor.dispose();
-            pastK.dispose();
-            pastV.dispose();
-          }
-
-          pastK = stepOut.new_k;
-          pastV = stepOut.new_v;
-
-          const logits = stepOut.logits.data as Float32Array;
-          let bestId = 0;
-          let bestScore = logits[0];
-          for (let c = 1; c < logits.length; c++) {
-            if (logits[c] > bestScore) {
-              bestScore = logits[c];
-              bestId = c;
-            }
-          }
-          stepOut.logits.dispose();
-
-          if (bestId === EOS_ID || bestId === PAD_ID) break;
-          if (bestId >= 4 && vocab[bestId] !== undefined) {
-            lineText += vocab[bestId];
-          }
-          currentToken = BigInt(bestId);
+        // VietOCR expects RGB float32 normalized strictly to [0, 1].
+        for (let p = 0; p < area; p++) {
+          arr[p] = imgData[p * 4] / 255;
+          arr[area + p] = imgData[p * 4 + 1] / 255;
+          arr[2 * area + p] = imgData[p * 4 + 2] / 255;
         }
 
-        results.push({ text: lineText.trim(), box });
-      } finally {
+        const imgTensor = new ort.Tensor('float32', arr, [1, 3, height, width]);
+        let memoryTensor: ort.Tensor | null = null;
+        let crossK: ort.Tensor | null = null;
+        let crossV: ort.Tensor | null = null;
+        let pastK: ort.Tensor | null = null;
+        let pastV: ort.Tensor | null = null;
+
         try {
+          const encOut = await encSession.run({ image: imgTensor });
+          memoryTensor = encOut.memory;
           imgTensor.dispose();
-        } catch {}
-        memoryTensor?.dispose();
-        crossK?.dispose();
-        crossV?.dispose();
-        pastK?.dispose();
-        pastV?.dispose();
+
+          const initOut = await decInitSession.run({ memory: memoryTensor });
+          crossK = initOut.cross_k;
+          crossV = initOut.cross_v;
+          memoryTensor.dispose();
+          memoryTensor = null;
+
+          pastK = new ort.Tensor('float32', new Float32Array(0), [6, 8, 0, 32]);
+          pastV = new ort.Tensor('float32', new Float32Array(0), [6, 8, 0, 32]);
+
+          let currentToken = SOS_ID;
+          let lineText = '';
+
+          for (let step = 0; step < 128; step++) {
+            const tokTensor = new ort.Tensor('int64', BigInt64Array.from([currentToken]), [1]);
+            const posTensor = new ort.Tensor('int64', BigInt64Array.from([BigInt(step)]), [1]);
+            let stepOut: Record<string, ort.Tensor> | null = null;
+
+            try {
+              stepOut = await decStepSession.run({
+                token: tokTensor,
+                pos: posTensor,
+                past_k: pastK,
+                past_v: pastV,
+                cross_k: crossK,
+                cross_v: crossV,
+              });
+            } finally {
+              tokTensor.dispose();
+              posTensor.dispose();
+              pastK.dispose();
+              pastV.dispose();
+            }
+
+            pastK = stepOut.new_k;
+            pastV = stepOut.new_v;
+
+            const logits = stepOut.logits.data as Float32Array;
+            let bestId = 0;
+            let bestScore = logits[0];
+            for (let c = 1; c < logits.length; c++) {
+              if (logits[c] > bestScore) {
+                bestScore = logits[c];
+                bestId = c;
+              }
+            }
+            stepOut.logits.dispose();
+
+            if (bestId === EOS_ID || bestId === PAD_ID) break;
+            if (bestId >= 4 && vocab[bestId] !== undefined) {
+              lineText += vocab[bestId];
+              // Guard against transformer decoder repetition loops on noisy strokes.
+              const repeatMatch = lineText.match(/(.{1,4})\1{3,}$/);
+              if (repeatMatch) {
+                lineText = lineText.slice(0, lineText.length - repeatMatch[0].length + repeatMatch[1].length);
+                break;
+              }
+            }
+            currentToken = BigInt(bestId);
+          }
+
+          if (lineText.trim()) {
+            subTexts.push(lineText.trim());
+          }
+        } finally {
+          try {
+            imgTensor.dispose();
+          } catch {}
+          memoryTensor?.dispose();
+          crossK?.dispose();
+          crossV?.dispose();
+          pastK?.dispose();
+          pastV?.dispose();
+        }
       }
+
+      results.push({ text: subTexts.join(' ').trim(), box });
     }
   } finally {
     await Promise.all([
@@ -718,16 +900,21 @@ self.onmessage = async (event: MessageEvent<OcrWorkerRequest>) => {
 
       if (isCancelled(msg.id)) throw new Error('ABORTED');
 
-      const boxes = await detectLinesWithDbNet(pageCanvas, pageW, pageH, msg.id);
+      const isHandwriting = msg.mode === 'handwritten-vi' || msg.mode === 'handwritten-en';
+      const workCanvas = isHandwriting
+        ? preprocessHandwritingPage(pageCanvas, pageW, pageH)
+        : pageCanvas;
+
+      const boxes = await detectLinesWithDbNet(workCanvas, pageW, pageH, msg.id, isHandwriting);
       if (isCancelled(msg.id)) throw new Error('ABORTED');
 
       let recognized: OcrLineBox[];
       if (msg.mode === 'handwritten-vi') {
-        recognized = await recognizeVietnameseHandwriting(pageCanvas, boxes, msg.id);
+        recognized = await recognizeVietnameseHandwriting(workCanvas, boxes, msg.id);
       } else if (msg.mode === 'handwritten-en') {
-        recognized = await recognizeEnglishHandwriting(pageCanvas, boxes, msg.id);
+        recognized = await recognizeEnglishHandwriting(workCanvas, boxes, msg.id);
       } else {
-        recognized = await recognizePrintedLines(pageCanvas, boxes, msg.id);
+        recognized = await recognizePrintedLines(workCanvas, boxes, msg.id);
       }
 
       postWeightedProgress(msg.id, {

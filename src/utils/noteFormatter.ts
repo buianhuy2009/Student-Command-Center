@@ -124,20 +124,25 @@ export function formatOcrLinesToMarkdown(rawLines: OcrLineBox[]): string {
 
   if (nonEmpty.length === 0) return '';
 
-  const ordered = sortLinesInReadingOrder(nonEmpty);
+    const ordered = sortLinesInReadingOrder(nonEmpty);
   const medH = median(ordered.map((l) => Math.max(8, l.box.height))) || 20;
-  const maxLineWidth = Math.max(...ordered.map((l) => l.box.width), 1);
-  const avgCharsPerLine =
-    ordered.reduce((acc, l) => acc + l.text.length, 0) / Math.max(1, ordered.length);
-  const looksLikeShortListPage = ordered.length >= 3 && avgCharsPerLine <= 34;
+
+  const isStandaloneShortLabel = (txt: string): boolean => {
+    if (txt.length > 26 || txt.length === 0) return false;
+    if (/[,;]$/.test(txt)) return false;
+    // Standalone tokens/dates/labels like "2017", "2023", "ChatGPT", "Transformer architecture"
+    return !/^[a-zà-ỹ]/.test(txt);
+  };
 
   const blocks: string[] = [];
   let currentPara = '';
+  let paraMaxW = 0;
 
   const flushPara = () => {
     if (currentPara.trim()) {
       blocks.push(currentPara.trim());
       currentPara = '';
+      paraMaxW = 0;
     }
   };
 
@@ -164,26 +169,39 @@ export function formatOcrLinesToMarkdown(rawLines: OcrLineBox[]): string {
       continue;
     }
 
-    const isNewParagraph = !prev || prevGap > medH * 0.95 || prevGap < -medH * 2;
+    const columnJump =
+      prev !== null &&
+      Math.abs(curr.box.x - prev.box.x) > Math.max(medH * 3.2, Math.max(prev.box.width, curr.box.width) * 0.45) &&
+      Math.abs(curr.box.y - prev.box.y) > medH * 0.4;
+
+    const isNewParagraph = !prev || prevGap > medH * 0.95 || prevGap < -medH * 2 || columnJump;
+
+    const prevEndsSentence = prev !== null && /[.!?]["'”)]?$/.test(prev.text.trim());
+    const localMax = Math.max(paraMaxW, prev?.box.width || 0, curr.box.width);
     const keepSeparateLine =
       !isNewParagraph &&
       prev !== null &&
       (KEY_VALUE_RE.test(lineText) ||
         KEY_VALUE_RE.test(prev.text) ||
-        looksLikeShortListPage ||
-        (prev.box.width < maxLineWidth * 0.65 && maxLineWidth > 120 && !prev.text.endsWith('-')));
+        (isStandaloneShortLabel(prev.text) && isStandaloneShortLabel(lineText)) ||
+        (prevEndsSentence && prev.box.width < localMax * 0.78));
 
     if (isNewParagraph) {
       flushPara();
       currentPara = lineText;
+      paraMaxW = curr.box.width;
     } else if (keepSeparateLine) {
       currentPara = currentPara ? `${currentPara}  \n${lineText}` : lineText;
+      paraMaxW = Math.max(paraMaxW, curr.box.width);
     } else if (currentPara.endsWith('-') && /^[a-zà-ỹ]/i.test(lineText)) {
       currentPara = currentPara.slice(0, -1) + lineText;
+      paraMaxW = Math.max(paraMaxW, curr.box.width);
     } else if (!currentPara) {
       currentPara = lineText;
+      paraMaxW = curr.box.width;
     } else {
       currentPara = `${currentPara} ${lineText}`;
+      paraMaxW = Math.max(paraMaxW, curr.box.width);
     }
   }
 

@@ -1114,8 +1114,14 @@ export function normalizeAiCoachMode(raw?: string | null): AiCoachMode {
   }
 }
 
+export interface StudyAssistantMessageInput {
+  role: 'user' | 'assistant';
+  content: string;
+  images?: { base64: string; mimeType: string }[];
+}
+
 export async function sendStudyAssistantMessage(
-  messages: { role: 'user' | 'assistant'; content: string }[],
+  messages: StudyAssistantMessageInput[],
   context?: any,
   rawMode: LegacyAiCoachMode = 'balanced'
 ): Promise<string> {
@@ -1132,12 +1138,29 @@ export async function sendStudyAssistantMessage(
     return String(data.reply);
   } catch (err) {
     const historyText = messages.map((m) => `${m.role === 'user' ? 'Student' : 'Coach'}: ${m.content}`).join('\n');
-    const prompt = `Student context:\n${JSON.stringify(context || {}).slice(0, 6000)}\n\nConversation:\n${historyText}`;
+    const promptText = `Student context:\n${JSON.stringify(context || {}).slice(0, 6000)}\n\nConversation:\n${historyText}`;
+    const lastImages = messages.flatMap((m) => (m.role === 'user' && m.images?.length ? m.images : [])).slice(-4);
+    const hasImages = lastImages.length > 0;
+    const contents: any = hasImages
+      ? [
+          {
+            role: 'user',
+            parts: [
+              ...lastImages.map((img) => ({ inlineData: { data: img.base64, mimeType: img.mimeType } })),
+              { text: promptText },
+            ],
+          },
+        ]
+      : promptText;
+
     if (mode === 'quick' && getClientGeminiApiKey()) {
       try {
         const reply = await callGemini({
-          candidateModels: [...CLIENT_COACH_MODE_MODELS.quick],
-          contents: prompt,
+          candidateModels: hasImages
+            ? [...CLIENT_COACH_MODE_MODELS.quick, ...VISION_CHEAPEST_MODELS]
+            : [...CLIENT_COACH_MODE_MODELS.quick],
+          contents,
+          skipGroqFallback: hasImages,
           config: {
             systemInstruction: 'You are Student Command Coach. Be concise, accurate, and give step-by-step hints without doing homework directly.',
           },
@@ -1145,15 +1168,16 @@ export async function sendStudyAssistantMessage(
         if (reply.trim()) return reply.trim();
       } catch {}
     }
-    if (mode === 'quick' && getClientGroqApiKey()) {
-      const reply = await callGroqDirect(prompt, false);
+    if (mode === 'quick' && !hasImages && getClientGroqApiKey()) {
+      const reply = await callGroqDirect(promptText, false);
       if (reply.trim()) return reply.trim();
     }
-    if (getClientGeminiApiKey() || getClientGroqApiKey()) {
+    if (getClientGeminiApiKey() || (!hasImages && getClientGroqApiKey())) {
       const candidateModels = [...(CLIENT_COACH_MODE_MODELS[mode] || CLIENT_COACH_MODE_MODELS.balanced)];
       const reply = await callGemini({
         candidateModels,
-        contents: prompt,
+        contents,
+        skipGroqFallback: hasImages,
         config: {
           systemInstruction: 'You are Student Command Coach. Be concise, accurate, and give step-by-step hints without doing homework directly.',
         },
