@@ -20,7 +20,9 @@ export interface LectureRecord {
   totalChunks: number;
   completedChunks: number;
   summaryMarkdown?: string;
+  summarySource?: 'online' | 'offline';
   outlineJson?: string;
+  vocabularyJson?: string;
   keyTerms?: string[];
   flashcardsJson?: string;
   error?: string;

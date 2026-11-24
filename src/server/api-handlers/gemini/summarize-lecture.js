@@ -54,7 +54,7 @@ ${safeExcerpt ? `Timestamped transcript / notes:\n${safeExcerpt}\n` : ""}
 
 Respond with strict JSON only (no extra prose):
 {
-  "executiveSummary": "A crisp 2-4 paragraph Markdown overview of the lecture's core thesis, proofs/examples, and exam takeaways.",
+  "executiveSummary": "Well-structured, scannable Markdown study notes (NEVER a dense wall of text). Use these exact sections separated by blank lines:\n\n### Core Idea\n1–2 crisp sentences capturing the main thesis (max 40 words).\n\n### Key Takeaways\n- **Concept 1:** concise 1–2 line explanation\n- **Concept 2:** concise 1–2 line explanation\n- **Concept 3:** concise 1–2 line explanation\n(3–5 bullets total)\n\n### Key Formulas, Proofs & Examples\n- Highlight key definitions, formulas (using $...$ or $$...$$ when math/science applies), or worked examples in short bullets.\n\n### Exam & Review Focus\n- 2–3 high-yield things students should remember or watch out for.\n\nKeep every bullet concise and every paragraph at most 2 sentences so a student can scan it in 20 seconds.",
   "outline": [
     {
       "timestampSec": 0,

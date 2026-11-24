@@ -18,10 +18,11 @@ export interface LocalOcrResult {
 
 const IDLE_TERMINATE_MS = 60_000;
 
-let activeWorkerKind: 'ocr' | 'vad' | 'asr' | null = null;
+let activeWorkerKind: 'ocr' | 'vad' | 'asr' | 'summary' | null = null;
 let ocrWorker: Worker | null = null;
 let vadWorker: Worker | null = null;
 let asrWorker: Worker | null = null;
+let summaryWorker: Worker | null = null;
 let ocrIdleTimer: number | null = null;
 
 function clearOcrIdleTimer() {
@@ -82,10 +83,24 @@ export function terminateAsrWorker(): void {
   }
 }
 
+export function terminateSummaryWorker(): void {
+  if (summaryWorker) {
+    try {
+      summaryWorker.terminate();
+    } catch {
+      // Ignore termination error.
+    }
+    summaryWorker = null;
+  }
+  if (activeWorkerKind === 'summary') {
+    activeWorkerKind = null;
+  }
+}
+
 /**
  * Ensures at most ONE heavy ML worker is alive at a time so 8 GB laptops stay safe.
  */
-export function claimWorkerSlot(kind: 'ocr' | 'vad' | 'asr'): void {
+export function claimWorkerSlot(kind: 'ocr' | 'vad' | 'asr' | 'summary'): void {
   if (activeWorkerKind && activeWorkerKind !== kind) {
     if (activeWorkerKind === 'ocr') {
       terminateOcrWorker();
@@ -93,12 +108,14 @@ export function claimWorkerSlot(kind: 'ocr' | 'vad' | 'asr'): void {
       terminateVadWorker();
     } else if (activeWorkerKind === 'asr') {
       terminateAsrWorker();
+    } else if (activeWorkerKind === 'summary') {
+      terminateSummaryWorker();
     }
   }
   activeWorkerKind = kind;
 }
 
-export function releaseWorkerSlot(kind: 'ocr' | 'vad' | 'asr'): void {
+export function releaseWorkerSlot(kind: 'ocr' | 'vad' | 'asr' | 'summary'): void {
   if (activeWorkerKind === kind) {
     activeWorkerKind = null;
   }
@@ -138,12 +155,7 @@ export async function runLocalOcrScan(params: {
       if (signal) {
         signal.removeEventListener('abort', onAbort);
       }
-      // TrOCR (@huggingface/transformers) allocates a separate WASM heap: terminate immediately so RAM returns to 0 MB.
-      if (mode === 'handwritten-en') {
-        terminateOcrWorker();
-      } else {
-        scheduleOcrIdleTerminate();
-      }
+      scheduleOcrIdleTerminate();
     };
 
     const onAbort = () => {
@@ -468,10 +480,113 @@ export async function runLocalAsrClips(params: {
   });
 }
 
+export interface LocalSummaryProgress {
+  stage: 'downloading' | 'summarizing';
+  percent: number;
+  file?: string;
+  loaded?: number;
+  total?: number;
+}
+
+export interface LocalSummaryResult {
+  executiveSummary: string;
+  outline: { timestampSec: number; heading: string; bullets: string[] }[];
+  vocabulary: { term: string; definition: string }[];
+  flashcards: { front: string; back: string }[];
+  modelUsed?: string;
+}
+
+export async function runLocalLectureSummary(params: {
+  title: string;
+  language: 'auto' | 'vi' | 'en';
+  segments: { startSec: number; endSec: number; text: string }[];
+  onProgress?: (p: LocalSummaryProgress) => void;
+  signal?: AbortSignal;
+}): Promise<LocalSummaryResult> {
+  const { title, language, segments, onProgress, signal } = params;
+  if (signal?.aborted) throw new Error('ABORTED');
+
+  claimWorkerSlot('summary');
+  if (summaryWorker) terminateSummaryWorker();
+  summaryWorker = new Worker(new URL('../workers/summary.worker.ts', import.meta.url), {
+    type: 'module',
+  });
+
+  const worker = summaryWorker;
+  const requestId = `sum-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+
+  return new Promise<LocalSummaryResult>((resolve, reject) => {
+    let settled = false;
+
+    const cleanup = () => {
+      worker.removeEventListener('message', onMessage);
+      worker.removeEventListener('error', onError);
+      if (signal) signal.removeEventListener('abort', onAbort);
+      // Immediately terminate summary worker so Gemma 3 270M memory returns to 0 MB.
+      terminateSummaryWorker();
+    };
+
+    const onAbort = () => {
+      if (settled) return;
+      settled = true;
+      try {
+        worker.postMessage({ type: 'abort', id: requestId });
+      } catch {}
+      cleanup();
+      reject(new Error('ABORTED'));
+    };
+
+    const onError = (ev: ErrorEvent) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(new Error(ev.message || 'Offline Gemma 3 270M summary worker failed.'));
+    };
+
+    const onMessage = (event: MessageEvent<any>) => {
+      const msg = event.data;
+      if (!msg || msg.id !== requestId) return;
+
+      if (msg.type === 'progress') {
+        onProgress?.({
+          stage: msg.stage === 'downloading' ? 'downloading' : 'summarizing',
+          percent: typeof msg.percent === 'number' ? msg.percent : 0,
+          file: msg.file,
+          loaded: msg.loaded,
+          total: msg.total,
+        });
+      } else if (msg.type === 'done') {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        resolve(msg.summary);
+      } else if (msg.type === 'error') {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        reject(new Error(String(msg.error || 'Offline summary failed.')));
+      }
+    };
+
+    worker.addEventListener('message', onMessage);
+    worker.addEventListener('error', onError);
+    if (signal) signal.addEventListener('abort', onAbort, { once: true });
+
+    worker.postMessage({
+      type: 'summarize',
+      id: requestId,
+      title,
+      language,
+      segments,
+    });
+  });
+}
+
 export async function clearOfflineModels(): Promise<void> {
   terminateOcrWorker();
   terminateVadWorker();
   terminateAsrWorker();
+  terminateSummaryWorker();
   if (typeof caches === 'undefined') return;
   for (const name of [LOCAL_MODEL_CACHE_NAME, 'transformers-cache']) {
     try {

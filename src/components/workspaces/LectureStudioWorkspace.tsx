@@ -28,7 +28,7 @@ import {
   type LectureSummaryPayload,
 } from '../../services/lectureAudio';
 import '../../services/lectureOfflineAsr';
-import type { LectureTranscriptionMode } from '../../services/localAiConfig';
+import type { LectureSummaryMode, LectureTranscriptionMode } from '../../services/localAiConfig';
 import { clearOfflineModels, getOfflineModelCacheStats } from '../../services/localMediaManager';
 import { loadSRSDecks, saveSRSDecks, type SRSCard, type SRSDeck } from '../../services/srsEngine';
 import { useCoachChatStore } from '../../store/coachChatStore';
@@ -38,6 +38,7 @@ import {
   type LectureLanguage,
 } from '../../store/lectureStore';
 import { estimateLectureDuration, formatMmSs } from '../../utils/audioChunking';
+import { formatLectureSummaryMarkdown } from '../../utils/lectureSummaryFormat';
 import { useT } from '../../services/i18n';
 import type { Assignment, CalendarEvent, EmailAlert, MarkdownNote } from '../../types';
 
@@ -64,6 +65,7 @@ export const LectureStudioWorkspace: React.FC<LectureStudioWorkspaceProps> = ({
     activeLectureId,
     segmentsByLecture,
     mode,
+    summaryMode,
     language,
     isProcessing,
     progress,
@@ -71,6 +73,7 @@ export const LectureStudioWorkspace: React.FC<LectureStudioWorkspaceProps> = ({
     hydrateLectures,
     selectLecture,
     setMode,
+    setSummaryMode,
     setLanguage,
     getAudioUrl,
     getMediaKind,
@@ -100,12 +103,12 @@ export const LectureStudioWorkspace: React.FC<LectureStudioWorkspaceProps> = ({
   }, [hydrateLectures]);
 
   useEffect(() => {
-    if (mode !== 'online') {
+    if (mode !== 'online' || summaryMode === 'offline') {
       getOfflineModelCacheStats()
         .then(setCacheStats)
         .catch(() => {});
     }
-  }, [mode, isProcessing]);
+  }, [mode, summaryMode, isProcessing]);
 
   const activeLecture = useMemo(
     () => lectures.find((l) => l.id === activeLectureId) || null,
@@ -136,6 +139,23 @@ export const LectureStudioWorkspace: React.FC<LectureStudioWorkspaceProps> = ({
       return [];
     }
   }, [activeLecture?.flashcardsJson]);
+
+  const parsedVocabulary = useMemo<LectureSummaryPayload['vocabulary']>(() => {
+    if (!activeLecture?.vocabularyJson) return [];
+    try {
+      const arr = JSON.parse(activeLecture.vocabularyJson);
+      return Array.isArray(arr)
+        ? arr.filter((v: any) => v && typeof v.term === 'string' && typeof v.definition === 'string' && v.definition.trim())
+        : [];
+    } catch {
+      return [];
+    }
+  }, [activeLecture?.vocabularyJson]);
+
+  const formattedSummaryMarkdown = useMemo(
+    () => (activeLecture?.summaryMarkdown ? formatLectureSummaryMarkdown(activeLecture.summaryMarkdown) : ''),
+    [activeLecture?.summaryMarkdown]
+  );
 
   const sessionAudioUrl = activeLecture ? getAudioUrl(activeLecture.id) : null;
   const sessionMediaKind = activeLecture ? getMediaKind(activeLecture.id) : 'audio';
@@ -396,6 +416,52 @@ export const LectureStudioWorkspace: React.FC<LectureStudioWorkspaceProps> = ({
           })}
         </div>
 
+        {/* AI Summary Mode Strip: Online Gemini vs Offline Gemma 3 270M */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-2 border-t border-[var(--border-hairline)]">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
+              {t('lecture_summary_engine_label')}
+            </span>
+            <div
+              role="group"
+              aria-label={t('lecture_summary_engine_label')}
+              className="inline-flex items-center gap-1 p-1 bg-[var(--bg-subtle)] rounded-xl border border-[var(--border-default)]"
+            >
+              {(
+                [
+                  { id: 'online', label: t('lecture_summary_mode_online'), Icon: Wifi },
+                  { id: 'offline', label: t('lecture_summary_mode_offline'), Icon: HardDrive },
+                ] as {
+                  id: LectureSummaryMode;
+                  label: string;
+                  Icon: React.ComponentType<{ className?: string }>;
+                }[]
+              ).map(({ id, label, Icon }) => (
+                <button
+                  key={id}
+                  type="button"
+                  disabled={isProcessing}
+                  onClick={() => setSummaryMode(id)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-60 ${
+                    summaryMode === id
+                      ? 'bg-[var(--accent-fill)] text-white shadow-2xs'
+                      : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                  }`}
+                >
+                  <Icon className="w-3 h-3" />
+                  <span>{label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {summaryMode === 'offline' && (
+            <p className="text-[11px] text-[var(--status-warn-text)] bg-[var(--status-warn-bg)]/80 border border-[var(--status-warn-border)]/70 rounded-xl px-2.5 py-1.5 leading-snug">
+              {t('lecture_summary_offline_note')}
+            </p>
+          )}
+        </div>
+
         {/* Upfront Duration & Background Execution Notice */}
         <div className="rounded-xl border border-[var(--status-info-border)] bg-[var(--status-info-bg)]/60 px-3.5 py-2.5 text-xs text-[var(--status-info-text)] flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-start gap-2 min-w-0 flex-1">
@@ -413,7 +479,7 @@ export const LectureStudioWorkspace: React.FC<LectureStudioWorkspaceProps> = ({
             </span>
           </div>
 
-          {mode !== 'online' && cacheStats && cacheStats.approxMb > 0 && (
+          {(mode !== 'online' || summaryMode === 'offline') && cacheStats && cacheStats.approxMb > 0 && (
             <button
               type="button"
               disabled={isProcessing}
@@ -647,14 +713,24 @@ export const LectureStudioWorkspace: React.FC<LectureStudioWorkspaceProps> = ({
                   )}
 
                   {activeSegments.length > 0 && !activeLecture.summaryMarkdown && !isProcessing && (
-                    <button
-                      type="button"
-                      onClick={() => summarizeLecture(activeLecture.id)}
-                      className="px-3 py-1.5 rounded-xl bg-[var(--accent-soft)] border border-[var(--accent-border)] text-[var(--accent-text)] text-xs font-bold flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <Sparkles className="w-3.5 h-3.5" />
-                      <span>{t('lecture_summarize_btn')}</span>
-                    </button>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => summarizeLecture(activeLecture.id, 'online')}
+                        className="px-3 py-1.5 rounded-xl bg-[var(--accent-soft)] border border-[var(--accent-border)] text-[var(--accent-text)] text-xs font-bold flex items-center gap-1.5 cursor-pointer hover:bg-[var(--accent-fill)] hover:text-white transition-colors"
+                      >
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span>{t('lecture_summarize_btn')}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => summarizeLecture(activeLecture.id, 'offline')}
+                        className="px-3 py-1.5 rounded-xl bg-[var(--bg-subtle)] border border-[var(--border-default)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--accent-border)] text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors"
+                      >
+                        <HardDrive className="w-3.5 h-3.5" />
+                        <span>{t('lecture_summarize_offline_btn')}</span>
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>
@@ -708,16 +784,121 @@ export const LectureStudioWorkspace: React.FC<LectureStudioWorkspaceProps> = ({
               </div>
 
               {activeSubTab === 'summary' ? (
-                <div className="flex-1 min-h-[300px] max-h-[500px] overflow-y-auto space-y-4 pr-1">
-                  {activeLecture.summaryMarkdown ? (
-                    <div className="p-4 rounded-2xl bg-[var(--bg-subtle)]/60 border border-[var(--border-hairline)] prose prose-sm dark:prose-invert max-w-none text-[var(--text-primary)]">
-                      <MathMarkdown>{activeLecture.summaryMarkdown}</MathMarkdown>
+                <div className="flex-1 min-h-[300px] max-h-[540px] overflow-y-auto space-y-4 pr-1">
+                  {formattedSummaryMarkdown ? (
+                    <div className="rounded-2xl bg-[var(--bg-subtle)]/55 border border-[var(--border-hairline)] overflow-hidden">
+                      <div className="px-4 py-2.5 bg-[var(--bg-surface)]/80 border-b border-[var(--border-hairline)] flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                              activeLecture.summarySource === 'offline'
+                                ? 'bg-[var(--status-warn-bg)] text-[var(--status-warn-text)] border-[var(--status-warn-border)]/70'
+                                : 'bg-[var(--accent-soft)] text-[var(--accent-text)] border-[var(--accent-border)]/60'
+                            }`}
+                          >
+                            {activeLecture.summarySource === 'offline' ? (
+                              <>
+                                <HardDrive className="w-3 h-3" />
+                                <span>{t('lecture_summary_badge_offline')}</span>
+                              </>
+                            ) : (
+                              <>
+                                <Sparkles className="w-3 h-3" />
+                                <span>{t('lecture_summary_badge_online')}</span>
+                              </>
+                            )}
+                          </span>
+                          {activeLecture.summarySource === 'offline' && (
+                            <span className="text-[11px] text-[var(--text-muted)]">
+                              {t('lecture_summary_offline_short_note')}
+                            </span>
+                          )}
+                        </div>
+
+                        {activeSegments.length > 0 && !isProcessing && (
+                          <div className="flex items-center gap-1.5">
+                            {activeLecture.summarySource === 'offline' ? (
+                              <button
+                                type="button"
+                                onClick={() => summarizeLecture(activeLecture.id, 'online')}
+                                className="px-2.5 py-1 rounded-lg bg-[var(--accent-soft)] text-[var(--accent-text)] hover:bg-[var(--accent-fill)] hover:text-white border border-[var(--accent-border)]/60 text-[11px] font-semibold inline-flex items-center gap-1 cursor-pointer transition-colors"
+                              >
+                                <Sparkles className="w-3 h-3" />
+                                <span>{t('lecture_summary_upgrade_online')}</span>
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => summarizeLecture(activeLecture.id, summaryMode)}
+                                className="px-2.5 py-1 rounded-lg bg-[var(--bg-subtle)] text-[var(--text-muted)] hover:text-[var(--text-primary)] border border-[var(--border-default)] text-[11px] font-semibold inline-flex items-center gap-1 cursor-pointer transition-colors"
+                              >
+                                <RotateCcw className="w-3 h-3" />
+                                <span>{t('lecture_summary_regenerate')}</span>
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="p-4 sm:p-5 prose prose-sm dark:prose-invert max-w-none text-[var(--text-primary)] prose-headings:text-[var(--text-primary)] prose-headings:font-bold prose-headings:tracking-tight prose-h2:text-sm prose-h3:text-[13px] prose-h3:uppercase prose-h3:tracking-wide prose-h3:text-[var(--accent-text)] prose-h3:mt-4 prose-h3:first:mt-0 prose-h3:mb-2 prose-p:my-2 prose-p:leading-relaxed prose-ul:my-2 prose-ul:space-y-1.5 prose-li:leading-relaxed prose-strong:text-[var(--text-primary)]">
+                        <MathMarkdown>{formattedSummaryMarkdown}</MathMarkdown>
+                      </div>
                     </div>
                   ) : (
-                    <div className="p-6 rounded-2xl border border-[var(--border-hairline)] bg-[var(--bg-subtle)]/40 text-center text-xs text-[var(--text-muted)]">
-                      {activeSegments.length > 0
-                        ? t('lecture_summary_pending_offline')
-                        : t('lecture_waiting_transcript')}
+                    <div className="p-6 rounded-2xl border border-[var(--border-hairline)] bg-[var(--bg-subtle)]/40 text-center space-y-3">
+                      <p className="text-xs text-[var(--text-muted)] max-w-lg mx-auto leading-relaxed">
+                        {activeSegments.length > 0
+                          ? t('lecture_summary_pending_offline')
+                          : t('lecture_waiting_transcript')}
+                      </p>
+                      {activeSegments.length > 0 && !isProcessing && (
+                        <>
+                          <div className="flex flex-wrap items-center justify-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => summarizeLecture(activeLecture.id, 'online')}
+                              className="px-3.5 py-2 rounded-xl bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer shadow-xs"
+                            >
+                              <Sparkles className="w-3.5 h-3.5" />
+                              <span>{t('lecture_summarize_btn')}</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => summarizeLecture(activeLecture.id, 'offline')}
+                              className="px-3.5 py-2 rounded-xl bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] border border-[var(--border-default)] text-[var(--text-primary)] text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer"
+                            >
+                              <HardDrive className="w-3.5 h-3.5 text-[var(--accent-text)]" />
+                              <span>{t('lecture_summarize_offline_btn')}</span>
+                            </button>
+                          </div>
+                          <p className="text-[11px] text-[var(--text-muted)] max-w-md mx-auto">
+                            {t('lecture_summary_offline_note')}
+                          </p>
+                        </>
+                      )}
+                    </div>
+                  )}
+
+                  {parsedVocabulary.length > 0 && (
+                    <div className="space-y-2">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">
+                        {t('lecture_vocab_heading')}
+                      </h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {parsedVocabulary.map((item, idx) => (
+                          <div
+                            key={idx}
+                            className="p-3 rounded-xl bg-[var(--bg-subtle)]/60 border border-[var(--border-hairline)]"
+                          >
+                            <div className="text-xs font-bold text-[var(--text-primary)]">
+                              {item.term}
+                            </div>
+                            <p className="text-[11px] text-[var(--text-secondary)] mt-0.5 leading-snug">
+                              {item.definition}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
 

@@ -3510,16 +3510,16 @@ export const en = {
 
   coach_tier_quick_name: 'Instant',
   coach_tier_quick_desc: 'Quick, crisp answers for everyday questions.',
-  coach_tier_quick_limit: 'Abundant capacity',
+  coach_tier_quick_limit: 'Lightning',
   coach_tier_balanced_name: 'Balanced',
   coach_tier_balanced_desc: 'Steady guidance for homework, study plans, and drafts.',
-  coach_tier_balanced_limit: 'Standard allowance',
+  coach_tier_balanced_limit: 'Daily Driver',
   coach_tier_reasoning_name: 'Scholar',
   coach_tier_reasoning_desc: 'Multi-step thinking for tough problems and proofs.',
-  coach_tier_reasoning_limit: 'Moderate allowance',
+  coach_tier_reasoning_limit: 'Deep Think',
   coach_tier_apex_name: 'Mastery',
   coach_tier_apex_desc: 'Maximum depth for complex synthesis and edge cases.',
-  coach_tier_apex_limit: 'Tightest allowance',
+  coach_tier_apex_limit: 'Peak Power',
   coach_selector_aria: 'Choose AI response tier',
   coach_selector_heading: 'Response Mode',
   coach_new_chat: 'New chat',
@@ -3660,9 +3660,20 @@ export const en = {
   lecture_silence_saved: '{pct}% silence removed',
   lecture_resume_btn: 'Resume',
   lecture_summarize_btn: 'Summarize with Gemini',
+  lecture_summarize_offline_btn: 'Offline Summary (Gemma 3 270M)',
+  lecture_summary_engine_label: 'Summary Engine',
+  lecture_summary_mode_online: 'Online (Gemini)',
+  lecture_summary_mode_offline: 'Offline (Gemma 3 270M · ~260 MB)',
+  lecture_summary_offline_note: 'Runs Gemma 3 270M locally on your device (0 API tokens, works offline). Note: this tiny 270M model is much less intelligent and detailed than Online Gemini — best for quick offline recaps.',
+  lecture_summary_offline_short_note: 'Tiny on-device model — less detailed than Online Gemini',
+  lecture_summary_badge_online: 'Online · Gemini',
+  lecture_summary_badge_offline: 'Offline · Gemma 3 270M',
+  lecture_summary_upgrade_online: 'Upgrade with Gemini',
+  lecture_summary_regenerate: 'Re-summarize',
+  lecture_vocab_heading: 'Key Concepts & Definitions',
   lecture_tab_summary: 'Summary & Outline',
   lecture_tab_transcript: 'Transcript',
-  lecture_summary_pending_offline: 'Offline transcript saved! Click "Summarize with Gemini" above whenever you are online to generate an executive summary, outline, and flashcards.',
+  lecture_summary_pending_offline: 'Transcript saved! Summarize online with Gemini for the smartest breakdown, or run Offline Summary (Gemma 3 270M) directly on your device.',
   lecture_waiting_transcript: 'Transcript segments will appear here as each chunk finishes...',
   lecture_outline_heading: 'Timestamped Study Outline',
   lecture_ask_coach: 'Ask Coach',
@@ -3678,6 +3689,8 @@ export const en = {
   lecture_prog_asr_download: 'Checking/downloading offline speech model...',
   lecture_prog_clip: 'Transcribing clip {current} of {total} (on-device)',
   lecture_prog_summarizing: 'Generating executive summary, outline & flashcards...',
+  lecture_prog_summary_offline_download: 'Loading Gemma 3 270M offline summary model...',
+  lecture_prog_summary_offline_gen: 'Writing offline summary with Gemma 3 270M...',
   lecture_prog_resuming: 'Resuming lecture transcription...',
   lecture_prog_done: 'Lecture notes ready',
   lecture_prog_done_offline: 'Offline transcript saved',
@@ -3686,16 +3699,16 @@ export const en = {
   lecture_err_resume_expired: 'Audio chunks from an earlier browser session are not in memory; you can summarize the saved transcript or re-upload.',
   lecture_err_offline_unavailable: 'Offline speech model engine is not available in this browser — please switch to Online mode.',
 
-  // Changelog v2.24.0
+  // Changelog v3.0.0 (formerly v2.24.0)
   changelog_r_2_24_0_t: 'Hybrid AI Note Scanner (3 Offline Modes), Lecture Studio & Background AI Tasks',
   changelog_r_2_24_0_h1: 'Note Scanner now includes 3 on-device offline OCR modes (Printed EN+VI, Vietnamese Handwriting, English Handwriting) alongside Online Gemini Vision',
   changelog_r_2_24_0_h2: 'New Lecture Studio turns 1-hour lecture recordings into timestamped transcripts, study outlines, notes, and flashcards — with silence trimming and both Online & Offline modes',
   changelog_r_2_24_0_h3: 'Unified 0%–100% progress bars and background execution let Lecture Studio, Note Scanner, Gmail Radar, and AI Coach keep running while you switch tabs',
-  changelog_r_2_24_0_d1: 'Switch Note Scanner between Online (Gemini) and Offline (On-Device) with dedicated models for printed pages (~13 MB), Vietnamese handwriting (~41 MB), and English handwriting (~64 MB), plus automatic RAM cleanup.',
+  changelog_r_2_24_0_d1: 'Switch Note Scanner between Online (Gemini) and Offline (On-Device) with dedicated models for printed pages, Vietnamese handwriting, and English handwriting, plus automatic RAM cleanup.',
   changelog_r_2_24_0_d2: 'Upload MP3, M4A, WAV, or OGG lectures in Lecture Studio: on-device silence detection trims classroom pauses first, then transcribes in ~1.5–3 min online or runs 100% offline with PhoWhisper Tiny/Base and saves every segment to IndexedDB.',
   changelog_r_2_24_0_d3: 'Watch live % progress in the top Navbar AI Tasks pill, jump back to any running tool, receive completion toasts, or click Stop anytime without losing work when switching to Gmail, Canvas, or Notes.',
 
-  // Changelog v2.24.1
+  // Changelog v3.0.1 (formerly v2.24.1)
   changelog_r_2_24_1_t: 'Direct Video Upload & Automatic Audio Extraction in Lecture Studio',
   changelog_r_2_24_1_h1: 'Upload MP4, MOV, M4V, MKV, or WebM lecture videos directly into Lecture Studio — audio is extracted automatically on-device',
   changelog_r_2_24_1_h2: 'Built-in video playback lets you click any [mm:ss] transcript or outline timestamp to jump straight to that moment in the lecture video',
@@ -3703,6 +3716,15 @@ export const en = {
   changelog_r_2_24_1_d1: 'Lecture Studio now accepts both audio and video files directly in the upload dropzone and automatically extracts the 16 kHz mono speech track before silence trimming and transcription.',
   changelog_r_2_24_1_d2: 'When you upload a video lecture, Lecture Studio shows an inline video player synced to clickable [mm:ss] timestamps across your transcript and study outline.',
   changelog_r_2_24_1_d3: 'If a video container cannot be demuxed directly by Web Audio, Lecture Studio falls back to capturing the video audio track in-browser so you never have to convert MP4s manually.',
+
+  // Changelog v3.1.0
+  changelog_r_3_1_0_t: 'Offline Lecture Summaries (Gemma 3 270M), Scannable Notes, Upgraded Offline OCR & Composer Model Picker',
+  changelog_r_3_1_0_h1: 'Lecture Studio summaries now format into crisp sections, bold takeaways, and concept cards — plus a new Offline Summary mode powered by Gemma 3 270M',
+  changelog_r_3_1_0_h2: 'Fixed Vietnamese and English offline handwriting OCR accuracy (replacing hallucinating TrOCR with fast PP-OCRv5 English and fixing VietOCR pixel normalization)',
+  changelog_r_3_1_0_h3: 'Moved the AI Coach model chooser down into the typing composer bar with punchier tier badges (Lightning, Daily Driver, Deep Think, Peak Power)',
+  changelog_r_3_1_0_d1: 'Lecture Studio now produces scannable Markdown summaries with Core Idea, Key Takeaways, Concepts & Definitions, and Exam Focus instead of dense blocks of text, and lets you switch to Offline Summary (Gemma 3 270M on-device, noted as lighter and less intelligent than Online Gemini) with 1-click Online upgrade.',
+  changelog_r_3_1_0_d2: 'Note Scanner offline OCR fixed VietOCR [0, 1] normalization, upgraded EN Handwriting to PP-OCRv5 English (~11 MB, zero hallucinations), fixed aspect-ratio cropping, and preserved line breaks for short/key-value notes.',
+  changelog_r_3_1_0_d3: 'In AI Study Coach (both full-screen and drawer), the 4-tier Response Mode selector now opens upward right from the composer toolbar with refreshed Lightning, Daily Driver, Deep Think, and Peak Power badges; v2.24.0 has also been re-versioned to v3.0.0.',
 
 } as const;
 

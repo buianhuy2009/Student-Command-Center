@@ -9,11 +9,13 @@ export const LOCAL_STORAGE_KEYS = {
   OCR_MODE: 'scc_ocr_mode',
   OCR_ENGINE: 'scc_ocr_engine',
   LECTURE_MODE: 'scc_lecture_mode',
+  LECTURE_SUMMARY_MODE: 'scc_lecture_summary_mode',
 } as const;
 
 export type OcrMode = 'printed' | 'handwritten-vi' | 'handwritten-en';
 export type OcrEngineMode = 'online' | 'offline';
 export type LectureTranscriptionMode = 'online' | 'offline-tiny' | 'offline-base';
+export type LectureSummaryMode = 'online' | 'offline';
 
 export const LOCAL_MODEL_CACHE_NAME = 'studentos-local-models-v1';
 
@@ -51,8 +53,12 @@ export const LOCAL_MODEL_CATALOG = {
     ],
   },
   ocrHandwrittenEn: {
-    id: 'Xenova/trocr-small-handwritten',
-    approxMbWasm: 61,
+    id: 'paddleocr-en-v5',
+    approxMbWasm: 8,
+    urls: [
+      'https://huggingface.co/monkt/paddleocr-onnx/resolve/main/languages/english/rec.onnx',
+      'https://huggingface.co/monkt/paddleocr-onnx/resolve/main/languages/english/dict.txt',
+    ],
   },
   sileroVad: {
     id: 'silero-vad-v5',
@@ -71,6 +77,10 @@ export const LOCAL_MODEL_CATALOG = {
     id: 'onnx-community/PhoWhisper-base-ONNX',
     fallbackId: 'bichnhan2701/PhoWhisper-base-ONNX',
     approxMbWasm: 160,
+  },
+  gemmaSummary: {
+    id: 'onnx-community/gemma-3-270m-it-ONNX',
+    approxMbWasm: 260,
   },
 } as const satisfies Record<string, LocalModelCatalogEntry>;
 
@@ -137,6 +147,29 @@ export function setLectureMode(mode: LectureTranscriptionMode): void {
       const normalized: LectureTranscriptionMode =
         mode === 'offline-tiny' || mode === 'offline-base' ? mode : 'online';
       localStorage.setItem(LOCAL_STORAGE_KEYS.LECTURE_MODE, normalized);
+    }
+  } catch {
+    // Ignore storage failures.
+  }
+}
+
+export function getLectureSummaryMode(): LectureSummaryMode {
+  try {
+    if (typeof localStorage === 'undefined') return 'online';
+    const raw = localStorage.getItem(LOCAL_STORAGE_KEYS.LECTURE_SUMMARY_MODE);
+    return raw === 'offline' ? 'offline' : 'online';
+  } catch {
+    return 'online';
+  }
+}
+
+export function setLectureSummaryMode(mode: LectureSummaryMode): void {
+  try {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(
+        LOCAL_STORAGE_KEYS.LECTURE_SUMMARY_MODE,
+        mode === 'offline' ? 'offline' : 'online'
+      );
     }
   } catch {
     // Ignore storage failures.

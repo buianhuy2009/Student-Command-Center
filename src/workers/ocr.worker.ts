@@ -1,6 +1,5 @@
 /// <reference lib="webworker" />
 import * as ort from 'onnxruntime-web';
-import { RawImage, env, pipeline, type ProgressInfo } from '@huggingface/transformers';
 import {
   LOCAL_MODEL_CACHE_NAME,
   LOCAL_MODEL_CATALOG,
@@ -16,12 +15,6 @@ import {
 ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.31.1/dist/';
 if (typeof self !== 'undefined' && !self.crossOriginIsolated) {
   ort.env.wasm.numThreads = 1;
-}
-
-env.allowLocalModels = false;
-env.useBrowserCache = true;
-if (typeof self !== 'undefined' && !self.crossOriginIsolated && env.backends?.onnx?.wasm) {
-  env.backends.onnx.wasm.numThreads = 1;
 }
 
 export interface NormalizedCropRect {
@@ -281,9 +274,9 @@ function extractConnectedBoxes(
       const bh = (maxY - minY + 1) * scaleY;
       if (bw < 10 || bh < 6) continue;
 
-      // Expand DBNet box slightly so Vietnamese diacritics stay intact.
-      const padX = Math.max(6, bh * 0.2);
-      const padY = Math.max(4, bh * 0.25);
+      // Expand DBNet box slightly so Vietnamese diacritics and punctuation stay intact.
+      const padX = Math.max(6, bh * 0.25);
+      const padY = Math.max(4, bh * 0.3);
       const x0 = Math.max(0, Math.floor(minX * scaleX - padX));
       const y0 = Math.max(0, Math.floor(minY * scaleY - padY));
       const x1 = Math.min(pageW, Math.ceil((maxX + 1) * scaleX + padX));
@@ -307,7 +300,7 @@ function mergeHorizontalLineFragments(boxes: OcrBox[]): OcrBox[] {
       const hRef = Math.min(m.height, box.height);
       const sameRow = Math.abs(cy - mCy) <= hRef * 0.55;
       const gap = box.x - (m.x + m.width);
-      const overlapOrClose = gap <= hRef * 1.1 && box.x + box.width >= m.x - hRef * 1.1;
+      const overlapOrClose = gap <= hRef * 1.45 && box.x + box.width >= m.x - hRef * 1.45;
       return sameRow && overlapOrClose;
     });
     if (match) {
@@ -408,7 +401,10 @@ function cropLineToCanvas(
   widthMultiple = 1
 ): { canvas: OffscreenCanvas; width: number; height: number } {
   const aspect = Math.max(0.2, box.width / Math.max(1, box.height));
-  let width = Math.min(maxWidth, Math.max(targetHeight, Math.round(targetHeight * aspect)));
+  // Preserve exact aspect ratio of the cropped line and right-pad with white
+  // instead of stretching short words horizontally.
+  const drawWidth = Math.min(maxWidth, Math.max(8, Math.round(targetHeight * aspect)));
+  let width = Math.min(maxWidth, Math.max(targetHeight, drawWidth));
   if (widthMultiple > 1) {
     width = Math.max(widthMultiple, Math.ceil(width / widthMultiple) * widthMultiple);
     width = Math.min(maxWidth, width);
@@ -425,7 +421,7 @@ function cropLineToCanvas(
     box.height,
     0,
     0,
-    width,
+    Math.min(width, drawWidth),
     targetHeight
   );
   return { canvas, width, height: targetHeight };
@@ -436,14 +432,16 @@ function weightedLinePercent(completed: number, total: number): number {
   return Math.round(25 + (completed / total) * 73);
 }
 
-async function recognizePrintedLines(
+async function recognizePaddleLines(
   pageCanvas: OffscreenCanvas,
   boxes: OcrBox[],
-  requestId: string
+  requestId: string,
+  urls: readonly [string, string],
+  fileLabel: string
 ): Promise<OcrLineBox[]> {
-  const [recUrl, dictUrl] = LOCAL_MODEL_CATALOG.ocrPrinted.urls;
+  const [recUrl, dictUrl] = urls;
   const [recBytes, dictText] = await Promise.all([
-    fetchWithCacheAndProgress(recUrl, requestId, 'printed-ocr', [6, 15]),
+    fetchWithCacheAndProgress(recUrl, requestId, fileLabel, [6, 15]),
     fetchTextWithCache(dictUrl),
   ]);
   if (isCancelled(requestId)) throw new Error('ABORTED');
@@ -526,6 +524,34 @@ async function recognizePrintedLines(
   return results;
 }
 
+async function recognizePrintedLines(
+  pageCanvas: OffscreenCanvas,
+  boxes: OcrBox[],
+  requestId: string
+): Promise<OcrLineBox[]> {
+  return recognizePaddleLines(
+    pageCanvas,
+    boxes,
+    requestId,
+    LOCAL_MODEL_CATALOG.ocrPrinted.urls,
+    'printed-ocr'
+  );
+}
+
+async function recognizeEnglishHandwriting(
+  pageCanvas: OffscreenCanvas,
+  boxes: OcrBox[],
+  requestId: string
+): Promise<OcrLineBox[]> {
+  return recognizePaddleLines(
+    pageCanvas,
+    boxes,
+    requestId,
+    LOCAL_MODEL_CATALOG.ocrHandwrittenEn.urls,
+    'en-ocr'
+  );
+}
+
 async function recognizeVietnameseHandwriting(
   pageCanvas: OffscreenCanvas,
   boxes: OcrBox[],
@@ -567,10 +593,11 @@ async function recognizeVietnameseHandwriting(
       const area = width * height;
       const arr = new Float32Array(3 * area);
 
+      // VietOCR expects RGB float32 normalized strictly to [0, 1] (NOT [-1, 1]).
       for (let p = 0; p < area; p++) {
-        arr[p] = (imgData[p * 4] / 255 - 0.5) / 0.5;
-        arr[area + p] = (imgData[p * 4 + 1] / 255 - 0.5) / 0.5;
-        arr[2 * area + p] = (imgData[p * 4 + 2] / 255 - 0.5) / 0.5;
+        arr[p] = imgData[p * 4] / 255;
+        arr[area + p] = imgData[p * 4 + 1] / 255;
+        arr[2 * area + p] = imgData[p * 4 + 2] / 255;
       }
 
       const imgTensor = new ort.Tensor('float32', arr, [1, 3, height, width]);
@@ -657,84 +684,6 @@ async function recognizeVietnameseHandwriting(
       decInitSession.release().catch(() => {}),
       decStepSession.release().catch(() => {}),
     ]);
-  }
-
-  return results;
-}
-
-async function recognizeEnglishHandwriting(
-  pageCanvas: OffscreenCanvas,
-  boxes: OcrBox[],
-  requestId: string
-): Promise<OcrLineBox[]> {
-  const fileBytes = new Map<string, { loaded: number; total: number }>();
-  const progress_callback = (info: ProgressInfo) => {
-    if (info.status === 'progress' && 'file' in info) {
-      fileBytes.set(info.file, { loaded: info.loaded || 0, total: info.total || 0 });
-      let totalLoaded = 0;
-      let totalExpected = 0;
-      for (const e of fileBytes.values()) {
-        totalLoaded += e.loaded;
-        totalExpected += e.total;
-      }
-      const frac = totalExpected > 0 ? totalLoaded / totalExpected : (info.progress || 0) / 100;
-      postWeightedProgress(requestId, {
-        stage: 'downloading',
-        file: info.file,
-        loaded: totalLoaded,
-        total: totalExpected,
-        percent: 6 + Math.min(1, Math.max(0, frac)) * 9,
-      });
-    }
-  };
-
-  const ocrPipe = await pipeline(
-    'image-to-text',
-    LOCAL_MODEL_CATALOG.ocrHandwrittenEn.id,
-    {
-      dtype: 'q8',
-      device: 'wasm',
-      progress_callback,
-    }
-  );
-
-  const results: OcrLineBox[] = [];
-  try {
-    for (let i = 0; i < boxes.length; i++) {
-      if (isCancelled(requestId)) throw new Error('ABORTED');
-      postWeightedProgress(requestId, {
-        stage: 'reading',
-        completed: i,
-        totalLines: boxes.length,
-        percent: weightedLinePercent(i, boxes.length),
-      });
-
-      const box = boxes[i];
-      const lineCanvas = new OffscreenCanvas(Math.max(16, box.width), Math.max(16, box.height));
-      const lCtx = lineCanvas.getContext('2d')!;
-      lCtx.fillStyle = '#ffffff';
-      lCtx.fillRect(0, 0, lineCanvas.width, lineCanvas.height);
-      lCtx.drawImage(
-        pageCanvas,
-        box.x,
-        box.y,
-        box.width,
-        box.height,
-        0,
-        0,
-        lineCanvas.width,
-        lineCanvas.height
-      );
-
-      const rawImg = RawImage.fromCanvas(lineCanvas);
-      const out = (await ocrPipe(rawImg)) as { generated_text?: string }[] | { generated_text?: string };
-      const generated = Array.isArray(out)
-        ? out[0]?.generated_text || ''
-        : out?.generated_text || '';
-      results.push({ text: String(generated).trim(), box });
-    }
-  } finally {
-    await (ocrPipe as { dispose?: () => Promise<void> }).dispose?.().catch(() => {});
   }
 
   return results;

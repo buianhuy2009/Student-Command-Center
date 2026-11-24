@@ -6,16 +6,22 @@
     <description>Plain-English updates to StudentOS — what changed and why it matters for studying.</description>
     <language>en-us</language>
     <item>
-      <title>v2.24.1 — Direct Video Upload &amp; Automatic Audio Extraction in Lecture Studio</title>
-      <link>https://sutdent-command-center.vercel.app/?changelog=2.24.1</link>
-      <pubDate>Tue, 24 Nov 2026 05:38:00 GMT</pubDate>
-      <description>StudentOS v2.24.1 lets students drop MP4, MOV, M4V, MKV, and WebM lecture videos directly into Lecture Studio, automatically extracting the audio track on-device with inline video playback synced to clickable timestamps.</description>
+      <title>v3.1.0 — Offline Lecture Summaries (Gemma 3 270M), Scannable Summary Formatting, Fixed Offline OCR &amp; Composer Model Picker</title>
+      <link>https://sutdent-command-center.vercel.app/?changelog=3.1.0</link>
+      <pubDate>Tue, 24 Nov 2026 07:45:00 GMT</pubDate>
+      <description>StudentOS v3.1.0 reformats Lecture Studio AI summaries into scannable sections and adds an on-device Gemma 3 270M offline summary mode, fixes Vietnamese and English offline handwriting OCR accuracy, moves the AI Coach tier selector into the composer bar with refreshed badges, and re-versions v2.24.0 to v3.0.0.</description>
     </item>
     <item>
-      <title>v2.24.0 — Hybrid AI Note Scanner (3 Offline Modes), Lecture Studio &amp; Background AI Tasks</title>
-      <link>https://sutdent-command-center.vercel.app/?changelog=2.24.0</link>
+      <title>v3.0.1 — Direct Video Upload &amp; Automatic Audio Extraction in Lecture Studio</title>
+      <link>https://sutdent-command-center.vercel.app/?changelog=3.0.1</link>
+      <pubDate>Tue, 24 Nov 2026 05:38:00 GMT</pubDate>
+      <description>StudentOS v3.0.1 lets students drop MP4, MOV, M4V, MKV, and WebM lecture videos directly into Lecture Studio, automatically extracting the audio track on-device with inline video playback synced to clickable timestamps.</description>
+    </item>
+    <item>
+      <title>v3.0.0 — Hybrid AI Note Scanner (3 Offline Modes), Lecture Studio &amp; Background AI Tasks</title>
+      <link>https://sutdent-command-center.vercel.app/?changelog=3.0.0</link>
       <pubDate>Tue, 24 Nov 2026 05:25:00 GMT</pubDate>
-      <description>StudentOS v2.24.0 adds 3 on-device offline OCR modes in Note Scanner, launches Lecture Studio with on-device silence trimming plus fast Gemini or offline PhoWhisper transcription, and adds unified 0-100% progress bars with background execution across tabs.</description>
+      <description>StudentOS v3.0.0 adds 3 on-device offline OCR modes in Note Scanner, launches Lecture Studio with on-device silence trimming plus fast Gemini or offline PhoWhisper transcription, and adds unified 0-100% progress bars with background execution across tabs.</description>
     </item>
     <item>
       <title>v2.23.2 — Incremental AI Email Scanning &amp; Full Spam-Inclusive Triage</title>

@@ -88,19 +88,20 @@ export function sortLinesInReadingOrder<T extends OcrLineBox>(lines: T[]): T[] {
 }
 
 const BULLET_RE = /^(?:[-*•●◦▪]|\d+[.)]|[a-zA-Z][.)])\s+/;
+const KEY_VALUE_RE = /^[A-Za-zÀ-ỹ0-9][\wÀ-ỹ\s./-]{0,26}:\s*\S/;
 
 function cleanLineSpacing(text: string): string {
   return text
     .replace(/\s+/g, ' ')
-    .replace(/\s+([,.;:!?%])/g, '$1')
+    .replace(/([\wÀ-ỹ)\]])\s+([,.;:!?%])/g, '$1$2')
     .replace(/([(\[“])\s+/g, '$1')
     .replace(/\s+([)\]”])/g, '$1')
     .trim();
 }
 
 function isLikelyHeading(text: string, prevGap: number, nextGap: number, medH: number): boolean {
-  if (!text || text.length > 64 || BULLET_RE.test(text)) return false;
-  if (/[.?!,]$/.test(text)) return false;
+  if (!text || text.length > 64 || BULLET_RE.test(text) || KEY_VALUE_RE.test(text)) return false;
+  if (/[.?!,:]$/.test(text)) return false;
   const words = text.split(/\s+/);
   if (words.length > 9) return false;
   const letters = text.replace(/[^a-zA-ZÀ-ỹ]/g, '');
@@ -111,9 +112,9 @@ function isLikelyHeading(text: string, prevGap: number, nextGap: number, medH: n
 
 /**
  * Formats ordered OCR line boxes into clean, readable Markdown notes:
- * - Preserves bullets & numbered lists
+ * - Preserves bullets, numbered lists, and short/key-value lines (e.g. `Name: Ariel`)
  * - Repairs hyphenated line breaks (`exam-\nple` -> `example`)
- * - Merges soft-wrapped paragraph lines
+ * - Merges soft-wrapped full-width paragraph lines
  * - Turns isolated/all-caps title lines into `## Headings`
  */
 export function formatOcrLinesToMarkdown(rawLines: OcrLineBox[]): string {
@@ -125,6 +126,10 @@ export function formatOcrLinesToMarkdown(rawLines: OcrLineBox[]): string {
 
   const ordered = sortLinesInReadingOrder(nonEmpty);
   const medH = median(ordered.map((l) => Math.max(8, l.box.height))) || 20;
+  const maxLineWidth = Math.max(...ordered.map((l) => l.box.width), 1);
+  const avgCharsPerLine =
+    ordered.reduce((acc, l) => acc + l.text.length, 0) / Math.max(1, ordered.length);
+  const looksLikeShortListPage = ordered.length >= 3 && avgCharsPerLine <= 34;
 
   const blocks: string[] = [];
   let currentPara = '';
@@ -160,9 +165,19 @@ export function formatOcrLinesToMarkdown(rawLines: OcrLineBox[]): string {
     }
 
     const isNewParagraph = !prev || prevGap > medH * 0.95 || prevGap < -medH * 2;
+    const keepSeparateLine =
+      !isNewParagraph &&
+      prev !== null &&
+      (KEY_VALUE_RE.test(lineText) ||
+        KEY_VALUE_RE.test(prev.text) ||
+        looksLikeShortListPage ||
+        (prev.box.width < maxLineWidth * 0.65 && maxLineWidth > 120 && !prev.text.endsWith('-')));
+
     if (isNewParagraph) {
       flushPara();
       currentPara = lineText;
+    } else if (keepSeparateLine) {
+      currentPara = currentPara ? `${currentPara}  \n${lineText}` : lineText;
     } else if (currentPara.endsWith('-') && /^[a-zà-ỹ]/i.test(lineText)) {
       currentPara = currentPara.slice(0, -1) + lineText;
     } else if (!currentPara) {

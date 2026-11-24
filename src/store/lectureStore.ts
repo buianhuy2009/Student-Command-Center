@@ -2,9 +2,13 @@ import { create } from 'zustand';
 import { db, type LectureRecord, type LectureSegment } from '../services/db';
 import {
   getLectureMode,
+  getLectureSummaryMode,
   setLectureMode,
+  setLectureSummaryMode,
+  type LectureSummaryMode,
   type LectureTranscriptionMode,
 } from '../services/localAiConfig';
+import { runLocalLectureSummary } from '../services/localMediaManager';
 import {
   isVideoFile,
   loadAllLecturesFromDb,
@@ -15,6 +19,7 @@ import {
   type LectureSummaryPayload,
 } from '../services/lectureAudio';
 import { formatMmSs, type OfflineAudioClip, type OnlineAudioChunk } from '../utils/audioChunking';
+import { formatLectureSummaryMarkdown } from '../utils/lectureSummaryFormat';
 import { t } from '../services/i18n';
 import { useAiJobsStore } from './aiJobsStore';
 
@@ -109,6 +114,7 @@ interface LectureStoreState {
   activeLectureId: string | null;
   segmentsByLecture: Record<string, LectureSegment[]>;
   mode: LectureTranscriptionMode;
+  summaryMode: LectureSummaryMode;
   language: LectureLanguage;
   isProcessing: boolean;
   progress: LectureProgressState | null;
@@ -117,6 +123,7 @@ interface LectureStoreState {
   hydrateLectures: () => Promise<void>;
   selectLecture: (id: string) => Promise<void>;
   setMode: (mode: LectureTranscriptionMode) => void;
+  setSummaryMode: (mode: LectureSummaryMode) => void;
   setLanguage: (lang: LectureLanguage) => void;
   getAudioUrl: (lectureId: string) => string | null;
   getMediaKind: (lectureId: string) => 'audio' | 'video';
@@ -128,7 +135,7 @@ interface LectureStoreState {
     subject?: string;
   }) => Promise<void>;
   resumeLecture: (lectureId: string) => Promise<void>;
-  summarizeLecture: (lectureId: string) => Promise<void>;
+  summarizeLecture: (lectureId: string, modeOverride?: LectureSummaryMode) => Promise<void>;
   deleteLecture: (lectureId: string) => Promise<void>;
 }
 
@@ -137,6 +144,7 @@ export const useLectureStore = create<LectureStoreState>((set, get) => ({
   activeLectureId: null,
   segmentsByLecture: {},
   mode: getLectureMode(),
+  summaryMode: getLectureSummaryMode(),
   language: 'auto',
   isProcessing: false,
   progress: null,
@@ -168,6 +176,11 @@ export const useLectureStore = create<LectureStoreState>((set, get) => ({
   setMode: (mode) => {
     setLectureMode(mode);
     set({ mode });
+  },
+
+  setSummaryMode: (summaryMode) => {
+    setLectureSummaryMode(summaryMode);
+    set({ summaryMode });
   },
 
   setLanguage: (language) => set({ language }),
@@ -391,10 +404,12 @@ export const useLectureStore = create<LectureStoreState>((set, get) => ({
     }
   },
 
-  summarizeLecture: async (lectureId) => {
+  summarizeLecture: async (lectureId, modeOverride) => {
     if (get().isProcessing) return;
     const lec = get().lectures.find((l) => l.id === lectureId);
     if (!lec) return;
+
+    const chosenSummaryMode: LectureSummaryMode = modeOverride ?? get().summaryMode;
 
     const segs =
       get().segmentsByLecture[lectureId] || (await loadLectureSegmentsFromDb(lectureId));
@@ -406,12 +421,18 @@ export const useLectureStore = create<LectureStoreState>((set, get) => ({
     const controller = new AbortController();
     activeLectureController = controller;
 
+    const initPercent = chosenSummaryMode === 'offline' ? 5 : 88;
+    const initLabel =
+      chosenSummaryMode === 'offline'
+        ? t('lecture_prog_summary_offline_download')
+        : t('lecture_prog_summarizing');
+
     set({
       isProcessing: true,
       error: null,
       progress: {
-        percent: 88,
-        label: t('lecture_prog_summarizing'),
+        percent: initPercent,
+        label: initLabel,
         detail: lec.title,
       },
     });
@@ -419,14 +440,14 @@ export const useLectureStore = create<LectureStoreState>((set, get) => ({
       id: LECTURE_JOB_ID,
       kind: 'lecture',
       title: lec.title,
-      label: t('lecture_prog_summarizing'),
-      percent: 88,
+      label: initLabel,
+      percent: initPercent,
       targetTab: 'lecture-studio',
       cancel: () => get().cancelActiveJob(),
     });
 
     try {
-      await runSummaryStep(lectureId, lec, segs, controller.signal, set);
+      await runSummaryStep(lectureId, lec, segs, chosenSummaryMode, controller.signal, set);
       useAiJobsStore.getState().completeJob(LECTURE_JOB_ID, {
         label: t('lecture_prog_done'),
         detail: lec.title,
@@ -473,6 +494,7 @@ async function runSummaryStep(
   lectureId: string,
   lec: LectureRecord,
   segments: LectureSegment[],
+  summaryMode: LectureSummaryMode,
   signal: AbortSignal,
   set: (fn: (s: LectureStoreState) => Partial<LectureStoreState>) => void
 ) {
@@ -480,36 +502,72 @@ async function runSummaryStep(
   const terms = Array.from(
     new Set([...(lec.keyTerms || []), ...segments.flatMap((s) => s.keyTerms || [])])
   );
-  const transcriptExcerpt =
-    bullets.length < 3
-      ? segments.map((s) => `[${formatMmSs(s.startSec)}] ${s.text}`).join('\n')
-      : segments
-          .slice(0, 12)
-          .map((s) => `[${formatMmSs(s.startSec)}] ${s.text}`)
-          .join('\n');
 
-  const summary = await postSummarizeLecture({
-    title: lec.title,
-    language: lec.language,
-    totalDurationSec: lec.originalDurationSec || lec.speechDurationSec,
-    chunkBullets: bullets,
-    keyTerms: terms,
-    transcriptExcerpt,
-    signal,
-  });
+  let summary: LectureSummaryPayload;
+  if (summaryMode === 'offline') {
+    summary = await runLocalLectureSummary({
+      title: lec.title,
+      language: lec.language,
+      segments: segments.map((s) => ({
+        startSec: s.startSec,
+        endSec: s.endSec,
+        text: s.text,
+      })),
+      signal,
+      onProgress: (p) => {
+        const mbLoaded = p.loaded ? (p.loaded / (1024 * 1024)).toFixed(1) : null;
+        const mbTotal = p.total ? (p.total / (1024 * 1024)).toFixed(1) : null;
+        const label =
+          p.stage === 'downloading'
+            ? t('lecture_prog_summary_offline_download')
+            : t('lecture_prog_summary_offline_gen');
+        const detail =
+          p.stage === 'downloading' && mbLoaded
+            ? mbTotal
+              ? `${mbLoaded} / ${mbTotal} MB`
+              : `${mbLoaded} MB`
+            : lec.title;
+        const prog: LectureProgressState = { percent: p.percent, label, detail };
+        set(() => ({ progress: prog }));
+        useAiJobsStore.getState().updateJob(LECTURE_JOB_ID, prog);
+      },
+    });
+  } else {
+    const transcriptExcerpt =
+      bullets.length < 3
+        ? segments.map((s) => `[${formatMmSs(s.startSec)}] ${s.text}`).join('\n')
+        : segments
+            .slice(0, 12)
+            .map((s) => `[${formatMmSs(s.startSec)}] ${s.text}`)
+            .join('\n');
 
+    summary = await postSummarizeLecture({
+      title: lec.title,
+      language: lec.language,
+      totalDurationSec: lec.originalDurationSec || lec.speechDurationSec,
+      chunkBullets: bullets,
+      keyTerms: terms,
+      transcriptExcerpt,
+      signal,
+    });
+  }
+
+  const formattedExecutive = formatLectureSummaryMarkdown(summary.executiveSummary);
   const allTerms = Array.from(
     new Set([
       ...terms,
       ...summary.vocabulary.map((v) => v.term),
     ])
   ).slice(0, 24);
+  const definedVocab = summary.vocabulary.filter((v) => v.term && v.definition);
 
   const now = new Date().toISOString();
   const patch: Partial<LectureRecord> = {
     status: 'done',
-    summaryMarkdown: summary.executiveSummary,
+    summaryMarkdown: formattedExecutive,
+    summarySource: summaryMode,
     outlineJson: JSON.stringify(summary.outline),
+    vocabularyJson: definedVocab.length > 0 ? JSON.stringify(definedVocab) : undefined,
     keyTerms: allTerms,
     flashcardsJson: JSON.stringify(summary.flashcards),
     updatedAt: now,
@@ -574,6 +632,22 @@ async function runTranscriptionFromChunk(
 
     if (controller.signal.aborted) return;
     sessionOfflineClips.delete(lectureId);
+
+    // If the student picked Offline Summary (Gemma 3 270M), automatically run it after offline transcription!
+    const allOfflineSegs = get().segmentsByLecture[lectureId] || [];
+    if (get().summaryMode === 'offline' && allOfflineSegs.length > 0) {
+      const updatedOfflineLec = get().lectures.find((l) => l.id === lectureId) || lec;
+      await db.lectures
+        .update(lectureId, { status: 'summarizing', updatedAt: new Date().toISOString() })
+        .catch(() => {});
+      await runSummaryStep(lectureId, updatedOfflineLec, allOfflineSegs, 'offline', controller.signal, set);
+      useAiJobsStore.getState().completeJob(LECTURE_JOB_ID, {
+        label: t('lecture_prog_done'),
+        detail: updatedOfflineLec.title,
+      });
+      return;
+    }
+
     const doneAt = new Date().toISOString();
     await db.lectures
       .update(lectureId, { status: 'done', updatedAt: doneAt })
@@ -674,9 +748,13 @@ async function runTranscriptionFromChunk(
   const updatedLec = get().lectures.find((l) => l.id === lectureId) || lec;
   const allSegs = get().segmentsByLecture[lectureId] || [];
 
+  const chosenSummaryMode = get().summaryMode;
   const sumProg: LectureProgressState = {
-    percent: 88,
-    label: t('lecture_prog_summarizing'),
+    percent: chosenSummaryMode === 'offline' ? 10 : 88,
+    label:
+      chosenSummaryMode === 'offline'
+        ? t('lecture_prog_summary_offline_download')
+        : t('lecture_prog_summarizing'),
     detail: updatedLec.title,
   };
   await db.lectures
@@ -685,7 +763,7 @@ async function runTranscriptionFromChunk(
   set(() => ({ progress: sumProg }));
   useAiJobsStore.getState().updateJob(LECTURE_JOB_ID, sumProg);
 
-  await runSummaryStep(lectureId, updatedLec, allSegs, controller.signal, set);
+  await runSummaryStep(lectureId, updatedLec, allSegs, chosenSummaryMode, controller.signal, set);
   useAiJobsStore.getState().completeJob(LECTURE_JOB_ID, {
     label: t('lecture_prog_done'),
     detail: updatedLec.title,
