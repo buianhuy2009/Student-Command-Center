@@ -17,6 +17,8 @@ import {
 } from 'lucide-react';
 import { EmailAlert, EmailMessage, ApiEnablementInfo } from '../types';
 import { ApiActivationBanner } from './ApiActivationBanner';
+import { AiProgressBar } from './ui/AiProgressBar';
+import { useAiJobsStore } from '../store/aiJobsStore';
 import { useT } from '../services/i18n';
 import { dismissReview, getDismissedReviewIds, gmailLink, isTeacherSender, toggleTeacherSender } from '../utils/trust';
 import { logPilot } from '../utils/pilotStats';
@@ -174,6 +176,8 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
   onForceAIRead,
 }) => {
   const { t, formatDate, formatTime } = useT();
+  const gmailJob = useAiJobsStore((s) => s.jobs['gmail-scan']);
+  const cancelJob = useAiJobsStore((s) => s.cancelJob);
   const [dismissed, setDismissed] = useState<Set<string>>(() => new Set(getDismissedReviewIds()));
   const [teacherTick, setTeacherTick] = useState(0);
   const [forcing, setForcing] = useState<string | null>(null);
@@ -653,29 +657,15 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
       </div>
 
       {/* Explicit multi-step loading progress notice */}
-      {(isLoadingEmails || restoring) && (
-        <div
-          role="status"
-          aria-live="polite"
-          className="px-4 py-3 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-surface)] space-y-2"
-        >
-          <div className="flex items-center justify-between gap-2 text-xs">
-            <span className="font-semibold text-[var(--text-primary)] flex items-center gap-2">
-              <RefreshCw className="w-3.5 h-3.5 animate-spin text-[var(--accent-text)]" />
-              <span>{loadingBannerText}</span>
-            </span>
-            <span className="text-[11px] font-mono text-[var(--text-muted)]">
-              {emailLoadStage === 'analyzing' ? '2 / 2' : '1 / 2'}
-            </span>
-          </div>
-          <div className="h-1.5 w-full rounded-full bg-[var(--bg-subtle)] overflow-hidden">
-            <div
-              className={`h-full bg-[var(--accent-fill)] transition-all duration-500 rounded-full ${
-                emailLoadStage === 'analyzing' ? 'w-3/4 animate-pulse' : 'w-2/5 animate-pulse'
-              }`}
-            />
-          </div>
-        </div>
+      {(isLoadingEmails || restoring || gmailJob?.status === 'running') && (
+        <AiProgressBar
+          percent={gmailJob?.status === 'running' ? gmailJob.percent : emailLoadStage === 'analyzing' ? 60 : 20}
+          label={gmailJob?.status === 'running' ? gmailJob.label : loadingBannerText}
+          detail={t('ai_bg_switch_safe')}
+          currentItem={gmailJob?.currentItem}
+          totalItems={gmailJob?.totalItems}
+          onCancel={gmailJob?.cancel ? () => cancelJob('gmail-scan') : undefined}
+        />
       )}
 
       {/* Demo mode banner */}

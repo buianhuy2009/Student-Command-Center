@@ -15,26 +15,22 @@ import {
   ArrowRight,
   Image as ImageIcon,
   RefreshCw,
+  Wifi,
+  HardDrive,
 } from 'lucide-react';
 import { MathMarkdown } from '../MathMarkdown';
+import { type NoteScanMode } from '../../services/gemini';
+import { type OcrMode } from '../../services/localAiConfig';
 import {
-  extractTextFromNoteImage,
-  NoteScanMode,
-} from '../../services/gemini';
+  clearOfflineModels,
+  getOfflineModelCacheStats,
+} from '../../services/localMediaManager';
+import { useNoteScannerStore, type ScannedImageItem } from '../../store/noteScannerStore';
+import { AiProgressBar } from '../ui/AiProgressBar';
 import { MarkdownNote } from '../../types';
 import { useT } from '../../services/i18n';
 
 const LOCAL_NOTES_KEY = 'scc_markdown_notes_v1';
-
-interface ScannedImageItem {
-  id: string;
-  name: string;
-  dataUrl: string;
-  base64: string;
-  mimeType: string;
-  status: 'ready' | 'scanning' | 'done' | 'error';
-  error?: string;
-}
 
 interface NoteScannerWorkspaceProps {
   onOpenNotes?: () => void;
@@ -89,28 +85,60 @@ async function prepareImageForOcr(file: File): Promise<{ dataUrl: string; base64
 
 export const NoteScannerWorkspace: React.FC<NoteScannerWorkspaceProps> = ({ onOpenNotes }) => {
   const { t, formatDate } = useT();
-  const [images, setImages] = useState<ScannedImageItem[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [formatMode, setFormatMode] = useState<NoteScanMode>('markdown');
-  const [extractedTitle, setExtractedTitle] = useState('');
-  const [extractedSubject, setExtractedSubject] = useState('');
-  const [extractedText, setExtractedText] = useState('');
-  const [keyTerms, setKeyTerms] = useState<string[]>([]);
-  const [viewMode, setViewMode] = useState<'preview' | 'raw'>('preview');
-  const [isScanning, setIsScanning] = useState(false);
-  const [scanError, setScanError] = useState<string | null>(null);
+  const {
+    images,
+    selectedId,
+    engineMode,
+    offlineSubMode,
+    formatMode,
+    extractedTitle,
+    extractedSubject,
+    extractedText,
+    keyTerms,
+    viewMode,
+    isScanning,
+    scanProgress,
+    scanError,
+    savedNotice,
+    setSelectedId,
+    setEngineMode,
+    setOfflineSubMode,
+    setFormatMode,
+    setExtractedTitle,
+    setExtractedSubject,
+    setExtractedText,
+    setViewMode,
+    setSavedNotice,
+    addPreparedImages,
+    removeImage,
+    clearImages,
+    cancelScan,
+    scanSingleImage,
+    scanAllPages,
+  } = useNoteScannerStore();
+
   const [isDragging, setIsDragging] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [savedNotice, setSavedNotice] = useState(false);
+  const [cacheStats, setCacheStats] = useState<{ entryCount: number; approxMb: number } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const activeImage = images.find((img) => img.id === selectedId) || images[0] || null;
+
+  const refreshCacheStats = async () => {
+    const stats = await getOfflineModelCacheStats().catch(() => null);
+    if (stats) setCacheStats(stats);
+  };
+
+  useEffect(() => {
+    if (engineMode === 'offline') {
+      refreshCacheStats();
+    }
+  }, [engineMode, isScanning]);
 
   const addFiles = async (fileList: FileList | File[]) => {
     const validFiles = Array.from(fileList).filter((f) => f.type.startsWith('image/'));
     if (validFiles.length === 0) return;
 
-    setScanError(null);
     const prepared: ScannedImageItem[] = [];
     for (const file of validFiles.slice(0, 8)) {
       try {
@@ -126,8 +154,7 @@ export const NoteScannerWorkspace: React.FC<NoteScannerWorkspaceProps> = ({ onOp
       } catch {}
     }
     if (prepared.length > 0) {
-      setImages((prev) => [...prev, ...prepared]);
-      setSelectedId((prev) => prev || prepared[0].id);
+      addPreparedImages(prepared);
     }
   };
 
@@ -150,81 +177,6 @@ export const NoteScannerWorkspace: React.FC<NoteScannerWorkspaceProps> = ({ onOp
     window.addEventListener('paste', handlePaste);
     return () => window.removeEventListener('paste', handlePaste);
   }, []);
-
-  const handleScanImage = async (item: ScannedImageItem, append = false) => {
-    if (!item || isScanning) return;
-    setIsScanning(true);
-    setScanError(null);
-    setSavedNotice(false);
-    setImages((prev) => prev.map((img) => (img.id === item.id ? { ...img, status: 'scanning', error: undefined } : img)));
-
-    try {
-      const res = await extractTextFromNoteImage({
-        imageBase64: item.base64,
-        mimeType: item.mimeType,
-        formatMode,
-      });
-      setImages((prev) => prev.map((img) => (img.id === item.id ? { ...img, status: 'done' } : img)));
-      if (append && extractedText.trim()) {
-        setExtractedText((prev) => `${prev.trim()}\n\n---\n\n${res.text}`);
-      } else {
-        setExtractedTitle(res.title);
-        setExtractedSubject(res.subject);
-        setExtractedText(res.text);
-      }
-      if (res.keyTerms.length > 0) {
-        setKeyTerms((prev) => Array.from(new Set([...(append ? prev : []), ...res.keyTerms])).slice(0, 12));
-      }
-    } catch (err: any) {
-      const msg = err?.message || t('scanner_err_failed');
-      setScanError(msg);
-      setImages((prev) => prev.map((img) => (img.id === item.id ? { ...img, status: 'error', error: msg } : img)));
-    } finally {
-      setIsScanning(false);
-    }
-  };
-
-  const handleScanAllPages = async () => {
-    if (images.length === 0 || isScanning) return;
-    setIsScanning(true);
-    setScanError(null);
-    setSavedNotice(false);
-    let combinedText = '';
-    let firstTitle = extractedTitle;
-    let firstSubject = extractedSubject;
-    const collectedTerms: string[] = [];
-
-    for (let i = 0; i < images.length; i++) {
-      const item = images[i];
-      setSelectedId(item.id);
-      setImages((prev) => prev.map((img) => (img.id === item.id ? { ...img, status: 'scanning', error: undefined } : img)));
-      try {
-        const res = await extractTextFromNoteImage({
-          imageBase64: item.base64,
-          mimeType: item.mimeType,
-          formatMode,
-        });
-        if (!firstTitle) firstTitle = res.title;
-        if (!firstSubject) firstSubject = res.subject;
-        combinedText = combinedText ? `${combinedText}\n\n---\n\n${res.text}` : res.text;
-        collectedTerms.push(...res.keyTerms);
-        setImages((prev) => prev.map((img) => (img.id === item.id ? { ...img, status: 'done' } : img)));
-      } catch (err: any) {
-        const msg = err?.message || t('scanner_err_failed');
-        setScanError(msg);
-        setImages((prev) => prev.map((img) => (img.id === item.id ? { ...img, status: 'error', error: msg } : img)));
-        break;
-      }
-    }
-
-    if (combinedText) {
-      setExtractedTitle(firstTitle || t('scanner_default_title'));
-      setExtractedSubject(firstSubject || t('dochub_subject_general'));
-      setExtractedText(combinedText);
-      setKeyTerms(Array.from(new Set(collectedTerms)).slice(0, 12));
-    }
-    setIsScanning(false);
-  };
 
   const handleCopyText = async () => {
     if (!extractedText.trim()) return;
@@ -264,80 +216,170 @@ export const NoteScannerWorkspace: React.FC<NoteScannerWorkspaceProps> = ({ onOp
     } catch {}
   };
 
-  const handleRemoveImage = (id: string) => {
-    setImages((prev) => {
-      const next = prev.filter((img) => img.id !== id);
-      if (selectedId === id) {
-        setSelectedId(next[0]?.id || null);
-      }
-      return next;
-    });
-  };
+  const offlineSubModes: { id: OcrMode; label: string; sizeHint: string }[] = [
+    { id: 'printed', label: t('scanner_offline_printed'), sizeHint: '~13 MB' },
+    { id: 'handwritten-vi', label: t('scanner_offline_vi_hand'), sizeHint: '~41 MB' },
+    { id: 'handwritten-en', label: t('scanner_offline_en_hand'), sizeHint: '~64 MB' },
+  ];
 
   return (
     <div className="space-y-5 animate-in fade-in duration-200">
       {/* Header Bar */}
-      <div className="bg-[var(--bg-surface)] rounded-2xl p-4 sm:p-5 border border-[var(--border-default)] flex flex-col lg:flex-row lg:items-center justify-between gap-4 shadow-xs">
-        <div className="flex items-center gap-3.5">
-          <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-teal-500 to-cyan-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-            <ScanText className="w-5 h-5" />
+      <div className="bg-[var(--bg-surface)] rounded-2xl p-4 sm:p-5 border border-[var(--border-default)] flex flex-col gap-3.5 shadow-xs">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-teal-500 to-cyan-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+              <ScanText className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-base sm:text-lg font-bold text-[var(--text-primary)] tracking-tight">
+                {t('scanner_title')}
+              </h2>
+              <p className="text-xs text-[var(--text-muted)] mt-0.5">
+                {t('scanner_sub')}
+              </p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-base sm:text-lg font-bold text-[var(--text-primary)] tracking-tight">
-              {t('scanner_title')}
-            </h2>
-            <p className="text-xs text-[var(--text-muted)] mt-0.5">
-              {t('scanner_sub')}
-            </p>
-          </div>
-        </div>
 
-        {/* Extraction Mode Pills */}
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="inline-flex items-center gap-1 p-1 bg-[var(--bg-subtle)] rounded-xl border border-[var(--border-default)]">
-            {(
-              [
-                { id: 'markdown', label: t('scanner_mode_md') },
-                { id: 'verbatim', label: t('scanner_mode_verbatim') },
-                { id: 'summary', label: t('scanner_mode_summary') },
-              ] as const
-            ).map((m) => (
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Engine Toggle: Online (Gemini Vision) vs Offline (On-Device) */}
+            <div
+              role="group"
+              aria-label={t('scanner_engine_toggle_aria')}
+              className="inline-flex items-center gap-1 p-1 bg-[var(--bg-subtle)] rounded-xl border border-[var(--border-default)]"
+            >
               <button
-                key={m.id}
                 type="button"
-                onClick={() => setFormatMode(m.id)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
-                  formatMode === m.id
+                disabled={isScanning}
+                onClick={() => setEngineMode('online')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-60 ${
+                  engineMode === 'online'
                     ? 'bg-[var(--accent-fill)] text-white shadow-2xs'
                     : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                 }`}
               >
-                {m.label}
+                <Wifi className="w-3.5 h-3.5" />
+                <span>{t('scanner_engine_online')}</span>
               </button>
-            ))}
-          </div>
+              <button
+                type="button"
+                disabled={isScanning}
+                onClick={() => setEngineMode('offline')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-60 ${
+                  engineMode === 'offline'
+                    ? 'bg-[var(--accent-fill)] text-white shadow-2xs'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                }`}
+              >
+                <HardDrive className="w-3.5 h-3.5" />
+                <span>{t('scanner_engine_offline')}</span>
+              </button>
+            </div>
 
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            multiple
-            className="hidden"
-            onChange={(e) => {
-              if (e.target.files) addFiles(e.target.files);
-              e.target.value = '';
-            }}
-          />
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="px-3.5 py-2 bg-[var(--bg-subtle)] hover:bg-[var(--bg-hover)] border border-[var(--border-default)] text-[var(--text-primary)] rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
-          >
-            <Upload className="w-3.5 h-3.5 text-[var(--accent-text)]" />
-            <span>{t('scanner_add_photos')}</span>
-          </button>
+            {engineMode === 'online' && (
+              <div className="inline-flex items-center gap-1 p-1 bg-[var(--bg-subtle)] rounded-xl border border-[var(--border-default)]">
+                {(
+                  [
+                    { id: 'markdown', label: t('scanner_mode_md') },
+                    { id: 'verbatim', label: t('scanner_mode_verbatim') },
+                    { id: 'summary', label: t('scanner_mode_summary') },
+                  ] as const
+                ).map((m) => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => setFormatMode(m.id as NoteScanMode)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+                      formatMode === m.id
+                        ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-2xs border border-[var(--border-hairline)]'
+                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                    }`}
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={(e) => {
+                if (e.target.files) addFiles(e.target.files);
+                e.target.value = '';
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="px-3.5 py-2 bg-[var(--bg-subtle)] hover:bg-[var(--bg-hover)] border border-[var(--border-default)] text-[var(--text-primary)] rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <Upload className="w-3.5 h-3.5 text-[var(--accent-text)]" />
+              <span>{t('scanner_add_photos')}</span>
+            </button>
+          </div>
         </div>
+
+        {/* 3 Offline OCR Modes + Cache Bar */}
+        {engineMode === 'offline' && (
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-2.5 border-t border-[var(--border-hairline)]">
+            <div className="flex flex-wrap items-center gap-1.5">
+              {offlineSubModes.map((sub) => {
+                const active = offlineSubMode === sub.id;
+                return (
+                  <button
+                    key={sub.id}
+                    type="button"
+                    disabled={isScanning}
+                    onClick={() => setOfflineSubMode(sub.id)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-60 ${
+                      active
+                        ? 'bg-[var(--accent-soft)] text-[var(--accent-text)] border-[var(--accent-border)]'
+                        : 'bg-[var(--bg-subtle)]/70 text-[var(--text-secondary)] border-[var(--border-hairline)] hover:border-[var(--border-default)]'
+                    }`}
+                  >
+                    <span>{sub.label}</span>
+                    <span className="text-[10px] opacity-75 font-mono">({sub.sizeHint})</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="flex items-center gap-2 text-[11px] text-[var(--text-muted)]">
+              <span>{t('scanner_offline_hint')}</span>
+              {cacheStats && cacheStats.approxMb > 0 && (
+                <button
+                  type="button"
+                  disabled={isScanning}
+                  onClick={async () => {
+                    await clearOfflineModels();
+                    await refreshCacheStats();
+                  }}
+                  className="px-2 py-1 rounded-lg border border-[var(--border-default)] bg-[var(--bg-subtle)] hover:text-rose-600 font-semibold cursor-pointer disabled:opacity-50"
+                >
+                  {t('scanner_clear_cache', { mb: cacheStats.approxMb })}
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Unified Live Progress Bar */}
+      {isScanning && scanProgress && (
+        <AiProgressBar
+          percent={scanProgress.percent}
+          label={scanProgress.label}
+          detail={scanProgress.detail}
+          currentItem={scanProgress.currentItem}
+          totalItems={scanProgress.totalItems}
+          etaText={t('ai_bg_switch_safe')}
+          onCancel={cancelScan}
+        />
+      )}
 
       {/* Main Split Workspace */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 min-w-0">
@@ -406,7 +448,7 @@ export const NoteScannerWorkspace: React.FC<NoteScannerWorkspaceProps> = ({ onOp
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleRemoveImage(img.id);
+                        removeImage(img.id);
                       }}
                       aria-label={t('scanner_remove_page')}
                       className="absolute top-1 right-1 p-0.5 rounded-full bg-black/65 text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
@@ -444,12 +486,9 @@ export const NoteScannerWorkspace: React.FC<NoteScannerWorkspaceProps> = ({ onOp
               <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
                 <button
                   type="button"
-                  onClick={() => {
-                    setImages([]);
-                    setSelectedId(null);
-                    setScanError(null);
-                  }}
-                  className="px-3 py-2 text-xs font-semibold text-[var(--text-muted)] hover:text-rose-600 rounded-xl hover:bg-[var(--bg-hover)] transition-colors cursor-pointer"
+                  disabled={isScanning}
+                  onClick={clearImages}
+                  className="px-3 py-2 text-xs font-semibold text-[var(--text-muted)] hover:text-rose-600 rounded-xl hover:bg-[var(--bg-hover)] transition-colors cursor-pointer disabled:opacity-50"
                 >
                   {t('scanner_clear_photos')}
                 </button>
@@ -459,7 +498,7 @@ export const NoteScannerWorkspace: React.FC<NoteScannerWorkspaceProps> = ({ onOp
                     <button
                       type="button"
                       disabled={isScanning}
-                      onClick={handleScanAllPages}
+                      onClick={scanAllPages}
                       className="px-3.5 py-2 bg-[var(--bg-subtle)] hover:bg-[var(--bg-hover)] border border-[var(--border-default)] text-[var(--text-primary)] rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
                     >
                       <Sparkles className="w-3.5 h-3.5 text-[var(--accent-text)]" />
@@ -471,7 +510,12 @@ export const NoteScannerWorkspace: React.FC<NoteScannerWorkspaceProps> = ({ onOp
                     <button
                       type="button"
                       disabled={isScanning}
-                      onClick={() => handleScanImage(activeImage, Boolean(extractedText.trim() && images.length > 1))}
+                      onClick={() =>
+                        scanSingleImage(
+                          activeImage.id,
+                          Boolean(extractedText.trim() && images.length > 1)
+                        )
+                      }
                       className="px-4 py-2 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] disabled:opacity-50 text-white rounded-xl text-xs font-bold flex items-center gap-2 transition-colors cursor-pointer shadow-xs"
                     >
                       {isScanning ? (

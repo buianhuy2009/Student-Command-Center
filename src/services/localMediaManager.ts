@@ -1,0 +1,226 @@
+import { LOCAL_MODEL_CACHE_NAME, type OcrMode } from './localAiConfig';
+
+export interface LocalOcrProgress {
+  stage: 'downloading' | 'detecting' | 'reading' | 'formatting';
+  percent: number;
+  file?: string;
+  loaded?: number;
+  total?: number;
+  completed?: number;
+  totalLines?: number;
+}
+
+export interface LocalOcrResult {
+  markdown: string;
+  lineCount: number;
+}
+
+const IDLE_TERMINATE_MS = 60_000;
+
+let activeWorkerKind: 'ocr' | 'vad' | 'asr' | null = null;
+let ocrWorker: Worker | null = null;
+let ocrIdleTimer: number | null = null;
+
+function clearOcrIdleTimer() {
+  if (ocrIdleTimer !== null && typeof window !== 'undefined') {
+    window.clearTimeout(ocrIdleTimer);
+  }
+  ocrIdleTimer = null;
+}
+
+function scheduleOcrIdleTerminate() {
+  clearOcrIdleTimer();
+  if (typeof window === 'undefined') return;
+  ocrIdleTimer = window.setTimeout(() => {
+    terminateOcrWorker();
+  }, IDLE_TERMINATE_MS);
+}
+
+export function terminateOcrWorker(): void {
+  clearOcrIdleTimer();
+  if (ocrWorker) {
+    try {
+      ocrWorker.terminate();
+    } catch {
+      // Ignore termination error.
+    }
+    ocrWorker = null;
+  }
+  if (activeWorkerKind === 'ocr') {
+    activeWorkerKind = null;
+  }
+}
+
+/**
+ * Ensures at most ONE heavy ML worker is alive at a time so 8 GB laptops stay safe.
+ */
+export function claimWorkerSlot(kind: 'ocr' | 'vad' | 'asr'): void {
+  if (activeWorkerKind && activeWorkerKind !== kind) {
+    if (activeWorkerKind === 'ocr') {
+      terminateOcrWorker();
+    }
+  }
+  activeWorkerKind = kind;
+}
+
+export function releaseWorkerSlot(kind: 'ocr' | 'vad' | 'asr'): void {
+  if (activeWorkerKind === kind) {
+    activeWorkerKind = null;
+  }
+}
+
+function getOrCreateOcrWorker(): Worker {
+  claimWorkerSlot('ocr');
+  clearOcrIdleTimer();
+  if (!ocrWorker) {
+    ocrWorker = new Worker(new URL('../workers/ocr.worker.ts', import.meta.url), {
+      type: 'module',
+    });
+  }
+  return ocrWorker;
+}
+
+export async function runLocalOcrScan(params: {
+  imageBlob: Blob;
+  mode: OcrMode;
+  onProgress?: (progress: LocalOcrProgress) => void;
+  signal?: AbortSignal;
+}): Promise<LocalOcrResult> {
+  const { imageBlob, mode, onProgress, signal } = params;
+  if (signal?.aborted) {
+    throw new Error('ABORTED');
+  }
+
+  const worker = getOrCreateOcrWorker();
+  const requestId = `ocr-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+
+  return new Promise<LocalOcrResult>((resolve, reject) => {
+    let settled = false;
+
+    const cleanup = () => {
+      worker.removeEventListener('message', onMessage);
+      worker.removeEventListener('error', onError);
+      if (signal) {
+        signal.removeEventListener('abort', onAbort);
+      }
+      // TrOCR (@huggingface/transformers) allocates a separate WASM heap: terminate immediately so RAM returns to 0 MB.
+      if (mode === 'handwritten-en') {
+        terminateOcrWorker();
+      } else {
+        scheduleOcrIdleTerminate();
+      }
+    };
+
+    const onAbort = () => {
+      if (settled) return;
+      settled = true;
+      try {
+        worker.postMessage({ type: 'abort', id: requestId });
+      } catch {}
+      terminateOcrWorker();
+      cleanup();
+      reject(new Error('ABORTED'));
+    };
+
+    const onError = (ev: ErrorEvent) => {
+      if (settled) return;
+      settled = true;
+      terminateOcrWorker();
+      cleanup();
+      reject(new Error(ev.message || 'Offline OCR worker failed.'));
+    };
+
+    const onMessage = (event: MessageEvent<any>) => {
+      const msg = event.data;
+      if (!msg || msg.id !== requestId) return;
+
+      if (msg.type === 'progress') {
+        onProgress?.({
+          stage: msg.stage,
+          percent: typeof msg.percent === 'number' ? msg.percent : 0,
+          file: msg.file,
+          loaded: msg.loaded,
+          total: msg.total,
+          completed: msg.completed,
+          totalLines: msg.totalLines,
+        });
+      } else if (msg.type === 'done') {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        resolve({
+          markdown: String(msg.markdown || ''),
+          lineCount: Number(msg.lineCount || 0),
+        });
+      } else if (msg.type === 'error') {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        reject(new Error(String(msg.error || 'Offline OCR failed.')));
+      }
+    };
+
+    worker.addEventListener('message', onMessage);
+    worker.addEventListener('error', onError);
+    if (signal) {
+      signal.addEventListener('abort', onAbort, { once: true });
+    }
+
+    worker.postMessage({
+      type: 'scan',
+      id: requestId,
+      imageBlob,
+      mode,
+    });
+  });
+}
+
+export async function getOfflineModelCacheStats(): Promise<{
+  entryCount: number;
+  approxMb: number;
+}> {
+  if (typeof caches === 'undefined') return { entryCount: 0, approxMb: 0 };
+  let totalBytes = 0;
+  let entryCount = 0;
+
+  const cacheNames = [LOCAL_MODEL_CACHE_NAME, 'transformers-cache'];
+  for (const name of cacheNames) {
+    try {
+      const has = await caches.has(name);
+      if (!has) continue;
+      const cache = await caches.open(name);
+      const reqs = await cache.keys();
+      entryCount += reqs.length;
+      for (const req of reqs) {
+        const res = await cache.match(req);
+        if (!res) continue;
+        const len = Number(res.headers.get('content-length') || 0);
+        if (len > 0) {
+          totalBytes += len;
+        } else {
+          const buf = await res.arrayBuffer();
+          totalBytes += buf.byteLength;
+        }
+      }
+    } catch {
+      // Ignore inaccessible cache storage.
+    }
+  }
+
+  return {
+    entryCount,
+    approxMb: Math.round((totalBytes / (1024 * 1024)) * 10) / 10,
+  };
+}
+
+export async function clearOfflineModels(): Promise<void> {
+  terminateOcrWorker();
+  if (typeof caches === 'undefined') return;
+  for (const name of [LOCAL_MODEL_CACHE_NAME, 'transformers-cache']) {
+    try {
+      await caches.delete(name);
+    } catch {
+      // Ignore cache delete errors.
+    }
+  }
+}

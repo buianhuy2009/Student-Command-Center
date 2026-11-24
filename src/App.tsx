@@ -182,6 +182,7 @@ import { AiConfirmCard, type AiDraft, type AiConfirmResult } from './components/
 import { dismissReview } from './utils/trust';
 import { logPilot, recordMissedDeadlines } from './utils/pilotStats';
 import { PrivacyModal } from './components/PrivacyModal';
+import { useAiJobsStore } from './store/aiJobsStore';
 
 const LOCAL_ASSIGNMENTS_KEY = 'scc_user_assignments_v2';
 const LOCAL_EMAIL_ALERTS_KEY = 'scc_cached_email_alerts_v2';
@@ -565,11 +566,21 @@ export default function App() {
     }
   }, []);
 
-  // Breadcrumb navigation — StudentOS click → dashboard
+  // Global navigation & AI Coach open events (used by BackgroundAiIndicator, DocumentHub, etc.)
   useEffect(() => {
-    const onNav = (e: any) => { if (e.detail === 'dashboard') handleTabTransition('dashboard'); };
+    const onNav = (e: any) => {
+      const target = typeof e?.detail === 'string' ? e.detail : '';
+      if (target && KEPT_APP_TABS.has(target)) {
+        handleTabTransition(target);
+      }
+    };
+    const onOpenCoach = () => setAiChatOpen(true);
     window.addEventListener('scc-navigate' as any, onNav);
-    return () => window.removeEventListener('scc-navigate' as any, onNav);
+    window.addEventListener('scc-open-coach' as any, onOpenCoach);
+    return () => {
+      window.removeEventListener('scc-navigate' as any, onNav);
+      window.removeEventListener('scc-open-coach' as any, onOpenCoach);
+    };
   }, [handleTabTransition]);
 
   // Confetti respects reduced motion already handled at trigger; also add global check
@@ -1798,12 +1809,24 @@ export default function App() {
 
     isLoadingEmailsRef.current = true;
     const showProgress = !isSilent;
+    const scanAbort = new AbortController();
+    const GMAIL_JOB_ID = 'gmail-scan';
     if (showProgress) {
       setIsLoadingEmails(true);
       setEmailLoadStage('fetching');
+      useAiJobsStore.getState().startJob({
+        id: GMAIL_JOB_ID,
+        kind: 'gmail',
+        title: t('app_tab_gmail'),
+        label: t('gmail_loading_fetching'),
+        percent: 8,
+        targetTab: 'gmail',
+        cancel: () => scanAbort.abort(),
+      });
     }
     try {
       const emails = await fetchAcademicEmails(token, options);
+      if (scanAbort.signal.aborted) return;
       lastEmailSyncAtRef.current = Date.now();
       setGoogleToken(token);
       setEmailError(null);
@@ -1836,6 +1859,11 @@ export default function App() {
         try {
           localStorage.removeItem(LOCAL_EMAIL_ALERTS_KEY);
         } catch {}
+        if (showProgress) {
+          useAiJobsStore.getState().completeJob(GMAIL_JOB_ID, {
+            label: t('gmail_scan_done_empty'),
+          });
+        }
         return;
       }
 
@@ -1844,14 +1872,43 @@ export default function App() {
         const merged = mergeScannedEmailAlerts(emails, reusableByEmailId, currentAlerts);
         setEmailAlerts(sanitizeEmailAlerts(merged));
         saveEmailAlerts(sanitizeEmailAlerts(merged));
+        if (showProgress) {
+          useAiJobsStore.getState().completeJob(GMAIL_JOB_ID, {
+            label: t('gmail_scan_done_cached'),
+          });
+        }
         return;
       }
 
-      if (showProgress) setEmailLoadStage('analyzing');
+      if (showProgress) {
+        setEmailLoadStage('analyzing');
+        useAiJobsStore.getState().updateJob(GMAIL_JOB_ID, {
+          percent: 20,
+          label: t('gmail_scan_analyzing_count', { current: 0, total: emailsToScan.length }),
+          currentItem: 0,
+          totalItems: emailsToScan.length,
+        });
+      }
       let scannedAlerts: EmailAlert[] = [];
       try {
-        scannedAlerts = await summarizeEmailsWithGemini(emailsToScan, { forceAI: true });
-      } catch (geminiErr) {
+        scannedAlerts = await summarizeEmailsWithGemini(emailsToScan, {
+          forceAI: true,
+          signal: scanAbort.signal,
+          onProgress: (p) => {
+            if (!showProgress) return;
+            const weighted = Math.round(20 + (p.percent / 100) * 78);
+            useAiJobsStore.getState().updateJob(GMAIL_JOB_ID, {
+              percent: weighted,
+              label: t('gmail_scan_analyzing_count', { current: p.completed, total: p.total }),
+              currentItem: p.completed,
+              totalItems: p.total,
+            });
+          },
+        });
+      } catch (geminiErr: any) {
+        if (geminiErr?.message === 'ABORTED' || scanAbort.signal.aborted) {
+          return;
+        }
         console.warn('Gemini email summarizer unavailable, using Gmail-native fallback:', geminiErr);
         scannedAlerts = emailsToScan.map((msg, idx) => {
           const labels = (msg as any).labelIds || [];
@@ -1877,12 +1934,22 @@ export default function App() {
           };
         });
       }
+      if (scanAbort.signal.aborted) return;
       const mergedAlerts = mergeScannedEmailAlerts(emails, reusableByEmailId, scannedAlerts);
       setEmailAlerts(sanitizeEmailAlerts(mergedAlerts));
       saveEmailAlerts(sanitizeEmailAlerts(mergedAlerts));
+      if (showProgress) {
+        useAiJobsStore.getState().completeJob(GMAIL_JOB_ID, {
+          label: t('gmail_scan_done_count', { count: emailsToScan.length }),
+        });
+      }
     } catch (err: any) {
+      if (err?.message === 'ABORTED' || scanAbort.signal.aborted) return;
       console.error('Email fetch error:', err);
       lastEmailSyncAtRef.current = Date.now();
+      if (showProgress) {
+        useAiJobsStore.getState().failJob(GMAIL_JOB_ID, err?.message || t('app_err_gmail_fetch'));
+      }
       const is401 = err?.status === 401 || /401|expired|hết hạn/i.test(err?.message || '');
       if (is401 && !_retried) {
         if (await refreshGoogleAccessToken(true, authUidRef.current)) {

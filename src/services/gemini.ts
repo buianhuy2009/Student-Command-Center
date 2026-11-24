@@ -890,7 +890,12 @@ export function mergeScannedEmailAlerts(
 
 export async function summarizeEmailsWithGemini(
   emails: EmailMessage[],
-  opts: { forceAI?: boolean; origin?: 'gmail' | 'classroom' } = {},
+  opts: {
+    forceAI?: boolean;
+    origin?: 'gmail' | 'classroom';
+    onProgress?: (p: { completed: number; total: number; percent: number }) => void;
+    signal?: AbortSignal;
+  } = {},
 ): Promise<EmailAlert[]> {
   // Scan all emails regardless of Gmail Spam / Promotions / Social labels so nothing important is skipped.
   const origin = opts.origin || 'gmail';
@@ -930,27 +935,72 @@ export async function summarizeEmailsWithGemini(
     labelIds: e.labelIds || [],
     knownTeacher: isTeacherSender(e.senderEmail),
   }));
+
+  opts.onProgress?.({ completed: 0, total: aiEmails.length, percent: 15 });
+
   let aiAlerts: EmailAlert[] | null = null;
   try {
-    const data = await postGeminiJsonEndpoint<{ alerts?: any[]; model?: string | null; error?: string }>(
-      '/api/gemini/summarize-emails',
-      { emails: payload, today: new Date().toISOString() },
-      'Summarize API'
-    );
-    const hasUsableAi =
-      Array.isArray(data?.alerts) &&
-      data.alerts.length > 0 &&
-      data.error !== 'ai_unavailable' &&
-      data.alerts.some((a: any) => a?.aiStatus !== 'failed');
-    if (hasUsableAi) {
-      const byId = new Map<string, any>((data.alerts || []).map((a: any) => [String(a.id), a]));
+    const SERVER_BATCH_SIZE = 10;
+    const collectedRawAlerts: any[] = [];
+    let anyServerSuccess = false;
+
+    if (payload.length <= SERVER_BATCH_SIZE) {
+      const data = await postGeminiJsonEndpoint<{ alerts?: any[]; model?: string | null; error?: string }>(
+        '/api/gemini/summarize-emails',
+        { emails: payload, today: new Date().toISOString() },
+        'Summarize API'
+      );
+      if (
+        Array.isArray(data?.alerts) &&
+        data.alerts.length > 0 &&
+        data.error !== 'ai_unavailable' &&
+        data.alerts.some((a: any) => a?.aiStatus !== 'failed')
+      ) {
+        anyServerSuccess = true;
+        collectedRawAlerts.push(...data.alerts);
+      }
+      opts.onProgress?.({ completed: aiEmails.length, total: aiEmails.length, percent: 100 });
+    } else {
+      for (let i = 0; i < payload.length; i += SERVER_BATCH_SIZE) {
+        if (opts.signal?.aborted) {
+          throw new Error('ABORTED');
+        }
+        const slice = payload.slice(i, i + SERVER_BATCH_SIZE);
+        const data = await postGeminiJsonEndpoint<{ alerts?: any[]; model?: string | null; error?: string }>(
+          '/api/gemini/summarize-emails',
+          { emails: slice, today: new Date().toISOString() },
+          'Summarize API'
+        );
+        if (
+          Array.isArray(data?.alerts) &&
+          data.alerts.length > 0 &&
+          data.error !== 'ai_unavailable' &&
+          data.alerts.some((a: any) => a?.aiStatus !== 'failed')
+        ) {
+          anyServerSuccess = true;
+          collectedRawAlerts.push(...data.alerts);
+        }
+        const doneCount = Math.min(payload.length, i + slice.length);
+        opts.onProgress?.({
+          completed: doneCount,
+          total: payload.length,
+          percent: Math.round(15 + (doneCount / payload.length) * 85),
+        });
+      }
+    }
+
+    if (anyServerSuccess) {
+      const byId = new Map<string, any>(collectedRawAlerts.map((a: any) => [String(a.id), a]));
       aiAlerts = aiEmails.map((src) => {
         const alert = byId.get(String(src.id));
         if (!alert) return failed(src, 'ai_omitted');
         return { ...alert, gmailLabels: src.labelIds || [], rawEmail: src, origin, sourceUrl: linkOf(src) } as EmailAlert;
       });
     }
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.message === 'ABORTED' || opts.signal?.aborted) {
+      throw error;
+    }
     console.warn('Summarize emails API failed, checking client AI fallback:', error);
   }
 
@@ -981,11 +1031,18 @@ Return ONLY JSON:
       const directList: any[] = [];
       const CHUNK_SIZE = 10;
       for (let i = 0; i < payload.length; i += CHUNK_SIZE) {
+        if (opts.signal?.aborted) break;
         try {
           directList.push(...(await runDirectBatch(payload.slice(i, i + CHUNK_SIZE))));
         } catch (chunkErr) {
           console.warn('Client email batch failed:', chunkErr);
         }
+        const doneCount = Math.min(payload.length, i + CHUNK_SIZE);
+        opts.onProgress?.({
+          completed: doneCount,
+          total: payload.length,
+          percent: Math.round(15 + (doneCount / payload.length) * 85),
+        });
       }
       if (directList.length > 0) {
         const byId = new Map<string, any>(directList.filter((a) => a?.id).map((a: any) => [String(a.id), a]));

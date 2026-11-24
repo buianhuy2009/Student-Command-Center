@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useT } from '../services/i18n';
 import { LanguageToggle } from './LanguageToggle';
+import { BackgroundAiIndicator } from './ui/BackgroundAiIndicator';
 
 export interface NotificationItem {
   id: string;
@@ -115,6 +116,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
       {/* RIGHT: Compact essential controls */}
       <div className="flex items-center gap-1.5 shrink-0">
+        <BackgroundAiIndicator />
         <LanguageToggle compact className="hidden lg:inline-flex" />
 
         {onOpenGoogleSync && (

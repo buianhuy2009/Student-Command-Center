@@ -2,7 +2,7 @@ import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import path from 'path';
-import {defineConfig} from 'vite';
+import {defineConfig, defaultClientConditions} from 'vite';
 
 export default defineConfig(() => {
   return {
@@ -38,11 +38,12 @@ export default defineConfig(() => {
       },
       workbox: {
         globPatterns: ['**/*.{js,css,woff2,png,svg,webp}'],
-        globIgnores: ['**/index.html'],
+        globIgnores: ['**/index.html', '**/ocr.worker*.js', '**/asr.worker*.js', '**/vad.worker*.js'],
         maximumFileSizeToCacheInBytes: 2 * 1024 * 1024,
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [/^\/api\//, /^\/share-target/, /^\/privacy/, /^\/terms/, /^\/google-sites-home/],
         runtimeCaching: [
+          { urlPattern: /\/assets\/(?:ocr|asr|vad)\.worker.*\.js$/i, handler: 'CacheFirst', options: { cacheName: 'local-ai-worker-cache', expiration: { maxEntries: 6, maxAgeSeconds: 30 * 86400 } } },
           { urlPattern: /^https:\/\/generativelanguage\.googleapis\.com\/.*/i, handler: 'NetworkFirst', options: { cacheName: 'gemini-api', networkTimeoutSeconds: 10, expiration: { maxEntries: 50, maxAgeSeconds: 300 } } },
           { urlPattern: /^https:\/\/www\.googleapis\.com\/.*/i, handler: 'NetworkFirst', options: { cacheName: 'googleapis-cache', networkTimeoutSeconds: 8, expiration: { maxEntries: 100, maxAgeSeconds: 300 } } },
           { urlPattern: /^https:\/\/sheets\.googleapis\.com\/.*/i, handler: 'NetworkFirst', options: { cacheName: 'sheets-api', networkTimeoutSeconds: 8, expiration: { maxEntries: 50, maxAgeSeconds: 300 } } },
@@ -55,9 +56,13 @@ export default defineConfig(() => {
       }
     })],
     resolve: {
+      conditions: ['onnxruntime-web-use-extern-wasm', ...defaultClientConditions],
       alias: {
         '@': path.resolve(__dirname, '.'),
       },
+    },
+    worker: {
+      format: 'es',
     },
     server: {
       headers: {

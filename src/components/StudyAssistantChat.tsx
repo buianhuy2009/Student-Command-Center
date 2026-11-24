@@ -18,27 +18,10 @@ import {
 import { MathMarkdown } from './MathMarkdown';
 import {
   AiCoachMode,
-  normalizeAiCoachMode,
-  sendStudyAssistantMessage,
 } from '../services/gemini';
+import { useCoachChatStore } from '../store/coachChatStore';
 import { Assignment, CalendarEvent, EmailAlert } from '../types';
 import { useT } from '../services/i18n';
-
-const COACH_MODE_STORAGE_KEY = 'scc_ai_coach_mode_v1';
-
-function loadInitialCoachMode(): AiCoachMode {
-  try {
-    const raw = localStorage.getItem(COACH_MODE_STORAGE_KEY);
-    return normalizeAiCoachMode(raw);
-  } catch {}
-  return 'balanced';
-}
-
-interface Message {
-  role: 'user' | 'assistant';
-  content?: string;
-  contentKey?: 'coach_welcome' | 'coach_cleared_full' | 'coach_cleared_drawer';
-}
 
 const PROMPT_SUGGESTION_KEYS = [
   'coach_chip_1',
@@ -66,27 +49,20 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
   alerts,
   isFullScreen = true,
 }) => {
-  const [messages, setMessages] = useState<Message[]>(() => {
-    try {
-      const saved = localStorage.getItem('scc_chat_messages_v2');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length) return parsed;
-      }
-      const dexieRaw = localStorage.getItem('scc_chat_dexie_synced');
-      if (dexieRaw) return JSON.parse(dexieRaw);
-    } catch {}
-    return [
-      {
-        role: 'assistant',
-        contentKey: 'coach_welcome',
-      },
-    ];
-  });
+  const {
+    messages,
+    isSending,
+    streamingContent,
+    coachMode,
+    startedAt,
+    setCoachMode,
+    clearMessages,
+    cancelSending,
+    sendMessage,
+  } = useCoachChatStore();
+
   const [inputText, setInputText] = useState('');
-  const [isSending, setIsSending] = useState(false);
-  const [streamingContent, setStreamingContent] = useState('');
-  const [coachMode, setCoachMode] = useState<AiCoachMode>(loadInitialCoachMode);
+  const [elapsedSec, setElapsedSec] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -97,16 +73,16 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
   const { t } = useT();
 
   useEffect(() => {
-    try {
-      localStorage.setItem(COACH_MODE_STORAGE_KEY, coachMode);
-    } catch {}
-  }, [coachMode]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('scc_chat_messages_v2', JSON.stringify(messages));
-    } catch {}
-  }, [messages]);
+    if (!isSending || !startedAt) {
+      setElapsedSec(0);
+      return;
+    }
+    setElapsedSec(Math.max(0, Math.floor((Date.now() - startedAt) / 1000)));
+    const timer = window.setInterval(() => {
+      setElapsedSec(Math.max(0, Math.floor((Date.now() - startedAt) / 1000)));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [isSending, startedAt]);
 
   useEffect(() => {
     if (isOpen) {
@@ -322,66 +298,13 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
   const handleSend = async (textToSend?: string) => {
     const text = textToSend || inputText;
     if (!text.trim() || isSending) return;
-
-    const userMessage: Message = { role: 'user', content: text };
-    setMessages((prev) => [...prev, userMessage]);
     if (!textToSend) setInputText('');
-    setIsSending(true);
-    setStreamingContent('');
-
-    try {
-      const cappedAssignments = assignments.slice(0, 30).map((a) => ({ ...a, notes: (a.notes || '').slice(0, 300) }));
-      const cappedAlerts = alerts.slice(0, 15).map((a) => ({ ...a, oneLineSummary: a.oneLineSummary.slice(0, 300) }));
-      const cappedEvents = events.slice(0, 20);
-
-      const response = await sendStudyAssistantMessage(
-        [...messages, userMessage].map((m) => ({
-          role: m.role,
-          content: m.content ?? (m.contentKey ? t(m.contentKey) : ''),
-        })),
-        {
-          assignments: cappedAssignments,
-          events: cappedEvents,
-          alerts: cappedAlerts,
-          sources: cappedAssignments.map((a) => ({ type: 'canvas', id: a.id })),
-        },
-        coachMode
-      );
-
-      for (let i = 0; i < response.length; i += 12) {
-        setStreamingContent(response.slice(0, i + 12));
-        await new Promise((r) => setTimeout(r, 10));
-      }
-
-      const assistantMessage: Message = {
-        role: 'assistant',
-        content: response,
-      };
-      setMessages((prev) => [...prev, assistantMessage]);
-      setStreamingContent('');
-      try {
-        const { db } = await import('../services/db');
-        await db.briefs?.add?.({
-          id: `chat-${Date.now()}`,
-          topic: text.slice(0, 40),
-          subject: 'chat',
-          brief: response.slice(0, 500),
-          createdAt: new Date().toISOString(),
-        } as any);
-      } catch {}
-    } catch (err) {
-      const errorDetail = err instanceof Error && err.message ? err.message : t('coach_error_fallback');
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: 'assistant',
-          content: t('coach_error_msg', { detail: errorDetail }),
-        },
-      ]);
-      setStreamingContent('');
-    } finally {
-      setIsSending(false);
-    }
+    await sendMessage({
+      text,
+      assignments,
+      events,
+      alerts,
+    });
   };
 
   const handleCopyMessage = async (idx: number, content: string) => {
@@ -431,14 +354,7 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
 
             <button
               type="button"
-              onClick={() =>
-                setMessages([
-                  {
-                    role: 'assistant',
-                    contentKey: 'coach_cleared_full',
-                  },
-                ])
-              }
+              onClick={() => clearMessages('full')}
               className="px-2.5 py-1.5 text-xs font-semibold text-[var(--text-secondary)] hover:text-rose-600 dark:hover:text-rose-400 rounded-xl hover:bg-[var(--bg-hover)] transition-colors cursor-pointer flex items-center gap-1.5"
               title={t('coach_clear_title')}
               aria-label={t('coach_clear_title')}
@@ -549,11 +465,22 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
                 )}
 
                 {isSending && !streamingContent && (
-                  <div className="flex items-center gap-3 text-[var(--text-secondary)] text-xs py-2">
-                    <div className="w-8 h-8 rounded-xl bg-[var(--accent-soft)] text-[var(--accent-text)] border border-[var(--accent-border)]/70 flex items-center justify-center shrink-0">
-                      <Bot className="w-4 h-4 animate-pulse" />
+                  <div className="flex items-center justify-between gap-3 text-[var(--text-secondary)] text-xs py-2 px-3 rounded-xl bg-[var(--bg-subtle)]/70 border border-[var(--border-hairline)]">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-xl bg-[var(--accent-soft)] text-[var(--accent-text)] border border-[var(--accent-border)]/70 flex items-center justify-center shrink-0">
+                        <Bot className="w-4 h-4 animate-pulse" />
+                      </div>
+                      <span className="animate-pulse font-medium">
+                        {t('coach_analyzing')} ({elapsedSec}s · {t('ai_bg_switch_safe')})
+                      </span>
                     </div>
-                    <span className="animate-pulse font-medium">{t('coach_analyzing')}</span>
+                    <button
+                      type="button"
+                      onClick={cancelSending}
+                      className="px-2.5 py-1 rounded-lg border border-[var(--border-default)] bg-[var(--bg-surface)] hover:text-[var(--status-err-text)] text-[11px] font-semibold cursor-pointer"
+                    >
+                      {t('ai_job_stop')}
+                    </button>
                   </div>
                 )}
               </>
@@ -641,14 +568,7 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
         <div className="flex items-center gap-1">
           <button
             type="button"
-            onClick={() =>
-              setMessages([
-                {
-                  role: 'assistant',
-                  contentKey: 'coach_cleared_drawer',
-                },
-              ])
-            }
+            onClick={() => clearMessages('drawer')}
             className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-rose-500 hover:bg-[var(--bg-hover)] cursor-pointer"
             title={t('coach_clear_title')}
             aria-label={t('coach_clear_title')}
