@@ -6,6 +6,7 @@ import {
   type LectureTranscriptionMode,
 } from '../services/localAiConfig';
 import {
+  isVideoFile,
   loadAllLecturesFromDb,
   loadLectureSegmentsFromDb,
   postSummarizeLecture,
@@ -49,6 +50,7 @@ const LECTURE_JOB_ID = 'lecture-studio-job';
 const sessionOnlineChunks = new Map<string, OnlineAudioChunk[]>();
 const sessionOfflineClips = new Map<string, OfflineAudioClip[]>();
 const sessionAudioUrls = new Map<string, string>();
+const sessionMediaKinds = new Map<string, 'audio' | 'video'>();
 let activeLectureController: AbortController | null = null;
 
 function sleepWithAbort(ms: number, signal: AbortSignal): Promise<void> {
@@ -117,6 +119,7 @@ interface LectureStoreState {
   setMode: (mode: LectureTranscriptionMode) => void;
   setLanguage: (lang: LectureLanguage) => void;
   getAudioUrl: (lectureId: string) => string | null;
+  getMediaKind: (lectureId: string) => 'audio' | 'video';
   canResumeInSession: (lectureId: string) => boolean;
   cancelActiveJob: () => void;
   startLectureFile: (params: {
@@ -170,6 +173,7 @@ export const useLectureStore = create<LectureStoreState>((set, get) => ({
   setLanguage: (language) => set({ language }),
 
   getAudioUrl: (lectureId) => sessionAudioUrls.get(lectureId) || null,
+  getMediaKind: (lectureId) => sessionMediaKinds.get(lectureId) || 'audio',
 
   canResumeInSession: (lectureId) => {
     const lec = get().lectures.find((l) => l.id === lectureId);
@@ -218,10 +222,16 @@ export const useLectureStore = create<LectureStoreState>((set, get) => ({
     const now = new Date().toISOString();
     const cleanTitle = title.trim() || file.name.replace(/\.[^.]+$/, '') || t('lecture_default_title');
 
+    const videoInput = isVideoFile(file);
     try {
       const audioUrl = URL.createObjectURL(file);
       sessionAudioUrls.set(lectureId, audioUrl);
+      sessionMediaKinds.set(lectureId, videoInput ? 'video' : 'audio');
     } catch {}
+
+    const decodeLabel = videoInput
+      ? t('lecture_prog_extracting_video')
+      : t('lecture_prog_decoding');
 
     const record: LectureRecord = {
       id: lectureId,
@@ -247,7 +257,7 @@ export const useLectureStore = create<LectureStoreState>((set, get) => ({
       error: null,
       progress: {
         percent: 2,
-        label: t('lecture_prog_decoding'),
+        label: decodeLabel,
         detail: cleanTitle,
       },
     }));
@@ -256,7 +266,7 @@ export const useLectureStore = create<LectureStoreState>((set, get) => ({
       id: LECTURE_JOB_ID,
       kind: 'lecture',
       title: cleanTitle,
-      label: t('lecture_prog_decoding'),
+      label: decodeLabel,
       percent: 2,
       targetTab: 'lecture-studio',
       cancel: () => get().cancelActiveJob(),
@@ -441,6 +451,7 @@ export const useLectureStore = create<LectureStoreState>((set, get) => ({
       try { URL.revokeObjectURL(url); } catch {}
       sessionAudioUrls.delete(lectureId);
     }
+    sessionMediaKinds.delete(lectureId);
     await db.lectureSegments.where('lectureId').equals(lectureId).delete().catch(() => {});
     await db.lectures.delete(lectureId).catch(() => {});
     set((s) => {

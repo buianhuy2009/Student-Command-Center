@@ -21,7 +21,12 @@ import {
 import { MathMarkdown } from '../MathMarkdown';
 import { AiProgressBar } from '../ui/AiProgressBar';
 import { db } from '../../services/db';
-import { detectAudioFileDurationSec, type LectureSummaryPayload } from '../../services/lectureAudio';
+import {
+  detectAudioFileDurationSec,
+  isSupportedLectureMediaFile,
+  isVideoFile,
+  type LectureSummaryPayload,
+} from '../../services/lectureAudio';
 import '../../services/lectureOfflineAsr';
 import type { LectureTranscriptionMode } from '../../services/localAiConfig';
 import { clearOfflineModels, getOfflineModelCacheStats } from '../../services/localMediaManager';
@@ -68,6 +73,7 @@ export const LectureStudioWorkspace: React.FC<LectureStudioWorkspaceProps> = ({
     setMode,
     setLanguage,
     getAudioUrl,
+    getMediaKind,
     canResumeInSession,
     cancelActiveJob,
     startLectureFile,
@@ -87,7 +93,7 @@ export const LectureStudioWorkspace: React.FC<LectureStudioWorkspaceProps> = ({
   const [cacheStats, setCacheStats] = useState<{ entryCount: number; approxMb: number } | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const audioRef = useRef<HTMLAudioElement>(null);
+  const mediaRef = useRef<HTMLMediaElement | null>(null);
 
   useEffect(() => {
     hydrateLectures();
@@ -132,6 +138,7 @@ export const LectureStudioWorkspace: React.FC<LectureStudioWorkspaceProps> = ({
   }, [activeLecture?.flashcardsJson]);
 
   const sessionAudioUrl = activeLecture ? getAudioUrl(activeLecture.id) : null;
+  const sessionMediaKind = activeLecture ? getMediaKind(activeLecture.id) : 'audio';
 
   const durationEstimate = useMemo(() => {
     const sampleSec = detectedDurationSec || 3600;
@@ -139,7 +146,7 @@ export const LectureStudioWorkspace: React.FC<LectureStudioWorkspaceProps> = ({
   }, [detectedDurationSec, mode]);
 
   const handleFilePick = async (file: File | undefined) => {
-    if (!file) return;
+    if (!file || !isSupportedLectureMediaFile(file)) return;
     setSelectedFile(file);
     setSavedNotesNotice(false);
     setSavedDeckNotice(false);
@@ -163,7 +170,7 @@ export const LectureStudioWorkspace: React.FC<LectureStudioWorkspaceProps> = ({
   };
 
   const seekAudioTo = (sec: number) => {
-    const el = audioRef.current;
+    const el = mediaRef.current;
     if (!el) return;
     try {
       el.currentTime = Math.max(0, sec);
@@ -454,7 +461,7 @@ export const LectureStudioWorkspace: React.FC<LectureStudioWorkspaceProps> = ({
             <input
               ref={fileInputRef}
               type="file"
-              accept="audio/*,.mp3,.m4a,.wav,.ogg,.webm"
+              accept="audio/*,video/*,.mp3,.m4a,.wav,.ogg,.webm,.mp4,.mov,.m4v,.mkv"
               className="hidden"
               onChange={(e) => {
                 handleFilePick(e.target.files?.[0]);
@@ -492,6 +499,11 @@ export const LectureStudioWorkspace: React.FC<LectureStudioWorkspaceProps> = ({
                     })
                   : t('lecture_drop_sub')}
               </p>
+              {selectedFile && isVideoFile(selectedFile) && (
+                <p className="mt-2 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-[var(--accent-soft)] text-[var(--accent-text)] border border-[var(--accent-border)]/60">
+                  {t('lecture_video_auto_extract')}
+                </p>
+              )}
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 gap-2">
@@ -647,14 +659,27 @@ export const LectureStudioWorkspace: React.FC<LectureStudioWorkspaceProps> = ({
                 </div>
               </div>
 
-              {sessionAudioUrl && (
-                <audio
-                  ref={audioRef}
-                  controls
-                  src={sessionAudioUrl}
-                  className="w-full h-10 rounded-xl"
-                />
-              )}
+              {sessionAudioUrl &&
+                (sessionMediaKind === 'video' ? (
+                  <video
+                    ref={(el) => {
+                      mediaRef.current = el;
+                    }}
+                    controls
+                    playsInline
+                    src={sessionAudioUrl}
+                    className="w-full max-h-[260px] rounded-xl bg-black"
+                  />
+                ) : (
+                  <audio
+                    ref={(el) => {
+                      mediaRef.current = el;
+                    }}
+                    controls
+                    src={sessionAudioUrl}
+                    className="w-full h-10 rounded-xl"
+                  />
+                ))}
 
               {/* Tabs: Summary & Outline vs Transcript */}
               <div className="inline-flex items-center gap-1 p-1 bg-[var(--bg-subtle)] rounded-xl border border-[var(--border-default)] self-start">

@@ -3645,8 +3645,9 @@ export const en = {
   lecture_mode_offline_base_hint: 'Needs ~1 GB free RAM · ~20–30 min/hr · Higher VI accuracy',
   lecture_notice_online: 'Estimated ~{min}–{max} min for this audio. Feel free to switch to Gmail, Canvas, Notes, or other tabs — transcription will keep running in the background and auto-save progress.',
   lecture_notice_offline: 'Offline mode on this device will take ~{min}–{max} min for this audio (0 API tokens needed). Feel free to switch to Gmail, Canvas, or other tabs — transcription will keep running in the background and auto-save progress.',
-  lecture_drop_title: 'Drop lecture recording here (MP3, M4A, WAV, OGG)',
-  lecture_drop_sub: 'Up to 60–90 minute lectures supported · Silence trimmed automatically',
+  lecture_drop_title: 'Drop lecture audio or video here (MP4, MOV, WebM, MP3, M4A, WAV)',
+  lecture_drop_sub: 'Audio is automatically extracted from video files · Silence trimmed locally',
+  lecture_video_auto_extract: 'Video detected — audio will be extracted automatically',
   lecture_detected_duration: 'Duration: {duration} · {mb} MB',
   lecture_title_ph: 'Lecture title (e.g. Week 5 Linear Algebra)...',
   lecture_start_btn: 'Transcribe & Summarize Lecture',
@@ -3670,6 +3671,7 @@ export const en = {
   lecture_open_flashcards: 'Open Flashcards',
   lecture_coach_prompt: 'Help me review and quiz myself on this lecture: "{title}". Highlight the 3 hardest concepts and ask me 2 check-up questions.',
   lecture_prog_decoding: 'Decoding audio to 16 kHz mono...',
+  lecture_prog_extracting_video: 'Extracting audio track from video...',
   lecture_prog_vad_download: 'Loading silence detector...',
   lecture_prog_vad_scan: 'Trimming classroom silence...',
   lecture_prog_chunk: 'Transcribing chunk {current} of {total}',
@@ -3692,6 +3694,15 @@ export const en = {
   changelog_r_2_24_0_d1: 'Switch Note Scanner between Online (Gemini) and Offline (On-Device) with dedicated models for printed pages (~13 MB), Vietnamese handwriting (~41 MB), and English handwriting (~64 MB), plus automatic RAM cleanup.',
   changelog_r_2_24_0_d2: 'Upload MP3, M4A, WAV, or OGG lectures in Lecture Studio: on-device silence detection trims classroom pauses first, then transcribes in ~1.5–3 min online or runs 100% offline with PhoWhisper Tiny/Base and saves every segment to IndexedDB.',
   changelog_r_2_24_0_d3: 'Watch live % progress in the top Navbar AI Tasks pill, jump back to any running tool, receive completion toasts, or click Stop anytime without losing work when switching to Gmail, Canvas, or Notes.',
+
+  // Changelog v2.24.1
+  changelog_r_2_24_1_t: 'Direct Video Upload & Automatic Audio Extraction in Lecture Studio',
+  changelog_r_2_24_1_h1: 'Upload MP4, MOV, M4V, MKV, or WebM lecture videos directly into Lecture Studio — audio is extracted automatically on-device',
+  changelog_r_2_24_1_h2: 'Built-in video playback lets you click any [mm:ss] transcript or outline timestamp to jump straight to that moment in the lecture video',
+  changelog_r_2_24_1_h3: 'Automatic browser fallback handles video containers that Web Audio cannot demux directly without requiring external tools',
+  changelog_r_2_24_1_d1: 'Lecture Studio now accepts both audio and video files directly in the upload dropzone and automatically extracts the 16 kHz mono speech track before silence trimming and transcription.',
+  changelog_r_2_24_1_d2: 'When you upload a video lecture, Lecture Studio shows an inline video player synced to clickable [mm:ss] timestamps across your transcript and study outline.',
+  changelog_r_2_24_1_d3: 'If a video container cannot be demuxed directly by Web Audio, Lecture Studio falls back to capturing the video audio track in-browser so you never have to convert MP4s manually.',
 
 } as const;
 

@@ -6,6 +6,12 @@
     <description>Plain-English updates to StudentOS — what changed and why it matters for studying.</description>
     <language>en-us</language>
     <item>
+      <title>v2.24.1 — Direct Video Upload &amp; Automatic Audio Extraction in Lecture Studio</title>
+      <link>https://sutdent-command-center.vercel.app/?changelog=2.24.1</link>
+      <pubDate>Tue, 24 Nov 2026 05:38:00 GMT</pubDate>
+      <description>StudentOS v2.24.1 lets students drop MP4, MOV, M4V, MKV, and WebM lecture videos directly into Lecture Studio, automatically extracting the audio track on-device with inline video playback synced to clickable timestamps.</description>
+    </item>
+    <item>
       <title>v2.24.0 — Hybrid AI Note Scanner (3 Offline Modes), Lecture Studio &amp; Background AI Tasks</title>
       <link>https://sutdent-command-center.vercel.app/?changelog=2.24.0</link>
       <pubDate>Tue, 24 Nov 2026 05:25:00 GMT</pubDate>

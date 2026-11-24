@@ -3637,8 +3637,9 @@ export const vi = {
   lecture_mode_offline_base_hint: 'Cần ~1 GB RAM trống · ~20–30 phút/giờ · Nhận diện tiếng Việt tốt hơn',
   lecture_notice_online: 'Ước tính khoảng ~{min}–{max} phút cho tệp âm thanh này. Bạn có thể chuyển sang Gmail, Canvas, Ghi chú hoặc các tab khác thoải mái — hệ thống vẫn chạy nền và tự lưu tiến độ.',
   lecture_notice_offline: 'Chế độ Offline trên máy sẽ mất khoảng ~{min}–{max} phút cho tệp này (không tốn API). Bạn có thể chuyển sang Gmail, Canvas hoặc các tab khác thoải mái — quá trình vẫn chạy nền và tự lưu từng đoạn.',
-  lecture_drop_title: 'Thả tệp ghi âm bài giảng vào đây (MP3, M4A, WAV, OGG)',
-  lecture_drop_sub: 'Hỗ trợ bài giảng dài 60–90 phút · Tự động cắt khoảng lặng',
+  lecture_drop_title: 'Thả tệp âm thanh hoặc video bài giảng vào đây (MP4, MOV, WebM, MP3, M4A, WAV)',
+  lecture_drop_sub: 'Tự động tách âm thanh từ tệp video · Tự cắt khoảng lặng trên máy',
+  lecture_video_auto_extract: 'Đã nhận diện video — âm thanh sẽ tự động được tách',
   lecture_detected_duration: 'Thời lượng: {duration} · {mb} MB',
   lecture_title_ph: 'Tên bài giảng (VD: Đại số tuyến tính Tuần 5)...',
   lecture_start_btn: 'Chép lời & Tóm tắt Bài giảng',
@@ -3662,6 +3663,7 @@ export const vi = {
   lecture_open_flashcards: 'Mở Flashcard',
   lecture_coach_prompt: 'Hãy giúp mình ôn tập và tự kiểm tra bài giảng "{title}". Nêu 3 khái niệm khó nhất và đặt cho mình 2 câu hỏi kiểm tra.',
   lecture_prog_decoding: 'Đang giải mã âm thanh sang mono 16 kHz...',
+  lecture_prog_extracting_video: 'Đang tách âm thanh từ tệp video...',
   lecture_prog_vad_download: 'Đang tải bộ lọc khoảng lặng...',
   lecture_prog_vad_scan: 'Đang cắt bỏ khoảng lặng lớp học...',
   lecture_prog_chunk: 'Đang chép lời phần {current} / {total}',
@@ -3684,5 +3686,14 @@ export const vi = {
   changelog_r_2_24_0_d1: 'Chuyển đổi linh hoạt giữa Online (Gemini) và Offline (Trên máy) trong Note Scanner với mô hình riêng cho tài liệu in (~13 MB), chữ viết tay Việt (~41 MB) và chữ viết tay Anh (~64 MB) cùng tự động giải phóng RAM.',
   changelog_r_2_24_0_d2: 'Tải lên file MP3, M4A, WAV hoặc OGG trong Lecture Studio: bộ lọc khoảng lặng trên máy cắt bớt đoạn nghỉ trước, sau đó chép lời trong ~1.5–3 phút online hoặc chạy 100% offline với PhoWhisper Tiny/Base và tự lưu vào IndexedDB.',
   changelog_r_2_24_0_d3: 'Theo dõi % tiến độ trực tiếp trên thanh Navbar, quay lại nhanh công cụ đang chạy, nhận thông báo khi xong hoặc bấm Dừng bất kỳ lúc nào mà không bị mất tiến độ khi chuyển sang Gmail, Canvas hay Ghi chú.',
+
+  // Changelog v2.24.1
+  changelog_r_2_24_1_t: 'Hỗ trợ tải trực tiếp tệp Video & Tự động tách âm thanh trong Lecture Studio',
+  changelog_r_2_24_1_h1: 'Tải trực tiếp video bài giảng MP4, MOV, M4V, MKV hoặc WebM vào Lecture Studio — hệ thống tự động tách âm thanh trên máy',
+  changelog_r_2_24_1_h2: 'Trình phát video tích hợp cho phép bấm vào mọi mốc [mm:ss] trong bản chép lời hoặc mục lục để nhảy thẳng tới đoạn đó',
+  changelog_r_2_24_1_h3: 'Cơ chế dự phòng tự động trong trình duyệt xử lý các tệp video đặc biệt mà không cần công cụ chuyển đổi ngoài',
+  changelog_r_2_24_1_d1: 'Lecture Studio nay nhận trực tiếp cả tệp âm thanh và video, tự động tách kênh tiếng mono 16 kHz trước khi cắt khoảng lặng và chép lời.',
+  changelog_r_2_24_1_d2: 'Khi tải video bài giảng, trình phát video hiển thị ngay trong Lecture Studio và đồng bộ với các mốc thời gian [mm:ss] trong bản chép và đề cương.',
+  changelog_r_2_24_1_d3: 'Nếu một tệp video không thể tách trực tiếp bằng Web Audio, hệ thống tự động chuyển sang tách âm thanh qua trình phát trình duyệt để bạn không bao giờ phải đổi đuôi MP4 thủ công.',
 
 } satisfies Record<TranslationKey, string>;

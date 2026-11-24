@@ -28,25 +28,178 @@ export function uint8ToBase64(bytes: Uint8Array): string {
   return btoa(parts.join(''));
 }
 
-/**
- * Decodes any browser-supported audio file (MP3/M4A/WAV/OGG/WebM) directly to 16 kHz mono Float32Array
- * and drops the full-rate AudioBuffer immediately to keep RAM usage low on 8 GB devices.
- */
-export async function decodeAudioFileTo16kMono(file: File): Promise<{
-  pcm16k: Float32Array;
-  durationSec: number;
-}> {
-  const arrayBuf = await file.arrayBuffer();
+const VIDEO_EXT_RE = /\.(mp4|mov|m4v|mkv|avi)$/i;
+const MEDIA_EXT_RE = /\.(mp3|m4a|wav|ogg|webm|aac|flac|mp4|mov|m4v|mkv|avi)$/i;
+
+export function isVideoFile(file: Pick<File, 'name' | 'type'>): boolean {
+  const mime = String(file.type || '').toLowerCase();
+  if (mime.startsWith('video/')) return true;
+  if (mime.startsWith('audio/')) return false;
+  return VIDEO_EXT_RE.test(file.name || '');
+}
+
+export function isSupportedLectureMediaFile(file: Pick<File, 'name' | 'type'>): boolean {
+  const mime = String(file.type || '').toLowerCase();
+  if (mime.startsWith('audio/') || mime.startsWith('video/')) return true;
+  return MEDIA_EXT_RE.test(file.name || '');
+}
+
+async function decodeBufferToAudioBuffer(arrayBuf: ArrayBuffer): Promise<AudioBuffer> {
   const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
   if (!AudioCtx) {
     throw new Error('Web Audio API is not supported in this browser.');
   }
   const tempCtx = new AudioCtx();
-  let decoded: AudioBuffer;
   try {
-    decoded = await tempCtx.decodeAudioData(arrayBuf);
+    return await tempCtx.decodeAudioData(arrayBuf);
   } finally {
     await tempCtx.close().catch(() => {});
+  }
+}
+
+/**
+ * Fallback video-to-audio extractor when AudioContext.decodeAudioData cannot directly demux a container.
+ * Uses a muted <video> element + captureStream() + MediaRecorder to capture only the audio track.
+ */
+async function extractAudioBlobFromVideoElement(
+  file: File,
+  signal?: AbortSignal
+): Promise<Blob> {
+  if (typeof document === 'undefined' || typeof MediaRecorder === 'undefined') {
+    throw new Error('Could not decode audio track from this video format in this browser.');
+  }
+
+  const url = URL.createObjectURL(file);
+  const video = document.createElement('video');
+  video.muted = true;
+  video.playsInline = true;
+  video.preload = 'auto';
+  video.src = url;
+
+  try {
+    await new Promise<void>((resolve, reject) => {
+      video.onloadedmetadata = () => resolve();
+      video.onerror = () => reject(new Error('Could not load video file for audio extraction.'));
+    });
+
+    if (signal?.aborted) throw new Error('ABORTED');
+
+    const captureFn =
+      (video as any).captureStream?.bind(video) ||
+      (video as any).mozCaptureStream?.bind(video);
+    if (!captureFn) {
+      throw new Error('This browser cannot extract audio tracks from unsupported video containers.');
+    }
+
+    const rawStream: MediaStream = captureFn();
+    const audioTracks = rawStream.getAudioTracks();
+    if (audioTracks.length === 0) {
+      throw new Error('No audio track found in this video file.');
+    }
+
+    const audioOnlyStream = new MediaStream(audioTracks);
+    const mimeCandidates = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'];
+    const chosenMime = mimeCandidates.find((m) => MediaRecorder.isTypeSupported(m));
+    const recorder = chosenMime
+      ? new MediaRecorder(audioOnlyStream, { mimeType: chosenMime })
+      : new MediaRecorder(audioOnlyStream);
+
+    const chunks: Blob[] = [];
+    recorder.ondataavailable = (ev) => {
+      if (ev.data && ev.data.size > 0) chunks.push(ev.data);
+    };
+
+    return await new Promise<Blob>((resolve, reject) => {
+      const cleanupTracks = () => {
+        try {
+          video.pause();
+        } catch {}
+        rawStream.getTracks().forEach((tr) => tr.stop());
+      };
+
+      const onAbort = () => {
+        try {
+          if (recorder.state !== 'inactive') recorder.stop();
+        } catch {}
+        cleanupTracks();
+        reject(new Error('ABORTED'));
+      };
+
+      if (signal) signal.addEventListener('abort', onAbort, { once: true });
+
+      recorder.onerror = () => {
+        if (signal) signal.removeEventListener('abort', onAbort);
+        cleanupTracks();
+        reject(new Error('Failed to extract audio from video.'));
+      };
+
+      recorder.onstop = () => {
+        if (signal) signal.removeEventListener('abort', onAbort);
+        cleanupTracks();
+        if (signal?.aborted) {
+          reject(new Error('ABORTED'));
+          return;
+        }
+        resolve(new Blob(chunks, { type: chosenMime || 'audio/webm' }));
+      };
+
+      video.onended = () => {
+        if (recorder.state !== 'inactive') recorder.stop();
+      };
+
+      try {
+        video.playbackRate = 8;
+      } catch {
+        try {
+          video.playbackRate = 4;
+        } catch {}
+      }
+
+      recorder.start(500);
+      video.play().catch((err) => {
+        if (recorder.state !== 'inactive') recorder.stop();
+        cleanupTracks();
+        reject(err instanceof Error ? err : new Error('Could not play video to extract audio.'));
+      });
+    });
+  } finally {
+    video.src = '';
+    URL.revokeObjectURL(url);
+  }
+}
+
+/**
+ * Decodes any browser-supported audio OR video file (MP3/M4A/WAV/OGG/WebM/MP4/MOV/M4V/MKV)
+ * directly to 16 kHz mono Float32Array, automatically extracting the audio track from videos
+ * and dropping the full-rate AudioBuffer immediately to keep RAM usage low on 8 GB devices.
+ */
+export async function decodeAudioFileTo16kMono(
+  file: File,
+  signal?: AbortSignal
+): Promise<{
+  pcm16k: Float32Array;
+  durationSec: number;
+}> {
+  if (signal?.aborted) throw new Error('ABORTED');
+
+  let decoded: AudioBuffer;
+  try {
+    // Native C++ AudioContext.decodeAudioData demuxes MP4/MOV/WebM audio tracks directly in ~1-3s.
+    const arrayBuf = await file.arrayBuffer();
+    if (signal?.aborted) throw new Error('ABORTED');
+    decoded = await decodeBufferToAudioBuffer(arrayBuf);
+  } catch (primaryErr: any) {
+    if (primaryErr?.message === 'ABORTED' || signal?.aborted) {
+      throw new Error('ABORTED');
+    }
+    if (!isVideoFile(file)) {
+      throw primaryErr;
+    }
+    // Fallback for video containers that decodeAudioData cannot demux directly.
+    const extractedAudioBlob = await extractAudioBlobFromVideoElement(file, signal);
+    if (signal?.aborted) throw new Error('ABORTED');
+    const extractedBuf = await extractedAudioBlob.arrayBuffer();
+    decoded = await decodeBufferToAudioBuffer(extractedBuf);
   }
 
   const durationSec = Math.round(decoded.duration * 10) / 10;
@@ -69,22 +222,22 @@ export async function detectAudioFileDurationSec(file: File): Promise<number | n
   const url = URL.createObjectURL(file);
   try {
     return await new Promise<number | null>((resolve) => {
-      const audio = document.createElement('audio');
-      audio.preload = 'metadata';
+      const media = document.createElement(isVideoFile(file) ? 'video' : 'audio');
+      media.preload = 'metadata';
       const cleanup = () => {
-        audio.onloadedmetadata = null;
-        audio.onerror = null;
+        media.onloadedmetadata = null;
+        media.onerror = null;
       };
-      audio.onloadedmetadata = () => {
-        const d = Number.isFinite(audio.duration) ? Math.round(audio.duration) : null;
+      media.onloadedmetadata = () => {
+        const d = Number.isFinite(media.duration) ? Math.round(media.duration) : null;
         cleanup();
         resolve(d);
       };
-      audio.onerror = () => {
+      media.onerror = () => {
         cleanup();
         resolve(null);
       };
-      audio.src = url;
+      media.src = url;
     });
   } finally {
     URL.revokeObjectURL(url);
@@ -189,7 +342,7 @@ export async function prepareLectureChunks(params: {
   onlineChunks: OnlineAudioChunk[];
   offlineClips: OfflineAudioClip[];
 }> {
-  const { pcm16k, durationSec } = await decodeAudioFileTo16kMono(params.file);
+  const { pcm16k, durationSec } = await decodeAudioFileTo16kMono(params.file, params.signal);
   if (params.signal?.aborted) throw new Error('ABORTED');
 
   const vadRes = await runLocalVadProcess({
