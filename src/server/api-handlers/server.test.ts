@@ -493,8 +493,8 @@ describe("Server models & unified API surface", () => {
       expect(resGroq.body).toEqual({ reply: "Groq fast reply", mode: "quick", provider: "groq", model: "llama-3.3-70b-versatile" });
     });
 
-    it("routes email summarization through the Fast (Gemma 4) model group", async () => {
-      expect(EMAIL_FAST_MODELS).toEqual(["gemma-4-31b-it", "gemma-4-26b-a4b-it"]);
+    it("routes email summarization through Gemini 3.5 Flash Lite with Gemma 4 31B fallback", async () => {
+      expect(EMAIL_FAST_MODELS).toEqual(["gemini-3.5-flash-lite", "gemma-4-31b-it"]);
       process.env.GEMINI_API_KEY = "AIzaTestOnly";
       generateContentMock.mockResolvedValue({
         text: JSON.stringify({
@@ -517,16 +517,13 @@ describe("Server models & unified API surface", () => {
       const res = createMockRes();
       await handleSummarizeEmails({ method: "POST", body: { emails: [{ id: "e1", sender: "Ms. Lan", subject: "Math HW", body: "Submit 24/11" }] } }, res);
       expect(res.statusCode).toBe(200);
-      expect(generateContentMock).toHaveBeenCalledWith(expect.objectContaining({ model: "gemma-4-31b-it" }));
-      const gemmaCall = generateContentMock.mock.calls[0]?.[0];
-      expect(gemmaCall?.config?.responseMimeType).toBeUndefined();
-      expect(res.body.model).toBe("gemma-4-31b-it");
+      expect(generateContentMock).toHaveBeenCalledWith(expect.objectContaining({ model: "gemini-3.5-flash-lite" }));
+      expect(res.body.model).toBe("gemini-3.5-flash-lite");
 
-      // If Gemma 4 models fail, email summarization falls back to Gemini Flash with JSON mode.
+      // If Gemini 3.5 Flash Lite fails, it falls back to Gemma 4 31B (with JSON mode stripped), then Gemini Flash.
       generateContentMock.mockReset();
       generateContentMock
-        .mockRejectedValueOnce(new Error("Gemma 31B unavailable"))
-        .mockRejectedValueOnce(new Error("Gemma 26B unavailable"))
+        .mockRejectedValueOnce(new Error("Flash Lite 3.5 unavailable"))
         .mockResolvedValueOnce({
           text: JSON.stringify({
             alerts: [
@@ -546,7 +543,10 @@ describe("Server models & unified API surface", () => {
       const resBackup = createMockRes();
       await handleSummarizeEmails({ method: "POST", body: { emails: [{ id: "e2", sender: "Mr. Minh", subject: "Physics Quiz", body: "Quiz this Friday" }] } }, resBackup);
       expect(resBackup.statusCode).toBe(200);
-      expect(resBackup.body.model).toBe("gemini-3-flash-preview");
+      const gemmaCall = generateContentMock.mock.calls[1]?.[0];
+      expect(gemmaCall?.model).toBe("gemma-4-31b-it");
+      expect(gemmaCall?.config?.responseMimeType).toBeUndefined();
+      expect(resBackup.body.model).toBe("gemma-4-31b-it");
       expect(resBackup.body.alerts[0]).toMatchObject({ id: "e2", aiStatus: "ok", category: "EXAM" });
     });
 
@@ -619,7 +619,13 @@ describe("Server models & unified API surface", () => {
         okRes
       );
       expect(okRes.statusCode).toBe(200);
-      expect(okRes.body).toEqual({ ok: true, delivered: true, transport: "resend", id: "email_123" });
+      expect(okRes.body).toEqual({
+        ok: true,
+        delivered: true,
+        transport: "resend",
+        from: "studentos.service@gmail.com",
+        id: "email_123",
+      });
       expect(fetchSpy).toHaveBeenCalledWith(
         "https://api.resend.com/emails",
         expect.objectContaining({

@@ -57,4 +57,28 @@ describe('Gmail review box', () => {
     );
     expect(cachedHtml).toContain('Showing saved emails');
   });
+
+  it('separates General from Promotions, shows accurate total counts, and renders Edit AI Details control', () => {
+    setLang('en');
+    const mixed: EmailAlert[] = [
+      { id: 'g1', sender: 'School Admin', subject: 'Library hours', oneLineSummary: 'Open late', urgency: 'LOW', category: 'GENERAL', aiStatus: 'ok' },
+      { id: 'p1', sender: 'Shop', subject: '50% off', oneLineSummary: 'Sale', urgency: 'INFO', category: 'PROMOTION', isSpam: true, aiStatus: 'ok' },
+      { id: 'p2', sender: 'Newsletter', subject: 'Weekly digest', oneLineSummary: 'News', urgency: 'INFO', category: 'PROMOTION', isSpam: true, aiStatus: 'ok' },
+    ];
+    const html = renderToStaticMarkup(
+      <GmailRadarTab
+        emailAlerts={mixed}
+        rawEmails={[]}
+        isLoadingEmails={false}
+        onRefreshEmails={() => {}}
+        onOpenQuickDraft={() => {}}
+        onExtractAssignment={() => {}}
+      />
+    );
+    expect(html).toContain('General');
+    expect(html).toContain('Promotions');
+    expect(html).not.toContain('Other &amp; Promos');
+    expect(html).toContain('Edit AI Details');
+    expect(html).toContain('3 Messages');
+  });
 });

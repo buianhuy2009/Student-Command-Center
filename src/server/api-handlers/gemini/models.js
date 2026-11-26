@@ -37,8 +37,8 @@ export const COACH_MODE_MODELS = {
   apex: ["gemini-3.8-flash"],
 };
 
-// Email triage uses the Fast (Gemma 4 + Groq) group.
-export const EMAIL_FAST_MODELS = ["gemma-4-31b-it", "gemma-4-26b-a4b-it"];
+// Email triage uses Gemini 3.5 Flash Lite first, with Gemma 4 31B backup.
+export const EMAIL_FAST_MODELS = ["gemini-3.5-flash-lite", "gemma-4-31b-it"];
 
 // Note image OCR uses the cheapest image-capable model group first, with Lite/Flash backup.
 export const VISION_CHEAPEST_MODELS = [

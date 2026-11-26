@@ -2150,6 +2150,20 @@ export default function App() {
   // One inbox of school messages: Gmail + Classroom announcements.
   const allAlerts = useMemo(() => [...emailAlerts, ...classroomAlerts], [emailAlerts, classroomAlerts]);
 
+  // Manual override: student edits an email's AI-classified category, subject, deadline, or priority.
+  const handleUpdateEmailAlert = useCallback((updated: EmailAlert) => {
+    const swap = (list: EmailAlert[]) => list.map((a) => (a.id === updated.id ? updated : a));
+    if (updated.origin === 'classroom') {
+      setClassroomAlerts((prev) => swap(prev));
+    } else {
+      setEmailAlerts((prev) => {
+        const next = sanitizeEmailAlerts(swap(prev));
+        saveEmailAlerts(next);
+        return next;
+      });
+    }
+  }, []);
+
   // "Cho AI đọc thư này": the student asks the AI to read one email Gmail had filed away.
   const handleForceAIRead = useCallback(async (alert: EmailAlert) => {
     const raw = alert.rawEmail;
@@ -3870,6 +3884,7 @@ export default function App() {
                   <GmailRadarTab
                     emailAlerts={allAlerts}
                     onForceAIRead={handleForceAIRead}
+                    onUpdateEmailAlert={handleUpdateEmailAlert}
                     rawEmails={rawEmails}
                     isLoadingEmails={isLoadingEmails}
                     emailLoadStage={emailLoadStage}

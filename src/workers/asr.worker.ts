@@ -1,6 +1,6 @@
 /// <reference lib="webworker" />
 import { env, pipeline, type ProgressInfo } from '@huggingface/transformers';
-import { LOCAL_MODEL_CATALOG } from '../services/localAiConfig';
+import { LOCAL_MODEL_CATALOG, type OfflineAsrTier } from '../services/localAiConfig';
 
 env.allowLocalModels = false;
 env.useBrowserCache = true;
@@ -19,7 +19,7 @@ type AsrWorkerRequest =
   | {
       type: 'transcribe-clips';
       id: string;
-      modelTier: 'offline-tiny' | 'offline-base';
+      modelTier: OfflineAsrTier;
       language: 'auto' | 'vi' | 'en';
       clips: AsrInputClip[];
     }
@@ -57,11 +57,15 @@ function postAsrProgress(
 }
 
 async function createAsrPipeline(
-  modelTier: 'offline-tiny' | 'offline-base',
+  modelTier: OfflineAsrTier,
   requestId: string
-) {
+): Promise<{ asrPipe: any; modelId: string }> {
   const entry =
-    modelTier === 'offline-base'
+    modelTier === 'offline-en-base'
+      ? LOCAL_MODEL_CATALOG.asrEnBase
+      : modelTier === 'offline-en-tiny'
+      ? LOCAL_MODEL_CATALOG.asrEnTiny
+      : modelTier === 'offline-base'
       ? LOCAL_MODEL_CATALOG.asrBase
       : LOCAL_MODEL_CATALOG.asrTiny;
 
@@ -97,7 +101,7 @@ async function createAsrPipeline(
         device: 'wasm',
         progress_callback,
       });
-      return asrPipe;
+      return { asrPipe, modelId };
     } catch (err) {
       lastErr = err;
     }
@@ -126,7 +130,9 @@ self.onmessage = async (event: MessageEvent<AsrWorkerRequest>) => {
         percent: 15,
       });
 
-      asrPipe = await createAsrPipeline(msg.modelTier, msg.id);
+      const loaded = await createAsrPipeline(msg.modelTier, msg.id);
+      asrPipe = loaded.asrPipe;
+      const isEnglishOnlyModel = /\.en\b|moonshine/i.test(loaded.modelId);
       if (isCancelled(msg.id)) throw new Error('ABORTED');
 
       const total = msg.clips.length;
@@ -140,12 +146,19 @@ self.onmessage = async (event: MessageEvent<AsrWorkerRequest>) => {
           percent: 25 + (i / Math.max(1, total)) * 73,
         });
 
-        const opts: Record<string, unknown> = {
-          chunk_length_s: 30,
-          stride_length_s: 5,
-        };
-        if (msg.language === 'vi') opts.language = 'vietnamese';
-        else if (msg.language === 'en') opts.language = 'english';
+        const opts: Record<string, unknown> = isEnglishOnlyModel && /moonshine/i.test(loaded.modelId)
+          ? {}
+          : {
+              chunk_length_s: 30,
+              stride_length_s: 5,
+            };
+        if (!isEnglishOnlyModel) {
+          if (msg.language === 'vi' || msg.modelTier === 'offline-tiny' || msg.modelTier === 'offline-base') {
+            opts.language = 'vietnamese';
+          } else if (msg.language === 'en') {
+            opts.language = 'english';
+          }
+        }
 
         const out = await asrPipe(clip.pcm16k, opts);
         const text = String(Array.isArray(out) ? out[0]?.text || '' : out?.text || '').trim();

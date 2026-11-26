@@ -1,7 +1,7 @@
 {
   "name": "student-command-center",
   "private": true,
-  "version": "3.2.1",
+  "version": "3.3.0",
   "description": "Student Command Center - Unified academic OS for Canvas LMS, Google Workspace, and AI study coaching",
   "type": "module",
   "scripts": {

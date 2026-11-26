@@ -10,6 +10,7 @@ export interface DailyReportConfig {
 }
 
 export const DAILY_REPORT_KEY = 'scc_daily_report_v1';
+export const DAILY_REPORT_SENDER = 'studentos.service@gmail.com';
 
 export function loadDailyReportConfig(fallbackEmail = ''): DailyReportConfig {
   try {
@@ -81,7 +82,7 @@ export function buildDailyReportContent(params: {
   events: CalendarEvent[];
   config: DailyReportConfig;
   now?: Date;
-}): { subject: string; text: string; html: string; dateStrGmt7: string } {
+}): { from: string; subject: string; text: string; html: string; dateStrGmt7: string } {
   const { assignments, events, config, now = new Date() } = params;
   const { dateStr } = getGmt7NowParts(now);
 
@@ -157,9 +158,10 @@ export function buildDailyReportContent(params: {
   }
 
   htmlParts.push(`<hr style="border: none; border-top: 1px solid #e5e7eb; margin: 18px 0;" />`);
-  htmlParts.push(`<p style="font-size: 12px; color: #6b7280;">Sent from your opted-in StudentOS Daily Email Report.</p></div>`);
+  htmlParts.push(`<p style="font-size: 12px; color: #6b7280;">Sent from <strong>${DAILY_REPORT_SENDER}</strong> (StudentOS Daily Email Report).</p></div>`);
 
   return {
+    from: DAILY_REPORT_SENDER,
     subject: `StudentOS Daily Brief (${dateStr}) — ${pending.length} open tasks`,
     text: lines.join('\n'),
     html: htmlParts.join(''),
@@ -176,8 +178,9 @@ export async function sendDailyReport(params: {
   ok: boolean;
   delivered: boolean;
   transport: 'resend' | 'gmail' | 'preview';
+  from: string;
   dateStrGmt7: string;
-  preview?: { to: string; subject: string; text: string; html: string };
+  preview?: { from: string; to: string; subject: string; text: string; html: string };
 }> {
   const { config, assignments, events, googleAccessToken } = params;
   const content = buildDailyReportContent({ assignments, events, config });
@@ -186,6 +189,7 @@ export async function sendDailyReport(params: {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
+      fromEmail: DAILY_REPORT_SENDER,
       toEmail: config.email.trim(),
       subject: content.subject,
       text: content.text,
@@ -204,6 +208,7 @@ export async function sendDailyReport(params: {
     ok: Boolean(data?.ok),
     delivered: Boolean(data?.delivered),
     transport: data?.transport || 'preview',
+    from: data?.from || data?.preview?.from || DAILY_REPORT_SENDER,
     dateStrGmt7: content.dateStrGmt7,
     preview: data?.preview,
   };

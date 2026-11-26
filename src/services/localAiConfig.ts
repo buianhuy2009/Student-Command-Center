@@ -14,36 +14,38 @@ export const LOCAL_STORAGE_KEYS = {
 
 export type OcrMode = 'printed' | 'handwritten-vi' | 'handwritten-en';
 export type OcrEngineMode = 'online' | 'offline';
-export type LectureTranscriptionMode = 'online' | 'offline-tiny' | 'offline-base';
+export type LectureTranscriptionMode =
+  | 'online'
+  | 'offline-tiny'
+  | 'offline-base'
+  | 'offline-en-tiny'
+  | 'offline-en-base';
+export type OfflineAsrTier = Exclude<LectureTranscriptionMode, 'online'>;
 export type LectureSummaryMode = 'online' | 'offline';
 
-export const LOCAL_MODEL_CACHE_NAME = 'studentos-local-models-v1';
+export const LOCAL_MODEL_CACHE_NAME = 'studentos-local-models-v2';
 
 export interface LocalModelCatalogEntry {
   id: string;
   fallbackId?: string;
   approxMbWasm: number;
   urls?: readonly string[];
+  fallbackUrls?: readonly string[];
 }
 
 export const LOCAL_MODEL_CATALOG = {
   ocrDetector: {
-    id: 'dbnet-v3',
-    approxMbWasm: 3,
+    id: 'pp-ocrv5-mobile-det',
+    approxMbWasm: 5,
     urls: [
+      'https://huggingface.co/PaddlePaddle/PP-OCRv5_mobile_det_onnx/resolve/main/inference.onnx',
+    ],
+    fallbackUrls: [
       'https://huggingface.co/dzngo/vietocr-models/resolve/main/paddleocr/det_v3.onnx',
     ],
   },
   ocrPrinted: {
-    id: 'paddleocr-latin-v5',
-    approxMbWasm: 10,
-    urls: [
-      'https://huggingface.co/monkt/paddleocr-onnx/resolve/main/languages/latin/rec.onnx',
-      'https://huggingface.co/monkt/paddleocr-onnx/resolve/main/languages/latin/dict.txt',
-    ],
-  },
-  ocrHandwrittenVi: {
-    id: 'vietocr-w8',
+    id: 'vietocr-transformer-w8',
     approxMbWasm: 38,
     urls: [
       'https://huggingface.co/dzngo/vietocr-models/resolve/main/vietocr/encoder_w8.onnx',
@@ -52,10 +54,30 @@ export const LOCAL_MODEL_CATALOG = {
       'https://huggingface.co/dzngo/vietocr-models/resolve/main/vietocr/vocab.txt',
     ],
   },
-  ocrHandwrittenEn: {
-    id: 'paddleocr-en-v5',
-    approxMbWasm: 8,
+  ocrHandwrittenVi: {
+    id: 'vietocr-transformer-fp16w',
+    approxMbWasm: 74,
     urls: [
+      'https://huggingface.co/dzngo/vietocr-models/resolve/main/vietocr/encoder_fp16w.onnx',
+      'https://huggingface.co/dzngo/vietocr-models/resolve/main/vietocr/decoder_init_fp16w.onnx',
+      'https://huggingface.co/dzngo/vietocr-models/resolve/main/vietocr/decoder_step_fp16w.onnx',
+      'https://huggingface.co/dzngo/vietocr-models/resolve/main/vietocr/vocab.txt',
+    ],
+    fallbackUrls: [
+      'https://huggingface.co/dzngo/vietocr-models/resolve/main/vietocr/encoder_w8.onnx',
+      'https://huggingface.co/dzngo/vietocr-models/resolve/main/vietocr/decoder_init_w8.onnx',
+      'https://huggingface.co/dzngo/vietocr-models/resolve/main/vietocr/decoder_step_w8.onnx',
+      'https://huggingface.co/dzngo/vietocr-models/resolve/main/vietocr/vocab.txt',
+    ],
+  },
+  ocrHandwrittenEn: {
+    id: 'pp-ocrv5-mobile-rec-en',
+    approxMbWasm: 16,
+    urls: [
+      'https://huggingface.co/PaddlePaddle/PP-OCRv5_mobile_rec_onnx/resolve/main/inference.onnx',
+      'https://huggingface.co/PaddlePaddle/PP-OCRv5_mobile_rec_onnx/resolve/main/inference.yml',
+    ],
+    fallbackUrls: [
       'https://huggingface.co/monkt/paddleocr-onnx/resolve/main/languages/english/rec.onnx',
       'https://huggingface.co/monkt/paddleocr-onnx/resolve/main/languages/english/dict.txt',
     ],
@@ -78,9 +100,20 @@ export const LOCAL_MODEL_CATALOG = {
     fallbackId: 'bichnhan2701/PhoWhisper-base-ONNX',
     approxMbWasm: 160,
   },
+  asrEnTiny: {
+    id: 'onnx-community/whisper-tiny.en',
+    fallbackId: 'onnx-community/moonshine-tiny-ONNX',
+    approxMbWasm: 40,
+  },
+  asrEnBase: {
+    id: 'onnx-community/distil-small.en',
+    fallbackId: 'onnx-community/whisper-base.en',
+    approxMbWasm: 165,
+  },
   gemmaSummary: {
-    id: 'onnx-community/gemma-3-270m-it-ONNX',
-    approxMbWasm: 260,
+    id: 'onnx-community/Qwen3.5-0.8B-Text-ONNX',
+    fallbackId: 'onnx-community/Qwen3-0.6B-ONNX-OPT',
+    approxMbWasm: 450,
   },
 } as const satisfies Record<string, LocalModelCatalogEntry>;
 
@@ -134,7 +167,14 @@ export function getLectureMode(): LectureTranscriptionMode {
   try {
     if (typeof localStorage === 'undefined') return 'online';
     const raw = localStorage.getItem(LOCAL_STORAGE_KEYS.LECTURE_MODE);
-    if (raw === 'offline-tiny' || raw === 'offline-base') return raw;
+    if (
+      raw === 'offline-tiny' ||
+      raw === 'offline-base' ||
+      raw === 'offline-en-tiny' ||
+      raw === 'offline-en-base'
+    ) {
+      return raw;
+    }
     return 'online';
   } catch {
     return 'online';
@@ -145,7 +185,12 @@ export function setLectureMode(mode: LectureTranscriptionMode): void {
   try {
     if (typeof localStorage !== 'undefined') {
       const normalized: LectureTranscriptionMode =
-        mode === 'offline-tiny' || mode === 'offline-base' ? mode : 'online';
+        mode === 'offline-tiny' ||
+        mode === 'offline-base' ||
+        mode === 'offline-en-tiny' ||
+        mode === 'offline-en-base'
+          ? mode
+          : 'online';
       localStorage.setItem(LOCAL_STORAGE_KEYS.LECTURE_MODE, normalized);
     }
   } catch {

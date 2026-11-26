@@ -6,6 +6,12 @@
     <description>Plain-English updates to StudentOS — what changed and why it matters for studying.</description>
     <language>en-us</language>
     <item>
+      <title>v3.3.0 — Smarter Email Triage &amp; Manual Editing, Qwen3.5 0.8B Summary, English 2-Tier ASR &amp; Upgraded Note Scanner Models</title>
+      <link>https://sutdent-command-center.vercel.app/?changelog=3.3.0</link>
+      <pubDate>Thu, 26 Nov 2026 11:55:00 GMT</pubDate>
+      <description>StudentOS v3.3.0 switches email triage to Gemini 3.5 Flash Lite with Gemma 4 31B fallback, fixes inbox tab counts, separates General from Promotions, adds inline manual editing of AI-marked email details, upgrades offline lecture summaries from Gemma 3 270M to Qwen3.5 0.8B, adds 2-tier English offline transcription with Step 1 model selection first, upgrades all 3 Note Scanner offline OCR models, and enforces studentos.service@gmail.com as the Daily Email Report sender.</description>
+    </item>
+    <item>
       <title>v3.2.1 — Roomier Layouts, Inline Original-Email Verification &amp; Before/After Schedule Diff</title>
       <link>https://sutdent-command-center.vercel.app/?changelog=3.2.1</link>
       <pubDate>Tue, 24 Nov 2026 11:49:17 GMT</pubDate>

@@ -285,7 +285,7 @@ export function buildSpeechChunks(
 
 export function estimateLectureDuration(params: {
   audioDurationSec: number;
-  mode: 'online' | 'offline-tiny' | 'offline-base';
+  mode: 'online' | 'offline-tiny' | 'offline-base' | 'offline-en-tiny' | 'offline-en-base';
 }): { minMinutes: number; maxMinutes: number; estimatedSpeechSec: number } {
   const dur = Math.max(0, Number(params.audioDurationSec) || 0);
   const estimatedSpeechSec = Math.round(dur * 0.65);
@@ -295,7 +295,7 @@ export function estimateLectureDuration(params: {
     const maxMinutes = Math.max(minMinutes + 0.5, Math.round((mins * 0.055 + 0.6) * 10) / 10);
     return { minMinutes, maxMinutes, estimatedSpeechSec };
   }
-  if (params.mode === 'offline-base') {
+  if (params.mode === 'offline-base' || params.mode === 'offline-en-base') {
     const minMinutes = Math.max(1, Math.round((mins * 0.33) * 10) / 10);
     const maxMinutes = Math.max(minMinutes + 1, Math.round((mins * 0.55) * 10) / 10);
     return { minMinutes, maxMinutes, estimatedSpeechSec };

@@ -72,8 +72,11 @@ async function detectPreferredBackend(): Promise<{ device: 'webgpu' | 'wasm'; dt
   return { device: 'wasm', dtype: 'q4' };
 }
 
-async function createGemmaPipeline(requestId: string) {
-  const modelId = LOCAL_MODEL_CATALOG.gemmaSummary.id;
+async function createLocalSummaryPipeline(requestId: string): Promise<{ pipe: any; modelId: string }> {
+  const candidates = [
+    LOCAL_MODEL_CATALOG.gemmaSummary.id,
+    LOCAL_MODEL_CATALOG.gemmaSummary.fallbackId,
+  ].filter(Boolean) as string[];
   const fileBytes = new Map<string, { loaded: number; total: number }>();
 
   const progress_callback = (info: ProgressInfo) => {
@@ -107,23 +110,26 @@ async function createGemmaPipeline(requestId: string) {
       : [{ device: 'wasm', dtype: 'q4' }];
 
   let lastErr: unknown = null;
-  for (const cfg of attempts) {
-    if (isCancelled(requestId)) throw new Error('ABORTED');
-    try {
-      const pipe = await pipeline('text-generation', modelId, {
-        device: cfg.device,
-        dtype: cfg.dtype,
-        progress_callback,
-      });
-      return pipe;
-    } catch (err) {
-      lastErr = err;
+  for (const modelId of candidates) {
+    fileBytes.clear();
+    for (const cfg of attempts) {
+      if (isCancelled(requestId)) throw new Error('ABORTED');
+      try {
+        const pipe = await pipeline('text-generation', modelId, {
+          device: cfg.device,
+          dtype: cfg.dtype,
+          progress_callback,
+        });
+        return { pipe, modelId };
+      } catch (err) {
+        lastErr = err;
+      }
     }
   }
 
   throw lastErr instanceof Error
     ? lastErr
-    : new Error('Failed to load offline Gemma 3 270M summary model.');
+    : new Error('Failed to load offline Qwen3.5 0.8B summary model.');
 }
 
 function buildCompactTranscriptFor270M(segments: SummarySegmentInput[], maxChars = 3200): string {
@@ -252,12 +258,13 @@ self.onmessage = async (event: MessageEvent<SummaryWorkerRequest>) => {
     let genPipe: any = null;
     try {
       postProgress(msg.id, { stage: 'downloading', percent: 5 });
-      genPipe = await createGemmaPipeline(msg.id);
+      const loaded = await createLocalSummaryPipeline(msg.id);
+      genPipe = loaded.pipe;
       if (isCancelled(msg.id)) throw new Error('ABORTED');
 
       postProgress(msg.id, { stage: 'summarizing', percent: 58 });
 
-      const compactTranscript = buildCompactTranscriptFor270M(msg.segments, 1600);
+      const compactTranscript = buildCompactTranscriptFor270M(msg.segments, 2600);
       if (!compactTranscript) {
         throw new Error('No transcript text available to summarize.');
       }
@@ -270,31 +277,59 @@ self.onmessage = async (event: MessageEvent<SummaryWorkerRequest>) => {
             `${cleanedTopic} ${compactTranscript}`
           ));
 
-      const prompt = isVi
+      const systemPrompt = isVi
+        ? 'Bạn là trợ lý học tập chính xác. Chỉ tóm tắt đúng sự thật có trong bản chép bài giảng bằng tiếng Việt chuẩn, rõ ràng, không bịa đặt thông tin, không trộn ngôn ngữ lạ.'
+        : 'You are an accurate study assistant. Summarize strictly what is stated in the lecture transcript in clear, concise English without inventing facts.';
+
+      const userPrompt = isVi
         ? `Chủ đề: ${cleanedTopic}
 
 Nội dung bài giảng:
 ${compactTranscript}
 
-Dựa vào đoạn ghi chép bài giảng trên, hãy viết bản tóm tắt học tập ngắn gọn bằng tiếng Việt theo 3 mục Markdown sau (viết bằng lời tóm tắt, không chép nguyên văn đoạn nói):
+Hãy viết bản tóm tắt học tập ngắn gọn, chính xác bằng tiếng Việt dựa đúng vào nội dung trên, theo 3 mục Markdown sau (không chép nguyên văn đoạn nói, không bịa thêm nội dung ngoài bài giảng):
 
 ### Ý chính
+(1-2 câu ngắn gọn nêu chủ đề và mục tiêu bài học)
 
 ### Điểm chính
+- 3 đến 5 gạch đầu dòng cô đọng các kiến thức, quy tắc, hoặc ví dụ quan trọng nhất trong bài
 
-### Ôn nhanh`
+### Ôn nhanh
+- 2 ý quan trọng cần nhớ khi làm bài tập hoặc kiểm tra`
         : `Topic: ${cleanedTopic}
 
 Lecture excerpt:
 ${compactTranscript}
 
-Write concise English study notes summarizing the excerpt above using these three Markdown headings (synthesize key ideas in your own words, do not repeat the transcript verbatim):
+Write concise, factual English study notes summarizing only what is in the excerpt above using these three Markdown headings (do not copy verbatim or invent outside concepts):
 
 ### Core Idea
+(1-2 sentences capturing the main concept)
 
 ### Key Takeaways
+- 3 to 5 concise bullets covering the key rules, concepts, or examples from the lecture
 
-### Quick Review`;
+### Quick Review
+- 2 exam-ready reminders`;
+
+      const messages = [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ];
+
+      let modelInput: any = messages;
+      try {
+        if (typeof genPipe.tokenizer?.apply_chat_template === 'function') {
+          modelInput = genPipe.tokenizer.apply_chat_template(messages, {
+            tokenize: false,
+            add_generation_prompt: true,
+            enable_thinking: false,
+          });
+        }
+      } catch {
+        modelInput = messages;
+      }
 
       let emittedChars = 0;
       const streamer = new TextStreamer(genPipe.tokenizer, {
@@ -302,17 +337,17 @@ Write concise English study notes summarizing the excerpt above using these thre
         skip_special_tokens: true,
         callback_function: (chunk: string) => {
           emittedChars += chunk.length;
-          const pct = Math.min(96, 58 + Math.round((emittedChars / 900) * 38));
+          const pct = Math.min(96, 58 + Math.round((emittedChars / 1100) * 38));
           postProgress(msg.id, { stage: 'summarizing', percent: pct });
         },
       });
 
-      const out = await genPipe([{ role: 'user', content: prompt }], {
-        max_new_tokens: 280,
+      const out = await genPipe(modelInput, {
+        max_new_tokens: 380,
         do_sample: true,
-        temperature: 0.25,
-        top_p: 0.9,
-        repetition_penalty: 1.25,
+        temperature: 0.2,
+        top_p: 0.85,
+        repetition_penalty: 1.15,
         no_repeat_ngram_size: 4,
         return_full_text: false,
         streamer,
@@ -353,7 +388,7 @@ Write concise English study notes summarizing the excerpt above using these thre
           outline,
           vocabulary: terms.map((term) => ({ term, definition: '' })).filter(Boolean),
           flashcards,
-          modelUsed: 'gemma-3-270m-it-offline',
+          modelUsed: `${loaded.modelId}-offline`,
         },
       });
     } catch (err) {

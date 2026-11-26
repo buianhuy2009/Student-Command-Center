@@ -41,10 +41,14 @@ describe('formatOcrLinesToMarkdown & offline model catalog', () => {
     expect(lines[3]).toBe('Rate: ?/10');
   });
 
-  it('configures Gemma 3 270M for offline summaries and PP-OCRv5 English for EN handwriting', () => {
-    expect(LOCAL_MODEL_CATALOG.gemmaSummary.id).toBe('onnx-community/gemma-3-270m-it-ONNX');
-    expect(LOCAL_MODEL_CATALOG.ocrHandwrittenEn.id).toBe('paddleocr-en-v5');
-    expect(LOCAL_MODEL_CATALOG.ocrHandwrittenEn.urls[0]).toContain('/languages/english/rec.onnx');
+  it('configures Qwen3.5 0.8B for offline summaries and upgraded PP-OCRv5 + VietOCR models for Note Scanner', () => {
+    expect(LOCAL_MODEL_CATALOG.gemmaSummary.id).toBe('onnx-community/Qwen3.5-0.8B-Text-ONNX');
+    expect(LOCAL_MODEL_CATALOG.gemmaSummary.fallbackId).toBe('onnx-community/Qwen3-0.6B-ONNX-OPT');
+    expect(LOCAL_MODEL_CATALOG.ocrDetector.urls[0]).toContain('PP-OCRv5_mobile_det_onnx');
+    expect(LOCAL_MODEL_CATALOG.ocrPrinted.id).toBe('vietocr-transformer-w8');
+    expect(LOCAL_MODEL_CATALOG.ocrHandwrittenVi.id).toBe('vietocr-transformer-fp16w');
+    expect(LOCAL_MODEL_CATALOG.ocrHandwrittenEn.id).toBe('pp-ocrv5-mobile-rec-en');
+    expect(LOCAL_MODEL_CATALOG.ocrHandwrittenEn.urls[0]).toContain('PP-OCRv5_mobile_rec_onnx');
   });
 });
 
@@ -99,5 +103,18 @@ Transcript: xin chào tất cả các con trong quá trình thầy dạy chúng 
     );
     expect(out).toContain('Bài giảng giải thích phép cộng trừ số nguyên âm');
     expect(out).toContain('Ví dụ: 1 trừ 7 bằng -6');
+  });
+
+  it('catches foreign-script gibberish and <think> tags from local models', () => {
+    const gibberish = '<think>reasoning...</think>Tơ cht hoạt động để khám phá kiến thức và kỹ năng sử dụng công cụ vี้. Yếu tố then้ือง cần thiết.';
+    const segments = [
+      { text: 'Hôm nay thầy hướng dẫn cộng trừ số nguyên lớp 6.' },
+      { text: 'Khi trừ số nhỏ cho số lớn ta thu được số nguyên âm.' },
+    ];
+    const cleaned = sanitizeAndValidateGemmaSummary(gibberish, segments, 'Toán lớp 6', 'vi');
+    expect(cleaned).not.toContain('vี้');
+    expect(cleaned).not.toContain('<think>');
+    expect(cleaned).toContain('### Ý chính');
+    expect(cleaned).toContain('số nguyên');
   });
 });

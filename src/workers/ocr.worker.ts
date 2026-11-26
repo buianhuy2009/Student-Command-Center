@@ -392,8 +392,24 @@ async function detectLinesWithDbNet(
   requestId: string,
   isHandwriting = false
 ): Promise<OcrBox[]> {
-  const detUrl = LOCAL_MODEL_CATALOG.ocrDetector.urls[0];
-  const detBytes = await fetchWithCacheAndProgress(detUrl, requestId, 'detector', [0, 6]);
+  const detCandidates = [
+    ...LOCAL_MODEL_CATALOG.ocrDetector.urls,
+    ...(LOCAL_MODEL_CATALOG.ocrDetector.fallbackUrls || []),
+  ];
+  let detBytes: Uint8Array | null = null;
+  let lastDetErr: unknown = null;
+  for (const detUrl of detCandidates) {
+    try {
+      detBytes = await fetchWithCacheAndProgress(detUrl, requestId, 'detector', [0, 6]);
+      break;
+    } catch (err) {
+      if (err instanceof Error && err.message === 'ABORTED') throw err;
+      lastDetErr = err;
+    }
+  }
+  if (!detBytes) {
+    throw lastDetErr instanceof Error ? lastDetErr : new Error('Failed to load OCR detector model.');
+  }
   if (isCancelled(requestId)) throw new Error('ABORTED');
 
   postWeightedProgress(requestId, {
@@ -499,12 +515,45 @@ function weightedLinePercent(completed: number, total: number): number {
   return Math.round(25 + (completed / total) * 73);
 }
 
+function parsePaddleDict(dictText: string, isYaml: boolean): string[] {
+  const normalized = dictText.replace(/\r/g, '');
+  if (!isYaml) {
+    return normalized.split('\n');
+  }
+  const idx = normalized.indexOf('character_dict:');
+  if (idx === -1) return normalized.split('\n');
+  const out: string[] = [];
+  const lines = normalized.slice(idx).split('\n').slice(1);
+  for (const rawLine of lines) {
+    const m = /^\s*-\s(.*)$/.exec(rawLine);
+    if (!m) {
+      if (/^\S/.test(rawLine)) break;
+      continue;
+    }
+    let val = m[1];
+    if (val.length >= 2 && val.startsWith("'") && val.endsWith("'")) {
+      val = val.slice(1, -1).replace(/''/g, "'");
+    } else if (val.length >= 2 && val.startsWith('"') && val.endsWith('"')) {
+      try {
+        val = JSON.parse(val);
+      } catch {
+        val = val.slice(1, -1);
+      }
+    }
+    out.push(val);
+  }
+  return out;
+}
+
+const ENGLISH_OCR_CHAR_RE = /^[\x20-\x7E‘’“”–—°±×÷]$/;
+
 async function recognizePaddleLines(
   pageCanvas: OffscreenCanvas,
   boxes: OcrBox[],
   requestId: string,
   urls: readonly [string, string],
-  fileLabel: string
+  fileLabel: string,
+  englishOnlyFilter = false
 ): Promise<OcrLineBox[]> {
   const [recUrl, dictUrl] = urls;
   const [recBytes, dictText] = await Promise.all([
@@ -513,7 +562,8 @@ async function recognizePaddleLines(
   ]);
   if (isCancelled(requestId)) throw new Error('ABORTED');
 
-  const dictChars = dictText.replace(/\r/g, '').split('\n');
+  const isYaml = /\.ya?ml(\?|$)/i.test(dictUrl);
+  const dictChars = parsePaddleDict(dictText, isYaml);
   const recSession = await ort.InferenceSession.create(recBytes, {
     executionProviders: ['wasm'],
   });
@@ -522,6 +572,7 @@ async function recognizePaddleLines(
   try {
     const inputName = recSession.inputNames[0] || 'x';
     const outputName = recSession.outputNames[0] || 'fetch_name_0';
+    let allowedClasses: Int32Array | null = null;
 
     for (let i = 0; i < boxes.length; i++) {
       if (isCancelled(requestId)) throw new Error('ABORTED');
@@ -556,16 +607,39 @@ async function recognizePaddleLines(
         const [, steps, classes] = outTensor.dims;
         const logits = outTensor.data as Float32Array;
 
+        if (englishOnlyFilter && !allowedClasses) {
+          const indices: number[] = [0];
+          for (let c = 1; c < classes - 1; c++) {
+            const ch = dictChars[c - 1];
+            if (ch && ENGLISH_OCR_CHAR_RE.test(ch)) {
+              indices.push(c);
+            }
+          }
+          indices.push(classes - 1);
+          allowedClasses = Int32Array.from(indices);
+        }
+
         let text = '';
         let prevIdx = -1;
         for (let t = 0; t < steps; t++) {
           const offset = t * classes;
           let bestIdx = 0;
           let bestVal = logits[offset];
-          for (let c = 1; c < classes; c++) {
-            if (logits[offset + c] > bestVal) {
-              bestVal = logits[offset + c];
-              bestIdx = c;
+          if (allowedClasses) {
+            for (let k = 1; k < allowedClasses.length; k++) {
+              const c = allowedClasses[k];
+              const v = logits[offset + c];
+              if (v > bestVal) {
+                bestVal = v;
+                bestIdx = c;
+              }
+            }
+          } else {
+            for (let c = 1; c < classes; c++) {
+              if (logits[offset + c] > bestVal) {
+                bestVal = logits[offset + c];
+                bestIdx = c;
+              }
             }
           }
           if (bestIdx !== 0 && bestIdx !== prevIdx) {
@@ -596,12 +670,13 @@ async function recognizePrintedLines(
   boxes: OcrBox[],
   requestId: string
 ): Promise<OcrLineBox[]> {
-  return recognizePaddleLines(
+  return recognizeVietOcrWithUrls(
     pageCanvas,
     boxes,
     requestId,
     LOCAL_MODEL_CATALOG.ocrPrinted.urls,
-    'printed-ocr'
+    'printed',
+    false
   );
 }
 
@@ -610,13 +685,26 @@ async function recognizeEnglishHandwriting(
   boxes: OcrBox[],
   requestId: string
 ): Promise<OcrLineBox[]> {
-  return recognizePaddleLines(
-    pageCanvas,
-    boxes,
-    requestId,
-    LOCAL_MODEL_CATALOG.ocrHandwrittenEn.urls,
-    'en-ocr'
-  );
+  try {
+    return await recognizePaddleLines(
+      pageCanvas,
+      boxes,
+      requestId,
+      LOCAL_MODEL_CATALOG.ocrHandwrittenEn.urls,
+      'en-ocr-v5',
+      true
+    );
+  } catch (err) {
+    if (err instanceof Error && err.message === 'ABORTED') throw err;
+    return recognizePaddleLines(
+      pageCanvas,
+      boxes,
+      requestId,
+      LOCAL_MODEL_CATALOG.ocrHandwrittenEn.fallbackUrls,
+      'en-ocr-fallback',
+      false
+    );
+  }
 }
 
 /**
@@ -719,15 +807,18 @@ function cropVietOcrLine(
   return { canvas, width, height: targetHeight };
 }
 
-async function recognizeVietnameseHandwriting(
+async function recognizeVietOcrWithUrls(
   pageCanvas: OffscreenCanvas,
   boxes: OcrBox[],
-  requestId: string
+  requestId: string,
+  urls: readonly [string, string, string, string],
+  labelPrefix: string,
+  splitWide: boolean
 ): Promise<OcrLineBox[]> {
-  const [encUrl, decInitUrl, decStepUrl, vocabUrl] = LOCAL_MODEL_CATALOG.ocrHandwrittenVi.urls;
-  const encBytes = await fetchWithCacheAndProgress(encUrl, requestId, 'vi-enc', [6, 11]);
-  const decInitBytes = await fetchWithCacheAndProgress(decInitUrl, requestId, 'vi-init', [11, 13]);
-  const decStepBytes = await fetchWithCacheAndProgress(decStepUrl, requestId, 'vi-step', [13, 15]);
+  const [encUrl, decInitUrl, decStepUrl, vocabUrl] = urls;
+  const encBytes = await fetchWithCacheAndProgress(encUrl, requestId, `${labelPrefix}-enc`, [6, 11]);
+  const decInitBytes = await fetchWithCacheAndProgress(decInitUrl, requestId, `${labelPrefix}-init`, [11, 13]);
+  const decStepBytes = await fetchWithCacheAndProgress(decStepUrl, requestId, `${labelPrefix}-step`, [13, 15]);
   const vocabText = await fetchTextWithCache(vocabUrl);
   if (isCancelled(requestId)) throw new Error('ABORTED');
 
@@ -754,7 +845,7 @@ async function recognizeVietnameseHandwriting(
       });
 
       const box = boxes[i];
-      const subBoxes = splitWideHandwritingBox(pageCanvas, box);
+      const subBoxes = splitWide ? splitWideHandwritingBox(pageCanvas, box) : [box];
       const subTexts: string[] = [];
 
       for (const subBox of subBoxes) {
@@ -869,6 +960,33 @@ async function recognizeVietnameseHandwriting(
   }
 
   return results;
+}
+
+async function recognizeVietnameseHandwriting(
+  pageCanvas: OffscreenCanvas,
+  boxes: OcrBox[],
+  requestId: string
+): Promise<OcrLineBox[]> {
+  try {
+    return await recognizeVietOcrWithUrls(
+      pageCanvas,
+      boxes,
+      requestId,
+      LOCAL_MODEL_CATALOG.ocrHandwrittenVi.urls,
+      'vi-fp16',
+      true
+    );
+  } catch (err) {
+    if (err instanceof Error && err.message === 'ABORTED') throw err;
+    return recognizeVietOcrWithUrls(
+      pageCanvas,
+      boxes,
+      requestId,
+      LOCAL_MODEL_CATALOG.ocrHandwrittenVi.fallbackUrls,
+      'vi-w8-fallback',
+      true
+    );
+  }
 }
 
 self.onmessage = async (event: MessageEvent<OcrWorkerRequest>) => {

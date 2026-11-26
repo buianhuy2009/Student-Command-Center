@@ -7,6 +7,7 @@ import {
   setLectureSummaryMode,
   type LectureSummaryMode,
   type LectureTranscriptionMode,
+  type OfflineAsrTier,
 } from '../services/localAiConfig';
 import { runLocalLectureSummary } from '../services/localMediaManager';
 import {
@@ -35,7 +36,7 @@ export interface LectureProgressState {
 
 export type OfflineAsrRunner = (params: {
   lectureId: string;
-  mode: 'offline-tiny' | 'offline-base';
+  mode: OfflineAsrTier;
   language: LectureLanguage;
   clips: OfflineAudioClip[];
   signal: AbortSignal;

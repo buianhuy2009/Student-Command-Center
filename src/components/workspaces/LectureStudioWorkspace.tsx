@@ -93,7 +93,7 @@ export const LectureStudioWorkspace: React.FC<LectureStudioWorkspaceProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const [activeSubTab, setActiveSubTab] = useState<'summary' | 'transcript'>('summary');
   const [step, setStep] = useState<'setup' | 'workspace'>(() =>
-    isProcessing || activeLectureId ? 'workspace' : 'setup'
+    isProcessing ? 'workspace' : 'setup'
   );
   const [savedNotesNotice, setSavedNotesNotice] = useState(false);
   const [savedDeckNotice, setSavedDeckNotice] = useState(false);
@@ -314,27 +314,63 @@ export const LectureStudioWorkspace: React.FC<LectureStudioWorkspaceProps> = ({
     id: LectureTranscriptionMode;
     label: string;
     hint: string;
+    langGroup: 'all' | 'vi' | 'en';
     icon: React.ComponentType<{ className?: string }>;
   }[] = [
     {
       id: 'online',
       label: t('lecture_mode_online'),
       hint: t('lecture_mode_online_hint'),
+      langGroup: 'all',
       icon: Wifi,
     },
     {
       id: 'offline-tiny',
       label: t('lecture_mode_offline_tiny'),
       hint: t('lecture_mode_offline_tiny_hint'),
+      langGroup: 'vi',
       icon: HardDrive,
     },
     {
       id: 'offline-base',
       label: t('lecture_mode_offline_base'),
       hint: t('lecture_mode_offline_base_hint'),
+      langGroup: 'vi',
+      icon: HardDrive,
+    },
+    {
+      id: 'offline-en-tiny',
+      label: t('lecture_mode_offline_en_tiny'),
+      hint: t('lecture_mode_offline_en_tiny_hint'),
+      langGroup: 'en',
+      icon: HardDrive,
+    },
+    {
+      id: 'offline-en-base',
+      label: t('lecture_mode_offline_en_base'),
+      hint: t('lecture_mode_offline_en_base_hint'),
+      langGroup: 'en',
       icon: HardDrive,
     },
   ];
+
+  const handleSelectMode = (nextMode: LectureTranscriptionMode) => {
+    setMode(nextMode);
+    if (nextMode === 'offline-tiny' || nextMode === 'offline-base') {
+      setLanguage('vi');
+    } else if (nextMode === 'offline-en-tiny' || nextMode === 'offline-en-base') {
+      setLanguage('en');
+    }
+  };
+
+  const handleSelectLanguage = (nextLang: LectureLanguage) => {
+    setLanguage(nextLang);
+    if (nextLang === 'en' && (mode === 'offline-tiny' || mode === 'offline-base')) {
+      setMode(mode === 'offline-base' ? 'offline-en-base' : 'offline-en-tiny');
+    } else if (nextLang === 'vi' && (mode === 'offline-en-tiny' || mode === 'offline-en-base')) {
+      setMode(mode === 'offline-en-base' ? 'offline-base' : 'offline-tiny');
+    }
+  };
 
   if (step === 'setup') {
     return (
@@ -368,7 +404,7 @@ export const LectureStudioWorkspace: React.FC<LectureStudioWorkspaceProps> = ({
                   key={langOpt.id}
                   type="button"
                   disabled={isProcessing}
-                  onClick={() => setLanguage(langOpt.id)}
+                  onClick={() => handleSelectLanguage(langOpt.id)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer disabled:opacity-60 whitespace-nowrap ${
                     language === langOpt.id
                       ? 'bg-[var(--accent-fill)] text-white shadow-2xs'
@@ -381,41 +417,97 @@ export const LectureStudioWorkspace: React.FC<LectureStudioWorkspaceProps> = ({
             </div>
           </div>
 
-          {/* Transcription Mode */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-3 border-t border-[var(--border-hairline)]">
-            {modeOptions.map((opt) => {
-              const Icon = opt.icon;
-              const active = mode === opt.id;
+          {/* Transcription Mode: Cloud + Vietnamese Offline (2 Tiers) + English Offline (2 Tiers) */}
+          <div className="space-y-3 pt-3 border-t border-[var(--border-hairline)]">
+            {(() => {
+              const onlineOpt = modeOptions[0];
+              const OnlineIcon = onlineOpt.icon;
+              const onlineActive = mode === 'online';
               return (
                 <button
-                  key={opt.id}
                   type="button"
                   disabled={isProcessing}
-                  onClick={() => setMode(opt.id)}
-                  className={`text-left p-4 rounded-2xl border transition-all cursor-pointer disabled:opacity-60 flex items-start gap-3 ${
-                    active
+                  onClick={() => handleSelectMode('online')}
+                  className={`w-full text-left p-3.5 rounded-2xl border transition-all cursor-pointer disabled:opacity-60 flex items-start gap-3 ${
+                    onlineActive
                       ? 'bg-[var(--accent-soft)] border-[var(--accent-border)] text-[var(--text-primary)] shadow-2xs'
                       : 'bg-[var(--bg-subtle)]/60 border-[var(--border-hairline)] hover:border-[var(--border-default)] text-[var(--text-secondary)]'
                   }`}
                 >
                   <div
                     className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
-                      active
+                      onlineActive
                         ? 'bg-[var(--accent-fill)] text-white'
                         : 'bg-[var(--bg-surface)] text-[var(--text-muted)] border border-[var(--border-hairline)]'
                     }`}
                   >
-                    <Icon className="w-4 h-4" />
+                    <OnlineIcon className="w-4 h-4" />
                   </div>
                   <div className="min-w-0">
-                    <div className="text-xs sm:text-sm font-bold text-[var(--text-primary)]">{opt.label}</div>
-                    <div className="text-[11px] text-[var(--text-muted)] mt-1 leading-relaxed">
-                      {opt.hint}
+                    <div className="text-xs sm:text-sm font-bold text-[var(--text-primary)]">{onlineOpt.label}</div>
+                    <div className="text-[11px] text-[var(--text-muted)] mt-0.5 leading-relaxed">
+                      {onlineOpt.hint}
                     </div>
                   </div>
                 </button>
               );
-            })}
+            })()}
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+              {(
+                [
+                  {
+                    groupLabel: t('lecture_offline_vi_group'),
+                    items: modeOptions.filter((m) => m.langGroup === 'vi'),
+                  },
+                  {
+                    groupLabel: t('lecture_offline_en_group'),
+                    items: modeOptions.filter((m) => m.langGroup === 'en'),
+                  },
+                ] as const
+              ).map((group) => (
+                <div key={group.groupLabel} className="space-y-2">
+                  <span className="block text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
+                    {group.groupLabel}
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {group.items.map((opt) => {
+                      const Icon = opt.icon;
+                      const active = mode === opt.id;
+                      return (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          disabled={isProcessing}
+                          onClick={() => handleSelectMode(opt.id)}
+                          className={`text-left p-3.5 rounded-2xl border transition-all cursor-pointer disabled:opacity-60 flex items-start gap-2.5 ${
+                            active
+                              ? 'bg-[var(--accent-soft)] border-[var(--accent-border)] text-[var(--text-primary)] shadow-2xs'
+                              : 'bg-[var(--bg-subtle)]/60 border-[var(--border-hairline)] hover:border-[var(--border-default)] text-[var(--text-secondary)]'
+                          }`}
+                        >
+                          <div
+                            className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
+                              active
+                                ? 'bg-[var(--accent-fill)] text-white'
+                                : 'bg-[var(--bg-surface)] text-[var(--text-muted)] border border-[var(--border-hairline)]'
+                            }`}
+                          >
+                            <Icon className="w-3.5 h-3.5" />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-xs font-bold text-[var(--text-primary)] leading-snug">{opt.label}</div>
+                            <div className="text-[11px] text-[var(--text-muted)] mt-1 leading-snug">
+                              {opt.hint}
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* AI Summary Engine — Spacious Full-Width 2-Card Selector */}

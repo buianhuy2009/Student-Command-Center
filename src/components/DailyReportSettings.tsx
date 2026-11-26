@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Mail, Clock, Send, Eye, CheckCircle2, ExternalLink } from 'lucide-react';
 import { Assignment, CalendarEvent } from '../types';
 import {
+  DAILY_REPORT_SENDER,
   DailyReportConfig,
   loadDailyReportConfig,
   saveDailyReportConfig,
@@ -99,6 +100,9 @@ export const DailyReportSettings: React.FC<DailyReportSettingsProps> = ({
             </div>
             <div className="text-[11px] text-[var(--text-muted)]">
               {t('daily_report_sub')}
+            </div>
+            <div className="text-[10px] text-[var(--text-muted)] mt-0.5 font-mono">
+              {t('daily_report_sender_label')}: <span className="text-[var(--text-secondary)] font-semibold">{DAILY_REPORT_SENDER}</span>
             </div>
           </div>
         </div>
@@ -226,7 +230,7 @@ export const DailyReportSettings: React.FC<DailyReportSettingsProps> = ({
 
       {showPreview && (
         <pre className="p-3 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border-hairline)] text-[11px] font-mono text-[var(--text-secondary)] whitespace-pre-wrap max-h-48 overflow-y-auto">
-          {`${previewContent.subject}\n\n${previewContent.text}`}
+          {`From: StudentOS <${DAILY_REPORT_SENDER}>\nTo: ${config.email.trim() || 'student@example.com'}\nSubject: ${previewContent.subject}\n\n${previewContent.text}`}
         </pre>
       )}
     </div>

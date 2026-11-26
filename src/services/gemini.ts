@@ -862,7 +862,7 @@ export function partitionEmailsForAIScan(
   const emailsToScan: EmailMessage[] = [];
   for (const email of emails) {
     const prev = existingByEmailId.get(String(email.id));
-    if (prev && prev.aiStatus === 'ok') {
+    if (prev && (prev.aiStatus === 'ok' || prev.manuallyEdited)) {
       reusableByEmailId.set(String(email.id), { ...prev, rawEmail: email, gmailLabels: email.labelIds || prev.gmailLabels });
     } else {
       emailsToScan.push(email);
@@ -1019,7 +1019,7 @@ Return ONLY JSON:
 {"alerts":[{"id":"same id","sender":"clean sender name","subject":"email subject","oneLineSummary":"under 16 words in email language","urgency":"HIGH|MEDIUM|LOW|INFO","category":"ASSIGNMENT|EXAM|GRADE|SCHEDULE|ANNOUNCEMENT|SPAM|PROMOTION|SOCIAL|GENERAL","categoryLabel":"short label","isSpam":false,"spamReason":"","language":"vi|en|other","confidence":0.9,"detectedAssignment":{"isAssignment":true,"name":"short task name","subject":"subject","dueDate":"YYYY-MM-DD or empty","dueConfidence":"explicit|relative|none","dueEvidence":"exact quote or empty","priority":"High|Med|Low"}}]}`;
         const rawText = getClientGeminiApiKey()
           ? await callGemini({
-              candidateModels: [GEMINI_FALLBACK_MODEL, GEMINI_DEFAULT_MODEL, 'gemma-4-31b-it', 'gemma-4-26b-a4b-it'],
+              candidateModels: ['gemini-3.5-flash-lite', 'gemma-4-31b-it', GEMINI_FALLBACK_MODEL, GEMINI_DEFAULT_MODEL],
               contents: prompt,
               config: { responseMimeType: 'application/json', temperature: 0.1 },
             })

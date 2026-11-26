@@ -13,7 +13,7 @@ export interface LectureRecord {
   title: string;
   subject?: string;
   language: 'auto' | 'vi' | 'en';
-  mode: 'online' | 'offline-tiny' | 'offline-base';
+  mode: 'online' | 'offline-tiny' | 'offline-base' | 'offline-en-tiny' | 'offline-en-base';
   status: 'vad' | 'transcribing' | 'summarizing' | 'paused' | 'done' | 'error';
   originalDurationSec: number;
   speechDurationSec: number;

@@ -231,8 +231,9 @@ function buildExtractiveStudySummary(
 }
 
 /**
- * Validates offline Gemma 3 270M output: strips leaked prompt templates or raw transcript
- * echoes and falls back to a clean structured extractive summary when needed.
+ * Validates offline local LLM output: strips `<think>` blocks, leaked prompt templates,
+ * foreign-script gibberish (e.g. stray Thai/Cyrillic characters in Vietnamese), or raw
+ * transcript echoes, falling back to a clean structured extractive summary when needed.
  */
 export function sanitizeAndValidateGemmaSummary(
   raw: string,
@@ -240,7 +241,10 @@ export function sanitizeAndValidateGemmaSummary(
   title?: string,
   language?: 'auto' | 'vi' | 'en'
 ): string {
-  const original = String(raw || '').trim();
+  const original = String(raw || '')
+    .replace(/<think>[\s\S]*?<\/think>/gi, '')
+    .replace(/<\/?think>/gi, '')
+    .trim();
   const hadPromptLeak =
     /1\s*-\s*2\s*short sentences explaining the main point/i.test(original) ||
     /Point\s*1\s*:\s*Concise note/i.test(original) ||
@@ -249,6 +253,13 @@ export function sanitizeAndValidateGemmaSummary(
     /(?:^|\n)\s*Transcript\s*:/i.test(original);
 
   let stripped = original;
+  // Detect stray non-Latin scripts (Thai/Lao/Khmer/Cyrillic/Arabic/CJK) hallucinated into VI/EN notes.
+  const srcText = segments.map((s) => s.text).join(' ').replace(/\s+/g, ' ').trim();
+  const foreignScriptRe = /[\u0E00-\u0E7F\u0400-\u04FF\u0600-\u06FF\u1780-\u17FF\u4E00-\u9FFF]/;
+  if (foreignScriptRe.test(stripped) && !foreignScriptRe.test(srcText)) {
+    return buildExtractiveStudySummary(segments, title, language);
+  }
+
   // If model echoed prompt layout + `Transcript: ...`, discard everything from Lecture Title / Transcript onward.
   stripped = stripped.replace(/(?:^|\n)\s*(?:Lecture Title|Transcript)\s*:[\s\S]*$/i, '').trim();
   for (const pat of PROMPT_PLACEHOLDER_PATTERNS) {
@@ -267,7 +278,6 @@ export function sanitizeAndValidateGemmaSummary(
   }
 
   const genWords = normalizeWords(stripped);
-  const srcText = segments.map((s) => s.text).join(' ').replace(/\s+/g, ' ').trim();
   const srcWords = normalizeWords(srcText);
 
   if (genWords.length < 12 || stripped.length < 45) {

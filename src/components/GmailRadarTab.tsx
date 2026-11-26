@@ -14,8 +14,11 @@ import {
   ArrowLeft,
   FlaskConical,
   Clock,
+  Pencil,
+  Check,
+  X,
 } from 'lucide-react';
-import { EmailAlert, EmailMessage, ApiEnablementInfo } from '../types';
+import { EmailAlert, EmailCategory, EmailMessage, ApiEnablementInfo, PriorityLevel } from '../types';
 import { ApiActivationBanner } from './ApiActivationBanner';
 import { AiProgressBar } from './ui/AiProgressBar';
 import { useAiJobsStore } from '../store/aiJobsStore';
@@ -177,6 +180,45 @@ interface GmailRadarTabProps {
   onUseAnotherAccount?: () => void | Promise<void>;
   /** Ask the AI to read one email it skipped or failed on. */
   onForceAIRead?: (alert: EmailAlert) => void | Promise<void>;
+  /** Persist a student's manual edits to an email's AI-classified details. */
+  onUpdateEmailAlert?: (updated: EmailAlert) => void;
+}
+
+const EDITABLE_CATEGORIES: EmailCategory[] = [
+  'ASSIGNMENT',
+  'EXAM',
+  'ANNOUNCEMENT',
+  'GENERAL',
+  'SCHEDULE',
+  'GRADE',
+  'PROMOTION',
+  'SOCIAL',
+  'SPAM',
+];
+
+function categoryDisplayName(cat: EmailCategory, t: ReturnType<typeof useT>['t']): string {
+  switch (cat) {
+    case 'ASSIGNMENT':
+      return t('gmail_assignment');
+    case 'EXAM':
+      return t('gmail_cat_exam');
+    case 'ANNOUNCEMENT':
+      return t('gmail_announcement');
+    case 'GENERAL':
+      return t('gmail_general');
+    case 'SCHEDULE':
+      return t('gmail_cat_schedule');
+    case 'GRADE':
+      return t('gmail_cat_grade');
+    case 'PROMOTION':
+      return t('gmail_tab_promotions');
+    case 'SOCIAL':
+      return t('gmail_cat_social');
+    case 'SPAM':
+      return t('gmail_cat_spam');
+    default:
+      return cat;
+  }
 }
 
 export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
@@ -197,6 +239,7 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
   onDisconnectGoogle,
   onUseAnotherAccount,
   onForceAIRead,
+  onUpdateEmailAlert,
 }) => {
   const { t, formatDate, formatTime } = useT();
   const gmailJob = useAiJobsStore((s) => s.jobs['gmail-scan']);
@@ -205,11 +248,22 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
   const [teacherTick, setTeacherTick] = useState(0);
   const [forcing, setForcing] = useState<string | null>(null);
   const [demoMode, setDemoMode] = useState(false);
+  const [manualOverrides, setManualOverrides] = useState<Record<string, EmailAlert>>({});
+  const [editingAlertId, setEditingAlertId] = useState<string | null>(null);
+  const [editCategory, setEditCategory] = useState<EmailCategory>('GENERAL');
+  const [editIsAssignment, setEditIsAssignment] = useState(false);
+  const [editTaskName, setEditTaskName] = useState('');
+  const [editSubject, setEditSubject] = useState('');
+  const [editDueDate, setEditDueDate] = useState('');
+  const [editDueStatus, setEditDueStatus] = useState<'confirmed' | 'unconfirmed' | 'missing'>('unconfirmed');
+  const [editPriority, setEditPriority] = useState<PriorityLevel>('Med');
+  const [editSummary, setEditSummary] = useState('');
+  const [editNeedsReview, setEditNeedsReview] = useState(false);
 
-  const effectiveAlerts = useMemo(
-    () => (demoMode ? [...DEMO_SAMPLE_ALERTS, ...emailAlerts] : emailAlerts),
-    [demoMode, emailAlerts]
-  );
+  const effectiveAlerts = useMemo(() => {
+    const base = demoMode ? [...DEMO_SAMPLE_ALERTS, ...emailAlerts] : emailAlerts;
+    return base.map((a) => manualOverrides[a.id] ?? a);
+  }, [demoMode, emailAlerts, manualOverrides]);
 
   const isReview = (a: EmailAlert) =>
     !dismissed.has(a.id) && (a.needsReview === true || a.aiStatus === 'failed' || a.aiStatus === 'skipped');
@@ -404,16 +458,25 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
     if (cat === 'ALL') return true;
     if (cat === 'REVIEW') return isReview(alert);
     if (cat === 'TASKS') return alert.category === 'ASSIGNMENT' || alert.category === 'EXAM';
-    if (cat === 'OTHER') {
-      const labels = alert.gmailLabels || alert.rawEmail?.labelIds || [];
+    if (cat === 'ANNOUNCEMENT') return alert.category === 'ANNOUNCEMENT';
+    if (cat === 'GENERAL') {
+      return (
+        alert.category === 'GENERAL' ||
+        alert.category === 'GRADE' ||
+        alert.category === 'SCHEDULE' ||
+        (alert.category !== 'ASSIGNMENT' &&
+          alert.category !== 'EXAM' &&
+          alert.category !== 'ANNOUNCEMENT' &&
+          alert.category !== 'PROMOTION' &&
+          alert.category !== 'SPAM' &&
+          alert.category !== 'SOCIAL')
+      );
+    }
+    if (cat === 'PROMOTION') {
       return (
         alert.category === 'PROMOTION' ||
         alert.category === 'SPAM' ||
-        alert.category === 'SOCIAL' ||
-        alert.category === 'GENERAL' ||
-        labels.includes('SPAM') ||
-        labels.includes('CATEGORY_PROMOTIONS') ||
-        labels.includes('CATEGORY_SOCIAL')
+        alert.category === 'SOCIAL'
       );
     }
     return alert.category === cat;
@@ -436,23 +499,105 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [effectiveAlerts, activeCategory, searchQuery, reviewAlerts, archivedIds]);
 
-  const unreadCounts = useMemo(() => {
-    const rawById = new Map(rawEmails.map((e) => [e.id, e]));
-    const rawBySubject = new Map(rawEmails.map((e) => [e.subject, e]));
-    const isUnread = (alert: EmailAlert) => {
-      if (alert.rawEmail?.unread !== undefined) return alert.rawEmail.unread;
-      const raw = rawById.get(alert.id) ?? rawBySubject.get(alert.subject);
-      return raw?.unread ?? false;
+  const categoryCounts = useMemo(() => {
+    const visible = effectiveAlerts.filter((a) => !archivedIds.includes(a.id));
+    const counts: Record<string, number> = {
+      ALL: visible.length,
+      REVIEW: reviewAlerts.filter((a) => !archivedIds.includes(a.id)).length,
     };
-    const counts: Record<string, number> = {};
-    for (const cat of ['ALL', 'TASKS', 'ANNOUNCEMENT', 'OTHER']) {
-      counts[cat] = effectiveAlerts.filter(
-        (a) => !archivedIds.includes(a.id) && matchesCategory(a, cat) && isUnread(a)
-      ).length;
+    for (const cat of ['TASKS', 'ANNOUNCEMENT', 'GENERAL', 'PROMOTION']) {
+      counts[cat] = visible.filter((a) => matchesCategory(a, cat)).length;
     }
     return counts;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [effectiveAlerts, rawEmails, archivedIds]);
+  }, [effectiveAlerts, reviewAlerts, archivedIds]);
+
+  const openManualEditor = (alert: EmailAlert) => {
+    const det = alert.detectedAssignment;
+    const hasDue = Boolean(det?.dueDate && /^\d{4}-\d{2}-\d{2}$/.test(det.dueDate));
+    setEditingAlertId(alert.id);
+    setEditCategory(alert.category || 'GENERAL');
+    setEditIsAssignment(Boolean(det?.isAssignment || alert.category === 'ASSIGNMENT' || alert.category === 'EXAM'));
+    setEditTaskName(det?.name || alert.subject || '');
+    setEditSubject(det?.subject || '');
+    setEditDueDate(hasDue ? det!.dueDate : '');
+    setEditDueStatus(
+      alert.dueStatus ?? (hasDue ? 'unconfirmed' : 'missing')
+    );
+    setEditPriority(det?.priority || 'Med');
+    setEditSummary(alert.oneLineSummary || '');
+    setEditNeedsReview(Boolean(alert.needsReview));
+  };
+
+  const buildUpdatedAlert = (alert: EmailAlert): EmailAlert => {
+    const cleanDue = /^\d{4}-\d{2}-\d{2}$/.test(editDueDate.trim()) ? editDueDate.trim() : '';
+    const effectiveDueStatus: 'confirmed' | 'unconfirmed' | 'missing' = cleanDue
+      ? editDueStatus === 'missing'
+        ? 'confirmed'
+        : editDueStatus
+      : 'missing';
+    const isTaskCategory = editCategory === 'ASSIGNMENT' || editCategory === 'EXAM';
+    const isAssignment = editIsAssignment || isTaskCategory;
+    const isPromoOrSpam = editCategory === 'PROMOTION' || editCategory === 'SPAM';
+    const urgency: EmailAlert['urgency'] =
+      editCategory === 'EXAM' || (isAssignment && editPriority === 'High')
+        ? 'HIGH'
+        : isAssignment || editCategory === 'SCHEDULE' || editCategory === 'ANNOUNCEMENT'
+        ? 'MEDIUM'
+        : isPromoOrSpam || editCategory === 'SOCIAL'
+        ? 'INFO'
+        : 'LOW';
+
+    return {
+      ...alert,
+      category: editCategory,
+      categoryLabel: categoryDisplayName(editCategory, t),
+      urgency,
+      isSpam: isPromoOrSpam,
+      spamReason: isPromoOrSpam ? alert.spamReason || '' : '',
+      oneLineSummary: editSummary.trim() || alert.oneLineSummary,
+      aiStatus: alert.aiStatus === 'failed' || alert.aiStatus === 'skipped' ? 'ok' : alert.aiStatus || 'ok',
+      needsReview: editNeedsReview,
+      reviewReason: editNeedsReview ? alert.reviewReason || 'low_confidence' : undefined,
+      manuallyEdited: true,
+      dueStatus: isAssignment ? effectiveDueStatus : undefined,
+      detectedAssignment: isAssignment
+        ? {
+            isAssignment: true,
+            name: editTaskName.trim() || alert.subject,
+            subject: editSubject.trim() || 'General',
+            dueDate: cleanDue,
+            priority: editPriority,
+            dueEvidence: alert.detectedAssignment?.dueEvidence || '',
+            dueConfidence: cleanDue ? 'explicit' : 'none',
+          }
+        : undefined,
+    };
+  };
+
+  const handleSaveManualEdit = (alert: EmailAlert, alsoExtractTask = false) => {
+    const updated = buildUpdatedAlert(alert);
+    setManualOverrides((prev) => ({ ...prev, [alert.id]: updated }));
+    if (!updated.needsReview) {
+      dismissReview(alert.id);
+      setDismissed(new Set(getDismissedReviewIds()));
+    }
+    if (!alert.id.startsWith('demo-')) {
+      onUpdateEmailAlert?.(updated);
+    }
+    setEditingAlertId(null);
+    window.dispatchEvent(
+      new CustomEvent('scc-toast', {
+        detail: {
+          title: t('gmail_edit_saved_title'),
+          message: t('gmail_edit_saved_msg'),
+        },
+      })
+    );
+    if (alsoExtractTask) {
+      onExtractAssignment(updated);
+    }
+  };
 
   const canModifyGmail = hasScope('gmail.modify', auth?.currentUser?.uid || null);
 
@@ -705,7 +850,7 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
         </div>
       )}
 
-      {/* Row 2: Focused 5-Tab Filter Strip + Search */}
+      {/* Row 2: Focused 6-Tab Filter Strip (General separated from Promotions) + Search */}
       <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-hairline)] p-2.5 flex flex-col md:flex-row md:items-center justify-between gap-2.5">
         <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-0.5 md:pb-0">
           {[
@@ -713,13 +858,11 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
             { id: 'TASKS', label: t('gmail_tab_tasks') },
             { id: 'REVIEW', label: t('gmail_needs_eyes') },
             { id: 'ANNOUNCEMENT', label: t('gmail_announcement') },
-            { id: 'OTHER', label: t('gmail_tab_other') },
+            { id: 'GENERAL', label: t('gmail_general') },
+            { id: 'PROMOTION', label: t('gmail_tab_promotions') },
           ].map((tab) => {
             const isActive = activeCategory === tab.id;
-            const countBadge =
-              tab.id === 'REVIEW'
-                ? reviewAlerts.length
-                : unreadCounts[tab.id] || 0;
+            const countBadge = categoryCounts[tab.id] || 0;
             return (
               <button
                 key={tab.id}
@@ -860,7 +1003,9 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
                       <span className="text-[10px] text-[var(--text-muted)] shrink-0 tabular-nums">
                         {alert.detectedAssignment?.isAssignment
                           ? alert.detectedAssignment.dueDate
-                            ? t('gmail_due_unconfirmed', { date: formatShortDueDate(alert.detectedAssignment.dueDate, formatDate) })
+                            ? alert.dueStatus === 'confirmed'
+                              ? t('gmail_due_confirmed', { date: formatShortDueDate(alert.detectedAssignment.dueDate, formatDate) })
+                              : t('gmail_due_unconfirmed', { date: formatShortDueDate(alert.detectedAssignment.dueDate, formatDate) })
                             : t('gmail_no_due')
                           : t('gmail_recent')}
                       </span>
@@ -875,8 +1020,13 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
                         <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-[var(--status-ok-bg)] text-[var(--status-ok-text)]">{t('gmail_classroom_badge')}</span>
                       )}
                       <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-[var(--bg-subtle)] text-[var(--text-secondary)]">
-                        {alert.aiStatus === 'skipped' ? t('gmail_ai_not_read') : alert.aiStatus === 'failed' ? t('gmail_ai_error') : alert.category}
+                        {alert.aiStatus === 'skipped' ? t('gmail_ai_not_read') : alert.aiStatus === 'failed' ? t('gmail_ai_error') : categoryDisplayName(alert.category, t)}
                       </span>
+                      {alert.manuallyEdited && (
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-[var(--status-ok-bg)] text-[var(--status-ok-text)]">
+                          {t('gmail_edited_badge')}
+                        </span>
+                      )}
                       {isReview(alert) && alert.needsReview && (
                         <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-[var(--status-warn-bg)] text-[var(--status-warn-text)]">
                           {t('gmail_review_badge')}
@@ -926,6 +1076,22 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
 
                 {/* Top Actions */}
                 <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      editingAlertId === activeAlert.id
+                        ? setEditingAlertId(null)
+                        : openManualEditor(activeAlert)
+                    }
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5 border ${
+                      editingAlertId === activeAlert.id
+                        ? 'bg-[var(--accent-soft)] border-[var(--accent-border)] text-[var(--accent-text)]'
+                        : 'bg-[var(--bg-subtle)] border-[var(--border-hairline)] hover:border-[var(--border-default)] text-[var(--text-primary)]'
+                    }`}
+                  >
+                    <Pencil className="w-3.5 h-3.5 text-[var(--accent-text)]" />
+                    <span>{t('gmail_edit_ai_btn')}</span>
+                  </button>
                   <a
                     href={activeAlert.sourceUrl || gmailLink(activeAlert.id)}
                     target="_blank"
@@ -956,6 +1122,224 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
 
               {/* Reader Body & AI Insights */}
               <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 text-xs">
+                {editingAlertId === activeAlert.id && (
+                  <div className="p-4 rounded-2xl border border-[var(--accent-border)] bg-[var(--accent-soft)]/35 space-y-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 font-bold text-[var(--accent-text)]">
+                        <Pencil className="w-3.5 h-3.5" />
+                        <span>{t('gmail_edit_panel_title')}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setEditingAlertId(null)}
+                        aria-label={t('common_close')}
+                        className="p-1 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <p className="text-[11px] text-[var(--text-secondary)]">
+                      {t('gmail_edit_panel_hint')}
+                    </p>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <label className="space-y-1 block">
+                        <span className="text-[11px] font-bold text-[var(--text-secondary)]">
+                          {t('gmail_edit_category')}
+                        </span>
+                        <select
+                          value={editCategory}
+                          onChange={(e) => {
+                            const next = e.target.value as EmailCategory;
+                            setEditCategory(next);
+                            if (next === 'ASSIGNMENT' || next === 'EXAM') {
+                              setEditIsAssignment(true);
+                            } else if (next === 'PROMOTION' || next === 'SPAM' || next === 'SOCIAL') {
+                              setEditIsAssignment(false);
+                            }
+                          }}
+                          className="w-full px-3 py-1.5 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-default)] text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-fill)]"
+                        >
+                          {EDITABLE_CATEGORIES.map((c) => (
+                            <option key={c} value={c}>
+                              {categoryDisplayName(c, t)}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+
+                      <label className="space-y-1 block">
+                        <span className="text-[11px] font-bold text-[var(--text-secondary)]">
+                          {t('priority')}
+                        </span>
+                        <div className="grid grid-cols-3 gap-1.5">
+                          {(['High', 'Med', 'Low'] as PriorityLevel[]).map((p) => (
+                            <button
+                              key={p}
+                              type="button"
+                              onClick={() => setEditPriority(p)}
+                              className={`py-1.5 rounded-xl border text-[11px] font-bold cursor-pointer ${
+                                editPriority === p
+                                  ? 'bg-[var(--accent-fill)] border-[var(--accent-border)] text-white'
+                                  : 'bg-[var(--bg-surface)] border-[var(--border-default)] text-[var(--text-secondary)]'
+                              }`}
+                            >
+                              {p === 'High' ? t('confirm_prio_high') : p === 'Low' ? t('confirm_prio_low') : t('confirm_prio_med')}
+                            </button>
+                          ))}
+                        </div>
+                      </label>
+
+                      <label className="sm:col-span-2 inline-flex items-center gap-2 cursor-pointer text-xs font-semibold text-[var(--text-primary)]">
+                        <input
+                          type="checkbox"
+                          checked={editIsAssignment}
+                          onChange={(e) => setEditIsAssignment(e.target.checked)}
+                          className="w-3.5 h-3.5 rounded text-[var(--accent-fill)]"
+                        />
+                        <span>{t('gmail_edit_has_task')}</span>
+                      </label>
+
+                      {editIsAssignment && (
+                        <>
+                          <label className="space-y-1 block sm:col-span-2">
+                            <span className="text-[11px] font-bold text-[var(--text-secondary)]">
+                              {t('confirm_task_label')}
+                            </span>
+                            <input
+                              type="text"
+                              value={editTaskName}
+                              onChange={(e) => setEditTaskName(e.target.value)}
+                              className="w-full px-3 py-1.5 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-default)] text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-fill)]"
+                            />
+                          </label>
+
+                          <label className="space-y-1 block">
+                            <span className="text-[11px] font-bold text-[var(--text-secondary)]">
+                              {t('confirm_subject_label')}
+                            </span>
+                            <input
+                              type="text"
+                              value={editSubject}
+                              onChange={(e) => setEditSubject(e.target.value)}
+                              placeholder="Toán, Ngữ Văn, Physics..."
+                              className="w-full px-3 py-1.5 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-default)] text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-fill)]"
+                            />
+                          </label>
+
+                          <div className="space-y-1">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-[11px] font-bold text-[var(--text-secondary)]">
+                                {t('due_date')}
+                              </span>
+                              {editDueDate && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditDueDate('');
+                                    setEditDueStatus('missing');
+                                  }}
+                                  className="text-[10px] font-semibold text-[var(--text-muted)] underline hover:text-[var(--text-primary)] cursor-pointer"
+                                >
+                                  {t('confirm_clear_date')}
+                                </button>
+                              )}
+                            </div>
+                            <input
+                              type="date"
+                              value={editDueDate}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setEditDueDate(val);
+                                setEditDueStatus(val ? 'confirmed' : 'missing');
+                              }}
+                              className="w-full px-3 py-1.5 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-default)] text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-fill)]"
+                            />
+                          </div>
+
+                          {editDueDate && (
+                            <div className="sm:col-span-2 flex flex-wrap items-center gap-2 text-[11px]">
+                              <span className="font-bold text-[var(--text-secondary)]">{t('gmail_edit_due_trust')}:</span>
+                              <button
+                                type="button"
+                                onClick={() => setEditDueStatus('confirmed')}
+                                className={`px-2.5 py-1 rounded-lg border font-semibold cursor-pointer ${
+                                  editDueStatus === 'confirmed'
+                                    ? 'bg-[var(--status-ok-bg)] border-[var(--status-ok-border)] text-[var(--status-ok-text)]'
+                                    : 'bg-[var(--bg-surface)] border-[var(--border-default)] text-[var(--text-secondary)]'
+                                }`}
+                              >
+                                {t('gmail_due_status_confirmed')}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setEditDueStatus('unconfirmed')}
+                                className={`px-2.5 py-1 rounded-lg border font-semibold cursor-pointer ${
+                                  editDueStatus === 'unconfirmed'
+                                    ? 'bg-[var(--status-warn-bg)] border-[var(--status-warn-border)] text-[var(--status-warn-text)]'
+                                    : 'bg-[var(--bg-surface)] border-[var(--border-default)] text-[var(--text-secondary)]'
+                                }`}
+                              >
+                                {t('gmail_unconfirmed')}
+                              </button>
+                            </div>
+                          )}
+                        </>
+                      )}
+
+                      <label className="space-y-1 block sm:col-span-2">
+                        <span className="text-[11px] font-bold text-[var(--text-secondary)]">
+                          {t('gmail_edit_summary')}
+                        </span>
+                        <input
+                          type="text"
+                          value={editSummary}
+                          onChange={(e) => setEditSummary(e.target.value)}
+                          className="w-full px-3 py-1.5 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-default)] text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-fill)]"
+                        />
+                      </label>
+
+                      <label className="sm:col-span-2 inline-flex items-center gap-2 cursor-pointer text-[11px] font-medium text-[var(--text-secondary)]">
+                        <input
+                          type="checkbox"
+                          checked={editNeedsReview}
+                          onChange={(e) => setEditNeedsReview(e.target.checked)}
+                          className="w-3.5 h-3.5 rounded text-[var(--accent-fill)]"
+                        />
+                        <span>{t('gmail_edit_keep_review')}</span>
+                      </label>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => handleSaveManualEdit(activeAlert, false)}
+                        className="px-3.5 py-1.5 rounded-xl bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                        <span>{t('gmail_edit_save_btn')}</span>
+                      </button>
+                      {editIsAssignment && (
+                        <button
+                          type="button"
+                          onClick={() => handleSaveManualEdit(activeAlert, true)}
+                          className="px-3.5 py-1.5 rounded-xl bg-[var(--bg-surface)] border border-[var(--accent-border)] text-[var(--accent-text)] hover:bg-[var(--accent-soft)] text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>{t('gmail_edit_save_create_btn')}</span>
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setEditingAlertId(null)}
+                        className="px-3 py-1.5 rounded-xl text-xs font-semibold text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer"
+                      >
+                        {t('common_cancel')}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {isReview(activeAlert) && (
                   <div className="p-4 rounded-2xl border border-[var(--status-warn-border)] bg-[var(--status-warn-bg)] space-y-3">
                     <p className="font-bold text-[var(--status-warn-text)] flex items-start gap-1.5">
@@ -1026,7 +1410,11 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
                       {activeAlert.detectedAssignment.dueDate ? (
                         <>
                           {t('gmail_due_label')} <strong>{formatShortDueDate(activeAlert.detectedAssignment.dueDate, formatDate)}</strong>{' '}
-                          <span className="text-[var(--status-warn-text)]">({t('gmail_unconfirmed')})</span>
+                          {activeAlert.dueStatus === 'confirmed' ? (
+                            <span className="text-[var(--status-ok-text)]">({t('gmail_due_status_confirmed')})</span>
+                          ) : (
+                            <span className="text-[var(--status-warn-text)]">({t('gmail_unconfirmed')})</span>
+                          )}
                         </>
                       ) : (
                         <strong className="text-[var(--status-warn-text)]">{t('gmail_no_due_lower')}</strong>
@@ -1038,13 +1426,23 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
                         {t('gmail_ai_read_label')} “{activeAlert.detectedAssignment.dueEvidence}”
                       </p>
                     )}
-                    <button
-                      type="button"
-                      onClick={() => onExtractAssignment(activeAlert)}
-                      className="px-3.5 py-1.5 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-xl text-xs font-bold cursor-pointer"
-                    >
-                      {t('gmail_check_save')}
-                    </button>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => onExtractAssignment(activeAlert)}
+                        className="px-3.5 py-1.5 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-xl text-xs font-bold cursor-pointer"
+                      >
+                        {t('gmail_check_save')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => openManualEditor(activeAlert)}
+                        className="px-3 py-1.5 bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--accent-fill)] text-[var(--text-primary)] rounded-xl text-xs font-semibold cursor-pointer inline-flex items-center gap-1.5"
+                      >
+                        <Pencil className="w-3 h-3 text-[var(--accent-text)]" />
+                        <span>{t('gmail_edit_ai_btn')}</span>
+                      </button>
+                    </div>
                   </div>
                 )}
 

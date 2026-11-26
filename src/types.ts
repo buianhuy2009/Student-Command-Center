@@ -108,6 +108,10 @@ export interface EmailAlert {
   origin?: 'gmail' | 'classroom';
   /** Deep link to the original message / post. */
   sourceUrl?: string;
+  /** True when the student manually edited/confirmed AI-extracted email details. */
+  manuallyEdited?: boolean;
+  /** Deadline trust state on the email itself: confirmed by student, unconfirmed AI date, or missing. */
+  dueStatus?: 'confirmed' | 'unconfirmed' | 'missing';
 }
 
 export interface SchoolFile {

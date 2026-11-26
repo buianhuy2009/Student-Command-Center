@@ -90,7 +90,7 @@ async function callGroq(prompt) {
   throw lastErr || new Error("Groq email triage failed");
 }
 
-/** Fast model group (Gemma 4 31B -> 26B) first, Gemini Flash fallback, Groq last. Returns { parsed, model }. */
+/** Email model group (Gemini 3.5 Flash Lite -> Gemma 4 31B) first, Gemini Flash fallback, Groq last. Returns { parsed, model }. */
 async function generateJson(prompt) {
   let lastError = null;
   if (process.env.GEMINI_API_KEY) {

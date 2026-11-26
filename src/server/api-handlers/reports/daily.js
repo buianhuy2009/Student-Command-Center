@@ -35,12 +35,12 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Report body cannot be empty.", code: "empty_body" });
     }
 
-    // 1. Prefer server Resend when configured
+    // 1. Always identify StudentOS official service address as the Daily Email Report sender
     const resendKey = String(process.env.RESEND_API_KEY || "").trim();
     const senderEmail = "studentos.service@gmail.com";
     const senderHeader = `StudentOS <${senderEmail}>`;
     if (resendKey) {
-      const from = String(process.env.RESEND_FROM_EMAIL || senderHeader).trim();
+      const from = senderHeader;
       const resendRes = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: {
@@ -49,6 +49,7 @@ export default async function handler(req, res) {
         },
         body: JSON.stringify({
           from,
+          reply_to: senderEmail,
           to: [recipient],
           subject: cleanSubject,
           text: cleanText,
@@ -57,7 +58,7 @@ export default async function handler(req, res) {
       });
       if (resendRes.ok) {
         const sent = await resendRes.json().catch(() => ({}));
-        return res.status(200).json({ ok: true, delivered: true, transport: "resend", id: sent?.id || null });
+        return res.status(200).json({ ok: true, delivered: true, transport: "resend", from: senderEmail, id: sent?.id || null });
       }
       const errDetail = await resendRes.text().catch(() => "");
       console.warn("Resend delivery failed, falling back if possible:", errDetail.slice(0, 180));
@@ -68,6 +69,7 @@ export default async function handler(req, res) {
     if (gmailToken) {
       const rawMime = [
         `From: ${senderHeader}`,
+        `Reply-To: ${senderEmail}`,
         `To: ${recipient}`,
         `Subject: ${encodeMimeHeaderUtf8(cleanSubject)}`,
         "MIME-Version: 1.0",
@@ -87,7 +89,7 @@ export default async function handler(req, res) {
 
       if (gmailRes.ok) {
         const sent = await gmailRes.json().catch(() => ({}));
-        return res.status(200).json({ ok: true, delivered: true, transport: "gmail", id: sent?.id || null });
+        return res.status(200).json({ ok: true, delivered: true, transport: "gmail", from: senderEmail, id: sent?.id || null });
       }
     }
 

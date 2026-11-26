@@ -1,4 +1,4 @@
-import { LOCAL_MODEL_CACHE_NAME, type OcrMode } from './localAiConfig';
+import { LOCAL_MODEL_CACHE_NAME, type OcrMode, type OfflineAsrTier } from './localAiConfig';
 import type { OfflineAudioClip, OnlineAudioChunk } from '../utils/audioChunking';
 
 export interface LocalOcrProgress {
@@ -230,7 +230,7 @@ export async function getOfflineModelCacheStats(): Promise<{
   let totalBytes = 0;
   let entryCount = 0;
 
-  const cacheNames = [LOCAL_MODEL_CACHE_NAME, 'transformers-cache'];
+  const cacheNames = [LOCAL_MODEL_CACHE_NAME, 'studentos-local-models-v1', 'transformers-cache'];
   for (const name of cacheNames) {
     try {
       const has = await caches.has(name);
@@ -369,7 +369,7 @@ export interface LocalAsrProgress {
 }
 
 export async function runLocalAsrClips(params: {
-  modelTier: 'offline-tiny' | 'offline-base';
+  modelTier: OfflineAsrTier;
   language: 'auto' | 'vi' | 'en';
   clips: OfflineAudioClip[];
   onProgress?: (p: LocalAsrProgress) => void;
@@ -522,7 +522,7 @@ export async function runLocalLectureSummary(params: {
       worker.removeEventListener('message', onMessage);
       worker.removeEventListener('error', onError);
       if (signal) signal.removeEventListener('abort', onAbort);
-      // Immediately terminate summary worker so Gemma 3 270M memory returns to 0 MB.
+      // Immediately terminate summary worker so local LLM memory returns to 0 MB.
       terminateSummaryWorker();
     };
 
@@ -540,7 +540,7 @@ export async function runLocalLectureSummary(params: {
       if (settled) return;
       settled = true;
       cleanup();
-      reject(new Error(ev.message || 'Offline Gemma 3 270M summary worker failed.'));
+      reject(new Error(ev.message || 'Offline Qwen3.5 summary worker failed.'));
     };
 
     const onMessage = (event: MessageEvent<any>) => {
@@ -588,7 +588,7 @@ export async function clearOfflineModels(): Promise<void> {
   terminateAsrWorker();
   terminateSummaryWorker();
   if (typeof caches === 'undefined') return;
-  for (const name of [LOCAL_MODEL_CACHE_NAME, 'transformers-cache']) {
+  for (const name of [LOCAL_MODEL_CACHE_NAME, 'studentos-local-models-v1', 'transformers-cache']) {
     try {
       await caches.delete(name);
     } catch {

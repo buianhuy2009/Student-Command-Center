@@ -217,9 +217,9 @@ export const NoteScannerWorkspace: React.FC<NoteScannerWorkspaceProps> = ({ onOp
   };
 
   const offlineSubModes: { id: OcrMode; label: string; sizeHint: string }[] = [
-    { id: 'printed', label: t('scanner_offline_printed'), sizeHint: '~11 MB' },
-    { id: 'handwritten-vi', label: t('scanner_offline_vi_hand'), sizeHint: '~41 MB' },
-    { id: 'handwritten-en', label: t('scanner_offline_en_hand'), sizeHint: '~11 MB' },
+    { id: 'printed', label: t('scanner_offline_printed'), sizeHint: '~42 MB' },
+    { id: 'handwritten-vi', label: t('scanner_offline_vi_hand'), sizeHint: '~78 MB' },
+    { id: 'handwritten-en', label: t('scanner_offline_en_hand'), sizeHint: '~20 MB' },
   ];
 
   return (
