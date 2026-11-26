@@ -3853,6 +3853,13 @@ export const en = {
   changelog_r_3_5_1_d2: 'Bypassed document.startViewTransition() during active AI jobs to prevent GPU compositor deadlocks with WebGPU/WASM workers, and kept LectureStudioWorkspace and NoteScannerWorkspace mounted (hidden via CSS) while jobs are running.',
   changelog_r_3_5_1_d3: 'Added the floating Background AI progress pill in desktop calm layout (where the top Navbar is hidden) so you can watch live % progress from Inbox, Dashboard, or Assignments and jump right back.',
 
+  // Changelog v3.5.2
+  changelog_r_3_5_2_t: 'Cleaner Lecture Workspace — Single Compact Video Player',
+  changelog_r_3_5_2_h1: 'Removed the duplicate large video player in the Lectures right panel so Summary & Transcript get full reading height',
+  changelog_r_3_5_2_h2: 'Kept the compact video player on the left synced with clickable Outline & Transcript timestamps',
+  changelog_r_3_5_2_d1: 'Hid the oversized right-column video box in LectureStudioWorkspace so summary sections, outlines, and transcripts have much more vertical space.',
+  changelog_r_3_5_2_d2: 'Connected the compact left-column video player to the shared media ref and saved-lecture media fallback so clicking any timestamp still jumps directly to that moment.',
+
 } as const;
 
 export type TranslationKey = keyof typeof en;

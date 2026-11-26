@@ -765,26 +765,35 @@ export const LectureStudioWorkspace: React.FC<LectureStudioWorkspaceProps> = ({
               </p>
             </div>
 
-            {selectedFile && selectedPreviewUrl && (
-              isVideoFile(selectedFile) ? (
+            {(() => {
+              const leftPreviewUrl =
+                selectedPreviewUrl || (sessionMediaKind === 'video' ? sessionAudioUrl : null);
+              const leftPreviewIsVideo = selectedFile
+                ? isVideoFile(selectedFile)
+                : sessionMediaKind === 'video';
+              if (!leftPreviewUrl) return null;
+              return leftPreviewIsVideo ? (
                 <video
-                  key={selectedPreviewUrl}
+                  key={leftPreviewUrl}
+                  ref={(el) => {
+                    mediaRef.current = el;
+                  }}
                   controls
                   playsInline
                   preload="metadata"
-                  src={selectedPreviewUrl}
+                  src={leftPreviewUrl}
                   className="w-full max-h-44 rounded-xl bg-black border border-[var(--border-hairline)]"
                 />
               ) : (
                 <audio
-                  key={selectedPreviewUrl}
+                  key={leftPreviewUrl}
                   controls
                   preload="metadata"
-                  src={selectedPreviewUrl}
+                  src={leftPreviewUrl}
                   className="w-full h-9 rounded-xl"
                 />
-              )
-            )}
+              );
+            })()}
 
             <div className="grid grid-cols-2 gap-2">
               <input
@@ -947,31 +956,18 @@ export const LectureStudioWorkspace: React.FC<LectureStudioWorkspaceProps> = ({
                 </div>
               </div>
 
-              {sessionAudioUrl &&
-                (sessionMediaKind === 'video' ? (
-                  <video
-                    key={sessionAudioUrl}
-                    ref={(el) => {
-                      mediaRef.current = el;
-                    }}
-                    controls
-                    playsInline
-                    preload="metadata"
-                    src={sessionAudioUrl}
-                    className="w-full max-h-64 rounded-xl bg-black shrink-0"
-                  />
-                ) : (
-                  <audio
-                    key={sessionAudioUrl}
-                    ref={(el) => {
-                      mediaRef.current = el;
-                    }}
-                    controls
-                    preload="metadata"
-                    src={sessionAudioUrl}
-                    className="w-full h-9 rounded-xl shrink-0"
-                  />
-                ))}
+              {sessionAudioUrl && sessionMediaKind !== 'video' && (
+                <audio
+                  key={sessionAudioUrl}
+                  ref={(el) => {
+                    mediaRef.current = el;
+                  }}
+                  controls
+                  preload="metadata"
+                  src={sessionAudioUrl}
+                  className="w-full h-9 rounded-xl shrink-0"
+                />
+              )}
 
               {/* Tabs: Summary & Outline vs Transcript */}
               <div className="inline-flex items-center gap-1 p-1 bg-[var(--bg-subtle)] rounded-xl border border-[var(--border-default)] self-start shrink-0">

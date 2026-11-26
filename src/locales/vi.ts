@@ -3845,4 +3845,11 @@ export const vi = {
   changelog_r_3_5_1_d2: 'Bỏ qua document.startViewTransition() khi có tác vụ AI đang chạy nhằm tránh xung đột GPU với WebGPU/WASM worker, đồng thời giữ LectureStudioWorkspace và NoteScannerWorkspace không bị huỷ khi đang xử lý.',
   changelog_r_3_5_1_d3: 'Hiển thị nút tiến độ AI chạy nền ở góc trên bên phải trên giao diện gọn (desktop) giúp bạn theo dõi % tiến độ trực tiếp từ Hộp thư, Trang chủ hay Bài tập và quay lại chỉ bằng 1 chạm.',
 
+  // Changelog v3.5.2
+  changelog_r_3_5_2_t: 'Gọn gàng hơn ở mục Bài giảng — Chỉ giữ 1 khung video nhỏ',
+  changelog_r_3_5_2_h1: 'Ẩn khung video lớn bị trùng lặp ở cột phải mục Bài giảng để phần Tóm tắt & Bản chép lời rộng rãi hơn',
+  changelog_r_3_5_2_h2: 'Giữ duy nhất khung video gọn bên trái và đồng bộ tua nhanh khi bấm vào mốc thời gian',
+  changelog_r_3_5_2_d1: 'Loại bỏ khung phát video lớn ở cột phải trong LectureStudioWorkspace để tăng tối đa chiều cao hiển thị cho Tóm tắt, Dàn ý và Bản chép lời.',
+  changelog_r_3_5_2_d2: 'Kết nối khung video nhỏ bên trái với tham chiếu phát lại và video đã lưu để khi nhấn vào bất kỳ mốc thời gian nào vẫn tua chính xác tới đoạn đó.',
+
 } satisfies Record<TranslationKey, string>;
