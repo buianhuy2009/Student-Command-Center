@@ -3,10 +3,13 @@ import { extractTextFromNoteImage, type NoteScanMode } from '../services/gemini'
 import {
   getOcrEngineMode,
   getOcrMode,
+  getOcrQualityTier,
   setOcrEngineMode,
   setOcrMode,
+  setOcrQualityTier,
   type OcrEngineMode,
   type OcrMode,
+  type OcrQualityTier,
 } from '../services/localAiConfig';
 import { runLocalOcrScan, type LocalOcrProgress } from '../services/localMediaManager';
 import { t } from '../services/i18n';
@@ -93,6 +96,7 @@ interface NoteScannerState {
   selectedId: string | null;
   engineMode: OcrEngineMode;
   offlineSubMode: OcrMode;
+  offlineTier: OcrQualityTier;
   formatMode: NoteScanMode;
   extractedTitle: string;
   extractedSubject: string;
@@ -107,6 +111,7 @@ interface NoteScannerState {
   setSelectedId: (id: string | null) => void;
   setEngineMode: (mode: OcrEngineMode) => void;
   setOfflineSubMode: (mode: OcrMode) => void;
+  setOfflineTier: (tier: OcrQualityTier) => void;
   setFormatMode: (mode: NoteScanMode) => void;
   setExtractedTitle: (title: string) => void;
   setExtractedSubject: (subject: string) => void;
@@ -126,6 +131,7 @@ export const useNoteScannerStore = create<NoteScannerState>((set, get) => ({
   selectedId: null,
   engineMode: getOcrEngineMode(),
   offlineSubMode: getOcrMode(),
+  offlineTier: getOcrQualityTier(),
   formatMode: 'markdown',
   extractedTitle: '',
   extractedSubject: '',
@@ -147,6 +153,11 @@ export const useNoteScannerStore = create<NoteScannerState>((set, get) => ({
   setOfflineSubMode: (mode) => {
     setOcrMode(mode);
     set({ offlineSubMode: mode });
+  },
+
+  setOfflineTier: (tier) => {
+    setOcrQualityTier(tier);
+    set({ offlineTier: tier });
   },
 
   setFormatMode: (formatMode) => set({ formatMode }),
@@ -239,6 +250,7 @@ export const useNoteScannerStore = create<NoteScannerState>((set, get) => ({
         const res = await runLocalOcrScan({
           imageBlob: blob,
           mode: state.offlineSubMode,
+          tier: state.offlineTier,
           signal: controller.signal,
           onProgress: (p) => {
             const info = formatOfflineProgressDetail(p);
@@ -385,6 +397,7 @@ export const useNoteScannerStore = create<NoteScannerState>((set, get) => ({
           const res = await runLocalOcrScan({
             imageBlob: blob,
             mode: get().offlineSubMode,
+            tier: get().offlineTier,
             signal: controller.signal,
             onProgress: (p) => {
               const info = formatOfflineProgressDetail(p);

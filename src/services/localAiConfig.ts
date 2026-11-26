@@ -8,12 +8,14 @@
 export const LOCAL_STORAGE_KEYS = {
   OCR_MODE: 'scc_ocr_mode',
   OCR_ENGINE: 'scc_ocr_engine',
+  OCR_TIER: 'scc_ocr_tier',
   LECTURE_MODE: 'scc_lecture_mode',
   LECTURE_SUMMARY_MODE: 'scc_lecture_summary_mode',
 } as const;
 
 export type OcrMode = 'printed' | 'handwritten-vi' | 'handwritten-en';
 export type OcrEngineMode = 'online' | 'offline';
+export type OcrQualityTier = 'fast' | 'accurate';
 export type LectureTranscriptionMode =
   | 'online'
   | 'offline-tiny'
@@ -35,6 +37,10 @@ export interface LocalModelCatalogEntry {
 }
 
 export const LOCAL_MODEL_CATALOG = {
+  ocrVlmFast: {
+    id: 'onnx-community/LFM2.5-VL-450M-ONNX',
+    approxMbWasm: 300,
+  },
   ocrVlm: {
     id: 'onnx-community/Qwen3.5-0.8B-ONNX',
     approxMbWasm: 620,
@@ -164,6 +170,29 @@ export function setOcrEngineMode(engine: OcrEngineMode): void {
       localStorage.setItem(
         LOCAL_STORAGE_KEYS.OCR_ENGINE,
         engine === 'offline' ? 'offline' : 'online'
+      );
+    }
+  } catch {
+    // Ignore storage failures.
+  }
+}
+
+export function getOcrQualityTier(): OcrQualityTier {
+  try {
+    if (typeof localStorage === 'undefined') return 'accurate';
+    const raw = localStorage.getItem(LOCAL_STORAGE_KEYS.OCR_TIER);
+    return raw === 'fast' ? 'fast' : 'accurate';
+  } catch {
+    return 'accurate';
+  }
+}
+
+export function setOcrQualityTier(tier: OcrQualityTier): void {
+  try {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(
+        LOCAL_STORAGE_KEYS.OCR_TIER,
+        tier === 'fast' ? 'fast' : 'accurate'
       );
     }
   } catch {

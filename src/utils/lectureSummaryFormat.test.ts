@@ -41,9 +41,10 @@ describe('formatOcrLinesToMarkdown & offline model catalog', () => {
     expect(lines[3]).toBe('Rate: ?/10');
   });
 
-  it('configures Qwen3.5 0.8B for offline summaries and Qwen3.5 0.8B Vision-Language OCR for all 3 Note Scanner modes', () => {
+  it('configures Qwen3.5 0.8B for offline summaries and 2-tier Vision-Language OCR (Fast LFM2.5 + Accurate Qwen3.5) for Note Scanner', () => {
     expect(LOCAL_MODEL_CATALOG.gemmaSummary.id).toBe('onnx-community/Qwen3.5-0.8B-Text-ONNX');
     expect(LOCAL_MODEL_CATALOG.gemmaSummary.fallbackId).toBe('onnx-community/Qwen3-0.6B-ONNX-OPT');
+    expect(LOCAL_MODEL_CATALOG.ocrVlmFast.id).toBe('onnx-community/LFM2.5-VL-450M-ONNX');
     expect(LOCAL_MODEL_CATALOG.ocrVlm.id).toBe('onnx-community/Qwen3.5-0.8B-ONNX');
     expect(LOCAL_MODEL_CATALOG.ocrPrinted.vlmModelId).toBe('onnx-community/Qwen3.5-0.8B-ONNX');
     expect(LOCAL_MODEL_CATALOG.ocrHandwrittenVi.vlmModelId).toBe('onnx-community/Qwen3.5-0.8B-ONNX');

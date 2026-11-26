@@ -1,6 +1,7 @@
 /// <reference lib="webworker" />
 import * as ort from 'onnxruntime-web';
 import {
+  AutoModelForImageTextToText,
   AutoProcessor,
   env,
   Qwen3_5ForConditionalGeneration,
@@ -12,6 +13,7 @@ import {
   LOCAL_MODEL_CACHE_NAME,
   LOCAL_MODEL_CATALOG,
   type OcrMode,
+  type OcrQualityTier,
 } from '../services/localAiConfig';
 import {
   formatOcrLinesToMarkdown,
@@ -44,6 +46,7 @@ type OcrWorkerRequest =
       id: string;
       imageBlob: Blob;
       mode: OcrMode;
+      tier?: OcrQualityTier;
       cropRect?: NormalizedCropRect;
     }
   | { type: 'abort'; id?: string }
@@ -1031,10 +1034,14 @@ async function detectVlmBackend(): Promise<{
   return { device: 'wasm', hasF16: false };
 }
 
-async function loadOcrVlm(requestId: string): Promise<{ processor: any; model: any }> {
-  const modelId = LOCAL_MODEL_CATALOG.ocrVlm.id;
+async function loadOcrVlm(
+  tier: OcrQualityTier,
+  requestId: string
+): Promise<{ processor: any; model: any; isFastLfm: boolean }> {
+  const isFastLfm = tier === 'fast';
+  const modelId = isFastLfm ? LOCAL_MODEL_CATALOG.ocrVlmFast.id : LOCAL_MODEL_CATALOG.ocrVlm.id;
   if (cachedVlm && cachedVlm.modelId === modelId) {
-    return { processor: cachedVlm.processor, model: cachedVlm.model };
+    return { processor: cachedVlm.processor, model: cachedVlm.model, isFastLfm };
   }
 
   await disposeCachedVlm();
@@ -1061,6 +1068,9 @@ async function loadOcrVlm(requestId: string): Promise<{ processor: any; model: a
   };
 
   const processor = await AutoProcessor.from_pretrained(modelId, { progress_callback });
+  if (isFastLfm && processor?.image_processor && 'do_image_splitting' in processor.image_processor) {
+    processor.image_processor.do_image_splitting = false;
+  }
   if (isCancelled(requestId)) throw new Error('ABORTED');
 
   const backend = await detectVlmBackend();
@@ -1074,11 +1084,17 @@ async function loadOcrVlm(requestId: string): Promise<{ processor: any; model: a
             ? [
                 {
                   device: 'webgpu' as const,
-                  dtype: {
-                    embed_tokens: 'q4f16' as const,
-                    vision_encoder: 'fp16' as const,
-                    decoder_model_merged: 'q4f16' as const,
-                  },
+                  dtype: isFastLfm
+                    ? {
+                        embed_tokens: 'q4f16' as const,
+                        vision_encoder: 'q4f16' as const,
+                        decoder_model_merged: 'q4f16' as const,
+                      }
+                    : {
+                        embed_tokens: 'q4f16' as const,
+                        vision_encoder: 'fp16' as const,
+                        decoder_model_merged: 'q4f16' as const,
+                      },
                 },
                 {
                   device: 'webgpu' as const,
@@ -1122,19 +1138,22 @@ async function loadOcrVlm(requestId: string): Promise<{ processor: any; model: a
   for (const cfg of attempts) {
     if (isCancelled(requestId)) throw new Error('ABORTED');
     try {
-      const model = await Qwen3_5ForConditionalGeneration.from_pretrained(modelId, {
+      const loader = isFastLfm ? AutoModelForImageTextToText : Qwen3_5ForConditionalGeneration;
+      const model = await loader.from_pretrained(modelId, {
         device: cfg.device,
         dtype: cfg.dtype as any,
         progress_callback,
       });
       cachedVlm = { modelId, processor, model };
-      return { processor, model };
+      return { processor, model, isFastLfm };
     } catch (err) {
       lastErr = err;
     }
   }
 
-  throw lastErr instanceof Error ? lastErr : new Error('Failed to load Qwen3.5 0.8B Vision OCR model.');
+  throw lastErr instanceof Error
+    ? lastErr
+    : new Error(`Failed to load ${isFastLfm ? 'LFM2.5-VL 450M' : 'Qwen3.5 0.8B'} Vision OCR model.`);
 }
 
 function buildVlmOcrPrompt(mode: OcrMode): string {
@@ -1152,19 +1171,21 @@ async function recognizePageWithVlm(
   pageW: number,
   pageH: number,
   mode: OcrMode,
+  tier: OcrQualityTier,
   requestId: string
 ): Promise<string> {
   postWeightedProgress(requestId, { stage: 'downloading', percent: 5 });
-  const { processor, model } = await loadOcrVlm(requestId);
+  const { processor, model, isFastLfm } = await loadOcrVlm(tier, requestId);
   if (isCancelled(requestId)) throw new Error('ABORTED');
 
   postWeightedProgress(requestId, { stage: 'detecting', percent: 52 });
 
-  // Preserve aspect ratio at crisp OCR resolution snapped to 28px ViT patches.
-  const maxVlmSide = 896;
+  // Fast tier uses 672px for quicker encoding; Accurate tier uses 896px for dense cursive detail.
+  const maxVlmSide = isFastLfm ? 672 : 896;
+  const stride = isFastLfm ? 16 : 28;
   const scale = Math.min(1, maxVlmSide / Math.max(pageW, pageH));
-  const vlmW = Math.max(56, Math.round((pageW * scale) / 28) * 28);
-  const vlmH = Math.max(56, Math.round((pageH * scale) / 28) * 28);
+  const vlmW = Math.max(stride * 2, Math.round((pageW * scale) / stride) * stride);
+  const vlmH = Math.max(stride * 2, Math.round((pageH * scale) / stride) * stride);
 
   const resized = new OffscreenCanvas(vlmW, vlmH);
   const ctx = resized.getContext('2d')!;
@@ -1199,7 +1220,9 @@ async function recognizePageWithVlm(
     });
   }
 
-  const inputs = await processor(promptText, rawImage);
+  const inputs = isFastLfm
+    ? await processor(rawImage, promptText, { add_special_tokens: false })
+    : await processor(promptText, rawImage);
   if (isCancelled(requestId)) throw new Error('ABORTED');
 
   postWeightedProgress(requestId, { stage: 'reading', percent: 56 });
@@ -1268,9 +1291,10 @@ self.onmessage = async (event: MessageEvent<OcrWorkerRequest>) => {
 
       if (isCancelled(msg.id)) throw new Error('ABORTED');
 
-      // Primary path: full-page Vision-Language Model (Qwen3.5 0.8B ONNX) for near-human accuracy across all 3 modes.
+      // Primary path: full-page Vision-Language Model (Fast LFM2.5-VL 450M or Accurate Qwen3.5 0.8B) across all 3 modes.
+      const tier: OcrQualityTier = msg.tier === 'fast' ? 'fast' : 'accurate';
       try {
-        const vlmText = await recognizePageWithVlm(pageCanvas, pageW, pageH, msg.mode, msg.id);
+        const vlmText = await recognizePageWithVlm(pageCanvas, pageW, pageH, msg.mode, tier, msg.id);
         if (isCancelled(msg.id)) throw new Error('ABORTED');
         if (vlmText.trim()) {
           postWeightedProgress(msg.id, { stage: 'formatting', percent: 99 });

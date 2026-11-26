@@ -17,10 +17,11 @@ import {
   RefreshCw,
   Wifi,
   HardDrive,
+  Zap,
 } from 'lucide-react';
 import { MathMarkdown } from '../MathMarkdown';
 import { type NoteScanMode } from '../../services/gemini';
-import { type OcrMode } from '../../services/localAiConfig';
+import { type OcrMode, type OcrQualityTier } from '../../services/localAiConfig';
 import {
   clearOfflineModels,
   getOfflineModelCacheStats,
@@ -90,6 +91,7 @@ export const NoteScannerWorkspace: React.FC<NoteScannerWorkspaceProps> = ({ onOp
     selectedId,
     engineMode,
     offlineSubMode,
+    offlineTier,
     formatMode,
     extractedTitle,
     extractedSubject,
@@ -103,6 +105,7 @@ export const NoteScannerWorkspace: React.FC<NoteScannerWorkspaceProps> = ({ onOp
     setSelectedId,
     setEngineMode,
     setOfflineSubMode,
+    setOfflineTier,
     setFormatMode,
     setExtractedTitle,
     setExtractedSubject,
@@ -216,10 +219,15 @@ export const NoteScannerWorkspace: React.FC<NoteScannerWorkspaceProps> = ({ onOp
     } catch {}
   };
 
-  const offlineSubModes: { id: OcrMode; label: string; sizeHint: string }[] = [
-    { id: 'printed', label: t('scanner_offline_printed'), sizeHint: 'Qwen3.5 Vision' },
-    { id: 'handwritten-vi', label: t('scanner_offline_vi_hand'), sizeHint: 'Qwen3.5 Vision' },
-    { id: 'handwritten-en', label: t('scanner_offline_en_hand'), sizeHint: 'Qwen3.5 Vision' },
+  const offlineSubModes: { id: OcrMode; label: string }[] = [
+    { id: 'printed', label: t('scanner_offline_printed') },
+    { id: 'handwritten-vi', label: t('scanner_offline_vi_hand') },
+    { id: 'handwritten-en', label: t('scanner_offline_en_hand') },
+  ];
+
+  const offlineTiers: { id: OcrQualityTier; label: string; sizeHint: string }[] = [
+    { id: 'fast', label: t('scanner_tier_fast'), sizeHint: '~300 MB' },
+    { id: 'accurate', label: t('scanner_tier_accurate'), sizeHint: '~620 MB' },
   ];
 
   return (
@@ -323,33 +331,67 @@ export const NoteScannerWorkspace: React.FC<NoteScannerWorkspaceProps> = ({ onOp
           </div>
         </div>
 
-        {/* 3 Offline OCR Modes + Cache Bar */}
+        {/* Offline Tier (Fast vs Accurate) + 3 Offline OCR Modes + Cache Bar */}
         {engineMode === 'offline' && (
           <div className="flex flex-wrap items-center justify-between gap-2 pt-2.5 border-t border-[var(--border-hairline)]">
-            <div className="flex flex-wrap items-center gap-1.5">
-              {offlineSubModes.map((sub) => {
-                const active = offlineSubMode === sub.id;
-                return (
-                  <button
-                    key={sub.id}
-                    type="button"
-                    disabled={isScanning}
-                    onClick={() => setOfflineSubMode(sub.id)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-60 ${
-                      active
-                        ? 'bg-[var(--accent-soft)] text-[var(--accent-text)] border-[var(--accent-border)]'
-                        : 'bg-[var(--bg-subtle)]/70 text-[var(--text-secondary)] border-[var(--border-hairline)] hover:border-[var(--border-default)]'
-                    }`}
-                  >
-                    <span>{sub.label}</span>
-                    <span className="text-[10px] opacity-75 font-mono">({sub.sizeHint})</span>
-                  </button>
-                );
-              })}
+            <div className="flex flex-wrap items-center gap-2">
+              <div
+                role="group"
+                aria-label={t('scanner_tier_aria')}
+                className="inline-flex items-center gap-1 p-0.5 bg-[var(--bg-subtle)] rounded-xl border border-[var(--border-default)]"
+              >
+                {offlineTiers.map((tierOpt) => {
+                  const active = offlineTier === tierOpt.id;
+                  return (
+                    <button
+                      key={tierOpt.id}
+                      type="button"
+                      disabled={isScanning}
+                      onClick={() => setOfflineTier(tierOpt.id)}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1 disabled:opacity-60 ${
+                        active
+                          ? 'bg-[var(--accent-fill)] text-white shadow-2xs'
+                          : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                      }`}
+                    >
+                      {tierOpt.id === 'fast' ? (
+                        <Zap className="w-3 h-3" />
+                      ) : (
+                        <Sparkles className="w-3 h-3" />
+                      )}
+                      <span>{tierOpt.label}</span>
+                      <span className="text-[10px] opacity-80 font-mono">({tierOpt.sizeHint})</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-1.5">
+                {offlineSubModes.map((sub) => {
+                  const active = offlineSubMode === sub.id;
+                  return (
+                    <button
+                      key={sub.id}
+                      type="button"
+                      disabled={isScanning}
+                      onClick={() => setOfflineSubMode(sub.id)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-60 ${
+                        active
+                          ? 'bg-[var(--accent-soft)] text-[var(--accent-text)] border-[var(--accent-border)]'
+                          : 'bg-[var(--bg-subtle)]/70 text-[var(--text-secondary)] border-[var(--border-hairline)] hover:border-[var(--border-default)]'
+                      }`}
+                    >
+                      <span>{sub.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             <div className="flex items-center gap-2 text-[11px] text-[var(--text-muted)]">
-              <span>{t('scanner_offline_hint')}</span>
+              <span>
+                {offlineTier === 'fast' ? t('scanner_offline_hint_fast') : t('scanner_offline_hint')}
+              </span>
               {cacheStats && cacheStats.approxMb > 0 && (
                 <button
                   type="button"

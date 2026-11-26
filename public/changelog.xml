@@ -6,6 +6,12 @@
     <description>Plain-English updates to StudentOS — what changed and why it matters for studying.</description>
     <language>en-us</language>
     <item>
+      <title>v3.5.0 — 2-Tier Offline Vision OCR in Note Scanner: Fast (LFM2.5 450M) &amp; Accurate (Qwen3.5 0.8B)</title>
+      <link>https://sutdent-command-center.vercel.app/?changelog=3.5.0</link>
+      <pubDate>Thu, 26 Nov 2026 13:45:00 GMT</pubDate>
+      <description>StudentOS v3.5.0 adds a Fast offline Vision OCR tier powered by LFM2.5-VL 450M (~300 MB, 2-3x faster) alongside the Accurate Qwen3.5 0.8B Vision tier (~620 MB) across all 3 Note Scanner modes, with automatic memory cleanup when switching tiers.</description>
+    </item>
+    <item>
       <title>v3.4.0 — On-Device Qwen3.5 0.8B Vision-Language OCR Across All 3 Note Scanner Modes</title>
       <link>https://sutdent-command-center.vercel.app/?changelog=3.4.0</link>
       <pubDate>Thu, 26 Nov 2026 13:30:00 GMT</pubDate>

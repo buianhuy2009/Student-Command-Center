@@ -3639,7 +3639,11 @@ export const vi = {
   scanner_offline_printed: 'Tài liệu in (EN + VI)',
   scanner_offline_vi_hand: 'Chữ viết tay Việt',
   scanner_offline_en_hand: 'Chữ viết tay Anh',
-  scanner_offline_hint: 'Qwen3.5 0.8B Vision (~620 MB, tải 1 lần cho cả 3 chế độ) · Không tốn API',
+  scanner_tier_aria: 'Chọn tốc độ mô hình Vision Offline (Nhanh hoặc Chính xác)',
+  scanner_tier_fast: 'Nhanh · LFM2.5',
+  scanner_tier_accurate: 'Chính xác · Qwen3.5',
+  scanner_offline_hint_fast: 'LFM2.5-VL 450M (~300 MB, nhanh hơn 2–3 lần, tải 1 lần) · Không tốn API',
+  scanner_offline_hint: 'Qwen3.5 0.8B Vision (~620 MB, chính xác nhất, tải 1 lần) · Không tốn API',
   scanner_clear_cache: 'Xoá bộ nhớ đệm ({mb} MB)',
   scanner_prog_preparing_offline: 'Đang chuẩn bị OCR trên máy...',
   scanner_prog_sending_online: 'Đang gửi ảnh lên Gemini Vision...',
@@ -3822,5 +3826,14 @@ export const vi = {
   changelog_r_3_4_0_d1: 'Thay thế cơ chế cắt dòng OCR truyền thống bằng mô hình đa phương thức Qwen3.5 0.8B Vision (onnx-community/Qwen3.5-0.8B-ONNX) chạy trực tiếp trên máy với prompt chuyên biệt cho Tài liệu in EN+VI, Chữ viết tay tiếng Việt và Chữ viết tay/chữ thảo tiếng Anh.',
   changelog_r_3_4_0_d2: 'Tự động dùng WebGPU (FP16/Q4F16) khi trình duyệt hỗ trợ và chuyển mượt sang WASM Q4 trên CPU, giữ ảnh sắc nét 896px, giải mã chính xác không bịa chữ và giữ sẵn mô hình trong RAM khi quét nhiều trang liên tiếp.',
   changelog_r_3_4_0_d3: 'Giữ nguyên bộ PP-OCRv5 + VietOCR làm phương án dự phòng tự động nếu thiết bị không đủ RAM để chạy mô hình Vision-Language.',
+
+  // Changelog v3.5.0
+  changelog_r_3_5_0_t: '2 Cấp độ Quét ghi chú Vision Offline: Nhanh (LFM2.5 450M) & Chính xác (Qwen3.5 0.8B)',
+  changelog_r_3_5_0_h1: 'Bổ sung chế độ Vision Offline Nhanh (LFM2.5-VL 450M · ~300 MB) bên cạnh Chính xác (Qwen3.5 0.8B · ~620 MB) cho cả 3 chế độ Quét ghi chú',
+  changelog_r_3_5_0_h2: 'Tốc độ nhanh hơn 2–3 lần và nhẹ RAM hơn một nửa nhưng vẫn giữ độ chính xác toàn trang vượt trội hơn hẳn OCR cắt dòng cũ',
+  changelog_r_3_5_0_h3: 'Tự động giải phóng mô hình cũ khỏi RAM khi chuyển đổi giữa Nhanh và Chính xác',
+  changelog_r_3_5_0_d1: 'Quét ghi chú Offline nay có nút chuyển Nhanh · LFM2.5 (~300 MB, onnx-community/LFM2.5-VL-450M-ONNX) và Chính xác · Qwen3.5 (~620 MB, onnx-community/Qwen3.5-0.8B-ONNX) ngay cạnh 3 chế độ quét.',
+  changelog_r_3_5_0_d2: 'Bản Nhanh dùng kiến trúc lai Conv+Attention 450M của Liquid AI với ảnh 672px một lượt giúp chép trang ghi chú nhanh vượt trội trên cả WebGPU và CPU.',
+  changelog_r_3_5_0_d3: 'Lựa chọn cấp độ được lưu tự động và giải phóng RAM mô hình trước đó ngay khi bạn chuyển đổi.',
 
 } satisfies Record<TranslationKey, string>;

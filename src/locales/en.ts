@@ -3647,7 +3647,11 @@ export const en = {
   scanner_offline_printed: 'Printed (EN + VI)',
   scanner_offline_vi_hand: 'VI Handwriting',
   scanner_offline_en_hand: 'EN Handwriting',
-  scanner_offline_hint: 'Qwen3.5 0.8B Vision (~620 MB, downloads once for all 3 modes) · 0 API tokens',
+  scanner_tier_aria: 'Choose Fast or Accurate offline Vision model',
+  scanner_tier_fast: 'Fast · LFM2.5',
+  scanner_tier_accurate: 'Accurate · Qwen3.5',
+  scanner_offline_hint_fast: 'LFM2.5-VL 450M (~300 MB, 2–3× faster, downloads once) · 0 API tokens',
+  scanner_offline_hint: 'Qwen3.5 0.8B Vision (~620 MB, highest accuracy, downloads once) · 0 API tokens',
   scanner_clear_cache: 'Clear cache ({mb} MB)',
   scanner_prog_preparing_offline: 'Preparing on-device OCR...',
   scanner_prog_sending_online: 'Sending photo to Gemini Vision...',
@@ -3830,6 +3834,15 @@ export const en = {
   changelog_r_3_4_0_d1: 'Replaced error-prone line-cropping OCR with on-device Qwen3.5 0.8B Vision (onnx-community/Qwen3.5-0.8B-ONNX) using specialized prompts for Printed EN+VI, Vietnamese Handwriting, and English Handwriting/Cursive.',
   changelog_r_3_4_0_d2: 'Uses WebGPU FP16/Q4F16 when available (with automatic WASM Q4 fallback), 896px 28-aligned page resolution, greedy deterministic decoding, and in-worker model caching for fast multi-page scans.',
   changelog_r_3_4_0_d3: 'Keeps the upgraded PP-OCRv5 + VietOCR pipeline as a silent fallback if a device cannot allocate memory for the Vision-Language model.',
+
+  // Changelog v3.5.0
+  changelog_r_3_5_0_t: '2-Tier Offline Vision OCR in Note Scanner: Fast (LFM2.5 450M) & Accurate (Qwen3.5 0.8B)',
+  changelog_r_3_5_0_h1: 'Added a Fast offline Vision OCR tier (LFM2.5-VL 450M · ~300 MB) alongside Accurate (Qwen3.5 0.8B · ~620 MB) across all 3 Note Scanner modes',
+  changelog_r_3_5_0_h2: 'Runs 2–3× faster with half the RAM while preserving full-page Vision-Language accuracy far above classical line-by-line OCR',
+  changelog_r_3_5_0_h3: 'Switching tiers automatically frees the previous model from memory so laptops stay responsive',
+  changelog_r_3_5_0_d1: 'Note Scanner Offline now includes a Fast · LFM2.5 (~300 MB, onnx-community/LFM2.5-VL-450M-ONNX) vs Accurate · Qwen3.5 (~620 MB, onnx-community/Qwen3.5-0.8B-ONNX) selector right beside the 3 scanning modes.',
+  changelog_r_3_5_0_d2: 'Fast tier uses single-shot 672px vision encoding with Liquid AI’s hybrid Conv+Attention 450M architecture for rapid page transcription on both WebGPU and CPU.',
+  changelog_r_3_5_0_d3: 'Your chosen speed tier persists automatically in localStorage and disposes any previously cached VLM weights when switching.',
 
 } as const;
 

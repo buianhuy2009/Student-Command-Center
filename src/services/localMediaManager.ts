@@ -1,4 +1,4 @@
-import { LOCAL_MODEL_CACHE_NAME, type OcrMode, type OfflineAsrTier } from './localAiConfig';
+import { LOCAL_MODEL_CACHE_NAME, type OcrMode, type OcrQualityTier, type OfflineAsrTier } from './localAiConfig';
 import type { OfflineAudioClip, OnlineAudioChunk } from '../utils/audioChunking';
 
 export interface LocalOcrProgress {
@@ -135,10 +135,11 @@ function getOrCreateOcrWorker(): Worker {
 export async function runLocalOcrScan(params: {
   imageBlob: Blob;
   mode: OcrMode;
+  tier?: OcrQualityTier;
   onProgress?: (progress: LocalOcrProgress) => void;
   signal?: AbortSignal;
 }): Promise<LocalOcrResult> {
-  const { imageBlob, mode, onProgress, signal } = params;
+  const { imageBlob, mode, tier = 'accurate', onProgress, signal } = params;
   if (signal?.aborted) {
     throw new Error('ABORTED');
   }
@@ -218,6 +219,7 @@ export async function runLocalOcrScan(params: {
       id: requestId,
       imageBlob,
       mode,
+      tier,
     });
   });
 }
