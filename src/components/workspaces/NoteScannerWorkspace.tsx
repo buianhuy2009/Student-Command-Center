@@ -133,7 +133,7 @@ export const NoteScannerWorkspace: React.FC<NoteScannerWorkspaceProps> = ({ onOp
   };
 
   useEffect(() => {
-    if (engineMode === 'offline') {
+    if (engineMode === 'offline' && !isScanning) {
       refreshCacheStats();
     }
   }, [engineMode, isScanning]);

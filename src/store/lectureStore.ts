@@ -207,6 +207,7 @@ export const useLectureStore = create<LectureStoreState>((set, get) => ({
   error: null,
 
   hydrateLectures: async () => {
+    if (get().isProcessing) return;
     const list = await loadAllLecturesFromDb();
     const currentActive = get().activeLectureId;
     const nextActive = currentActive && list.some((l) => l.id === currentActive)

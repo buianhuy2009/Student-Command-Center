@@ -6,6 +6,12 @@
     <description>Plain-English updates to StudentOS — what changed and why it matters for studying.</description>
     <language>en-us</language>
     <item>
+      <title>v3.5.1 — Fixed Offline AI Freezing When Switching StudentOS Tabs</title>
+      <link>https://sutdent-command-center.vercel.app/?changelog=3.5.1</link>
+      <pubDate>Thu, 26 Nov 2026 13:50:00 GMT</pubDate>
+      <description>StudentOS v3.5.1 fixes offline AI jobs freezing when switching tabs inside StudentOS by eliminating a 780 MB main-thread cache arrayBuffer spike, bypassing GPU ViewTransitions during active AI runs, keeping active Lectures and Note Scanner workspaces mounted in the background, and showing the live Background AI progress pill on desktop calm mode.</description>
+    </item>
+    <item>
       <title>v3.5.0 — 2-Tier Offline Vision OCR in Note Scanner: Fast (LFM2.5 450M) &amp; Accurate (Qwen3.5 0.8B)</title>
       <link>https://sutdent-command-center.vercel.app/?changelog=3.5.0</link>
       <pubDate>Thu, 26 Nov 2026 13:45:00 GMT</pubDate>

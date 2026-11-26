@@ -3844,6 +3844,15 @@ export const en = {
   changelog_r_3_5_0_d2: 'Fast tier uses single-shot 672px vision encoding with Liquid AI’s hybrid Conv+Attention 450M architecture for rapid page transcription on both WebGPU and CPU.',
   changelog_r_3_5_0_d3: 'Your chosen speed tier persists automatically in localStorage and disposes any previously cached VLM weights when switching.',
 
+  // Changelog v3.5.1
+  changelog_r_3_5_1_t: 'Fixed Offline AI Freezing When Switching StudentOS Tabs',
+  changelog_r_3_5_1_h1: 'Fixed offline AI workers (Lectures & Note Scanner) freezing when switching to another tab inside StudentOS',
+  changelog_r_3_5_1_h2: 'Eliminated a 600–800 MB main-thread RAM spike from model cache size checks and bypassed GPU ViewTransitions during active AI jobs',
+  changelog_r_3_5_1_h3: 'Kept active Lectures & Note Scanner workspaces mounted while running and surfaced the live Background AI progress pill on desktop calm mode',
+  changelog_r_3_5_1_d1: 'Replaced res.arrayBuffer() with zero-copy blob.size inside getOfflineModelCacheStats() and skipped cache scans while an offline ML worker is active so mounting or switching tabs never pulls 780+ MB of ONNX weights into main-thread RAM.',
+  changelog_r_3_5_1_d2: 'Bypassed document.startViewTransition() during active AI jobs to prevent GPU compositor deadlocks with WebGPU/WASM workers, and kept LectureStudioWorkspace and NoteScannerWorkspace mounted (hidden via CSS) while jobs are running.',
+  changelog_r_3_5_1_d3: 'Added the floating Background AI progress pill in desktop calm layout (where the top Navbar is hidden) so you can watch live % progress from Inbox, Dashboard, or Assignments and jump right back.',
+
 } as const;
 
 export type TranslationKey = keyof typeof en;

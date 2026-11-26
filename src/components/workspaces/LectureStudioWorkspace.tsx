@@ -109,9 +109,11 @@ export const LectureStudioWorkspace: React.FC<LectureStudioWorkspaceProps> = ({
   }, [hydrateLectures]);
 
   useEffect(() => {
-    if (mode !== 'online' || summaryMode === 'offline') {
+    if (!isProcessing && (mode !== 'online' || summaryMode === 'offline')) {
       getOfflineModelCacheStats()
-        .then(setCacheStats)
+        .then((stats) => {
+          if (stats.approxMb > 0) setCacheStats(stats);
+        })
         .catch(() => {});
     }
   }, [mode, summaryMode, isProcessing]);

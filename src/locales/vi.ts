@@ -3836,4 +3836,13 @@ export const vi = {
   changelog_r_3_5_0_d2: 'Bản Nhanh dùng kiến trúc lai Conv+Attention 450M của Liquid AI với ảnh 672px một lượt giúp chép trang ghi chú nhanh vượt trội trên cả WebGPU và CPU.',
   changelog_r_3_5_0_d3: 'Lựa chọn cấp độ được lưu tự động và giải phóng RAM mô hình trước đó ngay khi bạn chuyển đổi.',
 
+  // Changelog v3.5.1
+  changelog_r_3_5_1_t: 'Sửa triệt để lỗi AI Offline bị đứng khi chuyển tab trong StudentOS',
+  changelog_r_3_5_1_h1: 'Khắc phục tình trạng AI offline (Bài giảng & Quét ghi chú) bị treo khi chuyển sang mục khác trong StudentOS',
+  changelog_r_3_5_1_h2: 'Loại bỏ lỗi đọc 600–800 MB bộ nhớ đệm mô hình vào luồng chính và tắt ViewTransition khi AI đang chạy để không khoá GPU',
+  changelog_r_3_5_1_h3: 'Giữ nguyên không gian Bài giảng & Quét ghi chú chạy nền mượt mà và hiển thị thanh tiến độ AI nền ngay trên giao diện máy tính',
+  changelog_r_3_5_1_d1: 'Thay res.arrayBuffer() bằng blob.size không tốn RAM trong getOfflineModelCacheStats() và tạm bỏ qua quét bộ nhớ đệm khi worker AI đang chạy để tránh tăng vọt 780+ MB RAM luồng chính.',
+  changelog_r_3_5_1_d2: 'Bỏ qua document.startViewTransition() khi có tác vụ AI đang chạy nhằm tránh xung đột GPU với WebGPU/WASM worker, đồng thời giữ LectureStudioWorkspace và NoteScannerWorkspace không bị huỷ khi đang xử lý.',
+  changelog_r_3_5_1_d3: 'Hiển thị nút tiến độ AI chạy nền ở góc trên bên phải trên giao diện gọn (desktop) giúp bạn theo dõi % tiến độ trực tiếp từ Hộp thư, Trang chủ hay Bài tập và quay lại chỉ bằng 1 chạm.',
+
 } satisfies Record<TranslationKey, string>;

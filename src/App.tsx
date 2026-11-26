@@ -182,6 +182,9 @@ import { dismissReview } from './utils/trust';
 import { logPilot, recordMissedDeadlines } from './utils/pilotStats';
 import { PrivacyModal } from './components/PrivacyModal';
 import { useAiJobsStore } from './store/aiJobsStore';
+import { useLectureStore } from './store/lectureStore';
+import { useNoteScannerStore } from './store/noteScannerStore';
+import { BackgroundAiIndicator } from './components/ui/BackgroundAiIndicator';
 
 const LOCAL_ASSIGNMENTS_KEY = 'scc_user_assignments_v2';
 const LOCAL_EMAIL_ALERTS_KEY = 'scc_cached_email_alerts_v2';
@@ -445,6 +448,8 @@ export default function App() {
       return 'schedule';
     }
   });
+  const lectureIsProcessing = useLectureStore((s) => s.isProcessing);
+  const scannerIsScanning = useNoteScannerStore((s) => s.isScanning);
   const [activeTab, setActiveTab] = useState<AppTab>(() => {
     try {
       const saved = localStorage.getItem('scc_active_workspace_v1');
@@ -540,7 +545,11 @@ export default function App() {
     } catch {}
     try { trackEvent('command_executed', { command: newTab }); } catch {}
 
-    if (typeof document !== 'undefined' && (document as any).startViewTransition) {
+    const hasRunningAiJob = Object.values(useAiJobsStore.getState().jobs).some(
+      (j) => j.status === 'running' || j.status === 'queued'
+    );
+    // Avoid GPU compositor snapshots via ViewTransition while WebGPU/WASM AI workers are active.
+    if (!hasRunningAiJob && typeof document !== 'undefined' && (document as any).startViewTransition) {
       try {
         (document as any).startViewTransition(() => {
           setActiveTab(newTab);
@@ -3981,20 +3990,24 @@ export default function App() {
                   />
                 )}
 
-                {activeTab === 'note-scanner' && (
-                  <NoteScannerWorkspace
-                    onOpenNotes={() => handleTabTransition('notes-markdown')}
-                  />
+                {(activeTab === 'note-scanner' || scannerIsScanning) && (
+                  <div className={activeTab === 'note-scanner' ? 'h-full min-h-0 flex-1 flex flex-col' : 'hidden'}>
+                    <NoteScannerWorkspace
+                      onOpenNotes={() => handleTabTransition('notes-markdown')}
+                    />
+                  </div>
                 )}
 
-                {activeTab === 'lecture-studio' && (
-                  <LectureStudioWorkspace
-                    onOpenNotes={() => handleTabTransition('notes-markdown')}
-                    onOpenFlashcards={() => handleTabTransition('flashcards')}
-                    assignments={assignments}
-                    events={calendarEvents}
-                    alerts={emailAlerts}
-                  />
+                {(activeTab === 'lecture-studio' || lectureIsProcessing) && (
+                  <div className={activeTab === 'lecture-studio' ? 'h-full min-h-0 flex-1 flex flex-col' : 'hidden'}>
+                    <LectureStudioWorkspace
+                      onOpenNotes={() => handleTabTransition('notes-markdown')}
+                      onOpenFlashcards={() => handleTabTransition('flashcards')}
+                      assignments={assignments}
+                      events={calendarEvents}
+                      alerts={emailAlerts}
+                    />
+                  </div>
                 )}
 
                 {activeTab === 'dashboard' && (
@@ -4086,6 +4099,12 @@ export default function App() {
         googleAccessToken={googleToken}
       />
       </Suspense>
+      )}
+      {/* Keep background AI progress visible on desktop when calm layout hides the top Navbar */}
+      {layoutMode === 'calm' && !zenFocusMode && (
+        <div className="hidden md:block fixed top-3 right-4 z-40">
+          <BackgroundAiIndicator />
+        </div>
       )}
       {/* Remaining lazy modals share one Suspense (closed at the end of the stack) */}
       <Suspense fallback={null}>

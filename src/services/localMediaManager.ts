@@ -229,6 +229,10 @@ export async function getOfflineModelCacheStats(): Promise<{
   approxMb: number;
 }> {
   if (typeof caches === 'undefined') return { entryCount: 0, approxMb: 0 };
+  // Never scan multi-hundred-MB model caches while an offline ML worker is actively running.
+  if (activeWorkerKind !== null) {
+    return { entryCount: 0, approxMb: 0 };
+  }
   let totalBytes = 0;
   let entryCount = 0;
 
@@ -247,8 +251,9 @@ export async function getOfflineModelCacheStats(): Promise<{
         if (len > 0) {
           totalBytes += len;
         } else {
-          const buf = await res.arrayBuffer();
-          totalBytes += buf.byteLength;
+          // Use Blob.size (file-backed metadata) instead of arrayBuffer() so we never pull 600+ MB into JS RAM.
+          const blob = await res.blob();
+          totalBytes += blob.size;
         }
       }
     } catch {
