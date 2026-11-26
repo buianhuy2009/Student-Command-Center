@@ -27,6 +27,7 @@ export const LOCAL_MODEL_CACHE_NAME = 'studentos-local-models-v2';
 
 export interface LocalModelCatalogEntry {
   id: string;
+  vlmModelId?: string;
   fallbackId?: string;
   approxMbWasm: number;
   urls?: readonly string[];
@@ -34,6 +35,10 @@ export interface LocalModelCatalogEntry {
 }
 
 export const LOCAL_MODEL_CATALOG = {
+  ocrVlm: {
+    id: 'onnx-community/Qwen3.5-0.8B-ONNX',
+    approxMbWasm: 620,
+  },
   ocrDetector: {
     id: 'pp-ocrv5-mobile-det',
     approxMbWasm: 5,
@@ -45,8 +50,9 @@ export const LOCAL_MODEL_CATALOG = {
     ],
   },
   ocrPrinted: {
-    id: 'vietocr-transformer-w8',
-    approxMbWasm: 38,
+    id: 'qwen3.5-0.8b-vl-printed',
+    vlmModelId: 'onnx-community/Qwen3.5-0.8B-ONNX',
+    approxMbWasm: 620,
     urls: [
       'https://huggingface.co/dzngo/vietocr-models/resolve/main/vietocr/encoder_w8.onnx',
       'https://huggingface.co/dzngo/vietocr-models/resolve/main/vietocr/decoder_init_w8.onnx',
@@ -55,8 +61,9 @@ export const LOCAL_MODEL_CATALOG = {
     ],
   },
   ocrHandwrittenVi: {
-    id: 'vietocr-transformer-fp16w',
-    approxMbWasm: 74,
+    id: 'qwen3.5-0.8b-vl-handwritten-vi',
+    vlmModelId: 'onnx-community/Qwen3.5-0.8B-ONNX',
+    approxMbWasm: 620,
     urls: [
       'https://huggingface.co/dzngo/vietocr-models/resolve/main/vietocr/encoder_fp16w.onnx',
       'https://huggingface.co/dzngo/vietocr-models/resolve/main/vietocr/decoder_init_fp16w.onnx',
@@ -71,8 +78,9 @@ export const LOCAL_MODEL_CATALOG = {
     ],
   },
   ocrHandwrittenEn: {
-    id: 'pp-ocrv5-server-rec-en',
-    approxMbWasm: 81,
+    id: 'qwen3.5-0.8b-vl-handwritten-en',
+    vlmModelId: 'onnx-community/Qwen3.5-0.8B-ONNX',
+    approxMbWasm: 620,
     urls: [
       'https://huggingface.co/PaddlePaddle/PP-OCRv5_server_rec_onnx/resolve/main/inference.onnx',
       'https://huggingface.co/PaddlePaddle/PP-OCRv5_server_rec_onnx/resolve/main/inference.yml',

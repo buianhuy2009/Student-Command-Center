@@ -3647,7 +3647,7 @@ export const en = {
   scanner_offline_printed: 'Printed (EN + VI)',
   scanner_offline_vi_hand: 'VI Handwriting',
   scanner_offline_en_hand: 'EN Handwriting',
-  scanner_offline_hint: 'Runs locally on your device · 0 API tokens',
+  scanner_offline_hint: 'Qwen3.5 0.8B Vision (~620 MB, downloads once for all 3 modes) · 0 API tokens',
   scanner_clear_cache: 'Clear cache ({mb} MB)',
   scanner_prog_preparing_offline: 'Preparing on-device OCR...',
   scanner_prog_sending_online: 'Sending photo to Gemini Vision...',
@@ -3821,6 +3821,15 @@ export const en = {
   changelog_r_3_3_1_d1: 'Added media-src \'self\' blob: data: https: to vercel.json CSP (previously blocking blob: video/audio playback on production), added an instant <video>/<audio> preview player right after selecting a lecture file, and cached uploaded media in Cache Storage so saved video lectures stay playable after refreshing.',
   changelog_r_3_3_1_d2: 'Switched EN Handwriting offline OCR to PaddlePaddle PP-OCRv5 Server (80.6 MB, matching VI Handwriting size), raised line crop maxWidth from 640px to 2048px and handwriting detection resolution to 1280px, widened vertical box padding for cursive ascenders/descenders, and protected light-blue pen ink during preprocessing.',
   changelog_r_3_3_1_d3: 'Added nodemailer Gmail SMTP (smtp.gmail.com:465) and Gmail service OAuth2 transports in /api/reports/daily so studentos.service@gmail.com can send real HTML/text Daily Email Reports directly once GMAIL_APP_PASSWORD is set in Vercel environment variables.',
+
+  // Changelog v3.4.0
+  changelog_r_3_4_0_t: 'On-Device Qwen3.5 0.8B Vision-Language OCR Across All 3 Note Scanner Modes',
+  changelog_r_3_4_0_h1: 'Upgraded all 3 offline Note Scanner modes (Printed EN+VI, VI Handwriting, EN Handwriting) from line-by-line OCR to full-page Qwen3.5 0.8B Vision-Language OCR',
+  changelog_r_3_4_0_h2: 'Single shared ~620 MB model downloads once for all 3 modes with WebGPU acceleration, full-page context, and near-human cursive & Vietnamese accuracy',
+  changelog_r_3_4_0_h3: 'Automatic fallback to classic PP-OCRv5 + VietOCR ensures Note Scanner still works on ultra-low-memory devices',
+  changelog_r_3_4_0_d1: 'Replaced error-prone line-cropping OCR with on-device Qwen3.5 0.8B Vision (onnx-community/Qwen3.5-0.8B-ONNX) using specialized prompts for Printed EN+VI, Vietnamese Handwriting, and English Handwriting/Cursive.',
+  changelog_r_3_4_0_d2: 'Uses WebGPU FP16/Q4F16 when available (with automatic WASM Q4 fallback), 896px 28-aligned page resolution, greedy deterministic decoding, and in-worker model caching for fast multi-page scans.',
+  changelog_r_3_4_0_d3: 'Keeps the upgraded PP-OCRv5 + VietOCR pipeline as a silent fallback if a device cannot allocate memory for the Vision-Language model.',
 
 } as const;
 

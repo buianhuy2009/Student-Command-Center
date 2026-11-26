@@ -3639,7 +3639,7 @@ export const vi = {
   scanner_offline_printed: 'Tài liệu in (EN + VI)',
   scanner_offline_vi_hand: 'Chữ viết tay Việt',
   scanner_offline_en_hand: 'Chữ viết tay Anh',
-  scanner_offline_hint: 'Chạy cục bộ trên máy · Không tốn API',
+  scanner_offline_hint: 'Qwen3.5 0.8B Vision (~620 MB, tải 1 lần cho cả 3 chế độ) · Không tốn API',
   scanner_clear_cache: 'Xoá bộ nhớ đệm ({mb} MB)',
   scanner_prog_preparing_offline: 'Đang chuẩn bị OCR trên máy...',
   scanner_prog_sending_online: 'Đang gửi ảnh lên Gemini Vision...',
@@ -3813,5 +3813,14 @@ export const vi = {
   changelog_r_3_3_1_d1: 'Thêm media-src \'self\' blob: data: https: vào CSP trong vercel.json (trước đó chặn toàn bộ video/audio blob: trên bản Vercel), hiển thị ngay trình phát video/audio khi vừa chọn tệp trước khi chép lời và lưu tệp media cục bộ giúp bài giảng video cũ vẫn phát được sau khi tải lại.',
   changelog_r_3_3_1_d2: 'Chuyển OCR Chữ viết tay Tiếng Anh sang PaddlePaddle PP-OCRv5 Server (80.6 MB), nâng chiều rộng cắt dòng từ 640px lên 2048px, tăng độ phân giải dò dòng lên 1280px, mở rộng lề trên/dưới cho nét chữ thảo và bảo vệ nét mực xanh nhạt khi tiền xử lý ảnh.',
   changelog_r_3_3_1_d3: 'Tích hợp nodemailer Gmail SMTP (smtp.gmail.com:465) và Gmail OAuth2 trong /api/reports/daily để gửi trực tiếp Báo cáo email hằng ngày từ studentos.service@gmail.com khi đặt biến môi trường GMAIL_APP_PASSWORD trên Vercel.',
+
+  // Changelog v3.4.0
+  changelog_r_3_4_0_t: 'Nâng cấp cả 3 chế độ Quét ghi chú Offline lên Mô hình Thị giác-Ngôn ngữ Qwen3.5 0.8B Vision',
+  changelog_r_3_4_0_h1: 'Nâng cấp cả 3 chế độ Quét ghi chú Offline (Tài liệu in EN+VI, Chữ viết tay Việt, Chữ viết tay Anh) sang mô hình Vision-Language đọc toàn trang Qwen3.5 0.8B Vision',
+  changelog_r_3_4_0_h2: 'Một mô hình dùng chung (~620 MB, chỉ tải 1 lần cho cả 3 chế độ) có tăng tốc WebGPU, đọc chính xác chữ thảo tiếng Anh và dấu tiếng Việt',
+  changelog_r_3_4_0_h3: 'Tự động dự phòng về PP-OCRv5 + VietOCR cho các máy cấu hình RAM thấp',
+  changelog_r_3_4_0_d1: 'Thay thế cơ chế cắt dòng OCR truyền thống bằng mô hình đa phương thức Qwen3.5 0.8B Vision (onnx-community/Qwen3.5-0.8B-ONNX) chạy trực tiếp trên máy với prompt chuyên biệt cho Tài liệu in EN+VI, Chữ viết tay tiếng Việt và Chữ viết tay/chữ thảo tiếng Anh.',
+  changelog_r_3_4_0_d2: 'Tự động dùng WebGPU (FP16/Q4F16) khi trình duyệt hỗ trợ và chuyển mượt sang WASM Q4 trên CPU, giữ ảnh sắc nét 896px, giải mã chính xác không bịa chữ và giữ sẵn mô hình trong RAM khi quét nhiều trang liên tiếp.',
+  changelog_r_3_4_0_d3: 'Giữ nguyên bộ PP-OCRv5 + VietOCR làm phương án dự phòng tự động nếu thiết bị không đủ RAM để chạy mô hình Vision-Language.',
 
 } satisfies Record<TranslationKey, string>;

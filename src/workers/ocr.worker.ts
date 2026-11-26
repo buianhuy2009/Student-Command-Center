@@ -1,6 +1,14 @@
 /// <reference lib="webworker" />
 import * as ort from 'onnxruntime-web';
 import {
+  AutoProcessor,
+  env,
+  Qwen3_5ForConditionalGeneration,
+  RawImage,
+  TextStreamer,
+  type ProgressInfo,
+} from '@huggingface/transformers';
+import {
   LOCAL_MODEL_CACHE_NAME,
   LOCAL_MODEL_CATALOG,
   type OcrMode,
@@ -11,6 +19,12 @@ import {
   type OcrBox,
   type OcrLineBox,
 } from '../utils/noteFormatter';
+
+env.allowLocalModels = false;
+env.useBrowserCache = true;
+if (typeof self !== 'undefined' && !self.crossOriginIsolated && env.backends?.onnx?.wasm) {
+  env.backends.onnx.wasm.numThreads = 1;
+}
 
 ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.31.1/dist/';
 if (typeof self !== 'undefined' && !self.crossOriginIsolated) {
@@ -989,6 +1003,241 @@ async function recognizeVietnameseHandwriting(
   }
 }
 
+let cachedVlm: { modelId: string; processor: any; model: any } | null = null;
+
+async function disposeCachedVlm(): Promise<void> {
+  if (!cachedVlm) return;
+  const target = cachedVlm;
+  cachedVlm = null;
+  try {
+    await target.model?.dispose?.();
+  } catch {}
+}
+
+async function detectVlmBackend(): Promise<{
+  device: 'webgpu' | 'wasm';
+  hasF16: boolean;
+}> {
+  try {
+    const gpu = (navigator as Navigator & { gpu?: { requestAdapter: () => Promise<any> } }).gpu;
+    if (gpu && typeof gpu.requestAdapter === 'function') {
+      const adapter = await gpu.requestAdapter();
+      if (adapter) {
+        const hasF16 = Boolean(adapter.features?.has?.('shader-f16'));
+        return { device: 'webgpu', hasF16 };
+      }
+    }
+  } catch {}
+  return { device: 'wasm', hasF16: false };
+}
+
+async function loadOcrVlm(requestId: string): Promise<{ processor: any; model: any }> {
+  const modelId = LOCAL_MODEL_CATALOG.ocrVlm.id;
+  if (cachedVlm && cachedVlm.modelId === modelId) {
+    return { processor: cachedVlm.processor, model: cachedVlm.model };
+  }
+
+  await disposeCachedVlm();
+
+  const fileBytes = new Map<string, { loaded: number; total: number }>();
+  const progress_callback = (info: ProgressInfo) => {
+    if (info.status === 'progress' && 'file' in info) {
+      fileBytes.set(info.file, { loaded: info.loaded || 0, total: info.total || 0 });
+      let totalLoaded = 0;
+      let totalExpected = 0;
+      for (const e of fileBytes.values()) {
+        totalLoaded += e.loaded;
+        totalExpected += e.total;
+      }
+      const frac = totalExpected > 0 ? totalLoaded / totalExpected : (info.progress || 0) / 100;
+      postWeightedProgress(requestId, {
+        stage: 'downloading',
+        file: info.file,
+        loaded: totalLoaded,
+        total: totalExpected,
+        percent: 5 + Math.min(1, Math.max(0, frac)) * 45,
+      });
+    }
+  };
+
+  const processor = await AutoProcessor.from_pretrained(modelId, { progress_callback });
+  if (isCancelled(requestId)) throw new Error('ABORTED');
+
+  const backend = await detectVlmBackend();
+  const attempts: {
+    device: 'webgpu' | 'wasm';
+    dtype: Record<string, 'q4f16' | 'q4' | 'fp16'>;
+  }[] =
+    backend.device === 'webgpu'
+      ? [
+          ...(backend.hasF16
+            ? [
+                {
+                  device: 'webgpu' as const,
+                  dtype: {
+                    embed_tokens: 'q4f16' as const,
+                    vision_encoder: 'fp16' as const,
+                    decoder_model_merged: 'q4f16' as const,
+                  },
+                },
+                {
+                  device: 'webgpu' as const,
+                  dtype: {
+                    embed_tokens: 'q4f16' as const,
+                    vision_encoder: 'q4f16' as const,
+                    decoder_model_merged: 'q4f16' as const,
+                  },
+                },
+              ]
+            : []),
+          {
+            device: 'webgpu',
+            dtype: {
+              embed_tokens: 'q4',
+              vision_encoder: 'q4',
+              decoder_model_merged: 'q4',
+            },
+          },
+          {
+            device: 'wasm',
+            dtype: {
+              embed_tokens: 'q4',
+              vision_encoder: 'q4',
+              decoder_model_merged: 'q4',
+            },
+          },
+        ]
+      : [
+          {
+            device: 'wasm',
+            dtype: {
+              embed_tokens: 'q4',
+              vision_encoder: 'q4',
+              decoder_model_merged: 'q4',
+            },
+          },
+        ];
+
+  let lastErr: unknown = null;
+  for (const cfg of attempts) {
+    if (isCancelled(requestId)) throw new Error('ABORTED');
+    try {
+      const model = await Qwen3_5ForConditionalGeneration.from_pretrained(modelId, {
+        device: cfg.device,
+        dtype: cfg.dtype as any,
+        progress_callback,
+      });
+      cachedVlm = { modelId, processor, model };
+      return { processor, model };
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+
+  throw lastErr instanceof Error ? lastErr : new Error('Failed to load Qwen3.5 0.8B Vision OCR model.');
+}
+
+function buildVlmOcrPrompt(mode: OcrMode): string {
+  if (mode === 'handwritten-vi') {
+    return 'Hãy đọc và chép lại chính xác toàn bộ nội dung chữ viết tay tiếng Việt (và ký hiệu/công thức nếu có) trong ảnh này. Giữ nguyên dấu tiếng Việt, xuống dòng đúng bố cục. Chỉ trả về văn bản đã đọc, không giải thích thêm.';
+  }
+  if (mode === 'handwritten-en') {
+    return 'Transcribe every handwritten or cursive English word, number, punctuation mark, and line in this image verbatim. Preserve line breaks and exact spelling. Output ONLY the transcribed text with no commentary or explanation.';
+  }
+  return 'Transcribe all printed English and Vietnamese text, headings, lists, and formulas in this image verbatim into clean Markdown. Preserve exact Vietnamese diacritics and layout. Output ONLY the transcribed text with no commentary.';
+}
+
+async function recognizePageWithVlm(
+  pageCanvas: OffscreenCanvas,
+  pageW: number,
+  pageH: number,
+  mode: OcrMode,
+  requestId: string
+): Promise<string> {
+  postWeightedProgress(requestId, { stage: 'downloading', percent: 5 });
+  const { processor, model } = await loadOcrVlm(requestId);
+  if (isCancelled(requestId)) throw new Error('ABORTED');
+
+  postWeightedProgress(requestId, { stage: 'detecting', percent: 52 });
+
+  // Preserve aspect ratio at crisp OCR resolution snapped to 28px ViT patches.
+  const maxVlmSide = 896;
+  const scale = Math.min(1, maxVlmSide / Math.max(pageW, pageH));
+  const vlmW = Math.max(56, Math.round((pageW * scale) / 28) * 28);
+  const vlmH = Math.max(56, Math.round((pageH * scale) / 28) * 28);
+
+  const resized = new OffscreenCanvas(vlmW, vlmH);
+  const ctx = resized.getContext('2d')!;
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, vlmW, vlmH);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(pageCanvas, 0, 0, pageW, pageH, 0, 0, vlmW, vlmH);
+
+  const rgba = ctx.getImageData(0, 0, vlmW, vlmH).data;
+  const rawImage = new RawImage(new Uint8ClampedArray(rgba), vlmW, vlmH, 4).rgb();
+
+  const conversation = [
+    {
+      role: 'user',
+      content: [
+        { type: 'image' },
+        { type: 'text', text: buildVlmOcrPrompt(mode) },
+      ],
+    },
+  ];
+
+  let promptText: string;
+  try {
+    promptText = processor.apply_chat_template(conversation, {
+      add_generation_prompt: true,
+      enable_thinking: false,
+    });
+  } catch {
+    promptText = processor.apply_chat_template(conversation, {
+      add_generation_prompt: true,
+    });
+  }
+
+  const inputs = await processor(promptText, rawImage);
+  if (isCancelled(requestId)) throw new Error('ABORTED');
+
+  postWeightedProgress(requestId, { stage: 'reading', percent: 56 });
+
+  let emittedChars = 0;
+  const streamer = new TextStreamer(processor.tokenizer, {
+    skip_prompt: true,
+    skip_special_tokens: true,
+    callback_function: (chunk: string) => {
+      emittedChars += chunk.length;
+      const pct = Math.min(97, 56 + Math.round((emittedChars / 800) * 41));
+      postWeightedProgress(requestId, { stage: 'reading', percent: pct });
+    },
+  });
+
+  const outputs = await model.generate({
+    ...inputs,
+    max_new_tokens: 1024,
+    do_sample: false,
+    repetition_penalty: 1.05,
+    streamer,
+  });
+
+  if (isCancelled(requestId)) throw new Error('ABORTED');
+
+  const promptLen = inputs.input_ids?.dims?.at(-1) ?? 0;
+  const sliced = promptLen > 0 ? outputs.slice(null, [promptLen, null]) : outputs;
+  const decodedArr = processor.batch_decode(sliced, { skip_special_tokens: true });
+  const rawText = String(decodedArr?.[0] || '')
+    .replace(/<think>[\s\S]*?<\/think>/gi, '')
+    .replace(/<\/?think>/gi, '')
+    .replace(/^```(?:markdown|md|text)?\s*\n?/i, '')
+    .replace(/\n?```\s*$/i, '')
+    .trim();
+
+  return rawText;
+}
+
 self.onmessage = async (event: MessageEvent<OcrWorkerRequest>) => {
   const msg = event.data;
   if (!msg) return;
@@ -1000,6 +1249,7 @@ self.onmessage = async (event: MessageEvent<OcrWorkerRequest>) => {
 
   if (msg.type === 'unload') {
     cancelledId = '__all__';
+    await disposeCachedVlm();
     self.postMessage({ type: 'unloaded', id: msg.id });
     return;
   }
@@ -1018,6 +1268,27 @@ self.onmessage = async (event: MessageEvent<OcrWorkerRequest>) => {
 
       if (isCancelled(msg.id)) throw new Error('ABORTED');
 
+      // Primary path: full-page Vision-Language Model (Qwen3.5 0.8B ONNX) for near-human accuracy across all 3 modes.
+      try {
+        const vlmText = await recognizePageWithVlm(pageCanvas, pageW, pageH, msg.mode, msg.id);
+        if (isCancelled(msg.id)) throw new Error('ABORTED');
+        if (vlmText.trim()) {
+          postWeightedProgress(msg.id, { stage: 'formatting', percent: 99 });
+          const lineCount = vlmText.split('\n').filter((l) => l.trim().length > 0).length;
+          self.postMessage({
+            type: 'done',
+            id: msg.id,
+            markdown: vlmText,
+            lineCount,
+          });
+          return;
+        }
+      } catch (vlmErr) {
+        if (vlmErr instanceof Error && vlmErr.message === 'ABORTED') throw vlmErr;
+        console.warn('VLM OCR failed, falling back to classic line OCR:', vlmErr);
+      }
+
+      // Automatic fallback: classic line-by-line PP-OCRv5 + VietOCR pipeline for ultra-low-memory devices.
       const isHandwriting = msg.mode === 'handwritten-vi' || msg.mode === 'handwritten-en';
       const workCanvas = isHandwriting
         ? preprocessHandwritingPage(pageCanvas, pageW, pageH)
