@@ -333,6 +333,9 @@ describe("Server models & unified API surface", () => {
           })
       );
 
+      const mediaSrc: string[] = directives["media-src"] || [];
+      expect(mediaSrc).toEqual(expect.arrayContaining(["'self'", "blob:", "data:"]));
+
       const connectSrc: string[] = directives["connect-src"] || [];
       expect(connectSrc).toContain("https://export.arxiv.org");
       expect(connectSrc).toContain("https://openlibrary.org");
@@ -577,16 +580,20 @@ describe("Server models & unified API surface", () => {
 
   describe("Daily Email Report endpoint (/api/reports/daily)", () => {
     const prevResend = process.env.RESEND_API_KEY;
+    const prevSmtpPass = process.env.GMAIL_APP_PASSWORD;
     const prevFetch = globalThis.fetch;
 
     afterEach(() => {
       if (prevResend === undefined) delete process.env.RESEND_API_KEY;
       else process.env.RESEND_API_KEY = prevResend;
+      if (prevSmtpPass === undefined) delete process.env.GMAIL_APP_PASSWORD;
+      else process.env.GMAIL_APP_PASSWORD = prevSmtpPass;
       globalThis.fetch = prevFetch;
     });
 
     it("rejects invalid emails with 400 and returns honest preview when no transport is configured", async () => {
       delete process.env.RESEND_API_KEY;
+      delete process.env.GMAIL_APP_PASSWORD;
 
       const badRes = createMockRes();
       await handleDailyReport({ method: "POST", body: { toEmail: "not-an-email", text: "Hi" } }, badRes);

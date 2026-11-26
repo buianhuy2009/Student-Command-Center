@@ -68,6 +68,7 @@ export const LectureStudioWorkspace: React.FC<LectureStudioWorkspaceProps> = ({
     mode,
     summaryMode,
     language,
+    mediaRevision,
     isProcessing,
     progress,
     error,
@@ -87,6 +88,7 @@ export const LectureStudioWorkspace: React.FC<LectureStudioWorkspaceProps> = ({
   } = useLectureStore();
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedPreviewUrl, setSelectedPreviewUrl] = useState<string | null>(null);
   const [detectedDurationSec, setDetectedDurationSec] = useState<number | null>(null);
   const [titleInput, setTitleInput] = useState('');
   const [subjectInput, setSubjectInput] = useState('');
@@ -161,8 +163,28 @@ export const LectureStudioWorkspace: React.FC<LectureStudioWorkspaceProps> = ({
     [activeLecture?.summaryMarkdown]
   );
 
-  const sessionAudioUrl = activeLecture ? getAudioUrl(activeLecture.id) : null;
-  const sessionMediaKind = activeLecture ? getMediaKind(activeLecture.id) : 'audio';
+  useEffect(() => {
+    if (!selectedFile) {
+      setSelectedPreviewUrl(null);
+      return;
+    }
+    const url = URL.createObjectURL(selectedFile);
+    setSelectedPreviewUrl(url);
+    return () => {
+      try { URL.revokeObjectURL(url); } catch {}
+    };
+  }, [selectedFile]);
+
+  const sessionAudioUrl = useMemo(
+    () => (activeLecture ? getAudioUrl(activeLecture.id) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [activeLecture, mediaRevision]
+  );
+  const sessionMediaKind = useMemo(
+    () => (activeLecture ? activeLecture.mediaKind || getMediaKind(activeLecture.id) : 'audio'),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [activeLecture, mediaRevision]
+  );
 
   const durationEstimate = useMemo(() => {
     const sampleSec = detectedDurationSec || 3600;
@@ -741,6 +763,27 @@ export const LectureStudioWorkspace: React.FC<LectureStudioWorkspaceProps> = ({
               </p>
             </div>
 
+            {selectedFile && selectedPreviewUrl && (
+              isVideoFile(selectedFile) ? (
+                <video
+                  key={selectedPreviewUrl}
+                  controls
+                  playsInline
+                  preload="metadata"
+                  src={selectedPreviewUrl}
+                  className="w-full max-h-44 rounded-xl bg-black border border-[var(--border-hairline)]"
+                />
+              ) : (
+                <audio
+                  key={selectedPreviewUrl}
+                  controls
+                  preload="metadata"
+                  src={selectedPreviewUrl}
+                  className="w-full h-9 rounded-xl"
+                />
+              )
+            )}
+
             <div className="grid grid-cols-2 gap-2">
               <input
                 type="text"
@@ -905,20 +948,24 @@ export const LectureStudioWorkspace: React.FC<LectureStudioWorkspaceProps> = ({
               {sessionAudioUrl &&
                 (sessionMediaKind === 'video' ? (
                   <video
+                    key={sessionAudioUrl}
                     ref={(el) => {
                       mediaRef.current = el;
                     }}
                     controls
                     playsInline
+                    preload="metadata"
                     src={sessionAudioUrl}
-                    className="w-full max-h-40 rounded-xl bg-black shrink-0"
+                    className="w-full max-h-64 rounded-xl bg-black shrink-0"
                   />
                 ) : (
                   <audio
+                    key={sessionAudioUrl}
                     ref={(el) => {
                       mediaRef.current = el;
                     }}
                     controls
+                    preload="metadata"
                     src={sessionAudioUrl}
                     className="w-full h-9 rounded-xl shrink-0"
                   />

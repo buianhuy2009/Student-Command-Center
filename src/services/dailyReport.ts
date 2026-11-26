@@ -177,9 +177,10 @@ export async function sendDailyReport(params: {
 }): Promise<{
   ok: boolean;
   delivered: boolean;
-  transport: 'resend' | 'gmail' | 'preview';
+  transport: 'smtp' | 'resend' | 'gmail' | 'preview';
   from: string;
   dateStrGmt7: string;
+  missingEnv?: string;
   preview?: { from: string; to: string; subject: string; text: string; html: string };
 }> {
   const { config, assignments, events, googleAccessToken } = params;
@@ -210,6 +211,7 @@ export async function sendDailyReport(params: {
     transport: data?.transport || 'preview',
     from: data?.from || data?.preview?.from || DAILY_REPORT_SENDER,
     dateStrGmt7: content.dateStrGmt7,
+    missingEnv: data?.missingEnv,
     preview: data?.preview,
   };
 }

@@ -3491,7 +3491,7 @@ export const vi = {
   daily_report_send_now: 'Gửi thử ngay',
   daily_report_sending: 'Đang gửi…',
   daily_report_sent_ok: 'Đã gửi báo cáo qua {transport}.',
-  daily_report_preview_ready: 'Máy chủ chưa bật gửi email tự động — bạn có thể xem trước hoặc mở ứng dụng Mail bên dưới.',
+  daily_report_preview_ready: 'Để gửi tự động từ studentos.service@gmail.com, cần thêm biến GMAIL_APP_PASSWORD trên Vercel — bạn vẫn có thể xem trước hoặc mở ứng dụng Mail bên dưới.',
   daily_report_open_mail: 'Mở trong ứng dụng Mail',
   daily_report_err_email: 'Vui lòng nhập email hợp lệ trước.',
   daily_report_err_send: 'Không thể gửi báo cáo email.',
@@ -3804,5 +3804,14 @@ export const vi = {
   changelog_r_3_3_0_d1: 'Hộp thư nay dùng Gemini 3.5 Flash Lite -> Gemma 4 31B để phân loại, hiển thị đúng tổng số thư trên mỗi tab, tách riêng mục Chung và Quảng cáo, đồng thời thêm khung "Sửa thông tin AI" ngay cạnh thư gốc để học sinh chỉnh phân loại, môn học, hạn nộp (không tự bịa ngày), trạng thái xác nhận và mức ưu tiên.',
   changelog_r_3_3_0_d2: 'Bài giảng luôn mở Bước 1 để học sinh chọn mô hình trước khi tải tệp, bổ sung 2 cấp độ chép lời Tiếng Anh offline (Whisper Tiny EN ~40 MB & Distil-Whisper Small EN ~165 MB) song song với PhoWhisper Tiếng Việt, và nâng cấp tóm tắt offline lên Qwen3.5 0.8B (~450 MB) kèm bộ lọc chống lỗi chữ lạ.',
   changelog_r_3_3_0_d3: 'Quét ghi chú nâng cấp bộ dò dòng lên PP-OCRv5 mobile (4.6 MB) và nâng cả 3 chế độ offline lên mô hình chính xác hơn chỉ tăng dung lượng nhẹ (Tài liệu in EN+VI ~42 MB VietOCR w8, Viết tay Việt ~78 MB VietOCR FP16, Viết tay Anh ~20 MB PP-OCRv5 English), cùng địa chỉ người gửi chuẩn studentos.service@gmail.com cho Báo cáo email hằng ngày.',
+
+  // Changelog v3.3.1
+  changelog_r_3_3_1_t: 'Sửa xem trước Video trong Bài giảng, Nâng cấp OCR Viết tay Tiếng Anh bản Server & Gửi Mail SMTP chuẩn Gmail',
+  changelog_r_3_3_1_h1: 'Khắc phục lỗi không xem trước được video trong Bài giảng (mở quyền blob: media-src trên Vercel, thêm khung phát video ngay khi chọn tệp và lưu video qua lần tải lại trang)',
+  changelog_r_3_3_1_h2: 'Nâng cấp OCR Chữ viết tay Tiếng Anh lên PP-OCRv5 Server (~85 MB), nới giới hạn chiều rộng dòng từ 640px lên 2048px để không bóp méo dòng viết dài và giữ rõ nét mực bút bi xanh nhạt',
+  changelog_r_3_3_1_h3: 'Bổ sung máy chủ gửi email Gmail SMTP & OAuth2 trực tiếp từ studentos.service@gmail.com cho Báo cáo hằng ngày (chỉ cần cấu hình GMAIL_APP_PASSWORD trên Vercel)',
+  changelog_r_3_3_1_d1: 'Thêm media-src \'self\' blob: data: https: vào CSP trong vercel.json (trước đó chặn toàn bộ video/audio blob: trên bản Vercel), hiển thị ngay trình phát video/audio khi vừa chọn tệp trước khi chép lời và lưu tệp media cục bộ giúp bài giảng video cũ vẫn phát được sau khi tải lại.',
+  changelog_r_3_3_1_d2: 'Chuyển OCR Chữ viết tay Tiếng Anh sang PaddlePaddle PP-OCRv5 Server (80.6 MB), nâng chiều rộng cắt dòng từ 640px lên 2048px, tăng độ phân giải dò dòng lên 1280px, mở rộng lề trên/dưới cho nét chữ thảo và bảo vệ nét mực xanh nhạt khi tiền xử lý ảnh.',
+  changelog_r_3_3_1_d3: 'Tích hợp nodemailer Gmail SMTP (smtp.gmail.com:465) và Gmail OAuth2 trong /api/reports/daily để gửi trực tiếp Báo cáo email hằng ngày từ studentos.service@gmail.com khi đặt biến môi trường GMAIL_APP_PASSWORD trên Vercel.',
 
 } satisfies Record<TranslationKey, string>;

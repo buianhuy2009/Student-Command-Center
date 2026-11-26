@@ -72,7 +72,14 @@ export const DailyReportSettings: React.FC<DailyReportSettingsProps> = ({
         updateConfig({ lastSentDateGmt7: res.dateStrGmt7 });
         setStatusMsg({
           ok: true,
-          text: t('daily_report_sent_ok', { transport: res.transport === 'gmail' ? 'Gmail' : 'Email' }),
+          text: t('daily_report_sent_ok', {
+            transport:
+              res.transport === 'smtp'
+                ? DAILY_REPORT_SENDER
+                : res.transport === 'gmail'
+                ? 'Gmail'
+                : 'Email',
+          }),
         });
       } else {
         setShowPreview(true);

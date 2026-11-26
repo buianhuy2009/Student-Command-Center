@@ -51,6 +51,8 @@ export function registerOfflineAsrRunner(runner: OfflineAsrRunner): void {
 }
 
 const LECTURE_JOB_ID = 'lecture-studio-job';
+const LECTURE_MEDIA_CACHE = 'studentos-lecture-media-v1';
+const MAX_CACHED_MEDIA_BYTES = 160 * 1024 * 1024;
 
 // Ephemeral in-memory chunk cache for pause/resume within the same browser session.
 const sessionOnlineChunks = new Map<string, OnlineAudioChunk[]>();
@@ -58,6 +60,57 @@ const sessionOfflineClips = new Map<string, OfflineAudioClip[]>();
 const sessionAudioUrls = new Map<string, string>();
 const sessionMediaKinds = new Map<string, 'audio' | 'video'>();
 let activeLectureController: AbortController | null = null;
+
+async function persistLectureMediaBlob(lectureId: string, file: File): Promise<void> {
+  if (typeof caches === 'undefined' || file.size > MAX_CACHED_MEDIA_BYTES) return;
+  try {
+    const cache = await caches.open(LECTURE_MEDIA_CACHE);
+    const key = `/lecture-media/${encodeURIComponent(lectureId)}`;
+    await cache.put(
+      key,
+      new Response(file, {
+        status: 200,
+        headers: {
+          'content-type': file.type || (isVideoFile(file) ? 'video/mp4' : 'audio/mpeg'),
+        },
+      })
+    );
+  } catch {
+    // Ignore storage quota failures — in-session blob URL still works.
+  }
+}
+
+async function loadPersistedLectureMediaUrl(
+  lectureId: string,
+  knownKind?: 'audio' | 'video'
+): Promise<string | null> {
+  const existing = sessionAudioUrls.get(lectureId);
+  if (existing) return existing;
+  if (typeof caches === 'undefined') return null;
+  try {
+    const cache = await caches.open(LECTURE_MEDIA_CACHE);
+    const res = await cache.match(`/lecture-media/${encodeURIComponent(lectureId)}`);
+    if (!res) return null;
+    const blob = await res.blob();
+    if (!blob || blob.size === 0) return null;
+    const url = URL.createObjectURL(blob);
+    sessionAudioUrls.set(lectureId, url);
+    const kind: 'audio' | 'video' =
+      knownKind || (String(blob.type || '').startsWith('video/') ? 'video' : 'audio');
+    sessionMediaKinds.set(lectureId, kind);
+    return url;
+  } catch {
+    return null;
+  }
+}
+
+async function deletePersistedLectureMedia(lectureId: string): Promise<void> {
+  if (typeof caches === 'undefined') return;
+  try {
+    const cache = await caches.open(LECTURE_MEDIA_CACHE);
+    await cache.delete(`/lecture-media/${encodeURIComponent(lectureId)}`);
+  } catch {}
+}
 
 function sleepWithAbort(ms: number, signal: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -117,6 +170,7 @@ interface LectureStoreState {
   mode: LectureTranscriptionMode;
   summaryMode: LectureSummaryMode;
   language: LectureLanguage;
+  mediaRevision: number;
   isProcessing: boolean;
   progress: LectureProgressState | null;
   error: string | null;
@@ -147,6 +201,7 @@ export const useLectureStore = create<LectureStoreState>((set, get) => ({
   mode: getLectureMode(),
   summaryMode: getLectureSummaryMode(),
   language: 'auto',
+  mediaRevision: 0,
   isProcessing: false,
   progress: null,
   error: null,
@@ -159,18 +214,28 @@ export const useLectureStore = create<LectureStoreState>((set, get) => ({
       : list[0]?.id || null;
     set({ lectures: list, activeLectureId: nextActive });
     if (nextActive) {
-      const segs = await loadLectureSegmentsFromDb(nextActive);
+      const activeRec = list.find((l) => l.id === nextActive);
+      const [segs, restoredUrl] = await Promise.all([
+        loadLectureSegmentsFromDb(nextActive),
+        loadPersistedLectureMediaUrl(nextActive, activeRec?.mediaKind),
+      ]);
       set((s) => ({
         segmentsByLecture: { ...s.segmentsByLecture, [nextActive]: segs },
+        mediaRevision: restoredUrl ? s.mediaRevision + 1 : s.mediaRevision,
       }));
     }
   },
 
   selectLecture: async (id) => {
     set({ activeLectureId: id, error: null });
-    const segs = await loadLectureSegmentsFromDb(id);
+    const rec = get().lectures.find((l) => l.id === id);
+    const [segs, restoredUrl] = await Promise.all([
+      loadLectureSegmentsFromDb(id),
+      loadPersistedLectureMediaUrl(id, rec?.mediaKind),
+    ]);
     set((s) => ({
       segmentsByLecture: { ...s.segmentsByLecture, [id]: segs },
+      mediaRevision: restoredUrl ? s.mediaRevision + 1 : s.mediaRevision,
     }));
   },
 
@@ -242,6 +307,7 @@ export const useLectureStore = create<LectureStoreState>((set, get) => ({
       sessionAudioUrls.set(lectureId, audioUrl);
       sessionMediaKinds.set(lectureId, videoInput ? 'video' : 'audio');
     } catch {}
+    void persistLectureMediaBlob(lectureId, file);
 
     const decodeLabel = videoInput
       ? t('lecture_prog_extracting_video')
@@ -253,6 +319,7 @@ export const useLectureStore = create<LectureStoreState>((set, get) => ({
       subject: subject?.trim() || undefined,
       language,
       mode,
+      mediaKind: videoInput ? 'video' : 'audio',
       status: 'vad',
       originalDurationSec: 0,
       speechDurationSec: 0,
@@ -474,6 +541,7 @@ export const useLectureStore = create<LectureStoreState>((set, get) => ({
       sessionAudioUrls.delete(lectureId);
     }
     sessionMediaKinds.delete(lectureId);
+    void deletePersistedLectureMedia(lectureId);
     await db.lectureSegments.where('lectureId').equals(lectureId).delete().catch(() => {});
     await db.lectures.delete(lectureId).catch(() => {});
     set((s) => {

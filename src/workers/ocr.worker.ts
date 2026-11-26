@@ -247,16 +247,16 @@ function preprocessHandwritingPage(
     const luma = 0.299 * rN + 0.587 * gN + 0.114 * bN;
     const sat = Math.max(rN, gN, bN) - Math.min(rN, gN, bN);
 
-    if (luma > 212 && sat < 18) {
-      // Gently lift paper & faint ruled lines toward crisp white.
+    if (luma > 218 && sat < 14) {
+      // Gently lift paper & faint gray ruled lines toward crisp white while preserving light blue/colored pen ink.
       d[i] = Math.min(255, Math.round(rN + (255 - rN) * 0.72));
       d[i + 1] = Math.min(255, Math.round(gN + (255 - gN) * 0.72));
       d[i + 2] = Math.min(255, Math.round(bN + (255 - bN) * 0.72));
-    } else if (luma < 185) {
-      // Mildly deepen pen ink & diacritics without binary jaggedness.
-      d[i] = Math.max(0, Math.min(255, Math.round((rN - 185) * 1.18 + 185)));
-      d[i + 1] = Math.max(0, Math.min(255, Math.round((gN - 185) * 1.18 + 185)));
-      d[i + 2] = Math.max(0, Math.min(255, Math.round((bN - 185) * 1.18 + 185)));
+    } else if (luma < 198 || sat >= 14) {
+      // Deepen thin ballpoint pen ink & cursive strokes without binary jaggedness.
+      d[i] = Math.max(0, Math.min(255, Math.round((rN - 198) * 1.28 + 198)));
+      d[i + 1] = Math.max(0, Math.min(255, Math.round((gN - 198) * 1.28 + 198)));
+      d[i + 2] = Math.max(0, Math.min(255, Math.round((bN - 198) * 1.28 + 198)));
     } else {
       d[i] = rN;
       d[i + 1] = gN;
@@ -337,10 +337,9 @@ function extractConnectedBoxes(
       const bh = (maxY - minY + 1) * scaleY;
       if (bw < 10 || bh < 6) continue;
 
-      // Expand DBNet box slightly so Vietnamese diacritics and punctuation stay intact,
-      // but keep vertical padding tight on ruled notebooks so lines don't bleed together.
-      const padX = isHandwriting ? Math.max(4, bh * 0.2) : Math.max(6, bh * 0.25);
-      const padY = isHandwriting ? Math.max(2, bh * 0.14) : Math.max(4, bh * 0.3);
+      // Expand DBNet box enough to keep cursive ascenders/descenders and Vietnamese diacritics intact.
+      const padX = isHandwriting ? Math.max(6, bh * 0.28) : Math.max(6, bh * 0.25);
+      const padY = isHandwriting ? Math.max(4, bh * 0.24) : Math.max(4, bh * 0.3);
       const x0 = Math.max(0, Math.floor(minX * scaleX - padX));
       const y0 = Math.max(0, Math.floor(minY * scaleY - padY));
       const x1 = Math.min(pageW, Math.ceil((maxX + 1) * scaleX + padX));
@@ -425,7 +424,7 @@ async function detectLinesWithDbNet(
   let outTensor: ort.Tensor | null = null;
 
   try {
-    const maxDetSide = 960;
+    const maxDetSide = isHandwriting ? 1280 : 960;
     const ratio = Math.min(1, maxDetSide / Math.max(pageW, pageH));
     const detW = Math.max(32, Math.round((pageW * ratio) / 32) * 32);
     const detH = Math.max(32, Math.round((pageH * ratio) / 32) * 32);
@@ -584,7 +583,8 @@ async function recognizePaddleLines(
       });
 
       const box = boxes[i];
-      const { canvas, width, height } = cropLineToCanvas(pageCanvas, box, 48, 640, 8);
+      // PP-OCRv5 supports dynamic widths up to 3200px; keep full aspect ratio on long handwritten lines.
+      const { canvas, width, height } = cropLineToCanvas(pageCanvas, box, 48, 2048, 8);
       const ctx = canvas.getContext('2d')!;
       const imgData = ctx.getImageData(0, 0, width, height).data;
       const area = width * height;
@@ -691,7 +691,7 @@ async function recognizeEnglishHandwriting(
       boxes,
       requestId,
       LOCAL_MODEL_CATALOG.ocrHandwrittenEn.urls,
-      'en-ocr-v5',
+      'en-ocr-v5-server',
       true
     );
   } catch (err) {
@@ -701,8 +701,8 @@ async function recognizeEnglishHandwriting(
       boxes,
       requestId,
       LOCAL_MODEL_CATALOG.ocrHandwrittenEn.fallbackUrls,
-      'en-ocr-fallback',
-      false
+      'en-ocr-v5-mobile-fallback',
+      true
     );
   }
 }

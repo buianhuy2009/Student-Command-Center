@@ -71,15 +71,15 @@ export const LOCAL_MODEL_CATALOG = {
     ],
   },
   ocrHandwrittenEn: {
-    id: 'pp-ocrv5-mobile-rec-en',
-    approxMbWasm: 16,
+    id: 'pp-ocrv5-server-rec-en',
+    approxMbWasm: 81,
     urls: [
-      'https://huggingface.co/PaddlePaddle/PP-OCRv5_mobile_rec_onnx/resolve/main/inference.onnx',
-      'https://huggingface.co/PaddlePaddle/PP-OCRv5_mobile_rec_onnx/resolve/main/inference.yml',
+      'https://huggingface.co/PaddlePaddle/PP-OCRv5_server_rec_onnx/resolve/main/inference.onnx',
+      'https://huggingface.co/PaddlePaddle/PP-OCRv5_server_rec_onnx/resolve/main/inference.yml',
     ],
     fallbackUrls: [
-      'https://huggingface.co/monkt/paddleocr-onnx/resolve/main/languages/english/rec.onnx',
-      'https://huggingface.co/monkt/paddleocr-onnx/resolve/main/languages/english/dict.txt',
+      'https://huggingface.co/PaddlePaddle/PP-OCRv5_mobile_rec_onnx/resolve/main/inference.onnx',
+      'https://huggingface.co/PaddlePaddle/PP-OCRv5_mobile_rec_onnx/resolve/main/inference.yml',
     ],
   },
   sileroVad: {

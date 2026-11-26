@@ -3499,7 +3499,7 @@ export const en = {
   daily_report_send_now: 'Send test now',
   daily_report_sending: 'Sending…',
   daily_report_sent_ok: 'Daily report sent via {transport}.',
-  daily_report_preview_ready: 'Server email sender is not configured — preview ready below to copy or open in Mail.',
+  daily_report_preview_ready: 'Automatic delivery needs GMAIL_APP_PASSWORD (for studentos.service@gmail.com) in Vercel env — preview ready below to copy or open in Mail.',
   daily_report_open_mail: 'Open in Mail app',
   daily_report_err_email: 'Enter a valid email address first.',
   daily_report_err_send: 'Could not send daily report.',
@@ -3812,6 +3812,15 @@ export const en = {
   changelog_r_3_3_0_d1: 'Inbox now uses Gemini 3.5 Flash Lite -> Gemma 4 31B for email reading, displays exact message counts per tab, separates General from Promotions, and lets students manually edit any email’s category, subject, due date (never inventing dates), confirmation state, and priority right beside the original email.',
   changelog_r_3_3_0_d2: 'Lectures now always opens on Step 1 so students pick their model first, adds 2-tier English offline speech models (Whisper Tiny EN ~40 MB & Distil-Whisper Small EN ~165 MB) alongside Vietnamese PhoWhisper tiers, and upgrades offline summarization to Qwen3.5 0.8B (~450 MB) with anti-gibberish safeguards.',
   changelog_r_3_3_0_d3: 'Note Scanner upgrades its detector to PP-OCRv5 mobile (4.6 MB) and all 3 offline modes to slightly larger, much higher-accuracy models (Printed EN+VI ~42 MB VietOCR w8, VI Handwriting ~78 MB VietOCR FP16, EN Handwriting ~20 MB PP-OCRv5 English), while Daily Email Reports consistently identify studentos.service@gmail.com as sender.',
+
+  // Changelog v3.3.1
+  changelog_r_3_3_1_t: 'Fixed Lecture Video Preview (CSP + Persistence), Upgraded EN Handwriting Server OCR & Gmail SMTP Sender',
+  changelog_r_3_3_1_h1: 'Fixed video preview in Lectures by allowing blob: media in Content-Security-Policy, adding instant pre-upload video preview, and persisting uploaded video/audio across reloads',
+  changelog_r_3_3_1_h2: 'Upgraded offline EN Handwriting OCR to PP-OCRv5 Server (~85 MB), lifted the 640px line-width cap to 2048px so long cursive lines never squash together, and preserved light-blue ballpoint ink',
+  changelog_r_3_3_1_h3: 'Added native Gmail SMTP & OAuth2 server delivery for studentos.service@gmail.com Daily Email Reports (configurable via GMAIL_APP_PASSWORD on Vercel)',
+  changelog_r_3_3_1_d1: 'Added media-src \'self\' blob: data: https: to vercel.json CSP (previously blocking blob: video/audio playback on production), added an instant <video>/<audio> preview player right after selecting a lecture file, and cached uploaded media in Cache Storage so saved video lectures stay playable after refreshing.',
+  changelog_r_3_3_1_d2: 'Switched EN Handwriting offline OCR to PaddlePaddle PP-OCRv5 Server (80.6 MB, matching VI Handwriting size), raised line crop maxWidth from 640px to 2048px and handwriting detection resolution to 1280px, widened vertical box padding for cursive ascenders/descenders, and protected light-blue pen ink during preprocessing.',
+  changelog_r_3_3_1_d3: 'Added nodemailer Gmail SMTP (smtp.gmail.com:465) and Gmail service OAuth2 transports in /api/reports/daily so studentos.service@gmail.com can send real HTML/text Daily Email Reports directly once GMAIL_APP_PASSWORD is set in Vercel environment variables.',
 
 } as const;
 

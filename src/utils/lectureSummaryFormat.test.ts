@@ -47,8 +47,8 @@ describe('formatOcrLinesToMarkdown & offline model catalog', () => {
     expect(LOCAL_MODEL_CATALOG.ocrDetector.urls[0]).toContain('PP-OCRv5_mobile_det_onnx');
     expect(LOCAL_MODEL_CATALOG.ocrPrinted.id).toBe('vietocr-transformer-w8');
     expect(LOCAL_MODEL_CATALOG.ocrHandwrittenVi.id).toBe('vietocr-transformer-fp16w');
-    expect(LOCAL_MODEL_CATALOG.ocrHandwrittenEn.id).toBe('pp-ocrv5-mobile-rec-en');
-    expect(LOCAL_MODEL_CATALOG.ocrHandwrittenEn.urls[0]).toContain('PP-OCRv5_mobile_rec_onnx');
+    expect(LOCAL_MODEL_CATALOG.ocrHandwrittenEn.id).toBe('pp-ocrv5-server-rec-en');
+    expect(LOCAL_MODEL_CATALOG.ocrHandwrittenEn.urls[0]).toContain('PP-OCRv5_server_rec_onnx');
   });
 });
 

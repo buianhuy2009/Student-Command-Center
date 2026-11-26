@@ -6,6 +6,12 @@
     <description>Plain-English updates to StudentOS — what changed and why it matters for studying.</description>
     <language>en-us</language>
     <item>
+      <title>v3.3.1 — Fixed Lecture Video Preview, Upgraded EN Handwriting Server OCR &amp; Gmail SMTP Sender</title>
+      <link>https://sutdent-command-center.vercel.app/?changelog=3.3.1</link>
+      <pubDate>Thu, 26 Nov 2026 12:30:00 GMT</pubDate>
+      <description>StudentOS v3.3.1 fixes Lecture video preview by enabling blob: media in CSP plus instant pre-upload video previews and media persistence across reloads, upgrades EN Handwriting offline OCR to PP-OCRv5 Server with 2048px un-squashed line cropping and blue-ink preservation, and adds native Gmail SMTP/OAuth2 delivery for studentos.service@gmail.com Daily Email Reports.</description>
+    </item>
+    <item>
       <title>v3.3.0 — Smarter Email Triage &amp; Manual Editing, Qwen3.5 0.8B Summary, English 2-Tier ASR &amp; Upgraded Note Scanner Models</title>
       <link>https://sutdent-command-center.vercel.app/?changelog=3.3.0</link>
       <pubDate>Thu, 26 Nov 2026 11:55:00 GMT</pubDate>

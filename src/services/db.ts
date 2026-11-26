@@ -14,6 +14,7 @@ export interface LectureRecord {
   subject?: string;
   language: 'auto' | 'vi' | 'en';
   mode: 'online' | 'offline-tiny' | 'offline-base' | 'offline-en-tiny' | 'offline-en-base';
+  mediaKind?: 'audio' | 'video';
   status: 'vad' | 'transcribing' | 'summarizing' | 'paused' | 'done' | 'error';
   originalDurationSec: number;
   speechDurationSec: number;
