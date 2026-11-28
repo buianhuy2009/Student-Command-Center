@@ -8,7 +8,7 @@ export default defineConfig(() => {
   return {
     plugins: [react(), tailwindcss(), VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico','apple-touch-icon.png'],
+      includeAssets: ['app-icon.svg', 'apple-touch-icon.png'],
       manifest: {
         name: 'StudentOS - Command Center',
         short_name: 'StudentOS',
@@ -20,8 +20,9 @@ export default defineConfig(() => {
         start_url: '/',
         categories: ['education','productivity'],
         icons: [
-          { src: '/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
-          { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
+          { src: '/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: '/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }
         ],
         screenshots: [
           { src: '/screenshot-dashboard.png', sizes: '1280x720', type: 'image/png', form_factor: 'wide', label: 'Dashboard workspace' },

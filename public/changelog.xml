@@ -6,6 +6,12 @@
     <description>Plain-English updates to StudentOS — what changed and why it matters for studying.</description>
     <language>en-us</language>
     <item>
+      <title>v3.5.3 — Sharper Installed App Icon</title>
+      <link>https://sutdent-command-center.vercel.app/?changelog=3.5.3</link>
+      <pubDate>Sat, 28 Nov 2026 01:27:00 GMT</pubDate>
+      <description>StudentOS v3.5.3 brings a sharp white graduation cap on terracotta to the installed app on your home screen or desktop launcher.</description>
+    </item>
+    <item>
       <title>v3.5.2 — Cleaner Lecture Workspace: Single Compact Video Player</title>
       <link>https://sutdent-command-center.vercel.app/?changelog=3.5.2</link>
       <pubDate>Thu, 26 Nov 2026 14:00:00 GMT</pubDate>

@@ -3860,6 +3860,11 @@ export const en = {
   changelog_r_3_5_2_d1: 'Hid the oversized right-column video box in LectureStudioWorkspace so summary sections, outlines, and transcripts have much more vertical space.',
   changelog_r_3_5_2_d2: 'Connected the compact left-column video player to the shared media ref and saved-lecture media fallback so clicking any timestamp still jumps directly to that moment.',
 
+  // Changelog v3.5.3
+  changelog_r_3_5_3_t: 'Sharper Installed App Icon',
+  changelog_r_3_5_3_h1: 'Spot StudentOS by its white graduation cap on a terracotta background.',
+  changelog_r_3_5_3_d1: 'The installed app has a high-resolution icon for your home screen or desktop launcher, with a version sized for Android’s adaptive icon masks.',
+
 } as const;
 
 export type TranslationKey = keyof typeof en;

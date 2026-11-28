@@ -3852,4 +3852,9 @@ export const vi = {
   changelog_r_3_5_2_d1: 'Loại bỏ khung phát video lớn ở cột phải trong LectureStudioWorkspace để tăng tối đa chiều cao hiển thị cho Tóm tắt, Dàn ý và Bản chép lời.',
   changelog_r_3_5_2_d2: 'Kết nối khung video nhỏ bên trái với tham chiếu phát lại và video đã lưu để khi nhấn vào bất kỳ mốc thời gian nào vẫn tua chính xác tới đoạn đó.',
 
+  // Changelog v3.5.3
+  changelog_r_3_5_3_t: 'Biểu tượng ứng dụng sắc nét hơn',
+  changelog_r_3_5_3_h1: 'Dễ nhận ra StudentOS nhờ chiếc mũ tốt nghiệp màu trắng trên nền cam đất.',
+  changelog_r_3_5_3_d1: 'Biểu tượng độ phân giải cao xuất hiện trên màn hình chính hoặc trình khởi chạy trên máy tính, với phiên bản phù hợp với các kiểu cắt biểu tượng của Android.',
+
 } satisfies Record<TranslationKey, string>;
