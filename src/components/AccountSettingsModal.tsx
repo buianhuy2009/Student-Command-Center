@@ -880,18 +880,19 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                     </div>
                   </div>
                   <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <span className="text-[11px] text-[var(--text-muted)]">
-                      {canvasSaveMsg || t('settings_canvas_note')}
-                    </span>
+                    {canvasSaveMsg ? (
+                      <span className="text-[11px] text-[var(--text-muted)]">
+                        {canvasSaveMsg}
+                      </span>
+                    ) : (
+                      <span />
+                    )}
                     <button
                       onClick={handleSaveCanvasConnection}
                       className="px-4 py-1.5 bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--accent-fill)] text-[var(--text-primary)] rounded-xl text-xs font-bold transition-colors cursor-pointer"
                     >
                       {t('settings_canvas_save_btn')}
                     </button>
-                  </div>
-                  <div className="text-[11px] text-[var(--text-muted)]">
-                    {t('settings_canvas_note')}
                   </div>
                   </div>
 
