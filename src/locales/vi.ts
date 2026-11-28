@@ -2629,7 +2629,6 @@ export const vi = {
   settings_canvas_title: "Canvas",
   settings_canvas_token_ph: "Mã đăng nhập Canvas (không bắt buộc)",
   settings_clear_btn: "Xóa",
-  settings_connect_btn: "Kết nối",
   settings_connected_badge: "Đã kết nối",
   settings_dark_btn: "Tối",
   settings_density_comfortable: "Vừa vặn",
@@ -2649,7 +2648,7 @@ export const vi = {
   settings_gemini_testing: "Đang kiểm tra kết nối Gemini...",
   settings_google_desc_guest: "Đăng nhập Google chỉ dùng tên & email của bạn",
   settings_google_desc_signed_in: "Đã đăng nhập bằng {email} (chỉ tên & email)",
-  settings_google_privacy_note: "Mỗi công cụ Google chỉ bật khi bạn chọn kết nối, và bạn có thể tắt bất cứ lúc nào trong Tài khoản Google hoặc mục Quản lý kết nối phía trên.",
+  settings_google_privacy_note: "Mỗi công cụ Google chỉ bật khi bạn chọn kết nối, và bạn có thể tắt bất cứ lúc nào trong Tài khoản Google hoặc mục Quản lý kết nối trong tab Kết nối.",
   settings_google_signin_btn: "Đăng nhập bằng Google",
   settings_google_signout_btn: "Đăng xuất",
   settings_google_title: "Đăng nhập tài khoản Google",
@@ -2668,8 +2667,6 @@ export const vi = {
   settings_high_contrast_title: "Chế độ tương phản cao",
   settings_integ_available: "Sẵn sàng",
   settings_integ_canvas_desc: "Đồng bộ bài tập qua link Canvas hoặc đăng nhập trường",
-  settings_integ_classroom_desc: "Nhập lớp học, bài tập về nhà và thông báo giáo viên",
-  settings_integ_ready: "Sẵn sàng",
   settings_key_none: "Chưa lưu khóa",
   settings_key_saved_masked: "Đã lưu: {masked}",
   settings_keys_saved_msg: "Đã lưu khóa trên máy.",
@@ -2725,11 +2722,11 @@ export const vi = {
   settings_sc_tracker: "Theo dõi bài tập",
   settings_sub_appearance: "Tùy chỉnh tông màu, độ tương phản và hiệu ứng.",
   settings_sub_general: "Đặt ngôn ngữ, bố cục làm việc và tùy chọn đăng nhập.",
-  settings_sub_integrations: "Xem các công cụ Canvas và Google đã kết nối với tài khoản.",
+  settings_sub_integrations: "Kiểm tra Canvas và kết nối các công cụ Google bạn muốn.",
   settings_sub_models: "Thêm khóa AI cá nhân tùy chọn (Gemini và Groq).",
   settings_sub_shortcuts: "Điều hướng bàn phím và phím tắt thao tác nhanh.",
   settings_sub_support: "Cài ứng dụng, báo lỗi, gửi góp ý & xem phiên bản.",
-  settings_sub_sync: "Quản lý đăng nhập Google, từng công cụ Google, Canvas và khóa AI.",
+  settings_sub_sync: "Quản lý đăng nhập Google, Canvas và khóa AI.",
   settings_tool_cal_desc: "Xem lịch hôm nay & thêm giờ học",
   settings_tool_cal_label: "Google Calendar",
   settings_tool_classroom_desc: "Nhập lớp học & hạn nộp",
@@ -2776,7 +2773,7 @@ export const vi = {
   airouter_groq_empty: 'Groq trả về câu trả lời trống.',
   airouter_groq_err: 'Lỗi Groq ({status})',
   airouter_groq_nonjson: 'Groq trả về định dạng không mong đợi ({status})',
-  airouter_no_key: 'Chưa cấu hình khoá AI. Hãy thêm khoá trong Cài đặt → AI.',
+  airouter_no_key: 'Chưa cấu hình khoá AI. Hãy thêm khoá trong Cài đặt → Kết nối.',
   airouter_recognition_err: 'Lỗi nhận diện giọng nói',
   airouter_route_err: 'Lỗi đường truyền AI ({status})',
   airouter_server_failed: 'Yêu cầu AI qua máy chủ thất bại',
@@ -3233,7 +3230,7 @@ export const vi = {
 
   // AI Planner Workspace (preserving exact test strings for AIPlannerWorkspace.test.tsx)
   plan_ai_fallback_warn:
-    'AI chưa trả về lịch dùng được (thiếu khoá hoặc hết lượt) — đang hiện lịch offline. Thêm khoá trong Cài đặt → AI.',
+    'AI chưa trả về lịch dùng được (thiếu khoá hoặc hết lượt) — đang hiện lịch offline. Thêm khoá trong Cài đặt → Kết nối.',
   plan_ai_reason_fallback: 'Được AI xếp quanh các hạn nộp của bạn.',
   plan_applied_msg: 'Đã áp dụng. Bấm "Hoàn tác" nếu muốn quay lại lịch cũ.',
   plan_apply_btn: 'Áp dụng',
@@ -3889,5 +3886,14 @@ export const vi = {
   changelog_r_3_5_3_t: 'Biểu tượng ứng dụng sắc nét hơn',
   changelog_r_3_5_3_h1: 'Dễ nhận ra StudentOS nhờ chiếc mũ tốt nghiệp màu trắng trên nền cam đất.',
   changelog_r_3_5_3_d1: 'Biểu tượng độ phân giải cao xuất hiện trên màn hình chính hoặc trình khởi chạy trên máy tính, với phiên bản phù hợp với các kiểu cắt biểu tượng của Android.',
+
+  // Changelog v3.5.4
+  changelog_r_3_5_4_t: 'Huy hiệu Canvas chính xác và công cụ Google trong Ứng dụng đã kết nối',
+  changelog_r_3_5_4_h1: 'Con số cạnh Canvas ở thanh bên giờ chỉ đếm các bài tập chưa hoàn thành.',
+  changelog_r_3_5_4_h2: 'Kết nối từng công cụ Google trong Cài đặt, mục Ứng dụng đã kết nối, với trạng thái Chưa kết nối rõ ràng.',
+  changelog_r_3_5_4_h3: 'Cài đặt gọn hơn: khóa AI giờ chỉ nhập trong tab Kết nối.',
+  changelog_r_3_5_4_d3: 'Đã bỏ tab riêng Mô hình & Khóa AI trong Cài đặt. Khóa bạn đã lưu không thay đổi, và bạn vẫn có thể thêm, sửa, lưu khóa tại Cài đặt > Kết nối.',
+  changelog_r_3_5_4_d1: 'Bài tập đã nộp trên Canvas không còn được tính vào huy hiệu ở thanh bên, nên con số này khớp với số bài chưa hoàn thành trong tab Canvas.',
+  changelog_r_3_5_4_d2: 'Danh sách từng công cụ Google đã chuyển từ Cài đặt > Kết nối sang Cài đặt > Ứng dụng đã kết nối. Mỗi công cụ chưa kết nối hiển thị Chưa kết nối và nút Kết nối Google.',
 
 } satisfies Record<TranslationKey, string>;

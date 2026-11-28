@@ -23,11 +23,9 @@ import {
   Mail,
   CheckSquare,
   FileText,
-  Bot,
   GraduationCap,
   BookOpen,
   Key,
-  ShieldCheck,
   Eye,
   EyeOff,
   SlidersHorizontal,
@@ -44,7 +42,6 @@ import {
 import {
   getClientGeminiApiKey,
   setClientGeminiApiKey,
-  testGeminiApiKey,
   getClientGroqApiKey,
   setClientGroqApiKey,
 } from '../services/gemini';
@@ -66,7 +63,8 @@ import {
   getExpiryStatus,
 } from '../services/gemini/providers';
 import { loadCanvasSettings, saveCanvasSettings } from '../services/canvas';
-import { hasFeatureAccess, type GoogleFeature } from '../services/googleAuth';
+import type { GoogleFeature } from '../services/googleAuth';
+import { GoogleToolConnections } from './GoogleToolConnections';
 import { getLayoutMode, setLayoutMode, type LayoutMode } from '../services/layoutMode';
 import { useT } from '../services/i18n';
 import { LanguageToggle } from './LanguageToggle';
@@ -78,7 +76,6 @@ import { fetchNasaApodV2, NASA_APOD_CACHE_KEY, NASA_APOD_TOGGLE_EVENT } from '..
 
 const NAV_ITEMS = [
   { id: 'general', labelKey: 'settings_nav_general', subKey: 'settings_sub_general', icon: Sliders },
-  { id: 'models', labelKey: 'settings_nav_models', subKey: 'settings_sub_models', icon: Bot },
   { id: 'sync', labelKey: 'settings_nav_sync', subKey: 'settings_sub_sync', icon: Globe },
   { id: 'appearance', labelKey: 'settings_nav_appearance', subKey: 'settings_sub_appearance', icon: Palette },
   { id: 'shortcuts', labelKey: 'settings_nav_shortcuts', subKey: 'settings_sub_shortcuts', icon: Keyboard },
@@ -109,14 +106,6 @@ const SHORTCUT_ITEMS = [
   { labelKey: 'settings_sc_sync', key: 'R', settingKey: 'sync' },
   { labelKey: 'settings_sc_esc', key: 'Esc', settingKey: 'esc' },
 ] as const;
-
-const GOOGLE_TOOLS = [
-  { id: 'calendar', labelKey: 'settings_tool_cal_label', descKey: 'settings_tool_cal_desc' },
-  { id: 'gmail', labelKey: 'settings_tool_gmail_label', descKey: 'settings_tool_gmail_desc' },
-  { id: 'drive', labelKey: 'settings_tool_drive_label', descKey: 'settings_tool_drive_desc' },
-  { id: 'sheets', labelKey: 'settings_tool_sheets_label', descKey: 'settings_tool_sheets_desc' },
-  { id: 'classroom', labelKey: 'settings_tool_classroom_label', descKey: 'settings_tool_classroom_desc' },
-] as const satisfies ReadonlyArray<{ id: GoogleFeature; labelKey: string; descKey: string }>;
 
 export interface ShortcutSettings {
   masterEnabled: boolean;
@@ -183,7 +172,7 @@ interface AccountSettingsModalProps {
   googleAccessToken?: string | null;
 }
 
-type SettingsSection = 'general' | 'models' | 'sync' | 'appearance' | 'shortcuts' | 'integrations' | 'support';
+type SettingsSection = 'general' | 'sync' | 'appearance' | 'shortcuts' | 'integrations' | 'support';
 
 export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
   isOpen,
@@ -235,8 +224,6 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
   const [groqKey, setGroqKey] = useState('');
   const [showGeminiKey, setShowGeminiKey] = useState(false);
   const [showGroqKey, setShowGroqKey] = useState(false);
-  const [isTestingGemini, setIsTestingGemini] = useState(false);
-  const [geminiTestStatus, setGeminiTestStatus] = useState<'idle' | 'success' | 'failed'>('idle');
   const [geminiStatusMsg, setGeminiStatusMsg] = useState('');
   // Connections hub: per-key expiry metadata (stored separately from key values)
   const [geminiExpiry, setGeminiExpiry] = useState('');
@@ -396,27 +383,6 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
       setCanvasSaveMsg(t('settings_canvas_saved_msg'));
     } catch {
       setCanvasSaveMsg(t('settings_canvas_save_err'));
-    }
-  };
-
-  const handleTestGemini = async () => {
-    if (!geminiKey.trim()) {
-      setGeminiTestStatus('failed');
-      setGeminiStatusMsg(t('settings_gemini_test_enter'));
-      return;
-    }
-    setIsTestingGemini(true);
-    setGeminiTestStatus('idle');
-    setGeminiStatusMsg(t('settings_gemini_testing'));
-    const ok = await testGeminiApiKey(geminiKey);
-    setIsTestingGemini(false);
-    if (ok) {
-      setGeminiTestStatus('success');
-      setGeminiStatusMsg(t('settings_gemini_test_ok'));
-      setClientGeminiApiKey(geminiKey);
-    } else {
-      setGeminiTestStatus('failed');
-      setGeminiStatusMsg(t('settings_gemini_test_fail'));
     }
   };
 
@@ -642,10 +608,10 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                     <div className="flex items-center gap-2 shrink-0">
                       <button
                         type="button"
-                        onClick={() => setActiveSection('sync')}
+                        onClick={() => setActiveSection('integrations')}
                         className="px-3 py-1.5 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border-default)] hover:border-[var(--accent-fill)] text-xs font-semibold text-[var(--text-primary)] cursor-pointer"
                       >
-                        {t('settings_nav_sync')}
+                        {t('settings_nav_integrations')}
                       </button>
                       <button
                         type="button"
@@ -825,173 +791,11 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
               </div>
             )}
 
-            {/* SECTION 2: MODELS & AI KEYS */}
-            {activeSection === 'models' && (
-              <div className="space-y-4">
-                <div className="px-4 py-3 bg-[var(--status-ok-bg)] rounded-xl border border-[var(--status-ok-border)] flex items-start gap-2.5 text-xs text-[var(--status-ok-text)]">
-                  <ShieldCheck className="w-4 h-4 text-[var(--status-ok-text)] shrink-0 mt-0.5" />
-                  <div>
-                    <span className="font-bold block mb-0.5">{t('settings_backup_banner_title')}</span>
-                    {t('settings_backup_banner_sub')}
-                  </div>
-                </div>
-
-                <div className="rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-subtle)]/40 divide-y divide-[var(--border-hairline)]">
-                  {/* Gemini Key */}
-                  <div className="p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <label className="text-xs font-bold text-[var(--text-primary)] block">
-                        {t('settings_gemini_label')}
-                      </label>
-                      <span className="text-[11px] text-[var(--text-muted)]">
-                        {t('settings_gemini_desc')}
-                      </span>
-                    </div>
-                    <a
-                      href="https://aistudio.google.com/app/apikey"
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-[11px] text-[var(--accent-fill)] hover:underline font-semibold flex items-center gap-1"
-                    >
-                      <span>{t('settings_gemini_get_free')}</span>
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
-                  </div>
-
-                  <div className="relative">
-                    <Key className="w-4 h-4 text-[var(--text-muted)] absolute left-3 top-1/2 -translate-y-1/2" />
-                    <input
-                      type={showGeminiKey ? 'text' : 'password'}
-                      value={geminiKey}
-                      onChange={(e) => setGeminiKey(e.target.value)}
-                      placeholder="AIzaSy..."
-                      aria-label={t('settings_aria_gemini_key')}
-                      className="w-full pl-9 pr-10 py-2 text-xs font-mono bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--accent-fill)] text-[var(--text-primary)]"
-                    />
-                    <button
-                      type="button"
-                      aria-label={showGeminiKey ? t('ai_key_hide') : t('ai_key_show')}
-                      onClick={() => setShowGeminiKey(!showGeminiKey)}
-                      className="p-1.5 text-[var(--text-muted)] hover:text-[var(--text-primary)] absolute right-2.5 top-1/2 -translate-y-1/2"
-                    >
-                      {showGeminiKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                    </button>
-                  </div>
-
-                  <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <span className="text-[11px] font-mono text-[var(--text-muted)]">
-                      {geminiKey ? t('settings_key_saved_masked', { masked: maskApiKey(geminiKey) }) : t('settings_key_none')}
-                      {(() => { const label = formatExpiryLabel(getExpiryStatus(geminiExpiry)); return label ? ` • ${label}` : ''; })()}
-                    </span>
-                    <label className="flex items-center gap-1.5 text-[11px] text-[var(--text-muted)]">
-                      <span>{t('settings_expires_label')}</span>
-                      <input
-                        type="date"
-                        value={geminiExpiry}
-                        onChange={(e) => setGeminiExpiry(e.target.value)}
-                        className="px-2 py-1 text-[11px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-lg text-[var(--text-primary)]"
-                      />
-                      {geminiExpiry && (
-                        <button type="button" onClick={() => setGeminiExpiry('')} className="text-[11px] text-[var(--accent-fill)] hover:underline font-semibold">{t('settings_clear_btn')}</button>
-                      )}
-                    </label>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-1">
-                    <span className="text-[11px] text-[var(--text-muted)]">
-                      {geminiStatusMsg || t('settings_keys_stored_hint')}
-                    </span>
-                    <button
-                      onClick={handleTestGemini}
-                      disabled={isTestingGemini || !geminiKey.trim()}
-                      className="px-3 py-1 bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--accent-fill)] text-[var(--text-primary)] rounded-lg text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
-                    >
-                      <RefreshCw className={`w-3 h-3 ${isTestingGemini ? 'animate-spin text-[var(--accent-fill)]' : ''}`} />
-                      <span>{isTestingGemini ? t('settings_gemini_testing') : t('settings_gemini_test_btn')}</span>
-                    </button>
-                  </div>
-                  </div>
-
-                  {/* Groq Key */}
-                  <div className="p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <label className="text-xs font-bold text-[var(--text-primary)] block">
-                        {t('settings_groq_label')}
-                      </label>
-                      <span className="text-[11px] text-[var(--text-muted)]">
-                        {t('settings_groq_desc')}
-                      </span>
-                    </div>
-                    <a
-                      href="https://console.groq.com/keys"
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-[11px] text-[var(--accent-fill)] hover:underline font-semibold flex items-center gap-1"
-                    >
-                      <span>{t('settings_groq_get_key')}</span>
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
-                  </div>
-
-                  <div className="relative">
-                    <Key className="w-4 h-4 text-[var(--text-muted)] absolute left-3 top-1/2 -translate-y-1/2" />
-                    <input
-                      type={showGroqKey ? 'text' : 'password'}
-                      value={groqKey}
-                      onChange={(e) => setGroqKey(e.target.value)}
-                      placeholder="gsk_..."
-                      aria-label={t('settings_aria_groq_key')}
-                      className="w-full pl-9 pr-10 py-2 text-xs font-mono bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--accent-fill)] text-[var(--text-primary)]"
-                    />
-                    <button
-                      type="button"
-                      aria-label={showGroqKey ? t('ai_key_hide') : t('ai_key_show')}
-                      onClick={() => setShowGroqKey(!showGroqKey)}
-                      className="p-1.5 text-[var(--text-muted)] hover:text-[var(--text-primary)] absolute right-2.5 top-1/2 -translate-y-1/2"
-                    >
-                      {showGroqKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                    </button>
-                  </div>
-
-                  <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <span className="text-[11px] font-mono text-[var(--text-muted)]">
-                      {groqKey ? t('settings_key_saved_masked', { masked: maskApiKey(groqKey) }) : t('settings_key_none')}
-                      {(() => { const label = formatExpiryLabel(getExpiryStatus(groqExpiry)); return label ? ` • ${label}` : ''; })()}
-                    </span>
-                    <label className="flex items-center gap-1.5 text-[11px] text-[var(--text-muted)]">
-                      <span>{t('settings_expires_label')}</span>
-                      <input
-                        type="date"
-                        value={groqExpiry}
-                        onChange={(e) => setGroqExpiry(e.target.value)}
-                        className="px-2 py-1 text-[11px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-lg text-[var(--text-primary)]"
-                      />
-                      {groqExpiry && (
-                        <button type="button" onClick={() => setGroqExpiry('')} className="text-[11px] text-[var(--accent-fill)] hover:underline font-semibold">{t('settings_clear_btn')}</button>
-                      )}
-                    </label>
-                  </div>
-                  </div>
-                </div>
-
-                <div className="flex justify-end pt-1">
-                  <button
-                    onClick={handleSaveKeys}
-                    className="px-5 py-2 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer"
-                  >
-                    {t('settings_save_api_keys')}
-                  </button>
-                </div>
-              </div>
-            )}
-
             {/* SECTION 3: CONNECTIONS (unified keys + domains manager) */}
             {activeSection === 'sync' && (
               <div className="space-y-4">
                 <div className="rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-subtle)]/40 divide-y divide-[var(--border-hairline)]">
-                  {/* AI Keys — masked display + edit + expiry (same localStorage keys as Models tab) */}
+                  {/* AI Keys — masked display + edit + expiry */}
                   <div className="p-4 space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="text-xs font-bold text-[var(--text-primary)]">
@@ -1129,7 +933,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                   </div>
                   </div>
 
-                  {/* Google Sign-In & Per-Feature Tool Connections */}
+                  {/* Google Sign-In (per-tool connections live under Connected Apps) */}
                   <div className="p-4 space-y-3">
                   <div className="flex items-center justify-between gap-3 flex-wrap">
                     <div>
@@ -1174,51 +978,6 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                     </div>
                   </div>
 
-                  <div className="pt-2 border-t border-[var(--border-default)] space-y-1.5">
-                    <div className="text-[11px] font-semibold text-[var(--text-secondary)]">
-                      {t('settings_google_tools_heading')}
-                    </div>
-                    <div className="grid sm:grid-cols-2 gap-2">
-                      {GOOGLE_TOOLS.map((tool) => {
-                        const connected = hasFeatureAccess(tool.id, user?.uid);
-                        return (
-                          <div
-                            key={tool.id}
-                            className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-default)]"
-                          >
-                            <div className="min-w-0">
-                              <div className="text-xs font-bold text-[var(--text-primary)] truncate">
-                                {t(tool.labelKey)}
-                              </div>
-                              <div className="text-[10px] text-[var(--text-muted)] truncate">{t(tool.descKey)}</div>
-                            </div>
-                            {connected ? (
-                              <span className="shrink-0 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-[var(--status-ok-bg)] text-[var(--status-ok-text)] border border-[var(--status-ok-border)]">
-                                {t('settings_connected_badge')}
-                              </span>
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  onClose();
-                                  if (onConnectFeature) {
-                                    onConnectFeature(tool.id);
-                                  } else if (onOpenGoogleSyncHub) {
-                                    onOpenGoogleSyncHub();
-                                  } else {
-                                    onGoogleSignIn();
-                                  }
-                                }}
-                                className="shrink-0 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white cursor-pointer transition-colors"
-                              >
-                                {t('settings_connect_btn')}
-                              </button>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
                 </div>
               </div>
 
@@ -1244,11 +1003,6 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                     </a>
                   </div>
                 )}
-
-                {/* Friendly privacy reassurance */}
-                <div className="px-4 py-3 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-hairline)] text-[11px] text-[var(--text-secondary)] leading-relaxed">
-                  {t('settings_google_privacy_note')}
-                </div>
               </div>
             )}
 
@@ -1623,33 +1377,41 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
             {/* SECTION 6: INTEGRATIONS */}
             {activeSection === 'integrations' && (
               <div className="space-y-3">
-                {[
-                  { name: t('settings_canvas_title'), desc: t('settings_integ_canvas_desc'), badge: t('settings_integ_available'), icon: Layers },
-                  { name: t('settings_tool_classroom_label'), desc: t('settings_integ_classroom_desc'), badge: hasFeatureAccess('classroom', user?.uid) ? t('settings_connected_badge') : t('settings_integ_ready'), icon: GraduationCap },
-                ].map((integ) => {
-                  const Icon = integ.icon;
-                  return (
-                    <div
-                      key={integ.name}
-                      className="p-4 bg-[var(--bg-subtle)] rounded-2xl border border-[var(--border-default)] flex items-center justify-between"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-default)] flex items-center justify-center text-[var(--accent-fill)]">
-                          <Icon className="w-4 h-4" />
-                        </div>
-                        <div>
-                          <div className="text-xs font-bold text-[var(--text-primary)]">
-                            {integ.name}
-                          </div>
-                          <div className="text-[11px] text-[var(--text-muted)]">{integ.desc}</div>
-                        </div>
-                      </div>
-                      <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-[var(--accent-soft)] text-[var(--accent-text)] border border-[var(--accent-border)]">
-                        {integ.badge}
-                      </span>
+                <div className="p-4 bg-[var(--bg-subtle)] rounded-2xl border border-[var(--border-default)] flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-default)] flex items-center justify-center text-[var(--accent-fill)]">
+                      <Layers className="w-4 h-4" />
                     </div>
-                  );
-                })}
+                    <div>
+                      <div className="text-xs font-bold text-[var(--text-primary)]">
+                        {t('settings_canvas_title')}
+                      </div>
+                      <div className="text-[11px] text-[var(--text-muted)]">{t('settings_integ_canvas_desc')}</div>
+                    </div>
+                  </div>
+                  <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-[var(--accent-soft)] text-[var(--accent-text)] border border-[var(--accent-border)]">
+                    {t('settings_integ_available')}
+                  </span>
+                </div>
+
+                <GoogleToolConnections
+                  uid={user?.uid}
+                  onConnect={(feature) => {
+                    onClose();
+                    if (onConnectFeature) {
+                      onConnectFeature(feature);
+                    } else if (onOpenGoogleSyncHub) {
+                      onOpenGoogleSyncHub();
+                    } else {
+                      onGoogleSignIn();
+                    }
+                  }}
+                />
+
+                {/* Friendly privacy reassurance */}
+                <div className="px-4 py-3 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-hairline)] text-[11px] text-[var(--text-secondary)] leading-relaxed">
+                  {t('settings_google_privacy_note')}
+                </div>
               </div>
             )}
 
