@@ -21,7 +21,7 @@ StudentOS is an open-source academic operating hub built specifically for middle
 
 ## 2. Google OAuth 2.0 User Data & Scopes
 
-StudentOS accesses Google Workspace services solely to aggregate your academic deadlines and timetable into a single dashboard. We practice **strict least-privilege access**, requesting only 6 essential scopes:
+StudentOS accesses Google Workspace services solely to aggregate your academic deadlines and timetable into a single dashboard. We practice **strict least-privilege access**, requesting 6 standard scopes incrementally plus 1 strictly opt-in escalation scope (`drive.readonly`) that is off by default:
 
 | Google Scope | Type | Purpose & Usage | Sent to AI? |
 |---|---|---|---|
@@ -31,6 +31,7 @@ StudentOS accesses Google Workspace services solely to aggregate your academic d
 | `https://www.googleapis.com/auth/calendar.events` | Non-sensitive | Reads your schedule to prevent study session clashes and creates study blocks when you tap "Add to Calendar". Never alters or deletes your personal events. | **No** |
 | `https://www.googleapis.com/auth/drive.file` | Non-sensitive | Strictly limited to files created by StudentOS (such as your Master Assignment Tracker Google Sheet) or files you select via Google Picker. Cannot view any other files in your Google Drive. | **No** |
 | `https://www.googleapis.com/auth/gmail.readonly` | **Sensitive / Restricted** | **OPTIONAL:** Only requested if you explicitly turn on "Scan Gmail". Reads email sender, subject, date, and cleaned body snippet to detect homework. Never sends, modifies, or deletes emails. | **Yes** (sender, subject, and max 1,500 chars of cleaned body sent to Gemini/Groq) |
+| `https://www.googleapis.com/auth/drive.readonly` | **Sensitive (Opt-in 7th Escalation Scope)** | **STRICTLY OPT-IN (Off by default):** Never requested at sign-in or standard sync. Only requested if you explicitly click **"Show all Drive files"** to list non-trashed Drive filenames. | **No** |
 
 ---
 
@@ -54,15 +55,16 @@ StudentOS accesses Google Workspace services solely to aggregate your academic d
 StudentOS utilizes Large Language Models (LLMs) to help students extract deadlines from Vietnamese and English school communications:
 
 - **Primary AI Engine:** Google Gemini API (`gemini-flash-latest`) hosted via StudentOS serverless proxy.
-- **Fallback AI Engine:** Groq API (Meta Llama 3.3) for fault tolerance if Google Gemini is temporarily unreachable.
+- **Fallback AI Engine:** Groq API (Meta Llama 3.3, `llama-3.3-70b-versatile`) for fault tolerance when Google Gemini is temporarily unreachable. Users can disable Groq fallback anytime via the **Allow Groq (Llama) fallback** toggle in the Privacy modal.
 - **Data Transmitted to AI Endpoints:**
   - **Gmail Scanner:** Sender email and name, subject line, timestamp, and up to 1,500 characters of cleaned body text (headers, quoted historical replies, and email signatures are stripped before transmission). Promotional and social category emails are ignored by default.
   - **Classroom Announcements:** Course title and announcement body text.
-  - **Natural Language Rescheduler:** User-typed commands (e.g., *"Move Math on Tuesday evening to Saturday morning"*) and current timetable slots.
-  - **AI Study Tutor:** Student questions submitted to the tutor panel.
-- **Data NEVER Transmitted to AI:** Account passwords, Canvas API keys, school grade records, contact rosters, or personal files.
+  - **AI Planner & Quick Add:** User-typed commands (e.g., *"Move Math on Tuesday evening to Saturday morning"*) and current timetable slots.
+  - **AI Study Tutor:** Student questions, optional study images, and an optional trimmed assignment/schedule/alert summary (`rawEmail` and `senderEmail` are stripped). Students can opt out of sending academic context via the **Send assignment & schedule summary context to AI Tutor** toggle in the Privacy modal.
+  - **Note Scanner / Lecture Studio:** Study notes or lecture transcripts explicitly submitted by the student for summarization.
+- **Data NEVER Transmitted to AI:** Account passwords, OAuth credentials, Canvas API keys, school grade records, class rosters, or unrelated Drive files.
 - **Human-in-the-Loop Safeguard:** All AI detections are presented in an **AI Confirm Card** with the original quote. Nothing is added to your master tracker or calendar without your explicit approval.
-- **Socratic Tutor Policy:** The AI tutor provides hints, questions, and conceptual explanations; it is explicitly forbidden from solving full homework problems or authoring complete essays.
+- **Socratic Tutor Output-Guardrail Enforcement:** Always enforced (locked on) — the AI tutor provides hints, guided questions, and conceptual explanations, and output guardrails block ready-to-copy homework solutions or completed essays.
 
 ---
 
