@@ -239,7 +239,7 @@
 
       <h2>2. Google User Data &amp; Requested Scopes (Least Privilege)</h2>
       <p>
-        When you connect your Google Workspace or personal Google Account, StudentOS requests only the <strong>minimum scopes required</strong> for core academic organization (reduced from 13 down to 6 scopes). We never request broad Drive or full Gmail write access.
+        When you connect your Google Workspace or personal Google Account, StudentOS requests only the <strong>6 standard scopes</strong> incrementally when you open a feature, plus <strong>1 strictly opt-in 7th escalation scope</strong> (<code>drive.readonly</code>) that is off by default. We never request full Gmail write access.
       </p>
       <table>
         <thead>
@@ -287,6 +287,12 @@
             <td><strong>OPTIONAL:</strong> Only requested if you explicitly turn on "Scan Gmail". Reads email sender, date, subject, and cleaned body text to extract homework and deadlines. Never sends, deletes, or modifies emails.</td>
             <td><strong>Yes</strong> (sender, subject, and max 1,500 characters of cleaned text sent to Gemini/Groq)</td>
           </tr>
+          <tr>
+            <td><code>drive.readonly</code></td>
+            <td><strong>Sensitive (Opt-in 7th Escalation Scope)</strong></td>
+            <td><strong>STRICTLY OPT-IN (Off by default):</strong> Never requested at sign-in or standard sync. Only requested if you explicitly click "Show all Drive files" to list non-trashed Drive filenames.</td>
+            <td><strong>No</strong></td>
+          </tr>
         </tbody>
       </table>
 
@@ -309,18 +315,19 @@
       </p>
       <ul>
         <li><strong>Primary AI Provider:</strong> Google Gemini API (<code>gemini-flash-latest</code>) via StudentOS serverless proxy.</li>
-        <li><strong>Fallback AI Provider:</strong> Groq API (Meta Llama 3.3) for high availability when Gemini is temporarily unreachable.</li>
+        <li><strong>Fallback AI Provider:</strong> Groq API (Meta Llama 3.3, <code>llama-3.3-70b-versatile</code>) for high availability when Gemini is temporarily unreachable. You can disable Groq fallback anytime via the <strong>Allow Groq (Llama) fallback</strong> toggle in the Privacy modal.</li>
         <li><strong>Data Sent to AI:</strong>
           <ul>
             <li><strong>Gmail:</strong> Sender name and email, subject, timestamp, and up to 1,500 characters of cleaned email body (signatures and nested historical quotes are automatically stripped). Promotional and social emails are excluded by default.</li>
             <li><strong>Classroom Announcements:</strong> Class name and announcement body.</li>
-            <li><strong>Natural Language Commands:</strong> Typed scheduling requests (e.g., "move Math to Friday") and session names.</li>
-            <li><strong>AI Study Tutor:</strong> The specific study question you submit.</li>
+            <li><strong>AI Planner &amp; Quick Add:</strong> Typed scheduling requests (e.g., "move Math to Friday") and session names.</li>
+            <li><strong>AI Study Tutor:</strong> Your study questions, optional images, and an optional trimmed assignment/schedule/alert summary (<code>rawEmail</code> and <code>senderEmail</code> stripped). You can opt out via the <strong>Send assignment &amp; schedule summary context to AI Tutor</strong> toggle in the Privacy modal.</li>
+            <li><strong>Note Scanner / Lecture Studio:</strong> Study notes or lecture transcripts you submit for summarization.</li>
           </ul>
         </li>
-        <li><strong>Data NEVER Sent to AI:</strong> Account passwords, Canvas API access tokens, grade transcripts, class roster contacts, or sensitive personal identification files.</li>
+        <li><strong>Data NEVER Sent to AI:</strong> Account passwords, OAuth credentials, Canvas API access tokens, grade transcripts, class roster contacts, or unrelated Drive files.</li>
         <li><strong>Human-in-the-Loop Safeguard:</strong> AI outputs are provisional drafts. Every assignment extracted by the AI displays an <strong>AI Confirm Card</strong> showing the exact source snippet and proposed date. Nothing is committed to your task list or calendar until you explicitly confirm it.</li>
-        <li><strong>Socratic Tutor Policy:</strong> The AI study tutor is strictly governed by pedagogical guardrails: it provides step-by-step conceptual hints and guided questions; it never provides ready-to-copy exam answers or completed essays.</li>
+        <li><strong>Socratic Tutor Output-Guardrail Enforcement:</strong> Always enforced (locked on) — the AI study tutor provides step-by-step conceptual hints and guided questions, and output guardrails block ready-to-copy exam answers or completed essays.</li>
       </ul>
 
       <h2>5. Canvas LMS &amp; Other Academic Integrations</h2>
@@ -399,7 +406,7 @@
 
       <h2>2. Dữ liệu Google &amp; Các quyền truy cập tối thiểu</h2>
       <p>
-        Khi bạn liên kết Tài khoản Google Workspace hoặc Google cá nhân, StudentOS chỉ yêu cầu <strong>6 quyền thực sự cần thiết</strong> (đã cắt giảm từ 13 quyền ban đầu). Chúng tôi không yêu cầu toàn quyền Google Drive hay quyền soạn/gửi thư Gmail.
+        Khi bạn liên kết Tài khoản Google Workspace hoặc Google cá nhân, StudentOS chỉ yêu cầu <strong>6 quyền chuẩn</strong> theo từng tính năng khi bạn bật, cùng <strong>1 quyền mở rộng thứ 7 hoàn toàn tùy chọn</strong> (<code>drive.readonly</code>) tắt mặc định. Chúng tôi không yêu cầu quyền soạn/gửi thư Gmail.
       </p>
       <table>
         <thead>
@@ -440,6 +447,11 @@
             <td><strong>CHỈ KHI BẠN BẬT "Quét Gmail":</strong> Đọc người gửi, ngày gửi, tiêu đề và nội dung rút gọn để tìm hạn nộp. Không bao giờ gửi thư, không xoá thư, không đánh dấu đã đọc.</td>
             <td><strong>Có</strong> (người gửi, tiêu đề, tối đa 1.500 ký tự nội dung sạch gửi cho Gemini/Groq)</td>
           </tr>
+          <tr>
+            <td><code>drive.readonly</code><br /><em>(Quyền mở rộng thứ 7 tùy chọn)</em></td>
+            <td><strong>TẮT MẶC ĐỊNH:</strong> Không bao giờ hỏi khi đăng nhập hay đồng bộ thường. Chỉ hỏi khi bạn bấm "Hiện tất cả file Drive" để liệt kê tên file trong Drive.</td>
+            <td><strong>Không</strong></td>
+          </tr>
         </tbody>
       </table>
 
@@ -462,18 +474,19 @@
       </p>
       <ul>
         <li><strong>AI chính:</strong> Google Gemini API (<code>gemini-flash-latest</code>) qua máy chủ bảo mật của StudentOS.</li>
-        <li><strong>AI dự phòng:</strong> Groq API (Meta Llama 3.3) kích hoạt tự động nếu Gemini gặp sự cố kết nối, đảm bảo ứng dụng luôn hoạt động.</li>
+        <li><strong>AI dự phòng:</strong> Groq API (Meta Llama 3.3, <code>llama-3.3-70b-versatile</code>) kích hoạt tự động nếu Gemini gặp sự cố kết nối. Bạn có thể tắt tùy chọn này bất cứ lúc nào trong hộp thoại Quyền riêng tư.</li>
         <li><strong>Dữ liệu gửi cho AI:</strong>
           <ul>
             <li><strong>Thư Gmail:</strong> Tên và địa chỉ người gửi, ngày gửi, tiêu đề, và tối đa 1.500 ký tự đầu của nội dung thư (đã cắt bỏ chữ ký và các lượt trích dẫn cũ). Thư quảng cáo và mạng xã hội tự động bị bỏ qua.</li>
             <li><strong>Thông báo Classroom:</strong> Tên môn học và nội dung thông báo.</li>
-            <li><strong>Câu lệnh học tập:</strong> Câu điều chỉnh lịch học bạn gõ (ví dụ: "Dời Toán tối thứ 3 sang sáng thứ 7").</li>
-            <li><strong>Gia sư AI:</strong> Nội dung câu hỏi bạn gửi trong khung trò chuyện gia sư.</li>
+            <li><strong>Lập kế hoạch AI &amp; Thêm nhanh:</strong> Câu điều chỉnh lịch học bạn gõ (ví dụ: "Dời Toán tối thứ 3 sang sáng thứ 7") và các buổi học.</li>
+            <li><strong>Gia sư AI:</strong> Câu hỏi, ảnh tùy chọn và tóm tắt bài tập/lịch học tùy chọn (đã xóa <code>rawEmail</code> và <code>senderEmail</code>). Bạn có thể tắt gửi ngữ cảnh học tập trong hộp thoại Quyền riêng tư.</li>
+            <li><strong>Quét ghi chú / Lecture Studio:</strong> Ghi chú hoặc bản ghi bài giảng bạn chủ động gửi để tóm tắt.</li>
           </ul>
         </li>
-        <li><strong>Dữ liệu KHÔNG BAO GIỜ gửi cho AI:</strong> Mật khẩu tài khoản, mã truy cập Canvas, điểm thi/học bạ, danh bạ trường lớp, hay file tài liệu cá nhân.</li>
+        <li><strong>Dữ liệu KHÔNG BAO GIỜ gửi cho AI:</strong> Mật khẩu tài khoản, khóa OAuth, mã truy cập Canvas, điểm thi/học bạ, danh bạ trường lớp, hay file tài liệu Drive không liên quan.</li>
         <li><strong>Học sinh luôn là người duyệt cuối (Human-in-the-Loop):</strong> Kết quả từ AI chỉ là bản nháp gợi ý. Mọi bài tập AI tìm thấy đều xuất hiện trên <strong>Thẻ xác nhận AI</strong> kèm trích dẫn gốc từ thầy cô. Không có bài tập hay hạn nộp nào được lưu trước khi bạn bấm đồng ý.</li>
-        <li><strong>Gia sư AI phương pháp Socratic:</strong> Gia sư AI chỉ gợi ý từng bước, giải thích khái niệm và cho bài tập tương tự; tuyệt đối từ chối giải hộ toàn bộ bài tập hoặc viết văn sẵn để học sinh chép.</li>
+        <li><strong>Gia sư AI phương pháp Socratic (Luôn bật):</strong> Rào chắn đầu ra luôn được kích hoạt — gia sư AI chỉ gợi ý từng bước và giải thích khái niệm, tuyệt đối chặn việc giải hộ toàn bộ bài tập hoặc viết văn sẵn.</li>
       </ul>
 
       <h2>5. Tích hợp Hệ thống Quản lý Học tập Canvas LMS</h2>

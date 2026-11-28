@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { X, CheckCircle2, ShieldCheck, Ban, ArrowRight, Loader2 } from 'lucide-react';
+import { X, CheckCircle2, ShieldCheck, Ban, ArrowRight, Loader2, Cpu } from 'lucide-react';
 import { AppLogo } from './AppLogo';
 import { preloadGoogleOAuthReadiness, type GoogleFeature } from '../services/googleAuth';
 import { useT } from '../services/i18n';
@@ -11,6 +11,7 @@ export interface GooglePermissionModalProps {
   isConnecting?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
+  onOpenPrivacy?: () => void;
 }
 
 interface FeatureCopy {
@@ -19,6 +20,8 @@ interface FeatureCopy {
   whyKey: string;
   canDoKeys: readonly string[];
   neverDoKeys: readonly string[];
+  aiPillEn: string;
+  aiPillVi: string;
 }
 
 const FEATURE_COPY: Record<GoogleFeature, FeatureCopy> = {
@@ -28,6 +31,8 @@ const FEATURE_COPY: Record<GoogleFeature, FeatureCopy> = {
     whyKey: 'gperm_cal_why',
     canDoKeys: ['gperm_cal_can1', 'gperm_cal_can2'],
     neverDoKeys: ['gperm_cal_nev1', 'gperm_cal_nev2'],
+    aiPillEn: 'Data sent to AI: No',
+    aiPillVi: 'Dữ liệu gửi cho AI: Không',
   },
   gmail: {
     logoId: 'gmail',
@@ -35,6 +40,8 @@ const FEATURE_COPY: Record<GoogleFeature, FeatureCopy> = {
     whyKey: 'gperm_gmail_why',
     canDoKeys: ['gperm_gmail_can1', 'gperm_gmail_can2'],
     neverDoKeys: ['gperm_gmail_nev1', 'gperm_gmail_nev2'],
+    aiPillEn: 'Data sent to AI: Yes (max 1,500 chars cleaned body)',
+    aiPillVi: 'Dữ liệu gửi cho AI: Có (tối đa 1.500 ký tự sạch)',
   },
   drive: {
     logoId: 'drive',
@@ -42,6 +49,8 @@ const FEATURE_COPY: Record<GoogleFeature, FeatureCopy> = {
     whyKey: 'gperm_drive_why',
     canDoKeys: ['gperm_drive_can1', 'gperm_drive_can2'],
     neverDoKeys: ['gperm_drive_nev1', 'gperm_drive_nev2'],
+    aiPillEn: 'Data sent to AI: No',
+    aiPillVi: 'Dữ liệu gửi cho AI: Không',
   },
   'drive-all': {
     logoId: 'drive',
@@ -49,6 +58,8 @@ const FEATURE_COPY: Record<GoogleFeature, FeatureCopy> = {
     whyKey: 'gperm_drive_all_why',
     canDoKeys: ['gperm_drive_all_can1', 'gperm_drive_all_can2'],
     neverDoKeys: ['gperm_drive_all_nev1', 'gperm_drive_all_nev2'],
+    aiPillEn: 'Data sent to AI: No (Opt-in: lists Drive filenames only)',
+    aiPillVi: 'Dữ liệu gửi cho AI: Không (Tùy chọn: chỉ liệt kê tên file)',
   },
   sheets: {
     logoId: 'tracker',
@@ -56,6 +67,8 @@ const FEATURE_COPY: Record<GoogleFeature, FeatureCopy> = {
     whyKey: 'gperm_sheets_why',
     canDoKeys: ['gperm_sheets_can1', 'gperm_sheets_can2'],
     neverDoKeys: ['gperm_sheets_nev1', 'gperm_sheets_nev2'],
+    aiPillEn: 'Data sent to AI: No',
+    aiPillVi: 'Dữ liệu gửi cho AI: Không',
   },
   classroom: {
     logoId: 'classroom',
@@ -63,6 +76,8 @@ const FEATURE_COPY: Record<GoogleFeature, FeatureCopy> = {
     whyKey: 'gperm_cls_why',
     canDoKeys: ['gperm_cls_can1', 'gperm_cls_can2'],
     neverDoKeys: ['gperm_cls_nev1', 'gperm_cls_nev2'],
+    aiPillEn: 'Data sent to AI: Announcements only',
+    aiPillVi: 'Dữ liệu gửi cho AI: Chỉ thông báo lớp học',
   },
 } as const;
 
@@ -73,8 +88,9 @@ export const GooglePermissionModal: React.FC<GooglePermissionModalProps> = ({
   isConnecting = false,
   onConfirm,
   onCancel,
+  onOpenPrivacy,
 }) => {
-  const { t } = useT();
+  const { t, lang } = useT();
 
   useEffect(() => {
     if (!isOpen) return;
@@ -184,33 +200,34 @@ export const GooglePermissionModal: React.FC<GooglePermissionModalProps> = ({
               {t('gperm_control_note')}
             </span>
           </p>
+
+          <div className="flex flex-wrap items-center justify-between gap-2 px-1">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-[var(--bg-subtle)] border border-[var(--border-default)] text-[var(--text-secondary)]">
+              <Cpu className="w-3.5 h-3.5 text-[var(--accent-text)] shrink-0" />
+              <span>{lang === 'vi' ? info.aiPillVi : info.aiPillEn}</span>
+            </span>
+            {onOpenPrivacy && (
+              <button
+                type="button"
+                onClick={onOpenPrivacy}
+                className="text-[11px] font-semibold text-[var(--accent-text)] hover:underline cursor-pointer"
+              >
+                {lang === 'vi' ? 'Xem chi tiết Quyền riêng tư & AI' : 'View Privacy & AI details'}
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Footer actions */}
         <div className="p-4 border-t border-[var(--border-default)] bg-[var(--bg-surface)] flex items-center justify-end gap-2.5">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="px-4 py-2.5 rounded-xl text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] transition-colors cursor-pointer min-h-[44px]"
-          >
+          <button type="button" onClick={onCancel} className="px-4 py-2.5 rounded-xl text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] transition-colors cursor-pointer min-h-[44px]">
             {t('gperm_not_now')}
           </button>
-          <button
-            type="button"
-            onClick={onConfirm}
-            disabled={isConnecting}
-            className="px-4 py-2.5 rounded-xl text-xs font-bold bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white shadow-xs transition-colors inline-flex items-center justify-center gap-1.5 cursor-pointer min-h-[44px] disabled:opacity-60"
-          >
+          <button type="button" onClick={onConfirm} disabled={isConnecting} className="px-4 py-2.5 rounded-xl text-xs font-bold bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white shadow-xs transition-colors inline-flex items-center justify-center gap-1.5 cursor-pointer min-h-[44px] disabled:opacity-60">
             {isConnecting ? (
-              <>
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                <span>{t('gperm_opening')}</span>
-              </>
+              <><Loader2 className="w-3.5 h-3.5 animate-spin" /><span>{t('gperm_opening')}</span></>
             ) : (
-              <>
-                <span>{t('gperm_allow')}</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </>
+              <><span>{t('gperm_allow')}</span><ArrowRight className="w-3.5 h-3.5" /></>
             )}
           </button>
         </div>
