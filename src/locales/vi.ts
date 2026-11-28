@@ -3882,6 +3882,15 @@ export const vi = {
   changelog_r_3_5_2_d1: 'Loại bỏ khung phát video lớn ở cột phải trong LectureStudioWorkspace để tăng tối đa chiều cao hiển thị cho Tóm tắt, Dàn ý và Bản chép lời.',
   changelog_r_3_5_2_d2: 'Kết nối khung video nhỏ bên trái với tham chiếu phát lại và video đã lưu để khi nhấn vào bất kỳ mốc thời gian nào vẫn tua chính xác tới đoạn đó.',
 
+  // Changelog v3.6.0
+  changelog_r_3_6_0_t: 'Trung tâm Quyền riêng tư, Gia sư Socratic nghiêm ngặt & Kiểm thử AI toàn diện',
+  changelog_r_3_6_0_h1: 'Quản lý trực tiếp 6+1 quyền Google & dữ liệu gửi AI với các nút bật/tắt tức thì.',
+  changelog_r_3_6_0_h2: 'Gia sư AI luôn chỉ gợi ý Socratic (10/10 ca kiểm thử), chặn giải hộ bài thi và mẹo đóng vai.',
+  changelog_r_3_6_0_h3: 'Đổi lịch học thông minh hỏi lại khi yêu cầu mơ hồ và công bố bảng tỷ lệ lỗi theo từng loại.',
+  changelog_r_3_6_0_d1: 'Nâng cấp hộp thoại Quyền riêng tư thành Trung tâm Kiểm soát 3 thẻ (Quyền truy cập, Dữ liệu AI & Gia sư, Lưu trữ & Phụ huynh) hiển thị trạng thái kết nối trực tiếp, minh bạch quyền mở rộng drive.readonly và cho phép tắt ngữ cảnh gia sư hoặc dự phòng Groq.',
+  changelog_r_3_6_0_d2: 'Bổ sung kiểm tra rò rỉ đáp án sau khi sinh câu trả lời, danh sách công cụ cho phép trên máy chủ và áp dụng chính sách gợi ý Socratic đồng bộ trên cả Gia sư AI, dự phòng khóa cá nhân và trợ lý nổi.',
+  changelog_r_3_6_0_d3: 'Hoàn thiện bộ kiểm thử tự động trên 30 thư trường học ẩn danh, 10 lệnh đổi lịch tiếng Việt (xử lý yêu cầu mơ hồ không tự ý đổi lịch) và 10 câu hỏi gia sư kèm báo cáo tỷ lệ lỗi theo từng loại.',
+
   // Changelog v3.5.3
   changelog_r_3_5_4_t: 'Bố cục vừa vặn hơn trên iPhone',
   changelog_r_3_5_4_h1: 'Dễ dàng điều hướng, tìm kiếm và học tập trên iPhone màn hình nhỏ và iPhone gập.',
@@ -3890,13 +3899,13 @@ export const vi = {
   changelog_r_3_5_3_h1: 'Dễ nhận ra StudentOS nhờ chiếc mũ tốt nghiệp màu trắng trên nền cam đất.',
   changelog_r_3_5_3_d1: 'Biểu tượng độ phân giải cao xuất hiện trên màn hình chính hoặc trình khởi chạy trên máy tính, với phiên bản phù hợp với các kiểu cắt biểu tượng của Android.',
 
-  // Changelog v3.5.5
-  changelog_r_3_5_5_t: 'Huy hiệu Canvas chính xác và công cụ Google trong Ứng dụng đã kết nối',
-  changelog_r_3_5_5_h1: 'Con số cạnh Canvas ở thanh bên giờ chỉ đếm các bài tập chưa hoàn thành.',
-  changelog_r_3_5_5_h2: 'Kết nối từng công cụ Google trong Cài đặt, mục Ứng dụng đã kết nối, với trạng thái Chưa kết nối rõ ràng.',
-  changelog_r_3_5_5_h3: 'Cài đặt gọn hơn: khóa AI giờ chỉ nhập trong tab Kết nối.',
-  changelog_r_3_5_5_d3: 'Đã bỏ tab riêng Mô hình & Khóa AI trong Cài đặt. Khóa bạn đã lưu không thay đổi, và bạn vẫn có thể thêm, sửa, lưu khóa tại Cài đặt > Kết nối.',
-  changelog_r_3_5_5_d1: 'Bài tập đã nộp trên Canvas không còn được tính vào huy hiệu ở thanh bên, nên con số này khớp với số bài chưa hoàn thành trong tab Canvas.',
-  changelog_r_3_5_5_d2: 'Danh sách từng công cụ Google đã chuyển từ Cài đặt > Kết nối sang Cài đặt > Ứng dụng đã kết nối. Mỗi công cụ chưa kết nối hiển thị Chưa kết nối và nút Kết nối Google.',
+  // Changelog v3.6.1
+  changelog_r_3_6_1_t: 'Huy hiệu Canvas chính xác và công cụ Google trong Ứng dụng đã kết nối',
+  changelog_r_3_6_1_h1: 'Con số cạnh Canvas ở thanh bên giờ chỉ đếm các bài tập chưa hoàn thành.',
+  changelog_r_3_6_1_h2: 'Kết nối từng công cụ Google trong Cài đặt, mục Ứng dụng đã kết nối, với trạng thái Chưa kết nối rõ ràng.',
+  changelog_r_3_6_1_h3: 'Cài đặt gọn hơn: khóa AI giờ chỉ nhập trong tab Kết nối.',
+  changelog_r_3_6_1_d3: 'Đã bỏ tab riêng Mô hình & Khóa AI trong Cài đặt. Khóa bạn đã lưu không thay đổi, và bạn vẫn có thể thêm, sửa, lưu khóa tại Cài đặt > Kết nối.',
+  changelog_r_3_6_1_d1: 'Bài tập đã nộp trên Canvas không còn được tính vào huy hiệu ở thanh bên, nên con số này khớp với số bài chưa hoàn thành trong tab Canvas.',
+  changelog_r_3_6_1_d2: 'Danh sách từng công cụ Google đã chuyển từ Cài đặt > Kết nối sang Cài đặt > Ứng dụng đã kết nối. Mỗi công cụ chưa kết nối hiển thị Chưa kết nối và nút Kết nối Google.',
 
 } satisfies Record<TranslationKey, string>;

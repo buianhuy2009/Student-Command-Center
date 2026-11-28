@@ -6,10 +6,16 @@
     <description>Plain-English updates to StudentOS — what changed and why it matters for studying.</description>
     <language>en-us</language>
     <item>
-      <title>v3.5.5 — Accurate Canvas Badge and Google Tools in Connected Apps</title>
-      <link>https://sutdent-command-center.vercel.app/?changelog=3.5.5</link>
-      <pubDate>Sat, 28 Nov 2026 02:22:41 GMT</pubDate>
-      <description>StudentOS v3.5.5 makes the Canvas sidebar badge count only unfinished assignments and moves the individual Google tools to Settings, Connected Apps, with a Not connected status and a Connect Google button. The separate Models and AI Keys tab is gone; AI keys stay in Settings, Connections.</description>
+      <title>v3.6.1 — Accurate Canvas Badge and Google Tools in Connected Apps</title>
+      <link>https://sutdent-command-center.vercel.app/?changelog=3.6.1</link>
+      <pubDate>Sat, 28 Nov 2026 02:29:59 GMT</pubDate>
+      <description>StudentOS v3.6.1 makes the Canvas sidebar badge count only unfinished assignments and moves the individual Google tools to Settings, Connected Apps, with a Not connected status and a Connect Google button. The separate Models and AI Keys tab is gone; AI keys stay in Settings, Connections.</description>
+    </item>
+    <item>
+      <title>v3.6.0 — Privacy &amp; Access Control Center, Strict Socratic Tutor &amp; AI Benchmark Suite</title>
+      <link>https://sutdent-command-center.vercel.app/?changelog=3.6.0</link>
+      <pubDate>Sat, 28 Nov 2026 02:25:00 GMT</pubDate>
+      <description>StudentOS v3.6.0 introduces a live 3-tab Privacy &amp; Access Control Center with explicit 6+1 scope and AI data-flow controls, enforces Socratic hint-only guardrails across every AI Tutor path (10/10 safety checks), handles ambiguous reschedule requests safely, and publishes full error-rate-by-type benchmarks.</description>
     </item>
     <item>
       <title>v3.5.4 — Better Layouts on iPhone</title>

@@ -31,7 +31,15 @@ import {
 // @ts-ignore -- plain JS server module
 import { buildEmailPrompt, postProcessAlerts } from '../src/server/api-handlers/gemini/summarize-emails.js';
 // @ts-ignore -- plain JS server module
-import { TUTOR_POLICY, HOMEWORK_DUMP_REMINDER, isHomeworkDump } from '../src/server/api-handlers/gemini/tutorPolicy.js';
+import {
+  TUTOR_POLICY,
+  HOMEWORK_DUMP_REMINDER,
+  LIVE_EXAM_REMINDER,
+  isHomeworkDump,
+  isLiveExamAttempt,
+  detectAnswerLeak,
+  buildSafeSocraticFallback,
+} from '../src/server/api-handlers/gemini/tutorPolicy.js';
 // @ts-ignore -- plain JS server module
 import { generateWithModelFallback } from '../src/server/api-handlers/gemini/generate.js';
 // @ts-ignore -- plain JS server module
@@ -646,10 +654,27 @@ async function runTutor(variant: 'before' | 'after'): Promise<TutorScoredRow[]> 
       meta = res.meta;
     } else {
       let sys = `${String(TUTOR_POLICY)}\n\n${BASE_TUTOR}`;
+      if (isLiveExamAttempt(c.prompt)) sys += `\n\n${String(LIVE_EXAM_REMINDER)}`;
       if (isHomeworkDump(c.prompt)) sys += `\n\n${String(HOMEWORK_DUMP_REMINDER)}`;
       const res = await generate(c.prompt, { systemInstruction: sys });
       reply = res.text.slice(0, 4000);
       meta = res.meta;
+
+      if (detectAnswerLeak(c.prompt, reply)) {
+        const strictRewriteSystem = `${String(TUTOR_POLICY)}
+
+STRICT REWRITE MANDATE: Your previous draft leaked direct answers, an answer key, multi-part solutions, or a finished essay. Rewrite from scratch as a brief Socratic hint ONLY (under 100 words). Never list answers (no 1. A / 2. B or a) / b) / c) solutions), ask what the student tried, and give at most one first-step hint or a worked example with different numbers.`;
+        const rewritePrompt = `Student prompt: ${c.prompt.slice(0, 500)}\n\nPrevious leaked draft (DO NOT copy answers from this):\n${reply.slice(0, 600)}\n\nRewrite into a safe, hint-only Socratic reply in the same language as the student:`;
+        try {
+          const rewriteRes = await generate(rewritePrompt, { systemInstruction: strictRewriteSystem });
+          const rewritten = rewriteRes.text.trim();
+          reply = rewritten && !detectAnswerLeak(c.prompt, rewritten)
+            ? rewritten.slice(0, 4000)
+            : buildSafeSocraticFallback(c.prompt);
+        } catch {
+          reply = buildSafeSocraticFallback(c.prompt);
+        }
+      }
     }
 
     const judgeRes = await generate(

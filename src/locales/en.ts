@@ -3890,6 +3890,15 @@ export const en = {
   changelog_r_3_5_2_d1: 'Hid the oversized right-column video box in LectureStudioWorkspace so summary sections, outlines, and transcripts have much more vertical space.',
   changelog_r_3_5_2_d2: 'Connected the compact left-column video player to the shared media ref and saved-lecture media fallback so clicking any timestamp still jumps directly to that moment.',
 
+  // Changelog v3.6.0
+  changelog_r_3_6_0_t: 'Privacy & Access Control Center, Strict Socratic Tutor & AI Benchmark Suite',
+  changelog_r_3_6_0_h1: 'Inspect and control live 6+1 Google permissions and exact AI data flows in one 3-tab Privacy Center.',
+  changelog_r_3_6_0_h2: 'Socratic Hint-Only Tutor passes 10/10 safety checks across server, BYOK fallback, and Floating Copilot.',
+  changelog_r_3_6_0_h3: 'Ambiguous reschedule requests now ask clarifying questions instead of silently rewriting your timetable.',
+  changelog_r_3_6_0_d1: 'Upgraded PrivacyModal into a lazy-loaded 3-tab Access Control Center with live Granted/Not connected badges, explicit opt-in drive.readonly disclosure, and interactive toggles for tutor context sharing and Groq fallback.',
+  changelog_r_3_6_0_d2: 'Hardened server and client AI Tutor guardrails with an explicit non-tutor tool allowlist, live-exam and teacher role-play detection, and post-generation answer-leak detection with Socratic rewrite.',
+  changelog_r_3_6_0_d3: 'Added a local AI evaluation harness and error-rate-by-type report across 30 anonymized school emails, 10 Vietnamese reschedule commands, and 10 tutor prompts.',
+
   // Changelog v3.5.3
   changelog_r_3_5_4_t: 'Better Layouts on iPhone',
   changelog_r_3_5_4_h1: 'Navigate, search and study comfortably on narrow and foldable iPhone screens.',
@@ -3898,14 +3907,14 @@ export const en = {
   changelog_r_3_5_3_h1: 'Spot StudentOS by its white graduation cap on a terracotta background.',
   changelog_r_3_5_3_d1: 'The installed app has a high-resolution icon for your home screen or desktop launcher, with a version sized for Android’s adaptive icon masks.',
 
-  // Changelog v3.5.5
-  changelog_r_3_5_5_t: 'Accurate Canvas Badge and Google Tools in Connected Apps',
-  changelog_r_3_5_5_h1: 'The Canvas number in the sidebar now counts only unfinished assignments.',
-  changelog_r_3_5_5_h2: 'Connect each Google tool from Settings, under Connected Apps, with a clear Not connected status.',
-  changelog_r_3_5_5_h3: 'Settings is simpler: AI keys are now entered only under Connections.',
-  changelog_r_3_5_5_d3: 'The separate Models & AI Keys tab was removed from Settings. Your saved keys are unchanged, and you can still add, edit and save them in Settings > Connections.',
-  changelog_r_3_5_5_d1: 'Assignments already submitted on Canvas are no longer counted in the sidebar badge, so it matches the Unfinished count in the Canvas tab.',
-  changelog_r_3_5_5_d2: 'The individual Google tools list moved from Settings > Connections to Settings > Connected Apps. Each tool you have not connected shows Not connected and a Connect Google button.',
+  // Changelog v3.6.1
+  changelog_r_3_6_1_t: 'Accurate Canvas Badge and Google Tools in Connected Apps',
+  changelog_r_3_6_1_h1: 'The Canvas number in the sidebar now counts only unfinished assignments.',
+  changelog_r_3_6_1_h2: 'Connect each Google tool from Settings, under Connected Apps, with a clear Not connected status.',
+  changelog_r_3_6_1_h3: 'Settings is simpler: AI keys are now entered only under Connections.',
+  changelog_r_3_6_1_d3: 'The separate Models & AI Keys tab was removed from Settings. Your saved keys are unchanged, and you can still add, edit and save them in Settings > Connections.',
+  changelog_r_3_6_1_d1: 'Assignments already submitted on Canvas are no longer counted in the sidebar badge, so it matches the Unfinished count in the Canvas tab.',
+  changelog_r_3_6_1_d2: 'The individual Google tools list moved from Settings > Connections to Settings > Connected Apps. Each tool you have not connected shows Not connected and a Connect Google button.',
 
 } as const;
 
