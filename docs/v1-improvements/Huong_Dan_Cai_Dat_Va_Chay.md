@@ -48,7 +48,7 @@ Các biến chính trong `.env` (tham chiếu theo `.env.example`):
 | `VITE_FIREBASE_*` | Client | Bộ khóa cấu hình Firebase project (`API_KEY`, `AUTH_DOMAIN`, `PROJECT_ID`, `STORAGE_BUCKET`, `MESSAGING_SENDER_ID`, `APP_ID`). |
 | `RESEND_API_KEY`, `RESEND_FROM_EMAIL` | Server-only (Tùy chọn) | Dùng để máy chủ gửi trực tiếp **Báo cáo email hằng ngày (GMT+7)** tại `/api/reports/daily`. Nếu không đặt, ứng dụng tự động chuyển sang Gmail token của người dùng hoặc chế độ xem trước/`mailto:`. |
 
-> **Lưu ý bảo mật:** Tuyệt đối không đưa `GEMINI_API_KEY`, `GROQ_API_KEY`, `GOOGLE_CLIENT_SECRET` hoặc `RESEND_API_KEY` lên Git hoặc gắn tiền tố `VITE_`. Học sinh cũng có thể nhập khóa BYOK cá nhân trực tiếp trong *Cài đặt → Mô hình AI* (chỉ lưu trong trình duyệt).
+> **Lưu ý bảo mật:** Tuyệt đối không đưa `GEMINI_API_KEY`, `GROQ_API_KEY`, `GOOGLE_CLIENT_SECRET` hoặc `RESEND_API_KEY` lên Git hoặc gắn tiền tố `VITE_`. Học sinh cũng có thể nhập khóa BYOK cá nhân trực tiếp trong *Cài đặt → Kết nối* (chỉ lưu trong trình duyệt).
 
 ---
 

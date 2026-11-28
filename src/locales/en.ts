@@ -2595,7 +2595,6 @@ export const en = {
   settings_canvas_title: "Canvas",
   settings_canvas_token_ph: "Canvas sign-in code (optional)",
   settings_clear_btn: "Clear",
-  settings_connect_btn: "Connect",
   settings_connected_badge: "Connected",
   settings_dark_btn: "Dark",
   settings_density_comfortable: "Comfortable",
@@ -2615,7 +2614,7 @@ export const en = {
   settings_gemini_testing: "Testing Gemini connection...",
   settings_google_desc_guest: "Sign in with Google using just your name & email",
   settings_google_desc_signed_in: "Signed in as {email} (name & email only)",
-  settings_google_privacy_note: "Each Google tool only turns on when you choose to connect it, and you can turn tools off anytime in your Google Account settings or via Manage Connections above.",
+  settings_google_privacy_note: "Each Google tool only turns on when you choose to connect it, and you can turn tools off anytime in your Google Account settings or via Manage Connections in the Connections tab.",
   settings_google_signin_btn: "Sign in with Google",
   settings_google_signout_btn: "Sign out",
   settings_google_title: "Google Account Sign-In",
@@ -2634,8 +2633,6 @@ export const en = {
   settings_high_contrast_title: "High Contrast Mode",
   settings_integ_available: "Available",
   settings_integ_canvas_desc: "Sync assignments via your Canvas link or school sign-in",
-  settings_integ_classroom_desc: "Import classes, homework, and teacher notices",
-  settings_integ_ready: "Ready",
   settings_key_none: "No key saved",
   settings_key_saved_masked: "Saved: {masked}",
   settings_keys_saved_msg: "Keys saved locally.",
@@ -2691,11 +2688,11 @@ export const en = {
   settings_sc_tracker: "Assignment Tracker",
   settings_sub_appearance: "Customize theme warmth, contrast, and animations.",
   settings_sub_general: "Set your language, workspace layout, and sign-in preferences.",
-  settings_sub_integrations: "See Canvas and Google tools connected to your account.",
+  settings_sub_integrations: "Check Canvas and connect the Google tools you want.",
   settings_sub_models: "Add optional personal AI helper keys (Gemini and Groq).",
   settings_sub_shortcuts: "Keyboard navigation and quick action hotkeys.",
   settings_sub_support: "Install app, report bugs, share feedback & view version info.",
-  settings_sub_sync: "Manage Google sign-in, individual Google tools, Canvas, and AI keys.",
+  settings_sub_sync: "Manage Google sign-in, Canvas, and AI keys.",
   settings_tool_cal_desc: "View today & add study blocks",
   settings_tool_cal_label: "Google Calendar",
   settings_tool_classroom_desc: "Import classes & deadlines",
@@ -2742,7 +2739,7 @@ export const en = {
   airouter_groq_empty: 'Groq returned an empty answer.',
   airouter_groq_err: 'Groq API error ({status})',
   airouter_groq_nonjson: 'Unexpected non-JSON response from Groq API ({status})',
-  airouter_no_key: 'No AI key configured. Add one in Settings → AI.',
+  airouter_no_key: 'No AI key configured. Add one in Settings → Connections.',
   airouter_recognition_err: 'Speech recognition error',
   airouter_route_err: 'AI route error ({status})',
   airouter_server_failed: 'Server AI request failed',
@@ -3207,7 +3204,7 @@ export const en = {
 
   // AI Planner Workspace
   plan_ai_fallback_warn:
-    'AI did not return a usable plan (keys missing or daily limit reached) — showing the offline plan instead. Add a key in Settings → AI.',
+    'AI did not return a usable plan (keys missing or daily limit reached) — showing the offline plan instead. Add a key in Settings → Connections.',
   plan_ai_reason_fallback: 'Placed by AI around your deadlines.',
   plan_applied_msg: 'Applied. Tap "Undo" to go back to the previous plan.',
   plan_apply_btn: 'Apply',
@@ -3864,6 +3861,15 @@ export const en = {
   changelog_r_3_5_3_t: 'Sharper Installed App Icon',
   changelog_r_3_5_3_h1: 'Spot StudentOS by its white graduation cap on a terracotta background.',
   changelog_r_3_5_3_d1: 'The installed app has a high-resolution icon for your home screen or desktop launcher, with a version sized for Android’s adaptive icon masks.',
+
+  // Changelog v3.5.4
+  changelog_r_3_5_4_t: 'Accurate Canvas Badge and Google Tools in Connected Apps',
+  changelog_r_3_5_4_h1: 'The Canvas number in the sidebar now counts only unfinished assignments.',
+  changelog_r_3_5_4_h2: 'Connect each Google tool from Settings, under Connected Apps, with a clear Not connected status.',
+  changelog_r_3_5_4_h3: 'Settings is simpler: AI keys are now entered only under Connections.',
+  changelog_r_3_5_4_d3: 'The separate Models & AI Keys tab was removed from Settings. Your saved keys are unchanged, and you can still add, edit and save them in Settings > Connections.',
+  changelog_r_3_5_4_d1: 'Assignments already submitted on Canvas are no longer counted in the sidebar badge, so it matches the Unfinished count in the Canvas tab.',
+  changelog_r_3_5_4_d2: 'The individual Google tools list moved from Settings > Connections to Settings > Connected Apps. Each tool you have not connected shows Not connected and a Connect Google button.',
 
 } as const;
 

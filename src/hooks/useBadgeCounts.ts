@@ -26,13 +26,18 @@ function countFlashcardsDue(): number {
   return 0;
 }
 
+/** Same "unfinished" rule as the Canvas tab: not submitted on Canvas and not ticked off here. */
+export function countUnfinishedCanvas(items: CanvasAssignment[], completedIds: ReadonlySet<string>): number {
+  return items.filter((a) => a && !a.isCompleted && !completedIds.has(a.id)).length;
+}
+
 export function useBadgeCounts(canvasAssignments: CanvasAssignment[], assignments: Assignment[], emailAlerts: EmailAlert[]): BadgeCounts {
   const completedIds = useMemo(() => { try { return new Set(loadCompletedCanvasIds()); } catch { return new Set<string>(); } }, [canvasAssignments]);
   // Null-safe: malformed records must never throw in App's render body (white screen)
   const safeCanvas = Array.isArray(canvasAssignments) ? canvasAssignments : [];
   const safeAssignments = Array.isArray(assignments) ? assignments : [];
   const safeAlerts = Array.isArray(emailAlerts) ? emailAlerts : [];
-  const canvasUnfinished = useMemo(() => safeCanvas.filter(a => a && !completedIds.has((a as any).id)).length, [canvasAssignments, completedIds]);
+  const canvasUnfinished = useMemo(() => countUnfinishedCanvas(safeCanvas, completedIds), [canvasAssignments, completedIds]);
   const urgentEmail = useMemo(() => safeAlerts.filter(e => e && (e.urgency === 'HIGH' || e.urgency === 'MEDIUM') && !e.isSpam).length, [emailAlerts]);
   const pendingAssignment = useMemo(() => safeAssignments.filter(a => a && a.status !== 'Done').length, [assignments]);
   const [flashcardDue, setFlashcardDue] = useState<number>(() => countFlashcardsDue());
