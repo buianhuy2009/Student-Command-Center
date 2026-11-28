@@ -15,6 +15,7 @@ import {
   Copy,
   Lightbulb,
   ImagePlus,
+  ShieldCheck,
 } from 'lucide-react';
 import { MathMarkdown } from './MathMarkdown';
 import {
@@ -111,7 +112,24 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
   const itemRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
-  const { t } = useT();
+  const { t, lang } = useT();
+
+  const translateWithFallback = (key: string, enFallback: string, viFallback: string): string => {
+    const val = t(key);
+    if (val && val !== key) return val;
+    return (lang === 'vi' ? viFallback : enFallback) || enFallback;
+  };
+
+  const hintOnlyLabel = translateWithFallback(
+    'coach_hint_only_badge',
+    'Socratic Hint-Only Mode',
+    'Chế độ Gợi ý Socratic'
+  );
+  const hintOnlyDesc = translateWithFallback(
+    'coach_hint_only_title',
+    'Guides you step by step with hints and never solves homework directly',
+    'Hướng dẫn từng bước bằng gợi ý, không giải hộ bài tập trực tiếp'
+  );
 
   useEffect(() => {
     if (!isSending || !startedAt) {
@@ -423,6 +441,15 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
+            <span
+              title={hintOnlyDesc}
+              aria-label={hintOnlyDesc}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-[var(--status-ok-bg)] text-[var(--status-ok-text)] border border-[var(--status-ok-border)]/50"
+            >
+              <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
+              <span>{hintOnlyLabel}</span>
+            </span>
+
             <span className="hidden xl:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-[var(--accent-soft)] text-[var(--accent-text)] border border-[var(--accent-border)]/50">
               <Lightbulb className="w-3 h-3 shrink-0" />
               <span>{t('coach_banner')}</span>
@@ -693,12 +720,22 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
       id="ai-study-coach-pane"
     >
       <div className="p-3.5 bg-[var(--bg-raised)] text-[var(--text-primary)] border-b border-[var(--border-default)] flex items-center justify-between shrink-0 shadow-xs">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-[var(--accent-fill)] text-white flex items-center justify-center">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="w-7 h-7 rounded-lg bg-[var(--accent-fill)] text-white flex items-center justify-center shrink-0">
             <Sparkles className="w-4 h-4" />
           </div>
-          <div>
-            <h4 className="text-xs font-bold leading-none">{t('coach_title')}</h4>
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5">
+              <h4 className="text-xs font-bold leading-none truncate">{t('coach_title')}</h4>
+              <span
+                title={hintOnlyDesc}
+                aria-label={hintOnlyDesc}
+                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-[var(--status-ok-bg)] text-[var(--status-ok-text)] border border-[var(--status-ok-border)]/50 shrink-0"
+              >
+                <ShieldCheck className="w-3 h-3 shrink-0" />
+                <span className="hidden sm:inline">{hintOnlyLabel}</span>
+              </span>
+            </div>
             <p className="text-[10px] text-[var(--text-muted)] mt-0.5">{activeTier.label} • {activeTier.limit}</p>
           </div>
         </div>

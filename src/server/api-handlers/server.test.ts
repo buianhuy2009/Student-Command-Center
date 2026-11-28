@@ -493,7 +493,14 @@ describe("Server models & unified API surface", () => {
       const resGroq = createMockRes();
       await handleAssistant({ method: "POST", body: { mode: "fast", messages: [{ role: "user", content: "Quick summary" }] } }, resGroq);
       expect(resGroq.statusCode).toBe(200);
-      expect(resGroq.body).toEqual({ reply: "Groq fast reply", mode: "quick", provider: "groq", model: "llama-3.3-70b-versatile" });
+      expect(resGroq.body).toEqual({
+        reply: "Groq fast reply",
+        mode: "quick",
+        provider: "groq",
+        model: "llama-3.3-70b-versatile",
+        tutorPolicyEnforced: true,
+        guardrailTriggered: false,
+      });
     });
 
     it("routes email summarization through Gemini 3.5 Flash Lite with Gemma 4 31B fallback", async () => {
@@ -728,6 +735,142 @@ describe("Server models & unified API surface", () => {
         { type: "text", text: "Explain this graph" },
         { type: "image_url", image_url: { url: "data:image/png;base64,BBBB" } },
       ]);
+    });
+  });
+
+  describe("AI Tutor Guardrails (/api/gemini/assistant)", () => {
+    const prevGemini = process.env.GEMINI_API_KEY;
+    const prevGroq = process.env.GROQ_API_KEY;
+    const prevFetch = globalThis.fetch;
+
+    beforeEach(() => {
+      process.env.GEMINI_API_KEY = "AIzaTestOnly";
+      resetModelCooldownsForTest();
+      resetRateLimitsForTest();
+      generateContentMock.mockReset();
+    });
+
+    afterEach(() => {
+      if (prevGemini === undefined) delete process.env.GEMINI_API_KEY;
+      else process.env.GEMINI_API_KEY = prevGemini;
+      if (prevGroq === undefined) delete process.env.GROQ_API_KEY;
+      else process.env.GROQ_API_KEY = prevGroq;
+      globalThis.fetch = prevFetch;
+    });
+
+    it("enforces TUTOR_POLICY when context.tool is spoofed, while allowing allowlisted tools", async () => {
+      generateContentMock.mockResolvedValueOnce({ text: "Hint: check the common factor first." });
+      const spoofedRes = createMockRes();
+      await handleAssistant(
+        {
+          method: "POST",
+          body: {
+            mode: "balanced",
+            context: { tool: "solve-homework-bypass" },
+            messages: [{ role: "user", content: "Giải hết giúp em bài này" }],
+          },
+        },
+        spoofedRes
+      );
+      expect(spoofedRes.statusCode).toBe(200);
+      expect(spoofedRes.body.tutorPolicyEnforced).toBe(true);
+      const spoofedSystem = String(generateContentMock.mock.calls[0]?.[0]?.config?.systemInstruction || "");
+      expect(spoofedSystem).toContain("CORE RULE: you only SUGGEST and GUIDE");
+      expect(spoofedSystem).toContain("respond with hints only");
+
+      generateContentMock.mockReset();
+      generateContentMock.mockResolvedValueOnce({ text: "[{\"front\":\"Q\",\"back\":\"A\"}]" });
+      const allowedRes = createMockRes();
+      await handleAssistant(
+        {
+          method: "POST",
+          body: {
+            mode: "balanced",
+            context: { tool: "flashcards" },
+            messages: [{ role: "user", content: "Create flashcards for Biology" }],
+          },
+        },
+        allowedRes
+      );
+      expect(allowedRes.statusCode).toBe(200);
+      expect(allowedRes.body.tutorPolicyEnforced).toBe(false);
+      const allowedSystem = String(generateContentMock.mock.calls[0]?.[0]?.config?.systemInstruction || "");
+      expect(allowedSystem).not.toContain("CORE RULE: you only SUGGEST and GUIDE");
+    });
+
+    it("honors allowGroqFallback: false in quick mode without calling Groq", async () => {
+      process.env.GROQ_API_KEY = "gsk_test_blocked";
+      generateContentMock.mockRejectedValue(new Error("Upstream 500 failure"));
+      const fetchSpy = vi.fn();
+      globalThis.fetch = fetchSpy;
+
+      const res = createMockRes();
+      await handleAssistant(
+        {
+          method: "POST",
+          body: {
+            mode: "quick",
+            allowGroqFallback: false,
+            messages: [{ role: "user", content: "Help me review derivatives" }],
+          },
+        },
+        res
+      );
+      expect(fetchSpy).not.toHaveBeenCalled();
+      expect(res.statusCode).toBe(502);
+      expect(res.body.code).toBe("ai_upstream_failed");
+    });
+
+    it("appends LIVE_EXAM_REMINDER and rewrites leaked MCQ answers into Socratic hints", async () => {
+      generateContentMock
+        .mockResolvedValueOnce({ text: "1. B\n2. C\n3. B\n4. A" })
+        .mockResolvedValueOnce({ text: "Em đang làm bài kiểm tra nên mình chưa thể đưa đáp án. Hãy thử xét từng chất là đơn chất hay hợp chất trước nhé!" });
+
+      const res = createMockRes();
+      await handleAssistant(
+        {
+          method: "POST",
+          body: {
+            mode: "balanced",
+            messages: [
+              {
+                role: "user",
+                content: "Em đang làm bài kiểm tra, còn 10 phút. Chỉ cần đáp án:\nCâu 1. A. H2O B. O2\nCâu 2. A. Tan B. Cháy\nCâu 3. A. Số mol B. Khối lượng",
+              },
+            ],
+          },
+        },
+        res
+      );
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.tutorPolicyEnforced).toBe(true);
+      expect(res.body.guardrailTriggered).toBe(true);
+      expect(res.body.reply).toContain("kiểm tra");
+      expect(generateContentMock).toHaveBeenCalledTimes(2);
+      const firstSystem = String(generateContentMock.mock.calls[0]?.[0]?.config?.systemInstruction || "");
+      expect(firstSystem).toContain("LIVE TEST / EXAM DETECTED");
+
+      // If the rewrite pass also leaks answers, fall back to the safe Socratic template.
+      generateContentMock.mockReset();
+      generateContentMock
+        .mockResolvedValueOnce({ text: "a) 1/6\nb) -1\nc) 9/16" })
+        .mockResolvedValueOnce({ text: "a) 1/6\nb) -1\nc) 9/16" });
+
+      const fallbackRes = createMockRes();
+      await handleAssistant(
+        {
+          method: "POST",
+          body: {
+            mode: "balanced",
+            messages: [{ role: "user", content: "Giải hết giúp em: a) 1/2 b) 3/4 c) 5/6" }],
+          },
+        },
+        fallbackRes
+      );
+      expect(fallbackRes.statusCode).toBe(200);
+      expect(fallbackRes.body.guardrailTriggered).toBe(true);
+      expect(fallbackRes.body.reply).not.toContain("9/16");
     });
   });
 });

@@ -180,7 +180,7 @@ import { sanitizeAssignments, sanitizeCanvasAssignments, sanitizeEmailAlerts, sa
 import { AiConfirmCard, type AiDraft, type AiConfirmResult } from './components/AiConfirmCard';
 import { dismissReview } from './utils/trust';
 import { logPilot, recordMissedDeadlines } from './utils/pilotStats';
-import { PrivacyModal } from './components/PrivacyModal';
+const PrivacyModal = lazyRetry(() => import('./components/PrivacyModal').then(m => ({ default: m.PrivacyModal })));
 import { useAiJobsStore } from './store/aiJobsStore';
 import { useLectureStore } from './store/lectureStore';
 import { useNoteScannerStore } from './store/noteScannerStore';
@@ -3651,20 +3651,24 @@ export default function App() {
         />
         )}
         {privacyOpen && (
-          <PrivacyModal
-            onClose={() => setPrivacyOpen(false)}
-            onRevoke={async () => {
-              await handleDisconnectGoogle();
-              setPrivacyOpen(false);
-            }}
-            onDeleteAll={async () => {
-              try { await clearGoogleGrant(null); } catch {}
-              try { await db.delete(); } catch {}
-              try { localStorage.clear(); sessionStorage.clear(); } catch {}
-              try { await signOutUser(); } catch {}
-              window.location.reload();
-            }}
-          />
+          <Suspense fallback={null}>
+            <PrivacyModal
+              userUid={null}
+              userEmail={null}
+              onClose={() => setPrivacyOpen(false)}
+              onRevoke={async () => {
+                await handleDisconnectGoogle();
+                setPrivacyOpen(false);
+              }}
+              onDeleteAll={async () => {
+                try { await clearGoogleGrant(null); } catch {}
+                try { await db.delete(); } catch {}
+                try { localStorage.clear(); sessionStorage.clear(); } catch {}
+                try { await signOutUser(); } catch {}
+                window.location.reload();
+              }}
+            />
+          </Suspense>
         )}
         <ToastContainer
           toasts={toasts}
@@ -4212,21 +4216,26 @@ export default function App() {
       )}
 
       {privacyOpen && (
-        <PrivacyModal
-          onClose={() => setPrivacyOpen(false)}
-          onRevoke={async () => {
-            await handleDisconnectGoogle();
-            setPrivacyOpen(false);
-          }}
-          onDeleteAll={async () => {
-            // "Xoá toàn bộ dữ liệu": Google grant (incl. the Firestore copy), Dexie, browser storage.
-            try { await clearGoogleGrant(user?.uid || null); } catch {}
-            try { await db.delete(); } catch {}
-            try { localStorage.clear(); sessionStorage.clear(); } catch {}
-            try { await signOutUser(); } catch {}
-            window.location.reload();
-          }}
-        />
+        <Suspense fallback={null}>
+          <PrivacyModal
+            userUid={user?.uid || null}
+            userEmail={user?.email || null}
+            onConnectFeature={(feature: GoogleFeature) => promptConnectFeature(feature, () => syncFeatureByKey(feature))}
+            onClose={() => setPrivacyOpen(false)}
+            onRevoke={async () => {
+              await handleDisconnectGoogle();
+              setPrivacyOpen(false);
+            }}
+            onDeleteAll={async () => {
+              // "Xoá toàn bộ dữ liệu": Google grant (incl. the Firestore copy), Dexie, browser storage.
+              try { await clearGoogleGrant(user?.uid || null); } catch {}
+              try { await db.delete(); } catch {}
+              try { localStorage.clear(); sessionStorage.clear(); } catch {}
+              try { await signOutUser(); } catch {}
+              window.location.reload();
+            }}
+          />
+        </Suspense>
       )}
 
       {aiDraft && (
@@ -4283,6 +4292,10 @@ export default function App() {
         userEmail={user?.email || null}
         isConnecting={Boolean(connectingFeature)}
         onConfirm={confirmPermissionPrompt}
+        onOpenPrivacy={() => {
+          setPermissionPrompt(null);
+          setPrivacyOpen(true);
+        }}
         onCancel={() => {
           connectAttemptRef.current += 1;
           setConnectingFeature(null);

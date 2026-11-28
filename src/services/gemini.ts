@@ -54,6 +54,16 @@ import {
   repairJsonString,
 } from './gemini/client';
 import { t } from './i18n';
+import { getPrivacyPrefs } from './privacyPrefs';
+import {
+  TUTOR_POLICY,
+  HOMEWORK_DUMP_REMINDER,
+  LIVE_EXAM_REMINDER,
+  isHomeworkDump,
+  isLiveExamAttempt,
+  detectAnswerLeak,
+  buildSafeSocraticFallback,
+} from '../server/api-handlers/gemini/tutorPolicy.js';
 
 export {
   GEMINI_DEFAULT_MODEL,
@@ -151,8 +161,14 @@ export async function runAutonomousAgent(
     upcomingDeadlines?: string[];
   }
 ): Promise<{ reply: string; actions: AgentAction[] }> {
+  const examReminder = isLiveExamAttempt(studentPrompt) ? `\n${LIVE_EXAM_REMINDER}` : '';
+  const dumpReminder = isHomeworkDump(studentPrompt) ? `\n${HOMEWORK_DUMP_REMINDER}` : '';
   const systemPrompt = `You are the Autonomous Operating System Agent for StudentOS.
 You are equipped with structured tools to directly manipulate the student's workspace state:
+
+Socratic Hint-Only Policy (MANDATORY):
+${TUTOR_POLICY}
+- Never put direct homework solutions, answer keys, completed exercises, or finished essays in "reply" or inside action payloads (such as flashcards or diagrams). If the student pastes homework or an active test/quiz/exam, use "reply" only to guide them with a first-step hint (or politely decline live tests and offer post-test review) without solving the problems.${examReminder}${dumpReminder}
 
 Available Actions you can output in "actions":
 1. "setWorkspaceLayout": { "leftPane": "canvas"|"notes-markdown"|"desmos-graphing"|"excalidraw"|"pomodoro"|"flashcards", "rightPane": "...", "ratio": "50/50"|"60/40"|"70/30" }
@@ -192,8 +208,11 @@ Return only JSON.`;
     if (!parsed || typeof parsed.reply !== 'string' || !parsed.reply.trim()) {
       throw new Error(t('gem_err_agent_missing'));
     }
+    const safeReply = detectAnswerLeak(studentPrompt, parsed.reply)
+      ? buildSafeSocraticFallback(studentPrompt)
+      : parsed.reply;
     return {
-      reply: parsed.reply,
+      reply: safeReply,
       actions: Array.isArray(parsed.actions) ? parsed.actions : [],
     };
   } catch (err) {
@@ -1122,14 +1141,15 @@ export interface StudyAssistantMessageInput {
 
 export async function sendStudyAssistantMessage(
   messages: StudyAssistantMessageInput[],
-  context?: any,
+  context?: unknown,
   rawMode: LegacyAiCoachMode = 'balanced'
 ): Promise<string> {
   const mode = normalizeAiCoachMode(rawMode);
+  const { allowGroqFallback } = getPrivacyPrefs();
   try {
     const data = await postGeminiJsonEndpoint<{ reply?: string; model?: string; provider?: string }>(
       '/api/gemini/assistant',
-      { messages, context, mode },
+      { messages, context, mode, allowGroqFallback },
       'Study assistant API'
     );
     if (!data?.reply || !String(data.reply).trim()) {
@@ -1137,11 +1157,22 @@ export async function sendStudyAssistantMessage(
     }
     return String(data.reply);
   } catch (err) {
+    const lastUser = [...messages].reverse().find((m) => m && m.role !== 'assistant');
+    const lastUserText = String(lastUser?.content || '');
+    let tutorSystemInstruction = TUTOR_POLICY;
+    if (isLiveExamAttempt(lastUserText)) {
+      tutorSystemInstruction += `\n\n${LIVE_EXAM_REMINDER}`;
+    }
+    if (isHomeworkDump(lastUserText)) {
+      tutorSystemInstruction += `\n\n${HOMEWORK_DUMP_REMINDER}`;
+    }
+
     const historyText = messages.map((m) => `${m.role === 'user' ? 'Student' : 'Coach'}: ${m.content}`).join('\n');
     const promptText = `Student context:\n${JSON.stringify(context || {}).slice(0, 6000)}\n\nConversation:\n${historyText}`;
+    const groqPromptWithPolicy = `System Instructions (MUST FOLLOW STRICTLY):\n${tutorSystemInstruction}\n\n${promptText}`;
     const lastImages = messages.flatMap((m) => (m.role === 'user' && m.images?.length ? m.images : [])).slice(-4);
     const hasImages = lastImages.length > 0;
-    const contents: any = hasImages
+    const contents: unknown = hasImages
       ? [
           {
             role: 'user',
@@ -1153,6 +1184,12 @@ export async function sendStudyAssistantMessage(
         ]
       : promptText;
 
+    const sanitizeClientReply = (rawReply: string): string => {
+      const trimmed = rawReply.trim();
+      if (!trimmed) return '';
+      return detectAnswerLeak(lastUserText, trimmed) ? buildSafeSocraticFallback(lastUserText) : trimmed;
+    };
+
     if (mode === 'quick' && getClientGeminiApiKey()) {
       try {
         const reply = await callGemini({
@@ -1160,29 +1197,38 @@ export async function sendStudyAssistantMessage(
             ? [...CLIENT_COACH_MODE_MODELS.quick, ...VISION_CHEAPEST_MODELS]
             : [...CLIENT_COACH_MODE_MODELS.quick],
           contents,
-          skipGroqFallback: hasImages,
+          skipGroqFallback: hasImages || !allowGroqFallback,
           config: {
-            systemInstruction: 'You are Student Command Coach. Be concise, accurate, and give step-by-step hints without doing homework directly.',
+            systemInstruction: tutorSystemInstruction,
           },
         });
-        if (reply.trim()) return reply.trim();
+        const clean = sanitizeClientReply(reply);
+        if (clean) return clean;
       } catch {}
     }
-    if (mode === 'quick' && !hasImages && getClientGroqApiKey()) {
-      const reply = await callGroqDirect(promptText, false);
-      if (reply.trim()) return reply.trim();
+    if (mode === 'quick' && !hasImages && allowGroqFallback && getClientGroqApiKey()) {
+      const reply = await callGroqDirect(groqPromptWithPolicy, false);
+      const clean = sanitizeClientReply(reply);
+      if (clean) return clean;
     }
-    if (getClientGeminiApiKey() || (!hasImages && getClientGroqApiKey())) {
-      const candidateModels = [...(CLIENT_COACH_MODE_MODELS[mode] || CLIENT_COACH_MODE_MODELS.balanced)];
-      const reply = await callGemini({
-        candidateModels,
-        contents,
-        skipGroqFallback: hasImages,
-        config: {
-          systemInstruction: 'You are Student Command Coach. Be concise, accurate, and give step-by-step hints without doing homework directly.',
-        },
-      });
-      if (reply.trim()) return reply.trim();
+    if (getClientGeminiApiKey() || (!hasImages && allowGroqFallback && getClientGroqApiKey())) {
+      if (!getClientGeminiApiKey() && !hasImages && allowGroqFallback && getClientGroqApiKey()) {
+        const reply = await callGroqDirect(groqPromptWithPolicy, false);
+        const clean = sanitizeClientReply(reply);
+        if (clean) return clean;
+      } else {
+        const candidateModels = [...(CLIENT_COACH_MODE_MODELS[mode] || CLIENT_COACH_MODE_MODELS.balanced)];
+        const reply = await callGemini({
+          candidateModels,
+          contents,
+          skipGroqFallback: hasImages || !allowGroqFallback,
+          config: {
+            systemInstruction: tutorSystemInstruction,
+          },
+        });
+        const clean = sanitizeClientReply(reply);
+        if (clean) return clean;
+      }
     }
     throw err instanceof Error ? err : new Error(String(err));
   }
