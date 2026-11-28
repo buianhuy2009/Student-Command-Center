@@ -13,6 +13,10 @@
       "destination": "/api/index"
     },
     {
+      "source": "/minh-chung",
+      "destination": "/minh-chung.html"
+    },
+    {
       "source": "/privacy",
       "destination": "/privacy.html"
     },

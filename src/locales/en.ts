@@ -3916,6 +3916,13 @@ export const en = {
   changelog_r_3_6_1_d1: 'Assignments already submitted on Canvas are no longer counted in the sidebar badge, so it matches the Unfinished count in the Canvas tab.',
   changelog_r_3_6_1_d2: 'The individual Google tools list moved from Settings > Connections to Settings > Connected Apps. Each tool you have not connected shows Not connected and a Connect Google button.',
 
+  // Changelog v3.6.2
+  changelog_r_3_6_2_t: 'Interactive Evidence Showcase (/minh-chung)',
+  changelog_r_3_6_2_h1: 'Explore AI error-rate charts, all 50 test cases, and live UI screenshots interactively at /minh-chung.',
+  changelog_r_3_6_2_h2: 'Expand any email, schedule, or tutor case for side-by-side Before vs After comparisons and lightbox zoom.',
+  changelog_r_3_6_2_d1: 'Added a standalone interactive evidence hub at /minh-chung generated directly from eval/results/summary.json and the 50 anonymized benchmark runs.',
+  changelog_r_3_6_2_d2: 'Includes a 5-screenshot lightbox gallery, 6+1 Google scope cards, AI data-flow split view, and the 4-layer Socratic Tutor architecture.',
+
 } as const;
 
 export type TranslationKey = keyof typeof en;

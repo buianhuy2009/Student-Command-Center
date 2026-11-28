@@ -3908,4 +3908,11 @@ export const vi = {
   changelog_r_3_6_1_d1: 'Bài tập đã nộp trên Canvas không còn được tính vào huy hiệu ở thanh bên, nên con số này khớp với số bài chưa hoàn thành trong tab Canvas.',
   changelog_r_3_6_1_d2: 'Danh sách từng công cụ Google đã chuyển từ Cài đặt > Kết nối sang Cài đặt > Ứng dụng đã kết nối. Mỗi công cụ chưa kết nối hiển thị Chưa kết nối và nút Kết nối Google.',
 
+  // Changelog v3.6.2
+  changelog_r_3_6_2_t: 'Trang Minh chứng Trực quan (/minh-chung)',
+  changelog_r_3_6_2_h1: 'Xem nhanh biểu đồ tỷ lệ lỗi AI, 50 ca kiểm thử tương tác và ảnh chụp thực tế tại /minh-chung.',
+  changelog_r_3_6_2_h2: 'Bấm mở từng ca để so sánh trực tiếp Trước vs Sau và phóng to ảnh chụp Trung tâm Quyền riêng tư.',
+  changelog_r_3_6_2_d1: 'Bổ sung trang web minh chứng tương tác public/minh-chung.html gắn đường dẫn /minh-chung đọc trực tiếp dữ liệu thật từ eval/results/summary.json và bộ 50 ca kiểm thử.',
+  changelog_r_3_6_2_d2: 'Tích hợp thư viện ảnh chụp màn hình có chế độ phóng to, sơ đồ 6+1 quyền truy cập Google và 4 lớp bảo vệ Gia sư Socratic.',
+
 } satisfies Record<TranslationKey, string>;

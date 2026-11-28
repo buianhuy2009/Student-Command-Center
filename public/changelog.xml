@@ -6,6 +6,12 @@
     <description>Plain-English updates to StudentOS — what changed and why it matters for studying.</description>
     <language>en-us</language>
     <item>
+      <title>v3.6.2 — Interactive Evidence Showcase (/minh-chung)</title>
+      <link>https://sutdent-command-center.vercel.app/?changelog=3.6.2</link>
+      <pubDate>Sat, 28 Nov 2026 02:47:00 GMT</pubDate>
+      <description>StudentOS v3.6.2 launches an interactive visual evidence page at /minh-chung featuring live Before vs After KPI cards, error-rate-by-type bar charts, a searchable 50-case explorer, and a lightbox gallery of the Privacy Center and Socratic Tutor.</description>
+    </item>
+    <item>
       <title>v3.6.1 — Accurate Canvas Badge and Google Tools in Connected Apps</title>
       <link>https://sutdent-command-center.vercel.app/?changelog=3.6.1</link>
       <pubDate>Sat, 28 Nov 2026 02:29:59 GMT</pubDate>
