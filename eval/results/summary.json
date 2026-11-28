@@ -1,0 +1,308 @@
+{
+  "generatedAt": "2026-11-28T02:16:20.759Z",
+  "mode": "local",
+  "emails": {
+    "before": {
+      "pass": {
+        "count": 4,
+        "total": 30,
+        "ratePct": 13.3
+      },
+      "taxonomy": {
+        "missedAssignment": {
+          "count": 21,
+          "total": 21,
+          "ratePct": 100
+        },
+        "falsePositiveAssignment": {
+          "count": 0,
+          "total": 9,
+          "ratePct": 0
+        },
+        "hiddenTeacherOrSchool": {
+          "count": 2,
+          "total": 25,
+          "ratePct": 8
+        },
+        "wrongCategory": {
+          "count": 26,
+          "total": 30,
+          "ratePct": 86.7
+        },
+        "wrongDueDate": {
+          "count": 20,
+          "total": 20,
+          "ratePct": 100
+        },
+        "fabricatedDueDate": {
+          "count": 0,
+          "total": 1,
+          "ratePct": 0
+        },
+        "wrongSubject": {
+          "count": 21,
+          "total": 21,
+          "ratePct": 100
+        },
+        "wrongPriority": {
+          "count": 9,
+          "total": 21,
+          "ratePct": 42.9
+        },
+        "aiOmittedOrFailed": {
+          "count": 0,
+          "total": 30,
+          "ratePct": 0
+        }
+      }
+    },
+    "beforeModel": {
+      "pass": {
+        "count": 13,
+        "total": 30,
+        "ratePct": 43.3
+      },
+      "taxonomy": {
+        "missedAssignment": {
+          "count": 5,
+          "total": 21,
+          "ratePct": 23.8
+        },
+        "falsePositiveAssignment": {
+          "count": 0,
+          "total": 9,
+          "ratePct": 0
+        },
+        "hiddenTeacherOrSchool": {
+          "count": 2,
+          "total": 25,
+          "ratePct": 8
+        },
+        "wrongCategory": {
+          "count": 5,
+          "total": 30,
+          "ratePct": 16.7
+        },
+        "wrongDueDate": {
+          "count": 15,
+          "total": 20,
+          "ratePct": 75
+        },
+        "fabricatedDueDate": {
+          "count": 0,
+          "total": 1,
+          "ratePct": 0
+        },
+        "wrongSubject": {
+          "count": 4,
+          "total": 21,
+          "ratePct": 19
+        },
+        "wrongPriority": {
+          "count": 8,
+          "total": 21,
+          "ratePct": 38.1
+        },
+        "aiOmittedOrFailed": {
+          "count": 0,
+          "total": 30,
+          "ratePct": 0
+        }
+      }
+    },
+    "after": {
+      "pass": {
+        "count": 15,
+        "total": 30,
+        "ratePct": 50
+      },
+      "taxonomy": {
+        "missedAssignment": {
+          "count": 3,
+          "total": 21,
+          "ratePct": 14.3
+        },
+        "falsePositiveAssignment": {
+          "count": 0,
+          "total": 9,
+          "ratePct": 0
+        },
+        "hiddenTeacherOrSchool": {
+          "count": 0,
+          "total": 25,
+          "ratePct": 0
+        },
+        "wrongCategory": {
+          "count": 6,
+          "total": 30,
+          "ratePct": 20
+        },
+        "wrongDueDate": {
+          "count": 3,
+          "total": 20,
+          "ratePct": 15
+        },
+        "fabricatedDueDate": {
+          "count": 0,
+          "total": 1,
+          "ratePct": 0
+        },
+        "wrongSubject": {
+          "count": 3,
+          "total": 21,
+          "ratePct": 14.3
+        },
+        "wrongPriority": {
+          "count": 12,
+          "total": 21,
+          "ratePct": 57.1
+        },
+        "aiOmittedOrFailed": {
+          "count": 6,
+          "total": 30,
+          "ratePct": 20
+        }
+      }
+    }
+  },
+  "schedule": {
+    "before": {
+      "pass": {
+        "count": 0,
+        "total": 10,
+        "ratePct": 0
+      },
+      "taxonomy": {
+        "targetNotChanged": {
+          "count": 7,
+          "total": 10,
+          "ratePct": 70
+        },
+        "collateralMove": {
+          "count": 0,
+          "total": 10,
+          "ratePct": 0
+        },
+        "lockedBlockViolation": {
+          "count": 0,
+          "total": 10,
+          "ratePct": 0
+        },
+        "overlapViolation": {
+          "count": 0,
+          "total": 10,
+          "ratePct": 0
+        },
+        "missingAddition": {
+          "count": 1,
+          "total": 10,
+          "ratePct": 10
+        },
+        "missingClarificationOrLockNotice": {
+          "count": 4,
+          "total": 10,
+          "ratePct": 40
+        }
+      }
+    },
+    "after": {
+      "pass": {
+        "count": 9,
+        "total": 10,
+        "ratePct": 90
+      },
+      "taxonomy": {
+        "targetNotChanged": {
+          "count": 1,
+          "total": 10,
+          "ratePct": 10
+        },
+        "collateralMove": {
+          "count": 0,
+          "total": 10,
+          "ratePct": 0
+        },
+        "lockedBlockViolation": {
+          "count": 0,
+          "total": 10,
+          "ratePct": 0
+        },
+        "overlapViolation": {
+          "count": 0,
+          "total": 10,
+          "ratePct": 0
+        },
+        "missingAddition": {
+          "count": 0,
+          "total": 10,
+          "ratePct": 0
+        },
+        "missingClarificationOrLockNotice": {
+          "count": 0,
+          "total": 10,
+          "ratePct": 0
+        }
+      }
+    }
+  },
+  "tutor": {
+    "before": {
+      "pass": {
+        "count": 4,
+        "total": 10,
+        "ratePct": 40
+      },
+      "taxonomy": {
+        "fullSolutionLeak": {
+          "count": 6,
+          "total": 6,
+          "ratePct": 100
+        },
+        "liveExamCheatingLeak": {
+          "count": 1,
+          "total": 1,
+          "ratePct": 100
+        },
+        "roleplayBypassLeak": {
+          "count": 1,
+          "total": 1,
+          "ratePct": 100
+        },
+        "unhelpfulOverRefusal": {
+          "count": 0,
+          "total": 4,
+          "ratePct": 0
+        }
+      }
+    },
+    "after": {
+      "pass": {
+        "count": 10,
+        "total": 10,
+        "ratePct": 100
+      },
+      "taxonomy": {
+        "fullSolutionLeak": {
+          "count": 0,
+          "total": 6,
+          "ratePct": 0
+        },
+        "liveExamCheatingLeak": {
+          "count": 0,
+          "total": 1,
+          "ratePct": 0
+        },
+        "roleplayBypassLeak": {
+          "count": 0,
+          "total": 1,
+          "ratePct": 0
+        },
+        "unhelpfulOverRefusal": {
+          "count": 0,
+          "total": 4,
+          "ratePct": 0
+        }
+      }
+    }
+  }
+}

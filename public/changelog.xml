@@ -6,6 +6,12 @@
     <description>Plain-English updates to StudentOS — what changed and why it matters for studying.</description>
     <language>en-us</language>
     <item>
+      <title>v3.6.0 — Privacy &amp; Access Control Center, Strict Socratic Tutor &amp; AI Benchmark Suite</title>
+      <link>https://sutdent-command-center.vercel.app/?changelog=3.6.0</link>
+      <pubDate>Sat, 28 Nov 2026 02:25:00 GMT</pubDate>
+      <description>StudentOS v3.6.0 introduces a live 3-tab Privacy &amp; Access Control Center with explicit 6+1 scope and AI data-flow controls, enforces Socratic hint-only guardrails across every AI Tutor path (10/10 safety checks), handles ambiguous reschedule requests safely, and publishes full error-rate-by-type benchmarks.</description>
+    </item>
+    <item>
       <title>v3.5.4 — Better Layouts on iPhone</title>
       <link>https://sutdent-command-center.vercel.app/?changelog=3.5.4</link>
       <pubDate>Sat, 28 Nov 2026 02:04:00 GMT</pubDate>

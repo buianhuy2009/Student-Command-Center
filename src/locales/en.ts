@@ -3893,6 +3893,15 @@ export const en = {
   changelog_r_3_5_2_d1: 'Hid the oversized right-column video box in LectureStudioWorkspace so summary sections, outlines, and transcripts have much more vertical space.',
   changelog_r_3_5_2_d2: 'Connected the compact left-column video player to the shared media ref and saved-lecture media fallback so clicking any timestamp still jumps directly to that moment.',
 
+  // Changelog v3.6.0
+  changelog_r_3_6_0_t: 'Privacy & Access Control Center, Strict Socratic Tutor & AI Benchmark Suite',
+  changelog_r_3_6_0_h1: 'Inspect and control live 6+1 Google permissions and exact AI data flows in one 3-tab Privacy Center.',
+  changelog_r_3_6_0_h2: 'Socratic Hint-Only Tutor passes 10/10 safety checks across server, BYOK fallback, and Floating Copilot.',
+  changelog_r_3_6_0_h3: 'Ambiguous reschedule requests now ask clarifying questions instead of silently rewriting your timetable.',
+  changelog_r_3_6_0_d1: 'Upgraded PrivacyModal into a lazy-loaded 3-tab Access Control Center with live Granted/Not connected badges, explicit opt-in drive.readonly disclosure, and interactive toggles for tutor context sharing and Groq fallback.',
+  changelog_r_3_6_0_d2: 'Hardened server and client AI Tutor guardrails with an explicit non-tutor tool allowlist, live-exam and teacher role-play detection, and post-generation answer-leak detection with Socratic rewrite.',
+  changelog_r_3_6_0_d3: 'Added a local AI evaluation harness and error-rate-by-type report across 30 anonymized school emails, 10 Vietnamese reschedule commands, and 10 tutor prompts.',
+
   // Changelog v3.5.3
   changelog_r_3_5_4_t: 'Better Layouts on iPhone',
   changelog_r_3_5_4_h1: 'Navigate, search and study comfortably on narrow and foldable iPhone screens.',

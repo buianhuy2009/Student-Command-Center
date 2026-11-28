@@ -3885,6 +3885,15 @@ export const vi = {
   changelog_r_3_5_2_d1: 'Loại bỏ khung phát video lớn ở cột phải trong LectureStudioWorkspace để tăng tối đa chiều cao hiển thị cho Tóm tắt, Dàn ý và Bản chép lời.',
   changelog_r_3_5_2_d2: 'Kết nối khung video nhỏ bên trái với tham chiếu phát lại và video đã lưu để khi nhấn vào bất kỳ mốc thời gian nào vẫn tua chính xác tới đoạn đó.',
 
+  // Changelog v3.6.0
+  changelog_r_3_6_0_t: 'Trung tâm Quyền riêng tư, Gia sư Socratic nghiêm ngặt & Kiểm thử AI toàn diện',
+  changelog_r_3_6_0_h1: 'Quản lý trực tiếp 6+1 quyền Google & dữ liệu gửi AI với các nút bật/tắt tức thì.',
+  changelog_r_3_6_0_h2: 'Gia sư AI luôn chỉ gợi ý Socratic (10/10 ca kiểm thử), chặn giải hộ bài thi và mẹo đóng vai.',
+  changelog_r_3_6_0_h3: 'Đổi lịch học thông minh hỏi lại khi yêu cầu mơ hồ và công bố bảng tỷ lệ lỗi theo từng loại.',
+  changelog_r_3_6_0_d1: 'Nâng cấp hộp thoại Quyền riêng tư thành Trung tâm Kiểm soát 3 thẻ (Quyền truy cập, Dữ liệu AI & Gia sư, Lưu trữ & Phụ huynh) hiển thị trạng thái kết nối trực tiếp, minh bạch quyền mở rộng drive.readonly và cho phép tắt ngữ cảnh gia sư hoặc dự phòng Groq.',
+  changelog_r_3_6_0_d2: 'Bổ sung kiểm tra rò rỉ đáp án sau khi sinh câu trả lời, danh sách công cụ cho phép trên máy chủ và áp dụng chính sách gợi ý Socratic đồng bộ trên cả Gia sư AI, dự phòng khóa cá nhân và trợ lý nổi.',
+  changelog_r_3_6_0_d3: 'Hoàn thiện bộ kiểm thử tự động trên 30 thư trường học ẩn danh, 10 lệnh đổi lịch tiếng Việt (xử lý yêu cầu mơ hồ không tự ý đổi lịch) và 10 câu hỏi gia sư kèm báo cáo tỷ lệ lỗi theo từng loại.',
+
   // Changelog v3.5.3
   changelog_r_3_5_4_t: 'Bố cục vừa vặn hơn trên iPhone',
   changelog_r_3_5_4_h1: 'Dễ dàng điều hướng, tìm kiếm và học tập trên iPhone màn hình nhỏ và iPhone gập.',
