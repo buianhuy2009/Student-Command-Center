@@ -3930,6 +3930,11 @@ export const en = {
   changelog_r_3_6_3_d1: 'Eliminated walls of text across public/minh-chung.html using compact badges, micro-labels, and a collapsible 50-case list.',
   changelog_r_3_6_3_d2: 'Converted every breakdown bar to higher-is-better accuracy while still displaying exact error counts and percentages.',
 
+  // Changelog v3.6.4
+  changelog_r_3_6_4_t: 'Minimalist Before & After Evidence Page (/minh-chung)',
+  changelog_r_3_6_4_h1: 'Spacious, scannable Before vs After story cards with zero clutter or repeated widgets.',
+  changelog_r_3_6_4_d1: 'Removed duplicate summary cards and tucked the 19-metric breakdown and 50-case inspector into clean 1-click drawers so judges grasp Before vs After in 10 seconds.',
+
 } as const;
 
 export type TranslationKey = keyof typeof en;

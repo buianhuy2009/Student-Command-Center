@@ -3922,4 +3922,9 @@ export const vi = {
   changelog_r_3_6_3_d1: 'Loại bỏ các đoạn văn dài và thanh chuyển tab trên public/minh-chung.html, chuyển sang thẻ ngắn dễ quét mắt trong vài giây.',
   changelog_r_3_6_3_d2: 'Chuyển toàn bộ thanh so sánh tỷ lệ lỗi sang thang độ chính xác (càng cao càng tốt) kèm nhãn số lỗi cụ thể bên cạnh.',
 
+  // Changelog v3.6.4
+  changelog_r_3_6_4_t: 'Tinh gọn tối đa trang Minh chứng Trước & Sau (/minh-chung)',
+  changelog_r_3_6_4_h1: 'Bố cục thoáng rộng tập trung vào 3 câu chuyện Trước vs Sau rõ ràng, không còn dồn chữ.',
+  changelog_r_3_6_4_d1: 'Bỏ 3 thẻ lặp thừa, gom bảng 19 chỉ số và 50 ca kiểm thử vào mục mở rộng 1 chạm để Ban Giám khảo nắm rõ Trước & Sau trong 10 giây.',
+
 } satisfies Record<TranslationKey, string>;
