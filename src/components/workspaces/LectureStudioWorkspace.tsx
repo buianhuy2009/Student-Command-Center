@@ -31,7 +31,9 @@ import {
 import '../../services/lectureOfflineAsr';
 import type { LectureSummaryMode, LectureTranscriptionMode } from '../../services/localAiConfig';
 import { clearOfflineModels, getOfflineModelCacheStats } from '../../services/localMediaManager';
-import { loadSRSDecks, saveSRSDecks, type SRSCard, type SRSDeck } from '../../services/srsEngine';
+import { addFlashcardDeck, focusFlashcardDeck, type CardDeck } from '../../services/flashcardDecks';
+import type { SRSCard } from '../../services/srsEngine';
+import { buildLectureCards } from '../../utils/lectureDeck';
 import { useCoachChatStore } from '../../store/coachChatStore';
 import {
   buildLectureNotesMarkdown,
@@ -98,7 +100,11 @@ export const LectureStudioWorkspace: React.FC<LectureStudioWorkspaceProps> = ({
     isProcessing ? 'workspace' : 'setup'
   );
   const [savedNotesNotice, setSavedNotesNotice] = useState(false);
-  const [savedDeckNotice, setSavedDeckNotice] = useState(false);
+  const [deckNotice, setDeckNotice] = useState<{
+    lectureId: string;
+    result: 'added' | 'exists' | 'failed' | 'empty';
+    count: number;
+  } | null>(null);
   const [cacheStats, setCacheStats] = useState<{ entryCount: number; approxMb: number } | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -197,7 +203,7 @@ export const LectureStudioWorkspace: React.FC<LectureStudioWorkspaceProps> = ({
     if (!file || !isSupportedLectureMediaFile(file)) return;
     setSelectedFile(file);
     setSavedNotesNotice(false);
-    setSavedDeckNotice(false);
+    setDeckNotice(null);
     if (!titleInput.trim()) {
       setTitleInput(file.name.replace(/\.[^.]+$/, ''));
     }
@@ -208,7 +214,7 @@ export const LectureStudioWorkspace: React.FC<LectureStudioWorkspaceProps> = ({
   const handleStart = async () => {
     if (!selectedFile || isProcessing) return;
     setSavedNotesNotice(false);
-    setSavedDeckNotice(false);
+    setDeckNotice(null);
     setActiveSubTab('transcript');
     await startLectureFile({
       file: selectedFile,
@@ -247,48 +253,49 @@ export const LectureStudioWorkspace: React.FC<LectureStudioWorkspaceProps> = ({
 
   const handleGenerateFlashcards = async () => {
     if (!activeLecture) return;
-    const rawCards =
-      parsedFlashcards.length > 0
-        ? parsedFlashcards
-        : activeSegments
-            .flatMap((s) => s.chunkBullets || [])
-            .slice(0, 8)
-            .map((b, idx) => ({
-              front: `${activeLecture.title} — Key Point ${idx + 1}`,
-              back: b,
-            }));
-
-    if (rawCards.length === 0) return;
+    const rawCards = buildLectureCards(
+      { flashcards: parsedFlashcards, vocabulary: parsedVocabulary, segments: activeSegments },
+      {
+        keyPoint: (num) => t('lecture_card_keypoint', { title: activeLecture.title, num }),
+        atTime: (time) => t('lecture_card_segment', { title: activeLecture.title, time }),
+      },
+    );
+    if (rawCards.length === 0) {
+      setDeckNotice({ lectureId: activeLecture.id, result: 'empty', count: 0 });
+      return;
+    }
 
     const todayIso = new Date().toISOString().split('T')[0];
-    const nowStr = formatDate(new Date());
-    const deckId = `deck-lec-${Date.now()}`;
-    const cards: SRSCard[] = rawCards.map((c, idx) => ({
+    // One deck per lecture, so clicking twice never duplicates it or resets review progress.
+    const deckId = `deck-lec-${activeLecture.id}`;
+    const cards: (SRSCard & { mastered: boolean })[] = rawCards.map((c, idx) => ({
       id: `card-${deckId}-${idx}`,
       front: c.front,
       back: c.back,
       tags: activeLecture.subject ? [activeLecture.subject, 'lecture'] : ['lecture'],
+      mastered: false,
       repetitions: 0,
       interval: 0,
       easeFactor: 2.5,
       dueDate: todayIso,
     }));
 
-    const newDeck: SRSDeck = {
+    const newDeck: CardDeck = {
       id: deckId,
       title: activeLecture.title,
       subject: activeLecture.subject || t('dochub_subject_general'),
       cards,
-      createdAt: nowStr,
-      updatedAt: nowStr,
+      createdAt: formatDate(new Date()),
     };
 
-    const existingDecks = loadSRSDecks();
-    saveSRSDecks([newDeck, ...existingDecks]);
-    await db.srsCards
-      .bulkPut(cards.map((c) => ({ ...c, deckId })))
-      .catch(() => {});
-    setSavedDeckNotice(true);
+    const result = addFlashcardDeck(newDeck);
+    if (result !== 'failed') focusFlashcardDeck(deckId);
+    if (result === 'added') {
+      await db.srsCards
+        .bulkPut(cards.map((c) => ({ ...c, deckId })))
+        .catch(() => {});
+    }
+    setDeckNotice({ lectureId: activeLecture.id, result, count: cards.length });
   };
 
   const handleExportMd = () => {
@@ -1212,11 +1219,26 @@ export const LectureStudioWorkspace: React.FC<LectureStudioWorkspaceProps> = ({
                       )}
                     </span>
                   )}
-                  {savedDeckNotice && (
-                    <span className="inline-flex items-center gap-1 font-semibold text-[var(--status-ok-text)]">
-                      <Check className="w-3.5 h-3.5" />
-                      <span>{t('lecture_saved_deck')}</span>
-                      {onOpenFlashcards && (
+                  {deckNotice && deckNotice.lectureId === activeLecture?.id && (
+                    <span
+                      role="status"
+                      className={`inline-flex items-center gap-1 font-semibold ${
+                        deckNotice.result === 'added' || deckNotice.result === 'exists'
+                          ? 'text-[var(--status-ok-text)]'
+                          : 'text-[var(--status-err-text)]'
+                      }`}
+                    >
+                      {(deckNotice.result === 'added' || deckNotice.result === 'exists') && <Check className="w-3.5 h-3.5" />}
+                      <span>
+                        {deckNotice.result === 'added'
+                          ? t('lecture_deck_saved', { count: deckNotice.count })
+                          : deckNotice.result === 'exists'
+                            ? t('lecture_deck_exists')
+                            : deckNotice.result === 'empty'
+                              ? t('lecture_deck_empty')
+                              : t('lecture_deck_failed')}
+                      </span>
+                      {onOpenFlashcards && (deckNotice.result === 'added' || deckNotice.result === 'exists') && (
                         <button
                           type="button"
                           onClick={onOpenFlashcards}

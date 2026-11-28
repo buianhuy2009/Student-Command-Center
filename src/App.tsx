@@ -76,7 +76,8 @@ const AiAcademicSuiteModal = lazyRetry(() => import('./components/AiAcademicSuit
 const GoogleSyncHubModal = lazyRetry(() => import('./components/GoogleSyncHubModal').then(m => ({ default: m.GoogleSyncHubModal })));
 import { ToastContainer } from './components/Toast';
 import { AppTab, AgentAction } from './types';
-import { loadSRSDecks, saveSRSDecks, createNewSRSCard, SRSDeck } from './services/srsEngine';
+import { createNewSRSCard } from './services/srsEngine';
+import { addFlashcardDeck, focusFlashcardDeck, type CardDeck } from './services/flashcardDecks';
 import { usePomodoroStore, recordStreakDate } from './stores/pomodoroStore';
 import { trackEvent } from './services/analytics';
 import { db } from './services/db';
@@ -138,6 +139,7 @@ const deleteAssignmentInSheetFn = (
   | ((token: string, spreadsheetId: string, rowIndexOrAssignment: number | Assignment) => Promise<void>)
   | undefined;
 import { fetchAllClassroomAssignments, fetchRecentClassroomAnnouncements } from './services/googleClassroom';
+import { loadClassroomDoneIds, saveClassroomDoneIds } from './services/classroomDone';
 import {
   loadCanvasSettings,
   saveCanvasSettings,
@@ -617,6 +619,19 @@ export default function App() {
       return [];
     }
   });
+  // Classroom has no "done" flag of its own here, so the student's ticks are layered on top.
+  const [classroomDoneIds, setClassroomDoneIds] = useState<string[]>(loadClassroomDoneIds);
+  const classroomWithDone = useMemo(() => {
+    const done = new Set(classroomDoneIds);
+    return classroomAssignments.map((a) => ({ ...a, isCompleted: done.has(a.id) }));
+  }, [classroomAssignments, classroomDoneIds]);
+  const handleToggleClassroomDone = useCallback((id: string) => {
+    setClassroomDoneIds((prev) => {
+      const next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
+      saveClassroomDoneIds(next);
+      return next;
+    });
+  }, []);
   const [isLoadingClassroom, setIsLoadingClassroom] = useState(false);
   const [classroomError, setClassroomError] = useState<string | null>(null);
   const [canvasSettings, setCanvasSettings] = useState<CanvasSettings>(loadCanvasSettings());
@@ -1212,19 +1227,17 @@ export default function App() {
       }
 
       case 'createSRSDeck': {
-        const currentDecks = loadSRSDecks();
-        const nowFormatted = formatDate(new Date());
-        const newDeck: SRSDeck = {
+        const newDeck: CardDeck = {
           id: `deck-${Date.now()}`,
           title: action.payload.deckTitle,
           subject: action.payload.subject || t('app_subject_general'),
-          createdAt: nowFormatted,
-          updatedAt: nowFormatted,
+          createdAt: formatDate(new Date()),
           cards: action.payload.cards.map((c) =>
             createNewSRSCard({ front: c.front, back: c.back, tags: c.tags })
           ),
         };
-        saveSRSDecks([newDeck, ...currentDecks]);
+        focusFlashcardDeck(newDeck.id);
+        addFlashcardDeck(newDeck);
         handleTabTransition('flashcards');
         addToast({
           type: 'success',
@@ -1246,15 +1259,12 @@ export default function App() {
 
       // Division A safe previews (student-approved only — never auto-delete/submit/send)
       case 'createStudyFlashcardsPreview': {
-        const currentDecks = loadSRSDecks();
         const count = action.payload.count || 5;
-        const nowFormatted = formatDate(new Date());
-        const newDeck: SRSDeck = {
+        const newDeck: CardDeck = {
           id: `deck-${Date.now()}`,
           title: t('app_preview_deck_title', { topic: action.payload.topic }),
           subject: t('app_subject_general'),
-          createdAt: nowFormatted,
-          updatedAt: nowFormatted,
+          createdAt: formatDate(new Date()),
           cards: Array.from({ length: Math.min(8, Math.max(3, count)) }).map((_, i) =>
             createNewSRSCard({
               front: t('app_preview_card_front', { topic: action.payload.topic, num: i + 1 }),
@@ -1263,7 +1273,8 @@ export default function App() {
             })
           ),
         };
-        saveSRSDecks([newDeck, ...currentDecks]);
+        focusFlashcardDeck(newDeck.id);
+        addFlashcardDeck(newDeck);
         handleTabTransition('flashcards');
         addToast({
           type: 'success',
@@ -1361,7 +1372,8 @@ export default function App() {
             senderEmail: 'rvance@school.edu',
             subject: 'Office Hours & Unit 4 Quiz Prep',
             snippet: 'Hi students, I will be holding extra office hours tomorrow at 3:30 PM for anyone needing help before Friday quiz.',
-            date: new Date().toISOString(),
+            date: new Date(Date.now() - 35 * 60_000).toISOString(),
+            dateISO: new Date(Date.now() - 35 * 60_000).toISOString(),
             unread: true,
           },
         },
@@ -1382,7 +1394,8 @@ export default function App() {
             senderEmail: 'dmiller@school.edu',
             subject: 'DBQ Rubric & Primary Source Packet',
             snippet: 'Please review the attached rubric for the New Deal DBQ. Be sure to cite at least 4 documents.',
-            date: new Date().toISOString(),
+            date: new Date(Date.now() - 3 * 3_600_000).toISOString(),
+            dateISO: new Date(Date.now() - 3 * 3_600_000).toISOString(),
             unread: false,
           },
         },
@@ -1404,7 +1417,8 @@ export default function App() {
             senderEmail: 'promo@shopee.vn',
             subject: 'Super Flash Sale 50% Off Back to School',
             snippet: 'Claim your 50% voucher today only! Click to view discounts on stationery and backpacks.',
-            date: new Date().toISOString(),
+            date: new Date(Date.now() - 27 * 3_600_000).toISOString(),
+            dateISO: new Date(Date.now() - 27 * 3_600_000).toISOString(),
             unread: false,
           },
         },
@@ -1426,7 +1440,8 @@ export default function App() {
             senderEmail: 'no-reply@spotify.com',
             subject: 'Your Weekly Student Playlist is Ready',
             snippet: 'Check out new study focus tracks curated for university students this week.',
-            date: new Date().toISOString(),
+            date: new Date(Date.now() - 3 * 86_400_000).toISOString(),
+            dateISO: new Date(Date.now() - 3 * 86_400_000).toISOString(),
             unread: false,
           },
         },
@@ -1440,6 +1455,9 @@ export default function App() {
           webViewLink: 'https://docs.google.com',
           modifiedTime: new Date(Date.now() - 3600000 * 2).toISOString(),
           size: '24 KB',
+          ownerName: 'Guest Student',
+          ownedByMe: true,
+          createdTime: new Date(Date.now() - 86400000 * 6).toISOString(),
         },
         {
           id: 'demo-file-2',
@@ -1448,6 +1466,8 @@ export default function App() {
           webViewLink: 'https://sheets.google.com',
           modifiedTime: new Date(Date.now() - 3600000 * 5).toISOString(),
           size: '48 KB',
+          ownerName: 'Dr. Rebecca Vance',
+          sharedWithMeTime: new Date(Date.now() - 86400000 * 4).toISOString(),
         },
         {
           id: 'demo-file-3',
@@ -1456,6 +1476,9 @@ export default function App() {
           webViewLink: 'https://slides.google.com',
           modifiedTime: new Date(Date.now() - 86400000 * 1).toISOString(),
           size: '3.2 MB',
+          ownerName: 'Guest Student',
+          ownedByMe: true,
+          createdTime: new Date(Date.now() - 86400000 * 9).toISOString(),
         },
         {
           id: 'demo-file-4',
@@ -1464,6 +1487,8 @@ export default function App() {
           webViewLink: 'https://drive.google.com',
           modifiedTime: new Date(Date.now() - 86400000 * 2).toISOString(),
           size: '1.5 MB',
+          ownerName: 'Mr. David Miller',
+          sharedWithMeTime: new Date(Date.now() - 86400000 * 12).toISOString(),
         },
       ]);
 
@@ -3873,7 +3898,7 @@ export default function App() {
                     onAddStudyBlock={handleScheduleStudyBlock}
                     {...({
                       initialMode: radarInitialMode,
-                      classroomAssignments,
+                      classroomAssignments: classroomWithDone,
                       emailAlerts: allAlerts,
                     } as Record<string, any>)}
                   />
@@ -3957,7 +3982,9 @@ export default function App() {
                     isGoogleConnected={hasClassroomAccess}
                     onConnectGoogle={() => promptConnectFeature('classroom', () => loadClassroomData(false))}
                     onSyncToSheet={handleSyncCanvasToSheet}
-                    classroomAssignments={classroomAssignments}
+                    classroomAssignments={classroomWithDone}
+                    doneIds={classroomDoneIds}
+                    onToggleDone={handleToggleClassroomDone}
                     isLoading={isLoadingClassroom}
                     errorMessage={classroomError}
                     classroomApiInfo={classroomApiInfo}
@@ -4063,7 +4090,7 @@ export default function App() {
                       emailAlerts={allAlerts}
                       isLoadingEvents={isLoadingEvents}
                       canvasCount={canvasAssignments.filter((c) => !c.isCompleted).length}
-                      classroomCount={hasClassroomAccess ? classroomAssignments.filter((c) => !c.isCompleted).length : 0}
+                      classroomCount={hasClassroomAccess ? classroomWithDone.filter((c) => !c.isCompleted).length : 0}
                     />
                     {layoutMode === 'classic' && (
                     <OnboardingChecklist

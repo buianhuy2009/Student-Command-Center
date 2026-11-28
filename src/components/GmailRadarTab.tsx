@@ -36,6 +36,7 @@ import {
   googleFetch,
 } from '../services/googleAuth';
 import { auth } from '../services/firebase';
+import { findEmailForAlert, formatEmailReceived } from '../utils/emailTime';
 
 function formatShortDueDate(
   iso: string,
@@ -98,6 +99,7 @@ const DEMO_SAMPLE_ALERTS: EmailAlert[] = [
       senderEmail: 'thayminh.hoa@school.edu.vn',
       subject: '[Hoá 9] Báo cáo thí nghiệm phản ứng oxi hoá - khử',
       date: 'Hôm nay',
+      dateISO: new Date(Date.now() - 40 * 60_000).toISOString(),
       snippet: 'Các em hoàn thành báo cáo và nộp lại vào thứ 6 tuần tới (27/11) trước 20h nhé.',
       body: 'Chào cả lớp,\n\nSau buổi thực hành sáng nay, các em hoàn thành báo cáo và nộp lại vào thứ 6 tuần tới (27/11) trước 20h nhé.\nLưu ý ghi rõ phương trình phản ứng và nhận xét hiện tượng.\n\nThầy Minh',
       unread: true,
@@ -130,6 +132,7 @@ const DEMO_SAMPLE_ALERTS: EmailAlert[] = [
       senderEmail: 'cohuong.van@gmail.com',
       subject: 'Bài viết phân tích đoạn trích Truyện Kiều',
       date: 'Hôm qua',
+      dateISO: new Date(Date.now() - 26 * 3_600_000).toISOString(),
       snippet: 'Các em chuẩn bị dàn ý bài viết ở nhà, tiết sau cô sẽ báo lịch thu bài.',
       body: 'Các em thân mến,\n\nCác em chuẩn bị dàn ý bài viết ở nhà, tiết sau cô sẽ báo lịch thu bài.\nKhông cần nộp bản cứng hôm nay.\n\nCô Hương',
       unread: true,
@@ -153,6 +156,7 @@ const DEMO_SAMPLE_ALERTS: EmailAlert[] = [
       senderEmail: 'thaytuan.ly@school.edu.vn',
       subject: 'Fwd: Đổi lịch kiểm tra 15 phút & bài tập chương Điện học',
       date: '2 giờ trước',
+      dateISO: new Date(Date.now() - 2 * 3_600_000).toISOString(),
       snippet: 'Lịch kiểm tra 15 phút chương Điện học dời sang sáng thứ Năm (26/11), nhớ làm xong bài 1-5 trang 42.',
       body: 'Chào các em,\n\nLịch kiểm tra 15 phút chương Điện học được dời sang sáng thứ Năm (26/11).\nCác em nhớ hoàn thành bài 1-5 trang 42 SBT trước buổi học.\n\nThầy Tuấn',
       unread: true,
@@ -664,7 +668,7 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
 
   const activeRawEmail = useMemo(() => {
     if (!activeAlert) return null;
-    return rawEmails.find((e) => e.id === activeAlert.id || e.subject === activeAlert.subject) || activeAlert.rawEmail || null;
+    return findEmailForAlert(activeAlert, rawEmails) || rawEmails.find((e) => e.subject === activeAlert.subject) || null;
   }, [activeAlert, rawEmails]);
 
   const syncFreshnessText = useMemo(() => {
@@ -674,11 +678,11 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
     if (effectiveAlerts.length > 0 && (!showConnected || emailsAreCachedOnly)) {
       const dateStr = emailsLastSyncedAt
         ? formatDate(emailsLastSyncedAt)
-        : activeRawEmail?.date || 'saved';
+        : formatEmailReceived(activeRawEmail, 'list', formatDate, formatTime) || 'saved';
       return t('gmail_cached_notice', { date: dateStr });
     }
     return null;
-  }, [emailsLastSyncedAt, emailsAreCachedOnly, effectiveAlerts.length, showConnected, activeRawEmail?.date, formatDate, formatTime, t]);
+  }, [emailsLastSyncedAt, emailsAreCachedOnly, effectiveAlerts.length, showConnected, activeRawEmail, formatDate, formatTime, t]);
 
   const loadingBannerText =
     emailLoadStage === 'analyzing'
@@ -1001,13 +1005,7 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
                         {alert.sender}
                       </span>
                       <span className="text-[10px] text-[var(--text-muted)] shrink-0 tabular-nums">
-                        {alert.detectedAssignment?.isAssignment
-                          ? alert.detectedAssignment.dueDate
-                            ? alert.dueStatus === 'confirmed'
-                              ? t('gmail_due_confirmed', { date: formatShortDueDate(alert.detectedAssignment.dueDate, formatDate) })
-                              : t('gmail_due_unconfirmed', { date: formatShortDueDate(alert.detectedAssignment.dueDate, formatDate) })
-                            : t('gmail_no_due')
-                          : t('gmail_recent')}
+                        {formatEmailReceived(findEmailForAlert(alert, rawEmails), 'list', formatDate, formatTime)}
                       </span>
                     </div>
 
@@ -1022,6 +1020,15 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
                       <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-[var(--bg-subtle)] text-[var(--text-secondary)]">
                         {alert.aiStatus === 'skipped' ? t('gmail_ai_not_read') : alert.aiStatus === 'failed' ? t('gmail_ai_error') : categoryDisplayName(alert.category, t)}
                       </span>
+                      {alert.detectedAssignment?.isAssignment && (
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-[var(--accent-soft)] text-[var(--accent-text)] tabular-nums">
+                          {alert.detectedAssignment.dueDate
+                            ? alert.dueStatus === 'confirmed'
+                              ? t('gmail_due_confirmed', { date: formatShortDueDate(alert.detectedAssignment.dueDate, formatDate) })
+                              : t('gmail_due_unconfirmed', { date: formatShortDueDate(alert.detectedAssignment.dueDate, formatDate) })
+                            : t('gmail_no_due')}
+                        </span>
+                      )}
                       {alert.manuallyEdited && (
                         <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-[var(--status-ok-bg)] text-[var(--status-ok-text)]">
                           {t('gmail_edited_badge')}
@@ -1070,7 +1077,7 @@ export const GmailRadarTab: React.FC<GmailRadarTabProps> = ({
                   <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--text-muted)]">
                     <span>{t('gmail_from')} <strong className="text-[var(--text-primary)]">{activeAlert.sender}</strong></span>
                     <span>•</span>
-                    <span>{activeRawEmail?.date || t('gmail_recent')}</span>
+                    <span>{formatEmailReceived(activeRawEmail, 'full', formatDate, formatTime) || t('gmail_time_unknown')}</span>
                   </div>
                 </div>
 

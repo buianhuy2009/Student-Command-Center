@@ -18,28 +18,19 @@ import {
 } from 'lucide-react';
 import { calculateSM2, ReviewQuality, SRSCard } from '../services/srsEngine';
 import { useT } from '../services/i18n';
+import {
+  FLASHCARD_DECKS_EVENT,
+  clearFocusedDeckId,
+  loadFlashcardDecks,
+  peekFocusedDeckId,
+  saveFlashcardDecks as saveDecks,
+  type CardDeck,
+  type Flashcard,
+} from '../services/flashcardDecks';
+import { FlashcardCountField, MAX_GENERATED_CARDS, parseCardCount } from './FlashcardCountField';
 
-export interface Flashcard {
-  id: string;
-  front: string;
-  back: string;
-  mastered?: boolean;
-  repetitions?: number;
-  interval?: number;
-  easeFactor?: number;
-  dueDate?: string;
-  history?: SRSCard['history'];
-}
+export type { Flashcard, CardDeck };
 
-export interface CardDeck {
-  id: string;
-  title: string;
-  subject: string;
-  cards: Flashcard[];
-  createdAt: string;
-}
-
-const LOCAL_DECKS_KEY = 'scc_flashcard_decks_v1';
 const LOCAL_GEN_COUNT_KEY = 'scc_flashcard_gencount_v1';
 const LOCAL_SESSION_LIMIT_KEY = 'scc_flashcard_session_limit_v1';
 
@@ -47,8 +38,8 @@ function loadGenCount(): number {
   try {
     const raw = localStorage.getItem(LOCAL_GEN_COUNT_KEY);
     if (raw !== null) {
-      const n = Math.floor(Number(raw));
-      if (Number.isFinite(n) && n >= 1 && n <= 50) return n;
+      const n = parseCardCount(raw);
+      if (n !== null) return n;
     }
   } catch (e) {
     console.error('Error loading flashcard gen count:', e);
@@ -68,37 +59,41 @@ function loadSessionLimit(): number | 'all' {
   return 'all';
 }
 
-function loadSavedDecks(): CardDeck[] {
-  try {
-    const saved = localStorage.getItem(LOCAL_DECKS_KEY);
-    if (saved) return JSON.parse(saved);
-  } catch (e) {
-    console.error('Error loading card decks:', e);
-  }
-  return [];
-}
-
-function saveDecks(decks: CardDeck[]) {
-  try {
-    localStorage.setItem(LOCAL_DECKS_KEY, JSON.stringify(decks));
-  } catch (e) {
-    console.error('Error saving card decks:', e);
-  }
-}
-
 export const FlashcardStudioTab: React.FC = () => {
   const { t, formatDate } = useT();
-  const [decks, setDecks] = useState<CardDeck[]>(loadSavedDecks);
+  const [decks, setDecks] = useState<CardDeck[]>(loadFlashcardDecks);
   const [activeDeckId, setActiveDeckId] = useState<string | null>(() => {
-    const saved = loadSavedDecks();
+    const saved = loadFlashcardDecks();
+    const focused = peekFocusedDeckId();
+    if (focused && saved.some((deck) => deck.id === focused)) return focused;
     return saved.length > 0 ? saved[0].id : null;
   });
+
+  // Pick up decks created elsewhere (lectures, AI Coach) while this tab is open.
+  useEffect(() => {
+    clearFocusedDeckId();
+    const reload = () => {
+      const next = loadFlashcardDecks();
+      setDecks(next);
+      const focused = peekFocusedDeckId();
+      if (focused && next.some((deck) => deck.id === focused)) {
+        setActiveDeckId(focused);
+        setCurrentCardIndex(0);
+        setIsFlipped(false);
+        clearFocusedDeckId();
+      }
+    };
+    window.addEventListener(FLASHCARD_DECKS_EVENT, reload);
+    return () => window.removeEventListener(FLASHCARD_DECKS_EVENT, reload);
+  }, []);
 
   // Generator State
   const [genTopic, setGenTopic] = useState('');
   const [genSubject, setGenSubject] = useState('');
   const [genNotes, setGenNotes] = useState('');
   const [genCount, setGenCount] = useState<number>(loadGenCount);
+  const [genCountInput, setGenCountInput] = useState<string>(() => String(loadGenCount()));
+  const [genNotice, setGenNotice] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [genError, setGenError] = useState<string | null>(null);
 
@@ -232,8 +227,15 @@ export const FlashcardStudioTab: React.FC = () => {
     e.preventDefault();
     if (!genTopic.trim()) return;
 
+    const requested = parseCardCount(genCountInput);
+    if (requested === null) {
+      setGenError(t('flashcards_count_invalid', { max: MAX_GENERATED_CARDS }));
+      return;
+    }
+
     setIsGenerating(true);
     setGenError(null);
+    setGenNotice(null);
     try {
       const res = await fetch('/api/gemini/assistant', {
         method: 'POST',
@@ -242,7 +244,7 @@ export const FlashcardStudioTab: React.FC = () => {
           messages: [
             {
               role: 'user',
-              content: `Generate ${genCount} high-yield study flashcards for a student on the topic "${genTopic}".
+              content: `Generate exactly ${requested} high-yield study flashcards for a student on the topic "${genTopic}".
 Subject: ${genSubject || 'Academic'}
 Context/Notes: ${genNotes || 'Cover key definitions, equations, theorems, and core concepts'}
 
@@ -276,6 +278,7 @@ Example format:
 
       const parsedCards: Flashcard[] = rawArray
         .filter((item: any) => item && (item.front || item.back))
+        .slice(0, requested)
         .map((item: any, i: number) => ({
           id: `card-${Date.now()}-${i}`,
           front: String(item.front || 'Term'),
@@ -301,6 +304,9 @@ Example format:
       setActiveDeckId(newDeck.id);
       setCurrentCardIndex(0);
       setIsFlipped(false);
+      if (parsedCards.length < requested) {
+        setGenNotice(t('flashcards_gen_fewer', { got: parsedCards.length, want: requested }));
+      }
 
       setGenTopic('');
       setGenSubject('');
@@ -632,21 +638,14 @@ Example format:
                 </div>
               </div>
 
-              <div>
-                <label className="block text-[11px] font-semibold text-[var(--text-secondary)] mb-1">
-                  {t('flashcards_count_label')}
-                </label>
-                <select
-                  value={genCount}
-                  onChange={(e) => setGenCount(Number(e.target.value))}
-                  className="w-full px-3 py-2 text-xs bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--accent-fill)] text-[var(--text-primary)]"
-                >
-                  <option value={5}>{t('flashcards_count_5')}</option>
-                  <option value={8}>{t('flashcards_count_8')}</option>
-                  <option value={12}>{t('flashcards_count_12')}</option>
-                  <option value={15}>{t('flashcards_count_15')}</option>
-                </select>
-              </div>
+              <FlashcardCountField
+                count={genCount}
+                input={genCountInput}
+                onChange={(count, input) => {
+                  setGenCount(count);
+                  setGenCountInput(input);
+                }}
+              />
 
               <div>
                 <label className="block text-[11px] font-semibold text-[var(--text-secondary)] mb-1">
@@ -666,6 +665,10 @@ Example format:
                   <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
                   <span>{genError}</span>
                 </div>
+              )}
+
+              {genNotice && (
+                <p className="text-[11px] text-[var(--status-warn-text)]" role="status">{genNotice}</p>
               )}
 
               <div className="flex justify-end pt-1">

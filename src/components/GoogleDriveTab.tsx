@@ -30,6 +30,7 @@ import {
 } from '../services/googleWorkspace';
 import { db } from '../services/db';
 import { useT } from '../services/i18n';
+import { getDriveDateAdded } from '../utils/driveMeta';
 
 const EXTERNAL_DRIVE_FILES_KEY = 'scc_external_drive_files_v1';
 const LOCAL_BLOB_KEY_PREFIX = 'local_drive_blob_v1__';
@@ -86,7 +87,7 @@ export const GoogleDriveTab: React.FC<GoogleDriveTabProps> = ({
   driveApiInfo,
   googleToken,
 }) => {
-  const { t } = useT();
+  const { t, formatDate } = useT();
   const [searchQuery, setSearchQuery] = useState('');
   const [fileCategory, setFileCategory] = useState<string>('ALL');
   const [sortOrder, setSortOrder] = useState<string>('DEFAULT');
@@ -125,7 +126,7 @@ export const GoogleDriveTab: React.FC<GoogleDriveTabProps> = ({
       for (const file of Array.from(fileList)) {
         if (isGoogleConnected && googleToken) {
           try {
-            const uploaded = await uploadFileToGoogleDrive(googleToken, file);
+            const uploaded = { ...(await uploadFileToGoogleDrive(googleToken, file)), addedAt: new Date().toISOString() };
             persistExternal((prev) => [uploaded, ...prev.filter((f) => f.id !== uploaded.id)]);
             lastId = uploaded.id;
             setAddFeedback({ type: 'ok', text: t('drive_upload_done', { name: uploaded.name }) });
@@ -154,6 +155,7 @@ export const GoogleDriveTab: React.FC<GoogleDriveTabProps> = ({
           size: String(file.size),
           origin: 'local',
           localDataUrl: dataUrl.length < 300_000 ? dataUrl : undefined,
+          addedAt: new Date().toISOString(),
         };
         persistExternal((prev) => [localEntry, ...prev]);
         lastId = id;
@@ -201,7 +203,7 @@ export const GoogleDriveTab: React.FC<GoogleDriveTabProps> = ({
             webViewLink: parsed.webViewLink,
             origin: 'drive_link',
           };
-      persistExternal((prev) => [entry, ...prev.filter((f) => f.id !== entry.id)]);
+      persistExternal((prev) => [{ ...entry, addedAt: new Date().toISOString() }, ...prev.filter((f) => f.id !== entry.id)]);
       setShowLinkForm(false);
       setLinkUrlInput('');
       setLinkNameInput('');
@@ -224,7 +226,7 @@ export const GoogleDriveTab: React.FC<GoogleDriveTabProps> = ({
         'doc',
         `StudentOS Notes — ${new Date().toLocaleDateString()}`
       );
-      persistExternal((prev) => [created, ...prev.filter((f) => f.id !== created.id)]);
+      persistExternal((prev) => [{ ...created, addedAt: new Date().toISOString() }, ...prev.filter((f) => f.id !== created.id)]);
       setAddFeedback({ type: 'ok', text: t('drive_upload_done', { name: created.name }) });
       onRefreshFiles();
     } catch (err: any) {
@@ -342,6 +344,18 @@ export const GoogleDriveTab: React.FC<GoogleDriveTabProps> = ({
   };
 
   const isExternalAdded = (file: SchoolFile) => externalFiles.some((ef) => ef.id === file.id);
+
+  const describeOwner = (file: SchoolFile): string => {
+    if (file.origin === 'local') return t('drive_owner_device');
+    if (file.ownerName) return file.ownedByMe ? t('drive_owner_you', { name: file.ownerName }) : file.ownerName;
+    if (file.sharedDrive) return t('drive_owner_shared_drive');
+    return t('drive_owner_unknown');
+  };
+
+  const describeDateAdded = (file: SchoolFile): string => {
+    const added = getDriveDateAdded(file);
+    return (added && formatDate(added)) || t('drive_date_unknown');
+  };
 
   return (
     <div
@@ -601,11 +615,12 @@ export const GoogleDriveTab: React.FC<GoogleDriveTabProps> = ({
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0 flex-1">
                       <Icon className={`w-4 h-4 shrink-0 ${fileType.color}`} />
+                      <div className="min-w-0 flex flex-col items-start">
                       {file.origin === 'local' ? (
                         <button
                           type="button"
                           onClick={() => void handleOpenLocalFile(file)}
-                          className="text-xs sm:text-sm font-medium text-[var(--text-primary)] hover:text-[var(--accent-text)] truncate text-left cursor-pointer"
+                          className="max-w-full text-xs sm:text-sm font-medium text-[var(--text-primary)] hover:text-[var(--accent-text)] truncate text-left cursor-pointer"
                         >
                           {file.name}
                         </button>
@@ -614,15 +629,20 @@ export const GoogleDriveTab: React.FC<GoogleDriveTabProps> = ({
                           href={file.webViewLink}
                           target="_blank"
                           rel="noreferrer"
-                          className="text-xs sm:text-sm font-medium text-[var(--text-primary)] hover:text-[var(--accent-text)] truncate"
+                          className="max-w-full text-xs sm:text-sm font-medium text-[var(--text-primary)] hover:text-[var(--accent-text)] truncate"
                         >
                           {file.name}
                         </a>
                       ) : (
-                        <span className="text-xs sm:text-sm font-medium text-[var(--text-primary)] truncate">
+                        <span className="max-w-full text-xs sm:text-sm font-medium text-[var(--text-primary)] truncate">
                           {file.name}
                         </span>
                       )}
+                        <div className="max-w-full text-[11px] text-[var(--text-muted)] flex flex-wrap gap-x-3">
+                          <span className="truncate">{t('drive_owner_label', { owner: describeOwner(file) })}</span>
+                          <span>{t('drive_added_label', { date: describeDateAdded(file) })}</span>
+                        </div>
+                      </div>
                     </div>
 
                     <div className="flex items-center gap-1.5 shrink-0">

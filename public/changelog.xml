@@ -6,6 +6,12 @@
     <description>Plain-English updates to StudentOS — what changed and why it matters for studying.</description>
     <language>en-us</language>
     <item>
+      <title>v3.6.7 — Search Fixes, Classroom Done List, Chat History &amp; Live PhET Catalog</title>
+      <link>https://sutdent-command-center.vercel.app/?changelog=3.6.7</link>
+      <pubDate>Sat, 28 Nov 2026 03:39:02 GMT</pubDate>
+      <description>StudentOS v3.6.7 repairs arXiv and Open Library search, adds search and Unfinished, Done and All tabs to Google Classroom, shows Drive owners and email receive times, keeps AI Coach chat history, loads the live PhET catalog, accepts a custom flashcard count, makes Lecture flashcards appear in Flashcards, and brings back key links and Test Connection under Connections.</description>
+    </item>
+    <item>
       <title>v3.6.6 — Transparent Test Methodology &amp; Exact Per-Case FAIL Reasons (/minh-chung)</title>
       <link>https://sutdent-command-center.vercel.app/?changelog=3.6.6</link>
       <pubDate>Sat, 28 Nov 2026 03:36:00 GMT</pubDate>

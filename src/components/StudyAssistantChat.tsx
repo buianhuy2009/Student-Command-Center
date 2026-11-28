@@ -5,7 +5,8 @@ import {
   Send,
   RefreshCw,
   Bot,
-  Trash2,
+  History,
+  MessageSquarePlus,
   ArrowLeft,
   ChevronDown,
   Check,
@@ -22,6 +23,7 @@ import {
   AiCoachMode,
 } from '../services/gemini';
 import { useCoachChatStore, type CoachImageAttachment } from '../store/coachChatStore';
+import { CoachHistoryPanel } from './CoachHistoryPanel';
 import { Assignment, CalendarEvent, EmailAlert } from '../types';
 import { useT } from '../services/i18n';
 
@@ -102,6 +104,11 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
   } = useCoachChatStore();
 
   const [inputText, setInputText] = useState('');
+  const [showHistory, setShowHistory] = useState(false);
+  // On a phone the list covers the chat, so close it once a chat is picked.
+  const hideHistoryOnNarrow = () => {
+    if (window.matchMedia?.('(max-width: 767px)')?.matches) setShowHistory(false);
+  };
   const [pendingImages, setPendingImages] = useState<CoachImageAttachment[]>([]);
   const [elapsedSec, setElapsedSec] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -390,6 +397,9 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
     const text = textToSend ?? inputText;
     const imgs = textToSend ? [] : pendingImages;
     if ((!text.trim() && imgs.length === 0) || isSending) return;
+    // The reply has to be visible, so get the list out of the way where it covers the chat.
+    if (isFullScreen) hideHistoryOnNarrow();
+    else setShowHistory(false);
     if (!textToSend) {
       setInputText('');
       setPendingImages([]);
@@ -457,16 +467,37 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
 
             <button
               type="button"
-              onClick={() => clearMessages('full')}
-              className="px-2.5 py-1.5 text-xs font-semibold text-[var(--text-secondary)] hover:text-rose-600 dark:hover:text-rose-400 rounded-xl hover:bg-[var(--bg-hover)] transition-colors cursor-pointer flex items-center gap-1.5"
-              title={t('coach_clear_title')}
-              aria-label={t('coach_clear_title')}
+              onClick={() => setShowHistory((open) => !open)}
+              aria-expanded={showHistory}
+              className="px-2.5 py-1.5 text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded-xl hover:bg-[var(--bg-hover)] transition-colors cursor-pointer flex items-center gap-1.5"
+              title={t('coach_history_title')}
+              aria-label={t('coach_history_title')}
             >
-              <Trash2 className="w-3.5 h-3.5" />
+              <History className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">{t('coach_history_title')}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => clearMessages()}
+              disabled={isSending}
+              className="px-2.5 py-1.5 text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--accent-text)] rounded-xl hover:bg-[var(--bg-hover)] transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-40"
+              title={t('coach_new_chat')}
+              aria-label={t('coach_new_chat')}
+            >
+              <MessageSquarePlus className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">{t('coach_new_chat')}</span>
             </button>
           </div>
         </header>
+
+        <div className="flex-1 min-h-0 flex relative">
+        {showHistory && (
+          <aside className="absolute md:static inset-y-0 left-0 z-30 w-72 max-w-[85%] shrink-0 border-r border-[var(--border-hairline)] shadow-xl md:shadow-none">
+            <CoachHistoryPanel onClose={() => setShowHistory(false)} onPick={hideHistoryOnNarrow} />
+          </aside>
+        )}
+        <div className="flex-1 min-w-0 min-h-0 flex flex-col">
 
         {/* Full-width Scrollable Chat Stream (no cramped narrow gutters) */}
         <div className="flex-1 overflow-y-auto px-4 sm:px-8 lg:px-12 py-6">
@@ -709,6 +740,8 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
             </div>
           </div>
         </div>
+        </div>
+        </div>
       </div>
     );
   }
@@ -743,12 +776,23 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
         <div className="flex items-center gap-1">
           <button
             type="button"
-            onClick={() => clearMessages('drawer')}
-            className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-rose-500 hover:bg-[var(--bg-hover)] cursor-pointer"
-            title={t('coach_clear_title')}
-            aria-label={t('coach_clear_title')}
+            onClick={() => setShowHistory((open) => !open)}
+            aria-expanded={showHistory}
+            className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] cursor-pointer"
+            title={t('coach_history_title')}
+            aria-label={t('coach_history_title')}
           >
-            <Trash2 className="w-3.5 h-3.5" />
+            <History className="w-3.5 h-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => clearMessages()}
+            disabled={isSending}
+            className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--accent-text)] hover:bg-[var(--bg-hover)] cursor-pointer disabled:opacity-40"
+            title={t('coach_new_chat')}
+            aria-label={t('coach_new_chat')}
+          >
+            <MessageSquarePlus className="w-3.5 h-3.5" />
           </button>
           <button
             type="button"
@@ -762,7 +806,13 @@ export const StudyAssistantChat: React.FC<StudyAssistantChatProps> = ({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-3.5 space-y-3 text-xs">
+      {showHistory && (
+        <div className="flex-1 min-h-0">
+          <CoachHistoryPanel onClose={() => setShowHistory(false)} onPick={() => setShowHistory(false)} />
+        </div>
+      )}
+
+      <div className={`flex-1 overflow-y-auto p-3.5 space-y-3 text-xs ${showHistory ? 'hidden' : ''}`}>
         {messages.map((msg, idx) => (
           <div
             key={idx}

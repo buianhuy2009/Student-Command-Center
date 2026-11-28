@@ -65,6 +65,7 @@ import {
 import { loadCanvasSettings, saveCanvasSettings } from '../services/canvas';
 import type { GoogleFeature } from '../services/googleAuth';
 import { GoogleToolConnections } from './GoogleToolConnections';
+import { AiKeyConnection } from './AiKeyConnection';
 import { getLayoutMode, setLayoutMode, type LayoutMode } from '../services/layoutMode';
 import { useT } from '../services/i18n';
 import { LanguageToggle } from './LanguageToggle';
@@ -805,45 +806,49 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                       {t('ai_key_gemini_name')} {geminiKey ? maskApiKey(geminiKey) : '—'} • {t('ai_key_groq_name')} {groqKey ? maskApiKey(groqKey) : '—'}
                     </span>
                   </div>
-                  <div className="grid sm:grid-cols-2 gap-2">
-                    <div className="relative">
-                      <Key className="w-4 h-4 text-[var(--text-muted)] absolute left-3 top-1/2 -translate-y-1/2" />
-                      <input
-                        type={showGeminiKey ? 'text' : 'password'}
-                        value={geminiKey}
-                        onChange={(e) => setGeminiKey(e.target.value)}
-                        placeholder={t('settings_aria_gemini_key')}
-                        aria-label={t('settings_aria_gemini_key')}
-                        className="w-full pl-9 pr-10 py-2 text-xs font-mono bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--accent-fill)] text-[var(--text-primary)]"
-                      />
-                      <button
-                        type="button"
-                        aria-label={showGeminiKey ? t('ai_key_hide') : t('ai_key_show')}
-                        onClick={() => setShowGeminiKey(!showGeminiKey)}
-                        className="p-1.5 text-[var(--text-muted)] hover:text-[var(--text-primary)] absolute right-2.5 top-1/2 -translate-y-1/2"
-                      >
-                        {showGeminiKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                      </button>
-                    </div>
-                    <div className="relative">
-                      <Key className="w-4 h-4 text-[var(--text-muted)] absolute left-3 top-1/2 -translate-y-1/2" />
-                      <input
-                        type={showGroqKey ? 'text' : 'password'}
-                        value={groqKey}
-                        onChange={(e) => setGroqKey(e.target.value)}
-                        placeholder={t('settings_aria_groq_key')}
-                        aria-label={t('settings_aria_groq_key')}
-                        className="w-full pl-9 pr-10 py-2 text-xs font-mono bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--accent-fill)] text-[var(--text-primary)]"
-                      />
-                      <button
-                        type="button"
-                        aria-label={showGroqKey ? t('ai_key_hide') : t('ai_key_show')}
-                        onClick={() => setShowGroqKey(!showGroqKey)}
-                        className="p-1.5 text-[var(--text-muted)] hover:text-[var(--text-primary)] absolute right-2.5 top-1/2 -translate-y-1/2"
-                      >
-                        {showGroqKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                      </button>
-                    </div>
+                  <div className="grid sm:grid-cols-2 gap-2 items-start">
+                    <AiKeyConnection provider="gemini" value={geminiKey}>
+                      <div className="relative">
+                        <Key className="w-4 h-4 text-[var(--text-muted)] absolute left-3 top-1/2 -translate-y-1/2" />
+                        <input
+                          type={showGeminiKey ? 'text' : 'password'}
+                          value={geminiKey}
+                          onChange={(e) => setGeminiKey(e.target.value)}
+                          placeholder={t('settings_aria_gemini_key')}
+                          aria-label={t('settings_aria_gemini_key')}
+                          className="w-full pl-9 pr-10 py-2 text-xs font-mono bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--accent-fill)] text-[var(--text-primary)]"
+                        />
+                        <button
+                          type="button"
+                          aria-label={showGeminiKey ? t('ai_key_hide') : t('ai_key_show')}
+                          onClick={() => setShowGeminiKey(!showGeminiKey)}
+                          className="p-1.5 text-[var(--text-muted)] hover:text-[var(--text-primary)] absolute right-2.5 top-1/2 -translate-y-1/2"
+                        >
+                          {showGeminiKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                        </button>
+                      </div>
+                    </AiKeyConnection>
+                    <AiKeyConnection provider="groq" value={groqKey}>
+                      <div className="relative">
+                        <Key className="w-4 h-4 text-[var(--text-muted)] absolute left-3 top-1/2 -translate-y-1/2" />
+                        <input
+                          type={showGroqKey ? 'text' : 'password'}
+                          value={groqKey}
+                          onChange={(e) => setGroqKey(e.target.value)}
+                          placeholder={t('settings_aria_groq_key')}
+                          aria-label={t('settings_aria_groq_key')}
+                          className="w-full pl-9 pr-10 py-2 text-xs font-mono bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--accent-fill)] text-[var(--text-primary)]"
+                        />
+                        <button
+                          type="button"
+                          aria-label={showGroqKey ? t('ai_key_hide') : t('ai_key_show')}
+                          onClick={() => setShowGroqKey(!showGroqKey)}
+                          className="p-1.5 text-[var(--text-muted)] hover:text-[var(--text-primary)] absolute right-2.5 top-1/2 -translate-y-1/2"
+                        >
+                          {showGroqKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                        </button>
+                      </div>
+                    </AiKeyConnection>
                   </div>
                   <div className="grid sm:grid-cols-2 gap-2">
                     <label className="flex items-center gap-1.5 text-[11px] text-[var(--text-muted)]">

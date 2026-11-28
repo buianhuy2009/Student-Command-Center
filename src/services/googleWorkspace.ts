@@ -8,6 +8,7 @@ import {
 } from '../types';
 import { extractPlainBody } from '../utils/emailText';
 import { decodeTrustNotes, encodeTrustNotes } from '../utils/trust';
+import { DRIVE_FILE_FIELDS, readDriveOwnerFields } from '../utils/driveMeta';
 import { auth, getActiveGoogleUid } from './firebase';
 import { formatDate, t } from './i18n';
 
@@ -463,7 +464,7 @@ export async function fetchAcademicEmails(
             sender: fromHeader ? fromHeader.value.replace(/<.*>/, '').replace(/"/g, '').trim() : t('gw_gmail_instructor'),
             senderEmail: fromHeader ? (fromHeader.value.match(/<([^>]+)>/)?.[1] || fromHeader.value) : '',
             subject: subjectHeader ? subjectHeader.value : t('gw_gmail_no_subject'),
-            date: dateHeader ? formatDate(dateHeader.value) : t('gw_gmail_recent'),
+            date: Number.isFinite(sentMs) ? formatDate(sentMs) : '',
             dateISO: Number.isFinite(sentMs) ? new Date(sentMs).toISOString() : undefined,
             snippet: bodySnippet,
             body: body || undefined,
@@ -1145,7 +1146,7 @@ export async function fetchRecentSchoolFiles(
     const query = `trashed = false and mimeType != 'application/vnd.google-apps.folder'`;
     const primaryUrl = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(
       query
-    )}&orderBy=modifiedTime desc&pageSize=${limit}&fields=files(id,name,mimeType,modifiedTime,webViewLink,iconLink,size)&supportsAllDrives=true&includeItemsFromAllDrives=true`;
+    )}&orderBy=modifiedTime desc&pageSize=${limit}&fields=files(${DRIVE_FILE_FIELDS})&supportsAllDrives=true&includeItemsFromAllDrives=true`;
 
     let res = await fetch(primaryUrl, {
       headers: { Authorization: `Bearer ${token}` },
@@ -1159,7 +1160,7 @@ export async function fetchRecentSchoolFiles(
     if (!res.ok && (res.status === 400 || res.status === 403 || res.status === 404)) {
       const fallbackUrl = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(
         query
-      )}&orderBy=modifiedTime desc&pageSize=${limit}&fields=files(id,name,mimeType,modifiedTime,webViewLink,iconLink,size)`;
+      )}&orderBy=modifiedTime desc&pageSize=${limit}&fields=files(${DRIVE_FILE_FIELDS})`;
       try {
         const fallbackRes = await fetch(fallbackUrl, {
           headers: { Authorization: `Bearer ${token}` },
@@ -1195,6 +1196,7 @@ export async function fetchRecentSchoolFiles(
         webViewLink: webViewLink || `https://drive.google.com`,
         iconLink: f.iconLink,
         size: f.size,
+        ...readDriveOwnerFields(f),
       };
     });
   } catch (error) {
@@ -1411,7 +1413,7 @@ export async function uploadFileToGoogleDrive(
   form.append('file', file);
 
   const res = await fetch(
-    'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,mimeType,modifiedTime,webViewLink,iconLink,size',
+    `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=${DRIVE_FILE_FIELDS}`,
     {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
@@ -1434,6 +1436,7 @@ export async function uploadFileToGoogleDrive(
     iconLink: f.iconLink,
     size: f.size || String(file.size),
     origin: 'drive',
+    ...readDriveOwnerFields(f),
   };
 }
 
@@ -1446,7 +1449,7 @@ export async function fetchDriveFileMetadata(
 ): Promise<SchoolFile | null> {
   try {
     const res = await fetch(
-      `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?fields=id,name,mimeType,modifiedTime,webViewLink,iconLink,size`,
+      `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?fields=${DRIVE_FILE_FIELDS}`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
     if (!res.ok) return null;
@@ -1460,6 +1463,7 @@ export async function fetchDriveFileMetadata(
       iconLink: f.iconLink,
       size: f.size,
       origin: 'drive',
+      ...readDriveOwnerFields(f),
     };
   } catch {
     return null;
@@ -1479,7 +1483,7 @@ export async function createBlankGoogleFile(
       ? 'application/vnd.google-apps.spreadsheet'
       : 'application/vnd.google-apps.document';
   const res = await fetch(
-    'https://www.googleapis.com/drive/v3/files?fields=id,name,mimeType,modifiedTime,webViewLink,iconLink',
+    `https://www.googleapis.com/drive/v3/files?fields=${DRIVE_FILE_FIELDS}`,
     {
       method: 'POST',
       headers: {
@@ -1509,5 +1513,6 @@ export async function createBlankGoogleFile(
     webViewLink: f.webViewLink || fallbackLink,
     iconLink: f.iconLink,
     origin: 'drive',
+    ...readDriveOwnerFields(f),
   };
 }

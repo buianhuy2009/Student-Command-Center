@@ -15,6 +15,9 @@ import handleSummarizeLecture from "./gemini/summarize-lecture.js";
 import handleGoogleExchange from "./auth/google/exchange.js";
 import handleGoogleRefresh from "./auth/google/refresh.js";
 import handleDailyReport from "./reports/daily.js";
+import handleArxivSearch from "./catalog/arxiv.js";
+import handleOpenLibrarySearch from "./catalog/open-library.js";
+import handlePhetCatalog from "./catalog/phet.js";
 
 export const API_ROUTES = new Map([
   ["/health", handleHealth],
@@ -33,6 +36,9 @@ export const API_ROUTES = new Map([
   ["/auth/google/exchange", handleGoogleExchange],
   ["/auth/google/refresh", handleGoogleRefresh],
   ["/reports/daily", handleDailyReport],
+  ["/catalog/arxiv", handleArxivSearch],
+  ["/catalog/open-library", handleOpenLibrarySearch],
+  ["/catalog/phet", handlePhetCatalog],
 ]);
 
 export function resolveApiPath(req) {

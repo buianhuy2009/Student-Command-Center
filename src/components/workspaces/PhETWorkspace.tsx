@@ -1,247 +1,101 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Atom, ExternalLink, Maximize2, Minimize2, ArrowLeft, Search, X } from 'lucide-react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { Atom, ExternalLink, Maximize2, Minimize2, ArrowLeft, Search, X, RefreshCw } from 'lucide-react';
 import { IframeErrorBoundary } from '../IframeErrorBoundary';
-import { useT } from '../../services/i18n';
+import { useT, type TranslationKey } from '../../services/i18n';
+import { PHET_BUILTIN_SIMS, phetBuiltinUrl, type PhetSubject } from '../../data/phetBuiltin';
+import { fetchPhetCatalog, readCachedPhetCatalog, type PhetCatalogSim } from '../../services/phetCatalog';
 
-type PhetSubject = 'Physics' | 'Chemistry' | 'Biology' | 'Math';
 type PhetFilter = 'All' | PhetSubject;
 
-interface PhetSim {
+interface PhetItem {
   id: string;
-  titleKey: string;
-  category: PhetSubject;
-  descKey: string;
+  title: string;
+  englishTitle: string;
+  subjects: PhetSubject[];
+  description: string;
   url: string;
+  thumbnail?: string;
+  isNew: boolean;
 }
 
-const PHET_CATEGORIES: readonly { id: PhetFilter; labelKey: string }[] = [
+const PHET_CATEGORIES: readonly { id: PhetFilter; labelKey: TranslationKey }[] = [
   { id: 'All', labelKey: 'phet_cat_all' },
   { id: 'Physics', labelKey: 'phet_cat_physics' },
   { id: 'Chemistry', labelKey: 'phet_cat_chemistry' },
   { id: 'Biology', labelKey: 'phet_cat_biology' },
   { id: 'Math', labelKey: 'phet_cat_math' },
+  { id: 'Earth', labelKey: 'phet_cat_earth' },
 ] as const;
 
-const CATEGORY_KEY: Record<PhetSubject, string> = {
+const CATEGORY_KEY: Record<PhetSubject, TranslationKey> = {
   Physics: 'phet_cat_physics',
   Chemistry: 'phet_cat_chemistry',
   Biology: 'phet_cat_biology',
   Math: 'phet_cat_math',
+  Earth: 'phet_cat_earth',
 };
 
-const PHET_SIMS: readonly PhetSim[] = [
-  {
-    id: 'phet-projectile',
-    titleKey: 'phet_sim_projectile_t',
-    category: 'Physics',
-    descKey: 'phet_sim_projectile_d',
-    url: 'https://phet.colorado.edu/sims/html/projectile-motion/latest/projectile-motion_en.html',
-  },
-  {
-    id: 'phet-circuit',
-    titleKey: 'phet_sim_circuit_t',
-    category: 'Physics',
-    descKey: 'phet_sim_circuit_d',
-    url: 'https://phet.colorado.edu/sims/html/circuit-construction-kit-dc/latest/circuit-construction-kit-dc_en.html',
-  },
-  {
-    id: 'phet-forces',
-    titleKey: 'phet_sim_forces_t',
-    category: 'Physics',
-    descKey: 'phet_sim_forces_d',
-    url: 'https://phet.colorado.edu/sims/html/forces-and-motion-basics/latest/forces-and-motion-basics_en.html',
-  },
-  {
-    id: 'phet-balancing',
-    titleKey: 'phet_sim_balancing_t',
-    category: 'Chemistry',
-    descKey: 'phet_sim_balancing_d',
-    url: 'https://phet.colorado.edu/sims/html/balancing-chemical-equations/latest/balancing-chemical-equations_en.html',
-  },
-  {
-    id: 'phet-acid-base',
-    titleKey: 'phet_sim_acid_base_t',
-    category: 'Chemistry',
-    descKey: 'phet_sim_acid_base_d',
-    url: 'https://phet.colorado.edu/sims/html/acid-base-solutions/latest/acid-base-solutions_en.html',
-  },
-  {
-    id: 'phet-molecule-shapes',
-    titleKey: 'phet_sim_molecule_shapes_t',
-    category: 'Chemistry',
-    descKey: 'phet_sim_molecule_shapes_d',
-    url: 'https://phet.colorado.edu/sims/html/molecule-shapes/latest/molecule-shapes_en.html',
-  },
-  {
-    id: 'phet-natural-selection',
-    titleKey: 'phet_sim_natural_selection_t',
-    category: 'Biology',
-    descKey: 'phet_sim_natural_selection_d',
-    url: 'https://phet.colorado.edu/sims/html/natural-selection/latest/natural-selection_en.html',
-  },
-  {
-    id: 'phet-gene-expression',
-    titleKey: 'phet_sim_gene_expression_t',
-    category: 'Biology',
-    descKey: 'phet_sim_gene_expression_d',
-    url: 'https://phet.colorado.edu/sims/html/gene-expression-essentials/latest/gene-expression-essentials_en.html',
-  },
-  {
-    id: 'phet-wave-string',
-    titleKey: 'phet_sim_wave_string_t',
-    category: 'Physics',
-    descKey: 'phet_sim_wave_string_d',
-    url: 'https://phet.colorado.edu/sims/html/wave-on-a-string/latest/wave-on-a-string_en.html',
-  },
-  {
-    id: 'phet-ohms-law',
-    titleKey: 'phet_sim_ohms_law_t',
-    category: 'Physics',
-    descKey: 'phet_sim_ohms_law_d',
-    url: 'https://phet.colorado.edu/sims/html/ohms-law/latest/ohms-law_en.html',
-  },
-  {
-    id: 'phet-balloons',
-    titleKey: 'phet_sim_balloons_t',
-    category: 'Physics',
-    descKey: 'phet_sim_balloons_d',
-    url: 'https://phet.colorado.edu/sims/html/balloons-and-static-electricity/latest/balloons-and-static-electricity_en.html',
-  },
-  {
-    id: 'phet-bending-light',
-    titleKey: 'phet_sim_bending_light_t',
-    category: 'Physics',
-    descKey: 'phet_sim_bending_light_d',
-    url: 'https://phet.colorado.edu/sims/html/bending-light/latest/bending-light_en.html',
-  },
-  {
-    id: 'phet-masses-springs',
-    titleKey: 'phet_sim_masses_springs_t',
-    category: 'Physics',
-    descKey: 'phet_sim_masses_springs_d',
-    url: 'https://phet.colorado.edu/sims/html/masses-and-springs/latest/masses-and-springs_en.html',
-  },
-  {
-    id: 'phet-pendulum',
-    titleKey: 'phet_sim_pendulum_t',
-    category: 'Physics',
-    descKey: 'phet_sim_pendulum_d',
-    url: 'https://phet.colorado.edu/sims/html/pendulum-lab/latest/pendulum-lab_en.html',
-  },
-  {
-    id: 'phet-skate-basics',
-    titleKey: 'phet_sim_skate_basics_t',
-    category: 'Physics',
-    descKey: 'phet_sim_skate_basics_d',
-    url: 'https://phet.colorado.edu/sims/html/energy-skate-park-basics/latest/energy-skate-park-basics_en.html',
-  },
-  {
-    id: 'phet-color-vision',
-    titleKey: 'phet_sim_color_vision_t',
-    category: 'Physics',
-    descKey: 'phet_sim_color_vision_d',
-    url: 'https://phet.colorado.edu/sims/html/color-vision/latest/color-vision_en.html',
-  },
-  {
-    id: 'phet-ph-scale',
-    titleKey: 'phet_sim_ph_scale_t',
-    category: 'Chemistry',
-    descKey: 'phet_sim_ph_scale_d',
-    url: 'https://phet.colorado.edu/sims/html/ph-scale/latest/ph-scale_en.html',
-  },
-  {
-    id: 'phet-molarity',
-    titleKey: 'phet_sim_molarity_t',
-    category: 'Chemistry',
-    descKey: 'phet_sim_molarity_d',
-    url: 'https://phet.colorado.edu/sims/html/molarity/latest/molarity_en.html',
-  },
-  {
-    id: 'phet-build-atom',
-    titleKey: 'phet_sim_build_atom_t',
-    category: 'Chemistry',
-    descKey: 'phet_sim_build_atom_d',
-    url: 'https://phet.colorado.edu/sims/html/build-an-atom/latest/build-an-atom_en.html',
-  },
-  {
-    id: 'phet-gas-properties',
-    titleKey: 'phet_sim_gas_properties_t',
-    category: 'Chemistry',
-    descKey: 'phet_sim_gas_properties_d',
-    url: 'https://phet.colorado.edu/sims/html/gas-properties/latest/gas-properties_en.html',
-  },
-  {
-    id: 'phet-concentration',
-    titleKey: 'phet_sim_concentration_t',
-    category: 'Chemistry',
-    descKey: 'phet_sim_concentration_d',
-    url: 'https://phet.colorado.edu/sims/html/concentration/latest/concentration_en.html',
-  },
-  {
-    id: 'phet-beers-law',
-    titleKey: 'phet_sim_beers_law_t',
-    category: 'Chemistry',
-    descKey: 'phet_sim_beers_law_d',
-    url: 'https://phet.colorado.edu/sims/html/beers-law-lab/latest/beers-law-lab_en.html',
-  },
-  {
-    id: 'phet-states-matter-basics',
-    titleKey: 'phet_sim_states_matter_t',
-    category: 'Chemistry',
-    descKey: 'phet_sim_states_matter_d',
-    url: 'https://phet.colorado.edu/sims/html/states-of-matter-basics/latest/states-of-matter-basics_en.html',
-  },
-  {
-    id: 'phet-neuron',
-    titleKey: 'phet_sim_neuron_t',
-    category: 'Biology',
-    descKey: 'phet_sim_neuron_d',
-    url: 'https://phet.colorado.edu/sims/html/neuron/latest/neuron_en.html',
-  },
-  {
-    id: 'phet-membrane-channels',
-    titleKey: 'phet_sim_membrane_t',
-    category: 'Biology',
-    descKey: 'phet_sim_membrane_d',
-    url: 'https://phet.colorado.edu/sims/html/membrane-channels/latest/membrane-channels_en.html',
-  },
-  {
-    id: 'phet-area-builder',
-    titleKey: 'phet_sim_area_builder_t',
-    category: 'Math',
-    descKey: 'phet_sim_area_builder_d',
-    url: 'https://phet.colorado.edu/sims/html/area-builder/latest/area-builder_en.html',
-  },
-  {
-    id: 'phet-fraction-matcher',
-    titleKey: 'phet_sim_fraction_matcher_t',
-    category: 'Math',
-    descKey: 'phet_sim_fraction_matcher_d',
-    url: 'https://phet.colorado.edu/sims/html/fraction-matcher/latest/fraction-matcher_en.html',
-  },
-  {
-    id: 'phet-graphing-lines',
-    titleKey: 'phet_sim_graphing_lines_t',
-    category: 'Math',
-    descKey: 'phet_sim_graphing_lines_d',
-    url: 'https://phet.colorado.edu/sims/html/graphing-lines/latest/graphing-lines_en.html',
-  },
-  {
-    id: 'phet-least-squares',
-    titleKey: 'phet_sim_least_squares_t',
-    category: 'Math',
-    descKey: 'phet_sim_least_squares_d',
-    url: 'https://phet.colorado.edu/sims/html/least-squares-regression/latest/least-squares-regression_en.html',
-  },
-] as const;
+const BUILTIN_BY_NAME = new Map(PHET_BUILTIN_SIMS.map((s) => [s.name, s]));
 
 export const PhETWorkspace: React.FC = () => {
-  const { t } = useT();
-  const [activeSim, setActiveSim] = useState<PhetSim | null>(null);
+  const { t, lang } = useT();
+  const [activeSim, setActiveSim] = useState<PhetItem | null>(null);
   const [category, setCategory] = useState<PhetFilter>('All');
   const [search, setSearch] = useState<string>('');
   const [isFullscreen, setIsFullscreen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
+
+  // The catalog comes from phet.colorado.edu; the built-in list is only a fallback.
+  const [catalog, setCatalog] = useState<PhetCatalogSim[]>(() => readCachedPhetCatalog(lang));
+  const [catalogState, setCatalogState] = useState<'loading' | 'live' | 'cache' | 'builtin'>('loading');
+  const [reloadToken, setReloadToken] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    setCatalogState('loading');
+    setCatalog(readCachedPhetCatalog(lang));
+    fetchPhetCatalog(lang)
+      .then((result) => {
+        if (cancelled) return;
+        setCatalog(result.sims);
+        setCatalogState(result.source);
+      })
+      .catch((err) => {
+        console.warn('PhET catalog unavailable:', err);
+        if (!cancelled) setCatalogState('builtin');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [lang, reloadToken]);
+
+  const sims = useMemo<PhetItem[]>(() => {
+    const items: PhetItem[] =
+      catalog.length > 0
+        ? catalog.map((s) => {
+            const builtin = BUILTIN_BY_NAME.get(s.name);
+            return {
+              id: s.name,
+              title: s.title,
+              englishTitle: s.englishTitle,
+              subjects: s.subjects,
+              description: builtin ? t(builtin.descKey) : '',
+              url: s.url,
+              thumbnail: s.thumbnail,
+              isNew: s.isNew,
+            };
+          })
+        : PHET_BUILTIN_SIMS.map((s) => ({
+            id: s.name,
+            title: t(s.titleKey),
+            englishTitle: t(s.titleKey),
+            subjects: [s.category],
+            description: t(s.descKey),
+            url: phetBuiltinUrl(s.name),
+            isNew: false,
+          }));
+    return items.sort((a, b) => Number(b.isNew) - Number(a.isNew) || a.title.localeCompare(b.title));
+  }, [catalog, t]);
 
   useEffect(() => {
     const onFsChange = () => {
@@ -270,13 +124,12 @@ export const PhETWorkspace: React.FC = () => {
     } catch {}
   }, [isFullscreen]);
 
-  const filtered = PHET_SIMS.filter((s) => {
-    if (category !== 'All' && s.category !== category) return false;
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      return t(s.titleKey).toLowerCase().includes(q) || t(s.descKey).toLowerCase().includes(q);
-    }
-    return true;
+  const filtered = sims.filter((s) => {
+    if (category !== 'All' && !s.subjects.includes(category)) return false;
+    const q = search.trim().toLowerCase();
+    if (!q) return true;
+    const haystack = [s.title, s.englishTitle, s.description, ...s.subjects.map((subject) => t(CATEGORY_KEY[subject]))];
+    return haystack.some((text) => text.toLowerCase().includes(q));
   });
 
   return (
@@ -301,7 +154,7 @@ export const PhETWorkspace: React.FC = () => {
             </button>
 
             <div className="flex items-center gap-2">
-              <span className="font-bold text-[var(--text-primary)]">{t(activeSim.titleKey)}</span>
+              <span className="font-bold text-[var(--text-primary)]">{activeSim.title}</span>
               <button
                 type="button"
                 onClick={toggleFullscreen}
@@ -325,7 +178,7 @@ export const PhETWorkspace: React.FC = () => {
 
           <div className="flex-1 w-full h-full min-h-0 rounded-2xl overflow-hidden border border-[var(--border-default)] bg-white shadow-xs flex flex-col">
             <IframeErrorBoundary
-              title={t(activeSim.titleKey)}
+              title={activeSim.title}
               src={activeSim.url}
               hideHeader={true}
               className="w-full h-full border-0 rounded-none"
@@ -394,8 +247,30 @@ export const PhETWorkspace: React.FC = () => {
               )}
             </div>
             <span className="text-xs text-[var(--text-muted)] font-medium shrink-0" aria-live="polite">
-              {t('phet_count', { filtered: filtered.length, total: PHET_SIMS.length })}
+              {t('phet_count', { filtered: filtered.length, total: sims.length })}
             </span>
+          </div>
+
+          <div className="flex items-center gap-2 text-[11px] text-[var(--text-muted)] shrink-0" role="status">
+            <span>
+              {catalogState === 'loading'
+                ? t('phet_source_loading')
+                : catalogState === 'live'
+                  ? t('phet_source_live')
+                  : catalogState === 'cache'
+                    ? t('phet_source_cache')
+                    : t('phet_source_builtin')}
+            </span>
+            {(catalogState === 'cache' || catalogState === 'builtin') && (
+              <button
+                type="button"
+                onClick={() => setReloadToken((n) => n + 1)}
+                className="inline-flex items-center gap-1 font-bold text-[var(--accent-text)] hover:underline cursor-pointer"
+              >
+                <RefreshCw className="w-3 h-3" />
+                <span>{t('retry')}</span>
+              </button>
+            )}
           </div>
 
           {filtered.length === 0 ? (
@@ -423,15 +298,32 @@ export const PhETWorkspace: React.FC = () => {
                 className="bg-[var(--bg-surface)] rounded-3xl border border-[var(--border-default)] p-5 shadow-xs hover:border-[var(--accent-border)] transition-all cursor-pointer flex flex-col justify-between space-y-4 group"
               >
                 <div className="space-y-2">
-                  <span className="text-[10px] font-bold uppercase text-[var(--accent-text)]">
-                    {t(CATEGORY_KEY[sim.category])}
-                  </span>
+                  {sim.thumbnail && (
+                    <img
+                      src={sim.thumbnail}
+                      alt=""
+                      loading="lazy"
+                      className="w-full h-24 object-contain rounded-xl bg-white border border-[var(--border-default)]"
+                    />
+                  )}
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[10px] font-bold uppercase text-[var(--accent-text)]">
+                      {sim.subjects.map((subject) => t(CATEGORY_KEY[subject])).join(' · ')}
+                    </span>
+                    {sim.isNew && (
+                      <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-[var(--status-ok-bg)] text-[var(--status-ok-text)] border border-[var(--status-ok-border)]">
+                        {t('phet_new_badge')}
+                      </span>
+                    )}
+                  </div>
                   <h3 className="text-sm font-bold text-[var(--text-primary)] group-hover:text-[var(--accent-text)] transition-colors">
-                    {t(sim.titleKey)}
+                    {sim.title}
                   </h3>
-                  <p className="text-xs text-[var(--text-muted)] leading-relaxed line-clamp-2">
-                    {t(sim.descKey)}
-                  </p>
+                  {sim.description && (
+                    <p className="text-xs text-[var(--text-muted)] leading-relaxed line-clamp-2">
+                      {sim.description}
+                    </p>
+                  )}
                 </div>
 
                 <button className="w-full py-2 bg-[var(--bg-subtle)] border border-[var(--border-default)] group-hover:border-[var(--accent-border)] group-hover:bg-[var(--accent-fill)] group-hover:text-white rounded-xl text-xs font-bold text-[var(--text-primary)] transition-all flex items-center justify-center gap-1.5">

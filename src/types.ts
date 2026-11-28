@@ -125,6 +125,15 @@ export interface SchoolFile {
   sharedWithMe?: boolean;
   origin?: 'drive' | 'drive_link' | 'local';
   localDataUrl?: string;
+  /** Drive owner's display name, and whether that is the signed-in student. */
+  ownerName?: string;
+  ownedByMe?: boolean;
+  /** Shared-drive files belong to the drive, not to a person. */
+  sharedDrive?: boolean;
+  createdTime?: string;
+  sharedWithMeTime?: string;
+  /** When the student added the file to StudentOS (uploads and pasted links). */
+  addedAt?: string;
 }
 
 export interface CanvasAssignment {

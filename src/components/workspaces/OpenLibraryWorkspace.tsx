@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { searchOpenLibrary, OpenLibraryBook } from '../../services/publicApis';
 import { useT } from '../../services/i18n';
+import { describeCatalogError } from '../../utils/catalogErrors';
 
 export const OpenLibraryWorkspace: React.FC = () => {
   const { t, formatDate } = useT();
@@ -25,18 +26,6 @@ export const OpenLibraryWorkspace: React.FC = () => {
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [savedNoteKey, setSavedNoteKey] = useState<string | null>(null);
 
-  // Auto-search if prefilled from Assignment Tracker
-  React.useEffect(() => {
-    if (query.trim()) {
-      (async () => {
-        setIsLoading(true);
-        setError(null);
-        try { const results = await searchOpenLibrary(query); setBooks(results); } catch (err) { console.error('Open Library search failed:', err); setError('Search failed. Check your connection and try again.'); } finally { setIsLoading(false); }
-      })();
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   const handleSearch = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!query.trim()) return;
@@ -47,11 +36,17 @@ export const OpenLibraryWorkspace: React.FC = () => {
       setBooks(results);
     } catch (err) {
       console.error('Open Library search failed:', err);
-      setError(t('openlib_search_failed'));
+      setError(describeCatalogError(err, 'Open Library', 'openlib_search_failed', t));
     } finally {
       setIsLoading(false);
     }
   };
+
+  // Auto-search if prefilled from Assignment Tracker
+  React.useEffect(() => {
+    if (query.trim()) void handleSearch();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleCopyIsbn = (book: OpenLibraryBook) => {
     if (book.isbn && book.isbn.length > 0) {

@@ -1,6 +1,7 @@
 import Dexie, { type Table } from 'dexie';
 import type { MarkdownNote } from '../types';
 import type { SRSCard } from '../services/srsEngine';
+import type { CoachMessage } from '../store/coachChatStore';
 
 export interface PersistedBrief { id: string; topic: string; subject: string; brief: string; createdAt: string; }
 
@@ -42,6 +43,15 @@ export interface LectureSegment {
   keyTerms?: string[];
 }
 
+/** One saved AI Coach conversation. */
+export interface CoachChatRecord {
+  id: string;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
+  messages: CoachMessage[];
+}
+
 export class StudentOSDatabase extends Dexie {
   notes!: Table<MarkdownNote, string>;
   srsCards!: Table<SRSCard & { deckId: string }, string>;
@@ -56,6 +66,7 @@ export class StudentOSDatabase extends Dexie {
   dashboard!: Table<{ id: string; order: string[]; hidden: string[]; sizes?: Record<string, string> }, string>;
   lectures!: Table<LectureRecord, string>;
   lectureSegments!: Table<LectureSegment, string>;
+  coachChats!: Table<CoachChatRecord, string>;
 
   constructor() {
     super('StudentOSDatabase');
@@ -133,6 +144,10 @@ export class StudentOSDatabase extends Dexie {
       vaultIndex: 'docId, title',
       lectures: 'id, title, subject, status, createdAt, updatedAt',
       lectureSegments: 'id, lectureId, chunkIndex, startSec',
+    });
+    // Tables not listed here carry over unchanged from version 6.
+    this.version(7).stores({
+      coachChats: 'id, updatedAt',
     });
     // @ts-ignore extra table for BIB
     (this as any).bibliography = (this as any).table('bibliography');

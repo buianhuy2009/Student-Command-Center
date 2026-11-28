@@ -6,12 +6,32 @@ import {
 } from '../services/gemini';
 import { t } from '../services/i18n';
 import { getPrivacyPrefs } from '../services/privacyPrefs';
+import { deleteCoachChat, getCoachChat, saveCoachChat } from '../services/coachHistory';
 import type { Assignment, CalendarEvent, EmailAlert } from '../types';
 import { useAiJobsStore } from './aiJobsStore';
 
 const COACH_MODE_STORAGE_KEY = 'scc_ai_coach_mode_v1';
 const CHAT_STORAGE_KEY = 'scc_chat_messages_v2';
 const COACH_JOB_ID = 'coach-chat';
+const ACTIVE_CHAT_KEY = 'scc_chat_active_id_v1';
+
+const newChatId = () => `chat-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+
+function rememberActiveChatId(id: string) {
+  try {
+    localStorage.setItem(ACTIVE_CHAT_KEY, id);
+  } catch {}
+}
+
+function loadActiveChatId(): string {
+  try {
+    const saved = localStorage.getItem(ACTIVE_CHAT_KEY);
+    if (saved) return saved;
+  } catch {}
+  const id = newChatId();
+  rememberActiveChatId(id);
+  return id;
+}
 
 export interface CoachImageAttachment {
   dataUrl: string;
@@ -73,14 +93,36 @@ function persistMessages(messages: CoachMessage[]) {
 
 let activeChatController: AbortController | null = null;
 
+function bumpHistory() {
+  useCoachChatStore.setState((state) => ({ historyVersion: state.historyVersion + 1 }));
+}
+
+/** The on-screen chat is cached for instant reload and also filed in history. */
+function persist(messages: CoachMessage[]) {
+  const { activeChatId } = useCoachChatStore.getState();
+  // Written together, so another open tab cannot pair these messages with its own chat ID.
+  rememberActiveChatId(activeChatId);
+  persistMessages(messages);
+  void saveCoachChat(activeChatId, messages).then((saved) => {
+    if (saved) bumpHistory();
+  });
+}
+
 interface CoachChatState {
   messages: CoachMessage[];
   isSending: boolean;
   streamingContent: string;
   coachMode: AiCoachMode;
   startedAt: number | null;
+  /** The conversation on screen, as saved in history. */
+  activeChatId: string;
+  /** Bumped after history changes so an open list reloads. */
+  historyVersion: number;
   setCoachMode: (mode: AiCoachMode) => void;
-  clearMessages: (variant: 'full' | 'drawer') => void;
+  /** Start a new chat. The previous one stays in history. */
+  clearMessages: (variant?: 'full' | 'drawer') => void;
+  openChat: (id: string) => Promise<void>;
+  deleteChat: (id: string) => Promise<void>;
   cancelSending: () => void;
   sendMessage: (params: {
     text: string;
@@ -94,6 +136,8 @@ interface CoachChatState {
 
 export const useCoachChatStore = create<CoachChatState>((set, get) => ({
   messages: loadInitialMessages(),
+  activeChatId: loadActiveChatId(),
+  historyVersion: 0,
   isSending: false,
   streamingContent: '',
   coachMode: loadInitialCoachMode(),
@@ -106,15 +150,29 @@ export const useCoachChatStore = create<CoachChatState>((set, get) => ({
     set({ coachMode: mode });
   },
 
-  clearMessages: (variant) => {
-    const next: CoachMessage[] = [
-      {
-        role: 'assistant',
-        contentKey: variant === 'full' ? 'coach_cleared_full' : 'coach_cleared_drawer',
-      },
-    ];
+  clearMessages: () => {
+    if (get().isSending) get().cancelSending();
+    const next: CoachMessage[] = [{ role: 'assistant', contentKey: 'coach_welcome' }];
+    const activeChatId = newChatId();
+    rememberActiveChatId(activeChatId);
     persistMessages(next);
-    set({ messages: next, streamingContent: '' });
+    set({ messages: next, activeChatId, streamingContent: '' });
+  },
+
+  openChat: async (id) => {
+    if (get().isSending || id === get().activeChatId) return;
+    const record = await getCoachChat(id);
+    // A message may have been sent while the record was loading.
+    if (!record || get().isSending) return;
+    rememberActiveChatId(id);
+    persistMessages(record.messages);
+    set({ messages: record.messages, activeChatId: id, streamingContent: '' });
+  },
+
+  deleteChat: async (id) => {
+    if (id === get().activeChatId) get().clearMessages();
+    await deleteCoachChat(id);
+    bumpHistory();
   },
 
   cancelSending: () => {
@@ -148,7 +206,7 @@ export const useCoachChatStore = create<CoachChatState>((set, get) => ({
     };
     const prevMessages = get().messages;
     const withUser = [...prevMessages, userMessage];
-    persistMessages(withUser);
+    persist(withUser);
 
     const startedAt = Date.now();
     set({
@@ -249,7 +307,7 @@ export const useCoachChatStore = create<CoachChatState>((set, get) => ({
         content: response,
       };
       const finalMessages = [...get().messages, assistantMessage];
-      persistMessages(finalMessages);
+      persist(finalMessages);
       set({
         messages: finalMessages,
         streamingContent: '',
@@ -283,7 +341,7 @@ export const useCoachChatStore = create<CoachChatState>((set, get) => ({
           content: t('coach_error_msg', { detail: errorDetail }),
         },
       ];
-      persistMessages(finalMessages);
+      persist(finalMessages);
       set({
         messages: finalMessages,
         streamingContent: '',
@@ -298,3 +356,6 @@ export const useCoachChatStore = create<CoachChatState>((set, get) => ({
     }
   },
 }));
+
+// File the conversation that was already on this device before history existed.
+void saveCoachChat(useCoachChatStore.getState().activeChatId, useCoachChatStore.getState().messages);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Search,
   BookOpen,
@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { searchArxiv, ArxivPaper } from '../../services/publicApis';
 import { useT } from '../../services/i18n';
+import { describeCatalogError } from '../../utils/catalogErrors';
 
 const CATEGORIES = [
   { id: 'all', key: 'arxiv_cat_all' },
@@ -35,25 +36,29 @@ export const ArxivWorkspace: React.FC = () => {
   const [selectedPaper, setSelectedPaper] = useState<ArxivPaper | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
+  // Only the newest search may update the list: category switches can overlap.
+  const latestSearch = useRef(0);
+
   useEffect(() => {
     handleSearch();
   }, [category]);
 
   const handleSearch = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
+    const searchId = ++latestSearch.current;
     setIsLoading(true);
     setError(null);
     try {
       const results = await searchArxiv(query, category);
+      if (searchId !== latestSearch.current) return;
       setPapers(results);
-      if (results.length > 0) {
-        setSelectedPaper(results[0]);
-      }
+      setSelectedPaper(results[0] ?? null);
     } catch (err) {
+      if (searchId !== latestSearch.current) return;
       console.error('arXiv search failed:', err);
-      setError(t('arxiv_search_failed'));
+      setError(describeCatalogError(err, 'arXiv', 'arxiv_search_failed', t));
     } finally {
-      setIsLoading(false);
+      if (searchId === latestSearch.current) setIsLoading(false);
     }
   };
 

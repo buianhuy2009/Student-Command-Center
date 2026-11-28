@@ -14,18 +14,33 @@ export interface ArxivPaper {
   primaryCategory: string;
 }
 
-export async function searchArxiv(query: string, category = 'all', maxResults = 12): Promise<ArxivPaper[]> {
-  try {
-    let searchQuery = query.trim() ? `all:${encodeURIComponent(query.trim())}` : 'cat:cs.AI+OR+cat:physics+OR+cat:math';
-    if (category !== 'all') {
-      searchQuery = query.trim() ? `cat:${category}+AND+all:${encodeURIComponent(query.trim())}` : `cat:${category}`;
-    }
+/** Why a catalog search failed, so the UI can say something more useful than "Search failed". */
+export class CatalogError extends Error {
+  constructor(message: string, readonly code: string, readonly status?: number) {
+    super(message);
+    this.name = 'CatalogError';
+  }
+}
 
-    const url = `https://export.arxiv.org/api/query?search_query=${searchQuery}&start=0&max_results=${maxResults}&sortBy=submittedDate&sortOrder=descending`;
-    const res = await fetch(url);
-    if (!res.ok) {
-      throw new Error(t('pub_arxiv_err', { status: res.status, detail: res.statusText || t('pub_req_failed') }));
-    }
+async function catalogFailure(res: Response, messageKey: 'pub_arxiv_err' | 'pub_openlib_err'): Promise<CatalogError> {
+  let code = 'upstream_error';
+  try {
+    const data: unknown = await res.json();
+    if (data && typeof data === 'object' && 'code' in data) code = String(data.code);
+  } catch {}
+  return new CatalogError(
+    t(messageKey, { status: res.status, detail: res.statusText || t('pub_req_failed') }),
+    code,
+    res.status,
+  );
+}
+
+export async function searchArxiv(query: string, category = 'all'): Promise<ArxivPaper[]> {
+  try {
+    // arXiv sends no CORS header, so the browser can only reach it through our server.
+    const params = new URLSearchParams({ q: query.trim(), category });
+    const res = await fetch(`/api/catalog/arxiv?${params}`);
+    if (!res.ok) throw await catalogFailure(res, 'pub_arxiv_err');
     const xmlText = await res.text();
 
     const parser = new DOMParser();
@@ -96,14 +111,19 @@ export interface OpenLibraryBook {
   subjects?: string[];
 }
 
-export async function searchOpenLibrary(query: string, limit = 12): Promise<OpenLibraryBook[]> {
+/** Open Library rejects anything shorter with HTTP 422. */
+export const OPEN_LIBRARY_MIN_QUERY = 3;
+
+export async function searchOpenLibrary(query: string): Promise<OpenLibraryBook[]> {
   try {
-    if (!query.trim()) return [];
-    const url = `https://openlibrary.org/search.json?q=${encodeURIComponent(query.trim())}&limit=${limit}`;
-    const res = await fetch(url);
-    if (!res.ok) {
-      throw new Error(t('pub_openlib_err', { status: res.status, detail: res.statusText || t('pub_req_failed') }));
+    const trimmed = query.trim();
+    if (!trimmed) return [];
+    if (trimmed.length < OPEN_LIBRARY_MIN_QUERY) {
+      throw new CatalogError(t('openlib_err_too_short'), 'query_too_short');
     }
+    const params = new URLSearchParams({ q: trimmed });
+    const res = await fetch(`/api/catalog/open-library?${params}`);
+    if (!res.ok) throw await catalogFailure(res, 'pub_openlib_err');
     const data = await res.json();
 
     if (!data.docs) return [];

@@ -1,19 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   GraduationCap,
   RefreshCw,
-  CheckCircle2,
   ExternalLink,
-  Plus,
   AlertTriangle,
   BookOpen,
-  Calendar,
 } from 'lucide-react';
 import { ApiEnablementInfo, CanvasAssignment } from '../types';
 import { fetchAllClassroomAssignments } from '../services/googleClassroom';
 import { getMissingOptionalFeatureScopes } from '../services/googleAuth';
 import { useT } from '../services/i18n';
 import { ApiActivationBanner } from './ApiActivationBanner';
+import { ClassroomWorkList } from './ClassroomWorkList';
 
 interface GoogleClassroomPanelProps {
   googleToken?: string;
@@ -26,6 +24,9 @@ interface GoogleClassroomPanelProps {
   classroomApiInfo?: ApiEnablementInfo | null;
   onRefresh?: () => void;
   missingCourseworkScope?: boolean;
+  /** Classroom IDs the student ticked off, and the toggle for them. */
+  doneIds: string[];
+  onToggleDone: (id: string) => void;
 }
 
 export const GoogleClassroomPanel: React.FC<GoogleClassroomPanelProps> = ({
@@ -39,8 +40,11 @@ export const GoogleClassroomPanel: React.FC<GoogleClassroomPanelProps> = ({
   classroomApiInfo,
   onRefresh: externalRefresh,
   missingCourseworkScope: externalMissingCourseworkScope,
+  doneIds,
+  onToggleDone,
 }) => {
-  const { t, formatDate } = useT();
+  const { t } = useT();
+  const doneSet = useMemo(() => new Set(doneIds), [doneIds]);
   const needsCourseworkScope = Boolean(externalMissingCourseworkScope);
   const [internalAssignments, setInternalAssignments] = useState<CanvasAssignment[]>(() => {
     try {
@@ -273,80 +277,13 @@ export const GoogleClassroomPanel: React.FC<GoogleClassroomPanelProps> = ({
               </p>
             </div>
           ) : (
-            assignments.map((work) => {
-              const isSynced = syncedIds.has(work.id) || work.isSynced;
-              return (
-                <div
-                  key={work.id}
-                  className="p-4 rounded-xl bg-[var(--bg-subtle)] border border-[var(--border-default)] flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-emerald-500/40 transition-colors group"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                        {work.courseName}
-                      </span>
-                      {work.dueAt && (
-                        <span className="text-[10px] text-[var(--text-muted)] flex items-center gap-1 font-mono">
-                          <Calendar className="w-3 h-3 text-[var(--accent-text)]" />
-                          <span>{t('classroom_due', { date: formatDate(work.dueAt) || work.dueAt })}</span>
-                        </span>
-                      )}
-                      {work.pointsPossible !== undefined && (
-                        <span className="text-[10px] text-[var(--text-muted)] font-mono">
-                          {t('classroom_pts', { pts: work.pointsPossible })}
-                        </span>
-                      )}
-                    </div>
-
-                    <h4 className="text-xs font-bold text-[var(--text-primary)] mt-1.5">
-                      {work.name}
-                    </h4>
-
-                    {work.description && (
-                      <p className="text-[11px] text-[var(--text-secondary)] mt-1 line-clamp-2">
-                        {work.description}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-[var(--border-default)]">
-                    <button
-                      onClick={() => handleSyncItem(work)}
-                      disabled={isSynced}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer border ${
-                        isSynced
-                          ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
-                          : 'bg-[var(--bg-subtle)] text-[var(--text-primary)] hover:border-[var(--accent-border)] border-[var(--border-default)]'
-                      }`}
-                    >
-                      {isSynced ? (
-                        <>
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                          <span>{t('classroom_in_tracker')}</span>
-                        </>
-                      ) : (
-                        <>
-                          <Plus className="w-3.5 h-3.5 text-[var(--accent-text)]" />
-                          <span>{t('tracker_add_btn')}</span>
-                        </>
-                      )}
-                    </button>
-
-                    {work.htmlUrl && (
-                      <a
-                        href={work.htmlUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="p-1.5 text-[var(--text-secondary)] hover:text-emerald-600 hover:bg-[var(--bg-hover)] rounded-lg transition-colors"
-                        title={t('classroom_open_item_title')}
-                      >
-                        <ExternalLink className="w-3.5 h-3.5" />
-                      </a>
-                    )}
-                  </div>
-                </div>
-              );
-            })
+            <ClassroomWorkList
+              assignments={assignments}
+              doneIds={doneSet}
+              syncedIds={syncedIds}
+              onToggleDone={onToggleDone}
+              onAddToTracker={handleSyncItem}
+            />
           )}
         </div>
       </section>
