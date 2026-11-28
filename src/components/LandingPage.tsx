@@ -125,28 +125,28 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   }, []);
 
   return (
-    <div className="min-h-screen w-full max-w-[100vw] overflow-x-clip bg-[var(--bg-canvas)] text-[var(--text-primary)] flex flex-col font-sans landing-smooth">
+    <div className="min-h-dvh w-full overflow-x-clip bg-[var(--bg-canvas)] text-[var(--text-primary)] flex flex-col font-sans landing-smooth">
       {/* Top Sticky Glass Header */}
       <header
         role="banner"
         className="sticky top-0 z-40 bg-[var(--bg-canvas)]/88 backdrop-blur-md border-b border-[var(--border-hairline)]"
       >
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-3">
-          <a href="#" className="flex items-center gap-2.5 shrink-0">
+        <div className="max-w-6xl mx-auto px-3 sm:px-6 lg:px-8 min-h-16 flex items-center justify-between gap-2">
+          <a href="#" className="flex items-center gap-1.5 sm:gap-2.5 shrink-0" aria-label={t('landing_brand_name')}>
             <div
               className="w-8 h-8 bg-[var(--accent-fill)] rounded-xl flex items-center justify-center text-white shrink-0 shadow-xs"
               aria-hidden="true"
             >
               <GraduationCap className="w-4 h-4" />
             </div>
-            <span className="text-base font-extrabold tracking-tight text-[var(--text-primary)] whitespace-nowrap">
+            <span className="text-sm sm:text-base font-extrabold tracking-tight text-[var(--text-primary)] whitespace-nowrap max-[359px]:sr-only">
               {t('landing_brand_name')}
             </span>
           </a>
 
           <nav
             aria-label={t('landing_nav_sections_aria')}
-            className="hidden md:flex items-center gap-1 text-xs font-semibold text-[var(--text-secondary)] whitespace-nowrap"
+            className="hidden lg:flex items-center gap-1 text-xs font-semibold text-[var(--text-secondary)] whitespace-nowrap"
           >
             <a
               href="#workflow"
@@ -181,11 +181,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </nav>
 
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            <LanguageToggle compact className="hidden sm:inline-flex" />
+            <LanguageToggle compact className="[&_button]:min-h-9 [&_button]:px-2 sm:[&_button]:px-2.5" />
             <button
               type="button"
               onClick={() => setDarkMode(!darkMode)}
-              className="p-2 rounded-full border border-transparent hover:border-[var(--border-default)] hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+              className="size-10 sm:size-11 grid place-items-center rounded-full border border-transparent hover:border-[var(--border-default)] hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
               title={t('landing_toggle_theme')}
               aria-label={t('landing_toggle_theme')}
             >
@@ -208,7 +208,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               type="button"
               onClick={onSignIn}
               disabled={isLoggingIn}
-              className="px-4 py-2 bg-[var(--text-primary)] hover:opacity-90 disabled:opacity-50 text-[var(--bg-surface)] rounded-full text-xs sm:text-sm font-bold flex items-center gap-2 transition-opacity cursor-pointer whitespace-nowrap"
+              className="px-3 sm:px-4 min-h-11 bg-[var(--text-primary)] hover:opacity-90 disabled:opacity-50 text-[var(--bg-surface)] rounded-full text-xs sm:text-sm font-bold flex items-center gap-1.5 sm:gap-2 transition-opacity cursor-pointer whitespace-nowrap"
             >
               <GoogleIcon className="w-3.5 h-3.5 shrink-0" />
               <span>{isLoggingIn ? t('landing_connecting') : t('landing_signin')}</span>
@@ -219,7 +219,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
       <main className="flex-1">
         {/* Hero — Atmospheric Dot Canvas + Centered Editorial Headline + Interactive Showcase */}
-        <section className="relative overflow-hidden pt-12 sm:pt-16 lg:pt-20 pb-16 sm:pb-24">
+        <section className="relative overflow-hidden pt-8 sm:pt-16 lg:pt-20 pb-12 sm:pb-24">
           <AmbientParticleCanvas
             darkMode={darkMode}
             paused={motionPaused}
@@ -564,7 +564,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         ref={demoDialogRef}
         aria-labelledby="demo-modal-title"
         {...({ closedby: 'any' } as Record<string, string>)}
-        className="landing-dialog w-[calc(100%-2rem)] max-w-3xl rounded-3xl bg-[var(--bg-surface)] text-[var(--text-primary)] border border-[var(--border-default)] p-5 sm:p-6 shadow-2xl"
+        className="landing-dialog w-[calc(100%-2rem)] max-w-3xl max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-3xl bg-[var(--bg-surface)] text-[var(--text-primary)] border border-[var(--border-default)] p-5 sm:p-6 shadow-2xl"
       >
         <div className="space-y-4">
           <div className="flex items-center justify-between gap-4">

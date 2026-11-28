@@ -13,6 +13,7 @@ import {
   Sparkles,
   LogOut,
   LogIn,
+  X,
 } from 'lucide-react';
 import { AppLogo } from './AppLogo';
 import { APP_CATALOG } from './AppStoreModal';
@@ -53,6 +54,7 @@ interface SidebarProps {
   activeTab: string;
   onSelectTab: (tabId: string) => void;
   isExpanded: boolean;
+  isMobileDrawer?: boolean;
   onToggleExpand: () => void;
   user: User | null;
   onSignIn: () => void;
@@ -81,6 +83,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   activeTab,
   onSelectTab,
   isExpanded,
+  isMobileDrawer = false,
   onToggleExpand,
   user,
   onSignIn,
@@ -164,8 +167,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
       aria-label={t('side_primary_nav')}
       data-tour="sidebar"
       role="navigation"
-      className={`h-dvh shrink-0 bg-[var(--bg-sidebar,var(--bg-subtle))]/90 border-r border-[var(--border-hairline)] flex flex-col transition-all duration-200 z-30 select-none ${
-        isExpanded ? 'w-60 px-2.5 py-3' : 'w-16 p-2'
+      className={`h-full shrink-0 bg-[var(--bg-sidebar,var(--bg-subtle))]/90 border-r border-[var(--border-hairline)] flex flex-col transition-all duration-200 z-30 select-none ${
+        isExpanded ? `px-2.5 py-3 ${isMobileDrawer ? 'w-full' : 'w-60'}` : 'w-16 p-2'
       }`}
     >
       {/* Brand Header */}
@@ -196,11 +199,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <button
             type="button"
             onClick={onToggleExpand}
-            className="p-1.5 rounded-lg hover:bg-[var(--bg-hover)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer min-h-[32px] min-w-[32px] flex items-center justify-center"
-            title={t('side_collapse')}
-            aria-label={t('side_collapse')}
+            className={`p-1.5 rounded-lg hover:bg-[var(--bg-hover)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer flex items-center justify-center ${isMobileDrawer ? 'size-11' : 'size-8'}`}
+            title={t(isMobileDrawer ? 'app_close_nav_aria' : 'side_collapse')}
+            aria-label={t(isMobileDrawer ? 'app_close_nav_aria' : 'side_collapse')}
+            data-close-drawer={isMobileDrawer ? '' : undefined}
           >
-            <ChevronLeft className="w-4 h-4" strokeWidth={1.75} />
+            {isMobileDrawer ? <X className="size-4" /> : <ChevronLeft className="size-4" strokeWidth={1.75} />}
           </button>
         )}
       </div>

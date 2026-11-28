@@ -23,6 +23,7 @@ import {
   Grid2x2,
   ScanText,
   AudioLines,
+  X,
 } from 'lucide-react';
 import { Assignment, AppTab } from '../types';
 import { useT } from '../services/i18n';
@@ -500,7 +501,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       role="dialog"
       aria-modal="true"
       aria-label={t('pal_dialog_label')}
-      className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-20 p-4 bg-black/55 backdrop-blur-xs"
+      className="fixed inset-x-0 top-0 h-[var(--app-viewport-height,100dvh)] z-50 flex items-start justify-center px-3 pb-3 pt-[min(4rem,8dvh)] sm:px-4 bg-black/55 backdrop-blur-xs"
       id="command-palette-backdrop"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
@@ -508,11 +509,11 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     >
       <div
         ref={dialogRef}
-        className="bg-[var(--bg-raised)] border border-[var(--border-default)] rounded-2xl max-w-xl w-full shadow-2xl overflow-hidden"
+        className="flex max-h-full flex-col bg-[var(--bg-raised)] border border-[var(--border-default)] rounded-2xl max-w-xl w-full shadow-2xl overflow-hidden"
       >
         {/* Search Input Bar */}
-        <div className="flex items-center px-4 py-3 border-b border-[var(--border-default)] bg-[var(--bg-surface)]">
-          <Search className="w-4 h-4 text-[var(--text-muted)] mr-3 shrink-0" strokeWidth={1.75} />
+        <div className="flex shrink-0 items-center gap-2 px-3 py-1 border-b border-[var(--border-default)] bg-[var(--bg-surface)]">
+          <Search className="size-4 text-[var(--text-muted)] shrink-0" strokeWidth={1.75} />
           <input
             type="text"
             autoFocus
@@ -573,9 +574,17 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
             placeholder={t('pal_placeholder')}
             className="w-full text-sm bg-transparent border-none outline-none shadow-none text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:shadow-none"
           />
-          <kbd className="px-2 py-0.5 text-[10px] font-mono font-semibold bg-[var(--bg-subtle)] text-[var(--text-muted)] rounded border border-[var(--border-default)] shrink-0">
+          <kbd className="hidden sm:block pointer-coarse:hidden px-2 py-0.5 text-[10px] font-mono font-semibold bg-[var(--bg-subtle)] text-[var(--text-muted)] rounded border border-[var(--border-default)] shrink-0">
             ESC
           </kbd>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label={t('common_close')}
+            className="grid size-11 shrink-0 place-items-center rounded-lg text-[var(--text-muted)] hover:bg-[var(--bg-hover)] cursor-pointer"
+          >
+            <X className="size-4" />
+          </button>
         </div>
 
         {/* Math Calculation Quick Solve */}
@@ -608,7 +617,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         )}
 
         {/* Results List */}
-        <div className="max-h-96 overflow-y-auto p-2 space-y-3">
+        <div className="min-h-0 max-h-96 overflow-y-auto overscroll-contain p-2 space-y-3">
           {commandAction && (
             <div>
               <div className="px-2 py-1 text-[10px] font-bold text-[var(--accent-text)] uppercase tracking-wider">

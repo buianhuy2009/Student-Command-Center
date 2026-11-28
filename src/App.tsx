@@ -248,6 +248,11 @@ const VIEWPORT_FIT_TABS: ReadonlySet<AppTab> = new Set<AppTab>([
   'pomodoro',
 ]);
 
+const WORKSPACE_FLOW_TABS: ReadonlySet<AppTab> = new Set<AppTab>([
+  'canvas', 'radar', 'tracker', 'gmail', 'drive', 'lecture-studio',
+  'note-scanner', 'notes-markdown', 'pomodoro', 'arxiv', 'open-library',
+]);
+
 function normalizeAppTab(raw: string): AppTab {
   if (raw === 'academic' || raw === 'ws-academic') return 'canvas';
   if (raw === 'ai-planner') return 'radar';
@@ -548,10 +553,11 @@ export default function App() {
     const hasRunningAiJob = Object.values(useAiJobsStore.getState().jobs).some(
       (j) => j.status === 'running' || j.status === 'queued'
     );
-    // Avoid GPU compositor snapshots via ViewTransition while WebGPU/WASM AI workers are active.
-    if (!hasRunningAiJob && typeof document !== 'undefined' && (document as any).startViewTransition) {
+    // A workspace should switch immediately on touch screens and during local AI jobs.
+    const skipAnimation = hasRunningAiJob || window.matchMedia('(pointer: coarse), (prefers-reduced-motion: reduce)').matches;
+    if (!skipAnimation && document.startViewTransition) {
       try {
-        (document as any).startViewTransition(() => {
+        document.startViewTransition(() => {
           setActiveTab(newTab);
         });
       } catch {
@@ -658,9 +664,14 @@ export default function App() {
     return () => mq.removeEventListener?.('change', syncCompactSidebar);
   }, []);
   useEffect(() => {
-    if (mobileNavOpen) document.body.style.overflow = 'hidden';
-    else document.body.style.overflow = '';
-    return () => { document.body.style.overflow = ''; };
+    if (!mobileNavOpen) return;
+    const desktop = window.matchMedia('(min-width: 48rem)');
+    const closeOnDesktop = () => {
+      if (desktop.matches) setMobileNavOpen(false);
+    };
+    closeOnDesktop();
+    desktop.addEventListener('change', closeOnDesktop);
+    return () => desktop.removeEventListener('change', closeOnDesktop);
   }, [mobileNavOpen]);
 
   // App Store & Pinned Tools State
@@ -3669,13 +3680,13 @@ export default function App() {
 
   // reducedMotion already handled via CSS prefers-reduced-motion + index.css; MotionConfig not required (motion 12 export issue avoided)
   const demoBanner = !user && isDemoMode ? (
-    <div className="bg-[var(--bg-surface)] border-b border-[var(--border-default)] text-[var(--text-primary)] px-4 py-2 text-xs font-medium flex items-center justify-between gap-3 z-30 shrink-0">
+    <div className="bg-[var(--bg-surface)] border-b border-[var(--border-default)] text-[var(--text-primary)] px-3 sm:px-4 py-1.5 text-xs font-medium flex items-center justify-between gap-2 sm:gap-3 z-30 shrink-0">
       <div className="flex items-center gap-2 min-w-0">
         <span className="w-2 h-2 rounded-full bg-[var(--accent-fill)] shrink-0" aria-hidden="true" />
-        <span className="truncate">
-          {t('app_demo_banner_prefix')}
+        <span className="min-w-0 sm:truncate">
+          <span className="hidden sm:inline">{t('app_demo_banner_prefix')}</span>
           <strong>{t('app_demo_banner_bold')}</strong>
-          {t('app_demo_banner_suffix')}
+          <span className="hidden sm:inline">{t('app_demo_banner_suffix')}</span>
         </span>
       </div>
       <div className="flex items-center gap-2 shrink-0">
@@ -3683,14 +3694,14 @@ export default function App() {
           type="button"
           onClick={() => handleGoogleSignIn(false)}
           disabled={isLoggingIn}
-          className="px-3 py-1 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-lg text-xs font-bold transition-colors cursor-pointer"
+          className="px-2.5 sm:px-3 min-h-8 bg-[var(--accent-fill)] hover:bg-[var(--accent-hover)] text-white rounded-lg text-xs font-bold transition-colors cursor-pointer"
         >
           {t('app_demo_signin_btn')}
         </button>
         <button
           type="button"
           onClick={() => setIsDemoMode(false)}
-          className="px-2 py-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] text-xs cursor-pointer"
+          className="px-1.5 sm:px-2 min-h-8 text-[var(--text-muted)] hover:text-[var(--text-primary)] text-xs cursor-pointer"
         >
           {t('app_demo_exit_btn')}
         </button>
@@ -3727,7 +3738,9 @@ export default function App() {
     <>
       <Shell
         isZen={zenFocusMode}
+        workspaceId={activeTab}
         viewportFit={VIEWPORT_FIT_TABS.has(activeTab)}
+        workspaceFlow={WORKSPACE_FLOW_TABS.has(activeTab)}
         mobileNavOpen={mobileNavOpen}
         onMobileNavChange={setMobileNavOpen}
         topBanner={demoBanner}
@@ -3805,7 +3818,9 @@ export default function App() {
       >
         <ErrorBoundary fallback={<div className="p-6 rounded-xl border border-[var(--status-err-border)] bg-[var(--status-err-bg)] text-[var(--status-err-text)] text-sm">{t('app_workspace_fallback')}</div>}>
           <Suspense fallback={<div className="p-8 flex items-center justify-center"><div className="w-6 h-6 border-2 border-[var(--accent-fill)] border-t-transparent rounded-full animate-spin" /><span className="ml-2 text-xs text-[var(--text-muted)]">{t('app_loading_workspace')}</span></div>}>
-            <div className={VIEWPORT_FIT_TABS.has(activeTab) ? 'w-full h-full min-h-0 flex flex-col enter' : 'max-w-7xl mx-auto space-y-6 enter'}>
+            <div className={VIEWPORT_FIT_TABS.has(activeTab)
+              ? `w-full h-full min-h-0 flex flex-col enter ${WORKSPACE_FLOW_TABS.has(activeTab) ? 'workspace-flow:h-auto' : ''}`
+              : 'max-w-7xl mx-auto space-y-6 enter'}>
                 {/* Google Workspace Connection Banner: only when no usable grant
                     exists. Access renews silently via the offline grant, so no
                     expiry state is ever surfaced — reconnecting once upgrades

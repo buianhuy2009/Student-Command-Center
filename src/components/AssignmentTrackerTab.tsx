@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import {
   CheckSquare,
   Plus,
@@ -589,7 +590,7 @@ export const AssignmentTrackerTab: React.FC<AssignmentTrackerTabProps> = ({
             value={quickInput}
             onChange={(e) => setQuickInput(e.target.value)}
             placeholder={t('smart_add_placeholder')}
-            className="flex-1 min-w-[200px] px-3 py-1.5 text-xs bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-xl focus:outline-none focus:ring-1 focus:ring-[var(--accent-fill)] text-[var(--text-primary)]"
+            className="flex-1 basis-48 min-w-0 px-3 py-1.5 text-xs bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-xl focus:outline-none focus:ring-1 focus:ring-[var(--accent-fill)] text-[var(--text-primary)]"
           />
           <button
             type="button"
@@ -614,7 +615,7 @@ export const AssignmentTrackerTab: React.FC<AssignmentTrackerTabProps> = ({
       {/* VIEW RENDERER: TABLE | BOARD (timeline Gantt removed — lives in its own workspace) */}
       {viewMode === 'kanban' ? (
         /* KANBAN BOARD VIEW */
-        <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-3 gap-4 overflow-hidden animate-in fade-in duration-150">
+        <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-4 overflow-hidden animate-in fade-in duration-150">
           {(
             [
               { id: 'Not Started', label: t('tracker_col_todo'), color: 'border-[var(--status-warn-border)]' },
@@ -1093,14 +1094,16 @@ export const AssignmentTrackerTab: React.FC<AssignmentTrackerTabProps> = ({
       )}
 
       {/* Manual Add Assignment Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-in fade-in">
-          <div className="bg-[var(--bg-surface)] rounded-3xl max-w-md w-full border border-[var(--border-default)] shadow-2xl p-6 space-y-4">
+      {showAddModal && createPortal(
+        <div className="fixed inset-x-0 top-0 h-[var(--app-viewport-height,100dvh)] bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-3 sm:p-4 animate-in fade-in">
+          <div role="dialog" aria-modal="true" aria-labelledby="tracker-add-title" className="max-h-full overflow-y-auto overscroll-contain bg-[var(--bg-surface)] rounded-3xl max-w-md w-full border border-[var(--border-default)] shadow-2xl p-4 sm:p-6 space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-[var(--border-default)]">
-              <h3 className="text-sm font-bold text-[var(--text-primary)]">{t('tracker_new')}</h3>
+              <h3 id="tracker-add-title" className="text-sm font-bold text-[var(--text-primary)]">{t('tracker_new')}</h3>
               <button
+                type="button"
                 onClick={() => setShowAddModal(false)}
-                className="text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                aria-label={t('close')}
+                className="size-10 grid place-items-center text-[var(--text-muted)] hover:text-[var(--text-primary)]"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1130,7 +1133,7 @@ export const AssignmentTrackerTab: React.FC<AssignmentTrackerTabProps> = ({
                     type="text"
                     value={newSubject}
                     onChange={(e) => setNewSubject(e.target.value)}
-                    className="w-full px-3 py-2 bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-[var(--accent-fill)]"
+                    className="w-full min-w-0 px-3 py-2 bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-[var(--accent-fill)]"
                   />
                 </div>
 
@@ -1141,7 +1144,7 @@ export const AssignmentTrackerTab: React.FC<AssignmentTrackerTabProps> = ({
                     type="date"
                     value={newDueDate}
                     onChange={(e) => setNewDueDate(e.target.value)}
-                    className="w-full px-3 py-2 bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-[var(--accent-fill)]"
+                    className="w-full min-w-0 px-3 py-2 bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-[var(--accent-fill)]"
                   />
                 </div>
               </div>
@@ -1190,7 +1193,8 @@ export const AssignmentTrackerTab: React.FC<AssignmentTrackerTabProps> = ({
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

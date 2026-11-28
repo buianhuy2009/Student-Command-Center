@@ -398,8 +398,8 @@ export const LectureStudioWorkspace: React.FC<LectureStudioWorkspaceProps> = ({
 
   if (step === 'setup') {
     return (
-      <div className="h-full min-h-0 flex-1 flex items-center justify-center overflow-y-auto p-2 sm:p-4 animate-in fade-in duration-200">
-        <div className="w-full max-w-5xl bg-[var(--bg-surface)] rounded-3xl p-5 sm:p-7 border border-[var(--border-default)] flex flex-col gap-5 shadow-card">
+      <div className="h-full min-h-0 flex-1 flex items-start justify-center overflow-y-auto p-2 sm:p-4 animate-in fade-in duration-200">
+        <div className="my-auto w-full max-w-5xl bg-[var(--bg-surface)] rounded-3xl p-4 sm:p-7 border border-[var(--border-default)] flex flex-col gap-5 shadow-card">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3.5">
               <div className="w-11 h-11 rounded-2xl bg-[var(--accent-2-fill,var(--accent-fill))] text-white flex items-center justify-center shrink-0 shadow-xs">

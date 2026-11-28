@@ -516,12 +516,12 @@ export const NoteScannerWorkspace: React.FC<NoteScannerWorkspaceProps> = ({ onOp
                     setIsDragging(false);
                     if (e.dataTransfer.files) addFiles(e.dataTransfer.files);
                   }}
-                  className="relative flex-1 min-h-0 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-subtle)] overflow-hidden flex items-center justify-center p-2"
+                  className="relative flex-1 min-h-0 max-h-[60dvh] rounded-2xl border border-[var(--border-default)] bg-[var(--bg-subtle)] overflow-hidden flex items-center justify-center p-2"
                 >
                   <img
                     src={activeImage.dataUrl}
                     alt={activeImage.name}
-                    className="max-h-full max-w-full w-auto h-auto object-contain"
+                    className="max-h-[calc(60dvh-1rem)] xl:max-h-full max-w-full w-auto h-auto object-contain"
                   />
                 </div>
               )}
@@ -664,7 +664,7 @@ export const NoteScannerWorkspace: React.FC<NoteScannerWorkspaceProps> = ({ onOp
             <textarea
               value={extractedText}
               onChange={(e) => setExtractedText(e.target.value)}
-              className="flex-1 min-h-0 w-full p-4 text-xs font-mono bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-2xl focus:outline-none focus:ring-2 focus:ring-[var(--accent-fill)] text-[var(--text-primary)] resize-none leading-relaxed overflow-y-auto"
+              className="flex-1 min-h-0 workspace-flow:min-h-40 w-full p-4 text-xs font-mono bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-2xl focus:outline-none focus:ring-2 focus:ring-[var(--accent-fill)] text-[var(--text-primary)] resize-none leading-relaxed overflow-y-auto"
             />
           )}
 

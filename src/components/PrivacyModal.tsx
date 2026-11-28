@@ -62,7 +62,7 @@ export const PrivacyModal: React.FC<PrivacyModalProps> = ({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="w-full max-w-lg rounded-3xl max-h-[88vh] flex flex-col overflow-hidden bg-[var(--bg-surface)] text-[var(--text-primary)] border border-[var(--border-default)] shadow-2xl">
+      <div className="w-full max-w-lg rounded-3xl max-h-[calc(100dvh-2rem)] flex flex-col overflow-hidden bg-[var(--bg-surface)] text-[var(--text-primary)] border border-[var(--border-default)] shadow-2xl">
         <div className="px-5 sm:px-6 pt-5 pb-3 border-b border-[var(--border-hairline)] bg-[var(--bg-surface)] shrink-0 space-y-3">
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-base font-extrabold flex items-center gap-2">

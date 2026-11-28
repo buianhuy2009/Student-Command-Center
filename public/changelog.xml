@@ -6,6 +6,12 @@
     <description>Plain-English updates to StudentOS — what changed and why it matters for studying.</description>
     <language>en-us</language>
     <item>
+      <title>v3.5.4 — Better Layouts on iPhone</title>
+      <link>https://sutdent-command-center.vercel.app/?changelog=3.5.4</link>
+      <pubDate>Sat, 28 Nov 2026 02:04:00 GMT</pubDate>
+      <description>StudentOS v3.5.4 improves iPhone navigation, makes stacked workspaces easier to scroll, and keeps search and task creation usable when the keyboard opens.</description>
+    </item>
+    <item>
       <title>v3.5.3 — Sharper Installed App Icon</title>
       <link>https://sutdent-command-center.vercel.app/?changelog=3.5.3</link>
       <pubDate>Sat, 28 Nov 2026 01:27:00 GMT</pubDate>
