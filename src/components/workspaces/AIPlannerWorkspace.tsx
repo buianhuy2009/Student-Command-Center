@@ -537,8 +537,8 @@ function buildLocalPlan(
 }
 
 /* ------------------------------------------------------------------ */
-/* AI enhancement (server chain: gemini-flash-latest → … → Groq).  */
-/* Uses shared callGemini so BYOK, server proxy, and Groq all work.   */
+/* AI enhancement (Google Gemini server chain + client BYOK).         */
+/* Uses shared callGemini so BYOK and server proxy both work.         */
 /* Any failure → null, caller falls back to the local plan.           */
 /* ------------------------------------------------------------------ */
 

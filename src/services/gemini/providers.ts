@@ -1,4 +1,4 @@
-// Allowed Gemini & Gemma model chain (server + client fallback to Groq when BYOK key set).
+// Allowed Gemini & Gemma model chain (server + client BYOK).
 import { t as tr } from '../i18n';
 
 export const ALLOWED_GEMINI_MODELS = [
@@ -47,7 +47,6 @@ export function maskApiKey(key: string): string {
 
 // --- Optional per-key expiration metadata (stored SEPARATELY from key value) ---
 const GEMINI_META_KEY = 'scc_gemini_api_key_meta';
-const GROQ_META_KEY = 'scc_groq_api_key_meta';
 export interface ApiKeyMeta { expiresAt?: string }
 function readMeta(storageKey: string): ApiKeyMeta {
   if (typeof localStorage === 'undefined') return {};
@@ -68,10 +67,6 @@ function writeMeta(storageKey: string, meta: ApiKeyMeta): void {
 export function getGeminiKeyMeta(): ApiKeyMeta { return readMeta(GEMINI_META_KEY); }
 export function setGeminiKeyExpiry(dateStr: string | null): void {
   writeMeta(GEMINI_META_KEY, dateStr ? { expiresAt: dateStr } : {});
-}
-export function getGroqKeyMeta(): ApiKeyMeta { return readMeta(GROQ_META_KEY); }
-export function setGroqKeyExpiry(dateStr: string | null): void {
-  writeMeta(GROQ_META_KEY, dateStr ? { expiresAt: dateStr } : {});
 }
 export function getExpiryStatus(expiresAt?: string): { state: 'none' | 'valid' | 'expiring' | 'expired'; daysLeft: number | null; label: string } {
   if (!expiresAt) return { state: 'none', daysLeft: null, label: '' };
@@ -114,36 +109,6 @@ export function setClientGeminiApiKey(key: string, opts?: { sessionOnly?: boolea
       if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem('scc_gemini_api_key_session');
     }
   } catch {}
-}
-export function getClientGroqApiKey(): string {
-  if (typeof localStorage === 'undefined') return '';
-  try { return localStorage.getItem('scc_groq_api_key') || ''; } catch { return ''; }
-}
-export function setClientGroqApiKey(key: string): void {
-  if (typeof localStorage === 'undefined') return;
-  try {
-    const trimmed = key.trim();
-    if (!trimmed) localStorage.removeItem('scc_groq_api_key');
-    else localStorage.setItem('scc_groq_api_key', trimmed);
-  } catch {}
-}
-
-export async function callGroqDirect(promptText: string, jsonMode: boolean=false): Promise<string> {
-  const groqKey = getClientGroqApiKey();
-  if (!groqKey) throw new Error(tr('prov_no_groq_key'));
-  const tryModel = async (model: string) => {
-    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method:'POST', headers:{ Authorization:`Bearer ${groqKey}`, 'Content-Type':'application/json' },
-      body: JSON.stringify({ model, messages:[{role:'user', content:promptText}], temperature:0.3, response_format: jsonMode ? {type:'json_object'}:undefined })
-    });
-    if (!res.ok) {
-      const detail = await res.text().catch(() => res.statusText);
-      throw new Error(tr('prov_groq_err', { model, status: res.status, detail: detail.slice(0, 200) }));
-    }
-    const data=await res.json(); return data.choices?.[0]?.message?.content||'';
-  };
-  try { return await tryModel('llama-3.3-70b-versatile'); }
-  catch(e){ console.warn('Groq 70B failed fallback',e); return await tryModel('llama-3.1-8b-instant'); }
 }
 
 // Daily client quota tracking (server also enforces per-IP limits on /api/gemini/*)

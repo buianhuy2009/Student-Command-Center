@@ -42,8 +42,6 @@ import {
 import {
   getClientGeminiApiKey,
   setClientGeminiApiKey,
-  getClientGroqApiKey,
-  setClientGroqApiKey,
 } from '../services/gemini';
 import {
   getTheme,
@@ -58,8 +56,6 @@ import {
   maskApiKey,
   getGeminiKeyMeta,
   setGeminiKeyExpiry,
-  getGroqKeyMeta,
-  setGroqKeyExpiry,
   getExpiryStatus,
 } from '../services/gemini/providers';
 import { loadCanvasSettings, saveCanvasSettings } from '../services/canvas';
@@ -222,13 +218,10 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
 
   // AI Keys state
   const [geminiKey, setGeminiKey] = useState('');
-  const [groqKey, setGroqKey] = useState('');
   const [showGeminiKey, setShowGeminiKey] = useState(false);
-  const [showGroqKey, setShowGroqKey] = useState(false);
   const [geminiStatusMsg, setGeminiStatusMsg] = useState('');
   // Connections hub: per-key expiry metadata (stored separately from key values)
   const [geminiExpiry, setGeminiExpiry] = useState('');
-  const [groqExpiry, setGroqExpiry] = useState('');
   // Connections hub: Canvas domain + token (canonical saveCanvasSettings keys)
   const [canvasDomain, setCanvasDomain] = useState('');
   const [canvasToken, setCanvasToken] = useState('');
@@ -346,10 +339,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
     if (isOpen) {
       const savedGemini = getClientGeminiApiKey();
       setGeminiKey(savedGemini);
-      const savedGroq = getClientGroqApiKey();
-      setGroqKey(savedGroq);
       try { setGeminiExpiry(getGeminiKeyMeta().expiresAt || ''); } catch {}
-      try { setGroqExpiry(getGroqKeyMeta().expiresAt || ''); } catch {}
       try {
         const cs = loadCanvasSettings();
         setCanvasDomain(cs.apiDomain || '');
@@ -371,9 +361,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
 
   const handleSaveKeys = () => {
     setClientGeminiApiKey(geminiKey);
-    setClientGroqApiKey(groqKey);
     try { setGeminiKeyExpiry(geminiExpiry ? geminiExpiry : null); } catch {}
-    try { setGroqKeyExpiry(groqExpiry ? groqExpiry : null); } catch {}
     setGeminiStatusMsg(t('settings_keys_saved_msg'));
   };
 
@@ -803,10 +791,10 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                       {t('settings_keys_title')}
                     </div>
                     <span className="text-[10px] font-mono text-[var(--text-muted)]">
-                      {t('ai_key_gemini_name')} {geminiKey ? maskApiKey(geminiKey) : '—'} • {t('ai_key_groq_name')} {groqKey ? maskApiKey(groqKey) : '—'}
+                      {t('ai_key_gemini_name')} {geminiKey ? maskApiKey(geminiKey) : '—'}
                     </span>
                   </div>
-                  <div className="grid sm:grid-cols-2 gap-2 items-start">
+                  <div className="grid gap-2 items-start">
                     <AiKeyConnection provider="gemini" value={geminiKey}>
                       <div className="relative">
                         <Key className="w-4 h-4 text-[var(--text-muted)] absolute left-3 top-1/2 -translate-y-1/2" />
@@ -828,29 +816,8 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                         </button>
                       </div>
                     </AiKeyConnection>
-                    <AiKeyConnection provider="groq" value={groqKey}>
-                      <div className="relative">
-                        <Key className="w-4 h-4 text-[var(--text-muted)] absolute left-3 top-1/2 -translate-y-1/2" />
-                        <input
-                          type={showGroqKey ? 'text' : 'password'}
-                          value={groqKey}
-                          onChange={(e) => setGroqKey(e.target.value)}
-                          placeholder={t('settings_aria_groq_key')}
-                          aria-label={t('settings_aria_groq_key')}
-                          className="w-full pl-9 pr-10 py-2 text-xs font-mono bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--accent-fill)] text-[var(--text-primary)]"
-                        />
-                        <button
-                          type="button"
-                          aria-label={showGroqKey ? t('ai_key_hide') : t('ai_key_show')}
-                          onClick={() => setShowGroqKey(!showGroqKey)}
-                          className="p-1.5 text-[var(--text-muted)] hover:text-[var(--text-primary)] absolute right-2.5 top-1/2 -translate-y-1/2"
-                        >
-                          {showGroqKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                        </button>
-                      </div>
-                    </AiKeyConnection>
                   </div>
-                  <div className="grid sm:grid-cols-2 gap-2">
+                  <div className="grid gap-2">
                     <label className="flex items-center gap-1.5 text-[11px] text-[var(--text-muted)]">
                       <span>{t('settings_gemini_expires_label')}</span>
                       <input
@@ -860,16 +827,6 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                         className="px-2 py-1 text-[11px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-lg text-[var(--text-primary)]"
                       />
                       <span className="font-semibold">{formatExpiryLabel(getExpiryStatus(geminiExpiry))}</span>
-                    </label>
-                    <label className="flex items-center gap-1.5 text-[11px] text-[var(--text-muted)]">
-                      <span>{t('settings_groq_expires_label')}</span>
-                      <input
-                        type="date"
-                        value={groqExpiry}
-                        onChange={(e) => setGroqExpiry(e.target.value)}
-                        className="px-2 py-1 text-[11px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-lg text-[var(--text-primary)]"
-                      />
-                      <span className="font-semibold">{formatExpiryLabel(getExpiryStatus(groqExpiry))}</span>
                     </label>
                   </div>
                   <div className="flex items-center justify-between">

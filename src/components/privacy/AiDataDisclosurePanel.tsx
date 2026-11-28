@@ -25,19 +25,19 @@ export const AiDataDisclosurePanel: React.FC = () => {
         'Người gửi, tiêu đề, ngày và tối đa 1.500 ký tự nội dung sạch (đã bỏ chữ ký & trích dẫn cũ).',
         lang
       ),
-      to: 'Google Gemini (gemini-flash-latest) / optional Groq (Llama 3.3)',
+      to: 'Google Gemini',
     },
     {
       id: 'classroom',
       source: tr(t, 'privacy_ai_cls_src', 'Classroom Announcements', 'Thông báo Classroom', lang),
       sent: tr(t, 'privacy_ai_cls_sent', 'Class name + announcement text.', 'Tên môn học + nội dung thông báo.', lang),
-      to: 'Google Gemini / optional Groq (Llama 3.3)',
+      to: 'Google Gemini',
     },
     {
       id: 'planner',
       source: tr(t, 'privacy_ai_planner_src', 'AI Planner & Quick Add', 'Lập kế hoạch AI & Thêm nhanh', lang),
       sent: tr(t, 'privacy_ai_text_sent', 'The sentence you typed + your class sessions.', 'Câu bạn gõ + các buổi học của bạn.', lang),
-      to: 'Google Gemini / optional Groq (Llama 3.3)',
+      to: 'Google Gemini',
     },
     {
       id: 'tutor',
@@ -49,13 +49,13 @@ export const AiDataDisclosurePanel: React.FC = () => {
         'Tin nhắn của bạn + ảnh tùy chọn + tóm tắt bài tập/lịch học tùy chọn (đã xóa rawEmail và senderEmail).',
         lang
       ),
-      to: 'Google Gemini / optional Groq (Llama 3.3)',
+      to: 'Google Gemini',
     },
     {
       id: 'notes',
       source: tr(t, 'privacy_ai_notes_src', 'Note Scanner / Lecture Studio', 'Quét ghi chú / Lecture Studio', lang),
       sent: tr(t, 'privacy_ai_notes_sent', 'Study notes or lecture transcripts you submit for summarization.', 'Ghi chú học tập hoặc bản ghi bài giảng bạn gửi để tóm tắt.', lang),
-      to: 'Google Gemini / optional Groq (Llama 3.3)',
+      to: 'Google Gemini',
     },
   ];
 
@@ -113,24 +113,6 @@ export const AiDataDisclosurePanel: React.FC = () => {
             type="checkbox"
             checked={prefs.shareAcademicContextWithTutor}
             onChange={(e) => updatePrivacyPrefs({ shareAcademicContextWithTutor: e.target.checked })}
-            className="w-4 h-4 accent-[var(--accent-fill)] cursor-pointer shrink-0"
-          />
-        </label>
-
-        <label className="flex items-center justify-between gap-3 p-2.5 rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] cursor-pointer">
-          <span className="text-[var(--text-primary)] font-medium leading-snug">
-            {tr(
-              t,
-              'privacy_pref_groq_fallback',
-              'Allow Groq (Llama) fallback when Google Gemini is busy',
-              'Cho phép dùng Groq (Llama) dự phòng khi Google Gemini bận',
-              lang
-            )}
-          </span>
-          <input
-            type="checkbox"
-            checked={prefs.allowGroqFallback}
-            onChange={(e) => updatePrivacyPrefs({ allowGroqFallback: e.target.checked })}
             className="w-4 h-4 accent-[var(--accent-fill)] cursor-pointer shrink-0"
           />
         </label>

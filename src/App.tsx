@@ -4399,7 +4399,7 @@ export default function App() {
       />
       )}
 
-      {/* Persistent Gemini & Groq AI Settings Modal — gated so its chunk only loads when opened */}
+      {/* Persistent Gemini AI Settings Modal — gated so its chunk only loads when opened */}
       {geminiSettingsOpen && (
       <GeminiSettingsModal
         isOpen={geminiSettingsOpen}

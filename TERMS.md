@@ -40,7 +40,7 @@ StudentOS is built to foster independent learning, not academic dishonesty:
 ---
 
 ## 5. Human-in-the-Loop & AI Accuracy Disclaimer
-- Natural language processing (powered by Google Gemini and Groq) is probabilistic and subject to occasional misinterpretations.
+- Natural language processing (powered by Google Gemini) is probabilistic and subject to occasional misinterpretations.
 - All assignments detected by AI in emails or announcements appear on an **AI Confirm Card** with the original quote. Nothing is added to your master tracker or calendar without your explicit confirmation.
 - Students remain solely responsible for verifying submission deadlines against official school syllabi, LMS notices, and teacher instructions.
 
@@ -61,7 +61,7 @@ You agree not to:
 ---
 
 ## 8. Disclaimer of Warranties
-StudentOS is provided on an **"AS IS"** and **"AS AVAILABLE"** basis, without warranties of any kind. We do not warrant that the service will be uninterrupted, error-free, or resilient against third-party API outages (Google, Canvas, Groq).
+StudentOS is provided on an **"AS IS"** and **"AS AVAILABLE"** basis, without warranties of any kind. We do not warrant that the service will be uninterrupted, error-free, or resilient against third-party API outages (Google, Canvas).
 
 ---
 

@@ -342,7 +342,7 @@ describe("Server models & unified API surface", () => {
       expect(connectSrc).toContain("https://covers.openlibrary.org");
       expect(connectSrc).toContain("https://archive.org");
       expect(connectSrc).toContain("https://api.nasa.gov");
-      expect(connectSrc).toContain("https://api.groq.com");
+      expect(connectSrc).not.toContain("https://api.groq.com");
       expect(connectSrc).toContain("https://generativelanguage.googleapis.com");
       expect(connectSrc).toContain("https://en.wikipedia.org");
       expect(connectSrc).not.toContain("https://api.crossref.org");
@@ -424,14 +424,11 @@ describe("Server models & unified API surface", () => {
 
   describe("AI Coach 4-tier routing, email fast group, note scanner & limit rotation", () => {
     const prevGemini = process.env.GEMINI_API_KEY;
-    const prevGroq = process.env.GROQ_API_KEY;
     const prevFetch = globalThis.fetch;
 
     afterEach(() => {
       if (prevGemini === undefined) delete process.env.GEMINI_API_KEY;
       else process.env.GEMINI_API_KEY = prevGemini;
-      if (prevGroq === undefined) delete process.env.GROQ_API_KEY;
-      else process.env.GROQ_API_KEY = prevGroq;
       globalThis.fetch = prevFetch;
     });
 
@@ -468,9 +465,8 @@ describe("Server models & unified API surface", () => {
       expect(generateContentMock).toHaveBeenCalledWith(expect.objectContaining({ model: "gemma-4-31b-it" }));
     });
 
-    it("rotates away from a rate-limited model and falls back to Groq in Instant mode", async () => {
+    it("rotates away from a rate-limited model and falls back to Gemini Balanced in Instant mode", async () => {
       process.env.GEMINI_API_KEY = "AIzaTestOnly";
-      process.env.GROQ_API_KEY = "gsk_test_only";
 
       // First call: Gemma 31B hits 429, rotates to Gemma 26B seamlessly.
       generateContentMock
@@ -482,22 +478,19 @@ describe("Server models & unified API surface", () => {
       expect(resRotated.statusCode).toBe(200);
       expect(resRotated.body.model).toBe("gemma-4-26b-a4b-it");
 
-      // Next call while 31B is cooled down starts straight on 26B; if all Gemma fail, Groq answers.
-      generateContentMock.mockRejectedValue(Object.assign(new Error("429 RESOURCE_EXHAUSTED"), { status: 429 }));
-      const fetchSpy = vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => ({ choices: [{ message: { content: "Groq fast reply" } }] }),
-      } as any);
-      globalThis.fetch = fetchSpy;
+      // Next call while 31B is cooled down starts straight on 26B; if Gemma 26B fails, Gemini Balanced answers.
+      generateContentMock
+        .mockRejectedValueOnce(Object.assign(new Error("429 RESOURCE_EXHAUSTED"), { status: 429 }))
+        .mockResolvedValueOnce({ text: "Gemini backup reply" });
 
-      const resGroq = createMockRes();
-      await handleAssistant({ method: "POST", body: { mode: "fast", messages: [{ role: "user", content: "Quick summary" }] } }, resGroq);
-      expect(resGroq.statusCode).toBe(200);
-      expect(resGroq.body).toEqual({
-        reply: "Groq fast reply",
+      const resBackup = createMockRes();
+      await handleAssistant({ method: "POST", body: { mode: "fast", messages: [{ role: "user", content: "Quick summary" }] } }, resBackup);
+      expect(resBackup.statusCode).toBe(200);
+      expect(resBackup.body).toEqual({
+        reply: "Gemini backup reply",
         mode: "quick",
-        provider: "groq",
-        model: "llama-3.3-70b-versatile",
+        provider: "gemini",
+        model: "gemini-3-flash-preview",
         tutorPolicyEnforced: true,
         guardrailTriggered: false,
       });
@@ -652,7 +645,6 @@ describe("Server models & unified API surface", () => {
 
   describe("AI Coach Multimodal Image Support (/api/gemini/assistant)", () => {
     const prevGemini = process.env.GEMINI_API_KEY;
-    const prevGroq = process.env.GROQ_API_KEY;
     const prevFetch = globalThis.fetch;
 
     beforeEach(() => {
@@ -665,8 +657,6 @@ describe("Server models & unified API surface", () => {
     afterEach(() => {
       if (prevGemini === undefined) delete process.env.GEMINI_API_KEY;
       else process.env.GEMINI_API_KEY = prevGemini;
-      if (prevGroq === undefined) delete process.env.GROQ_API_KEY;
-      else process.env.GROQ_API_KEY = prevGroq;
       globalThis.fetch = prevFetch;
     });
 
@@ -700,14 +690,11 @@ describe("Server models & unified API surface", () => {
       }
     });
 
-    it("uses Llama 4 Scout vision format on Groq fallback when quick Gemma fails", async () => {
-      generateContentMock.mockRejectedValue(new Error("429 quota"));
-      process.env.GROQ_API_KEY = "gsk_test";
-      const fetchSpy = vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => ({ choices: [{ message: { content: "Groq vision hint" } }] }),
-      } as any);
-      globalThis.fetch = fetchSpy;
+    it("falls back to Gemini vision models in quick mode when Gemma models hit quota", async () => {
+      generateContentMock
+        .mockRejectedValueOnce(new Error("429 quota"))
+        .mockRejectedValueOnce(new Error("429 quota"))
+        .mockResolvedValueOnce({ text: "Gemini vision hint" });
 
       const res = createMockRes();
       await handleAssistant(
@@ -728,19 +715,14 @@ describe("Server models & unified API surface", () => {
       );
 
       expect(res.statusCode).toBe(200);
-      expect(res.body.provider).toBe("groq");
-      expect(res.body.model).toBe("meta-llama/llama-4-scout-17b-16e-instruct");
-      const sentBody = JSON.parse(String(fetchSpy.mock.calls[0]?.[1]?.body || "{}"));
-      expect(sentBody.messages[1].content).toEqual([
-        { type: "text", text: "Explain this graph" },
-        { type: "image_url", image_url: { url: "data:image/png;base64,BBBB" } },
-      ]);
+      expect(res.body.provider).toBe("gemini");
+      expect(res.body.model).toBe("gemini-3.1-flash-lite");
+      expect(res.body.reply).toBe("Gemini vision hint");
     });
   });
 
   describe("AI Tutor Guardrails (/api/gemini/assistant)", () => {
     const prevGemini = process.env.GEMINI_API_KEY;
-    const prevGroq = process.env.GROQ_API_KEY;
     const prevFetch = globalThis.fetch;
 
     beforeEach(() => {
@@ -753,8 +735,6 @@ describe("Server models & unified API surface", () => {
     afterEach(() => {
       if (prevGemini === undefined) delete process.env.GEMINI_API_KEY;
       else process.env.GEMINI_API_KEY = prevGemini;
-      if (prevGroq === undefined) delete process.env.GROQ_API_KEY;
-      else process.env.GROQ_API_KEY = prevGroq;
       globalThis.fetch = prevFetch;
     });
 
@@ -798,8 +778,7 @@ describe("Server models & unified API surface", () => {
       expect(allowedSystem).not.toContain("CORE RULE: you only SUGGEST and GUIDE");
     });
 
-    it("honors allowGroqFallback: false in quick mode without calling Groq", async () => {
-      process.env.GROQ_API_KEY = "gsk_test_blocked";
+    it("returns 502 ai_upstream_failed when all Gemini models fail in quick mode", async () => {
       generateContentMock.mockRejectedValue(new Error("Upstream 500 failure"));
       const fetchSpy = vi.fn();
       globalThis.fetch = fetchSpy;
@@ -810,7 +789,6 @@ describe("Server models & unified API surface", () => {
           method: "POST",
           body: {
             mode: "quick",
-            allowGroqFallback: false,
             messages: [{ role: "user", content: "Help me review derivatives" }],
           },
         },

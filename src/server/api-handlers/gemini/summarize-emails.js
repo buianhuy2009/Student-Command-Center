@@ -62,35 +62,7 @@ Return ONLY JSON:
 {"alerts":[{"id":"same id","sender":"clean sender name","subject":"email subject","oneLineSummary":"...","urgency":"HIGH|MEDIUM|LOW|INFO","category":"ASSIGNMENT|EXAM|GRADE|SCHEDULE|ANNOUNCEMENT|SPAM|PROMOTION|SOCIAL|GENERAL","categoryLabel":"e.g. 'Bài tập' or 'Khuyến mãi'","isSpam":false,"spamReason":"","language":"vi|en|other","confidence":0.9,"detectedAssignment":{"isAssignment":true,"name":"short task name","subject":"Toán","dueDate":"YYYY-MM-DD or empty","dueConfidence":"explicit|relative|none","dueEvidence":"exact quote or empty","priority":"High|Med|Low"}}]}`;
 }
 
-const GROQ_EMAIL_MODELS = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"];
-
-async function callGroq(prompt) {
-  const key = process.env.GROQ_API_KEY;
-  if (!key) throw new Error("No GROQ_API_KEY");
-  let lastErr = null;
-  for (const model of GROQ_EMAIL_MODELS) {
-    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-      body: JSON.stringify({
-        model,
-        messages: [{ role: "user", content: prompt }],
-        response_format: { type: "json_object" },
-        temperature: 0.1,
-      }),
-    });
-    if (res.ok) {
-      const data = await res.json();
-      const text = data?.choices?.[0]?.message?.content || "";
-      if (text) return { text, model: `groq-${model}` };
-    } else {
-      lastErr = new Error(`Groq ${model} ${res.status}`);
-    }
-  }
-  throw lastErr || new Error("Groq email triage failed");
-}
-
-/** Email model group (Gemini 3.5 Flash Lite -> Gemma 4 31B) first, Gemini Flash fallback, Groq last. Returns { parsed, model }. */
+/** Email model group (Gemini 3.5 Flash Lite -> Gemma 4 31B) first, then Gemini Flash fallback. Returns { parsed, model }. */
 async function generateJson(prompt) {
   let lastError = null;
   if (process.env.GEMINI_API_KEY) {
@@ -113,17 +85,7 @@ async function generateJson(prompt) {
       }
     }
   }
-  try {
-    const { text, model } = await callGroq(prompt);
-    const parsed = parseJsonLoose(text || "{}");
-    if (Array.isArray(parsed?.alerts)) {
-      return { parsed, model };
-    }
-    lastError = new Error(`${model}: missing alerts array`);
-  } catch (err) {
-    lastError = lastError || err;
-  }
-  throw lastError || new Error("All AI providers failed.");
+  throw lastError || new Error("Gemini email triage failed.");
 }
 
 function failedAlert(e, reason) {
@@ -218,7 +180,7 @@ export default async function handler(req, res) {
     const { parsed, model } = await generateJson(buildEmailPrompt(batch, today));
     return res.status(200).json({ alerts: postProcessAlerts(batch, parsed?.alerts, model), model });
   } catch (err) {
-    // Large batches can hit token/TPM limits (e.g. Groq free tier); chunk into smaller slices before giving up.
+    // Large batches can hit token/TPM limits; chunk into smaller slices before giving up.
     if (batch.length > 8) {
       const CHUNK_SIZE = 8;
       const chunkedAlerts = [];

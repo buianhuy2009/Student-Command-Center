@@ -1,5 +1,5 @@
 // Gemini service split — new modular imports available at ./gemini/client, ./gemini/prompts, ./gemini/rateLimiter, ./gemini/providers
-// This monolith kept for compat; new code should import from modular files. Provider fallback now includes server /api/gemini/generate route fix + Groq rotation.
+// This monolith kept for compat; new code should import from modular files. Provider routing uses server /api/gemini/generate + Gemini BYOK.
 import {
   EmailAlert,
   EmailMessage,
@@ -32,14 +32,9 @@ import {
   maskApiKey,
   getGeminiKeyMeta,
   setGeminiKeyExpiry,
-  getGroqKeyMeta,
-  setGroqKeyExpiry,
   getExpiryStatus,
   getClientGeminiApiKey,
   setClientGeminiApiKey,
-  getClientGroqApiKey,
-  setClientGroqApiKey,
-  callGroqDirect,
   DAILY_QUOTA_LIMIT,
   checkDailyQuota,
   getGeminiQuotaStatus,
@@ -48,13 +43,11 @@ import {
 import { rateLimiter, canMakeGeminiRequest, GeminiRateLimiter } from './gemini/rateLimiter';
 import {
   testGeminiApiKeyDetailed,
-  testGroqApiKeyDetailed,
   testGeminiApiKey,
   callGemini,
   repairJsonString,
 } from './gemini/client';
 import { t } from './i18n';
-import { getPrivacyPrefs } from './privacyPrefs';
 import {
   TUTOR_POLICY,
   HOMEWORK_DUMP_REMINDER,
@@ -74,14 +67,9 @@ export {
   maskApiKey,
   getGeminiKeyMeta,
   setGeminiKeyExpiry,
-  getGroqKeyMeta,
-  setGroqKeyExpiry,
   getExpiryStatus,
   getClientGeminiApiKey,
   setClientGeminiApiKey,
-  getClientGroqApiKey,
-  setClientGroqApiKey,
-  callGroqDirect,
   DAILY_QUOTA_LIMIT,
   checkDailyQuota,
   getGeminiQuotaStatus,
@@ -89,7 +77,6 @@ export {
   canMakeGeminiRequest,
   GeminiRateLimiter,
   testGeminiApiKeyDetailed,
-  testGroqApiKeyDetailed,
   testGeminiApiKey,
   callGemini,
   repairJsonString,
@@ -1024,7 +1011,7 @@ export async function summarizeEmailsWithGemini(
   }
 
   // Client-side BYOK fallback when server /api/gemini/summarize-emails is unavailable or unconfigured.
-  if (!aiAlerts && (getClientGeminiApiKey() || getClientGroqApiKey())) {
+  if (!aiAlerts && getClientGeminiApiKey()) {
     try {
       const todayIso = new Date().toISOString().slice(0, 10);
       const runDirectBatch = async (chunkPayload: typeof payload) => {
@@ -1036,13 +1023,11 @@ ${JSON.stringify(chunkPayload)}
 
 Return ONLY JSON:
 {"alerts":[{"id":"same id","sender":"clean sender name","subject":"email subject","oneLineSummary":"under 16 words in email language","urgency":"HIGH|MEDIUM|LOW|INFO","category":"ASSIGNMENT|EXAM|GRADE|SCHEDULE|ANNOUNCEMENT|SPAM|PROMOTION|SOCIAL|GENERAL","categoryLabel":"short label","isSpam":false,"spamReason":"","language":"vi|en|other","confidence":0.9,"detectedAssignment":{"isAssignment":true,"name":"short task name","subject":"subject","dueDate":"YYYY-MM-DD or empty","dueConfidence":"explicit|relative|none","dueEvidence":"exact quote or empty","priority":"High|Med|Low"}}]}`;
-        const rawText = getClientGeminiApiKey()
-          ? await callGemini({
-              candidateModels: ['gemini-3.5-flash-lite', 'gemma-4-31b-it', GEMINI_FALLBACK_MODEL, GEMINI_DEFAULT_MODEL],
-              contents: prompt,
-              config: { responseMimeType: 'application/json', temperature: 0.1 },
-            })
-          : await callGroqDirect(prompt, true);
+        const rawText = await callGemini({
+          candidateModels: ['gemini-3.5-flash-lite', 'gemma-4-31b-it', GEMINI_FALLBACK_MODEL, GEMINI_DEFAULT_MODEL],
+          contents: prompt,
+          config: { responseMimeType: 'application/json', temperature: 0.1 },
+        });
         const parsed = repairJsonString<{ alerts?: any[] }>(rawText);
         return Array.isArray(parsed?.alerts) ? parsed.alerts : [];
       };
@@ -1145,11 +1130,10 @@ export async function sendStudyAssistantMessage(
   rawMode: LegacyAiCoachMode = 'balanced'
 ): Promise<string> {
   const mode = normalizeAiCoachMode(rawMode);
-  const { allowGroqFallback } = getPrivacyPrefs();
   try {
     const data = await postGeminiJsonEndpoint<{ reply?: string; model?: string; provider?: string }>(
       '/api/gemini/assistant',
-      { messages, context, mode, allowGroqFallback },
+      { messages, context, mode },
       'Study assistant API'
     );
     if (!data?.reply || !String(data.reply).trim()) {
@@ -1157,6 +1141,9 @@ export async function sendStudyAssistantMessage(
     }
     return String(data.reply);
   } catch (err) {
+    if (!getClientGeminiApiKey()) {
+      throw err instanceof Error ? err : new Error(String(err));
+    }
     const lastUser = [...messages].reverse().find((m) => m && m.role !== 'assistant');
     const lastUserText = String(lastUser?.content || '');
     let tutorSystemInstruction = TUTOR_POLICY;
@@ -1169,7 +1156,6 @@ export async function sendStudyAssistantMessage(
 
     const historyText = messages.map((m) => `${m.role === 'user' ? 'Student' : 'Coach'}: ${m.content}`).join('\n');
     const promptText = `Student context:\n${JSON.stringify(context || {}).slice(0, 6000)}\n\nConversation:\n${historyText}`;
-    const groqPromptWithPolicy = `System Instructions (MUST FOLLOW STRICTLY):\n${tutorSystemInstruction}\n\n${promptText}`;
     const lastImages = messages.flatMap((m) => (m.role === 'user' && m.images?.length ? m.images : [])).slice(-4);
     const hasImages = lastImages.length > 0;
     const contents: unknown = hasImages
@@ -1190,46 +1176,24 @@ export async function sendStudyAssistantMessage(
       return detectAnswerLeak(lastUserText, trimmed) ? buildSafeSocraticFallback(lastUserText) : trimmed;
     };
 
-    if (mode === 'quick' && getClientGeminiApiKey()) {
-      try {
-        const reply = await callGemini({
-          candidateModels: hasImages
-            ? [...CLIENT_COACH_MODE_MODELS.quick, ...VISION_CHEAPEST_MODELS]
-            : [...CLIENT_COACH_MODE_MODELS.quick],
-          contents,
-          skipGroqFallback: hasImages || !allowGroqFallback,
-          config: {
-            systemInstruction: tutorSystemInstruction,
-          },
-        });
-        const clean = sanitizeClientReply(reply);
-        if (clean) return clean;
-      } catch {}
-    }
-    if (mode === 'quick' && !hasImages && allowGroqFallback && getClientGroqApiKey()) {
-      const reply = await callGroqDirect(groqPromptWithPolicy, false);
-      const clean = sanitizeClientReply(reply);
-      if (clean) return clean;
-    }
-    if (getClientGeminiApiKey() || (!hasImages && allowGroqFallback && getClientGroqApiKey())) {
-      if (!getClientGeminiApiKey() && !hasImages && allowGroqFallback && getClientGroqApiKey()) {
-        const reply = await callGroqDirect(groqPromptWithPolicy, false);
-        const clean = sanitizeClientReply(reply);
-        if (clean) return clean;
-      } else {
-        const candidateModels = [...(CLIENT_COACH_MODE_MODELS[mode] || CLIENT_COACH_MODE_MODELS.balanced)];
-        const reply = await callGemini({
-          candidateModels,
-          contents,
-          skipGroqFallback: hasImages || !allowGroqFallback,
-          config: {
-            systemInstruction: tutorSystemInstruction,
-          },
-        });
-        const clean = sanitizeClientReply(reply);
-        if (clean) return clean;
-      }
-    }
+    const candidateModels =
+      mode === 'quick'
+        ? Array.from(
+            new Set([
+              ...CLIENT_COACH_MODE_MODELS.quick,
+              ...(hasImages ? VISION_CHEAPEST_MODELS : CLIENT_COACH_MODE_MODELS.balanced),
+            ])
+          )
+        : [...(CLIENT_COACH_MODE_MODELS[mode] || CLIENT_COACH_MODE_MODELS.balanced)];
+    const reply = await callGemini({
+      candidateModels,
+      contents,
+      config: {
+        systemInstruction: tutorSystemInstruction,
+      },
+    });
+    const clean = sanitizeClientReply(reply);
+    if (clean) return clean;
     throw err instanceof Error ? err : new Error(String(err));
   }
 }
@@ -1282,7 +1246,6 @@ export async function extractTextFromNoteImage(params: {
           : 'Transcribe all handwritten or printed notes in this image into clean, well-structured Markdown. Preserve headings, lists, and convert any math formulas into KaTeX delimiters ($...$ inline, $$...$$ display).';
     const raw = await callGemini({
       candidateModels: [...VISION_CHEAPEST_MODELS],
-      skipGroqFallback: true,
       contents: [
         { inlineData: { data: params.imageBase64, mimeType: params.mimeType } },
         {

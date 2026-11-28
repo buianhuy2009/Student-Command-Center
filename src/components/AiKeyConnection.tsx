@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ExternalLink, RefreshCw } from 'lucide-react';
-import { testGeminiApiKeyDetailed, testGroqApiKeyDetailed } from '../services/gemini';
+import { testGeminiApiKeyDetailed } from '../services/gemini';
 import { useT } from '../services/i18n';
 
 const PROVIDERS = {
@@ -11,14 +11,6 @@ const PROVIDERS = {
     failKey: 'ai_key_gemini_failed',
     testingKey: 'ai_key_gemini_testing',
     test: testGeminiApiKeyDetailed,
-  },
-  groq: {
-    nameKey: 'ai_key_groq_name',
-    keyUrl: 'https://console.groq.com/keys',
-    okKey: 'ai_key_groq_verified',
-    failKey: 'ai_key_groq_failed',
-    testingKey: 'ai_key_groq_testing',
-    test: testGroqApiKeyDetailed,
   },
 } as const;
 

@@ -267,7 +267,7 @@
             <td><code>classroom.announcements.readonly</code></td>
             <td>Non-sensitive</td>
             <td>Read teacher announcements to find assignments and deadlines posted in announcement feeds.</td>
-            <td><strong>Yes</strong> (announcement text sent to Gemini/Groq to parse dates)</td>
+            <td><strong>Yes</strong> (announcement text sent to Google Gemini to parse dates)</td>
           </tr>
           <tr>
             <td><code>calendar.events</code></td>
@@ -285,7 +285,7 @@
             <td><code>gmail.readonly</code></td>
             <td><strong>Sensitive / Restricted</strong></td>
             <td><strong>OPTIONAL:</strong> Only requested if you explicitly turn on "Scan Gmail". Reads email sender, date, subject, and cleaned body text to extract homework and deadlines. Never sends, deletes, or modifies emails.</td>
-            <td><strong>Yes</strong> (sender, subject, and max 1,500 characters of cleaned text sent to Gemini/Groq)</td>
+            <td><strong>Yes</strong> (sender, subject, and max 1,500 characters of cleaned text sent to Google Gemini)</td>
           </tr>
           <tr>
             <td><code>drive.readonly</code></td>
@@ -309,13 +309,12 @@
         </ul>
       </div>
 
-      <h2>4. Artificial Intelligence Processing Disclosures (Gemini &amp; Groq)</h2>
+      <h2>4. Artificial Intelligence Processing Disclosures (Google Gemini)</h2>
       <p>
         StudentOS uses modern Large Language Models (LLMs) to help students parse complex Vietnamese and English teacher announcements and study materials:
       </p>
       <ul>
-        <li><strong>Primary AI Provider:</strong> Google Gemini API (<code>gemini-flash-latest</code>) via StudentOS serverless proxy.</li>
-        <li><strong>Fallback AI Provider:</strong> Groq API (Meta Llama 3.3, <code>llama-3.3-70b-versatile</code>) for high availability when Gemini is temporarily unreachable. You can disable Groq fallback anytime via the <strong>Allow Groq (Llama) fallback</strong> toggle in the Privacy modal.</li>
+        <li><strong>AI Provider:</strong> Google Gemini API via StudentOS serverless proxy (or your optional personal Gemini API key).</li>
         <li><strong>Data Sent to AI:</strong>
           <ul>
             <li><strong>Gmail:</strong> Sender name and email, subject, timestamp, and up to 1,500 characters of cleaned email body (signatures and nested historical quotes are automatically stripped). Promotional and social emails are excluded by default.</li>
@@ -430,7 +429,7 @@
           <tr>
             <td><code>classroom.announcements.readonly</code></td>
             <td>Đọc thông báo của thầy cô để tìm bài tập hoặc dời lịch nộp thường được nhắn trong mục thông báo.</td>
-            <td><strong>Có</strong> (nội dung thông báo gửi cho Gemini/Groq để tìm ngày nộp)</td>
+            <td><strong>Có</strong> (nội dung thông báo gửi cho Google Gemini để tìm ngày nộp)</td>
           </tr>
           <tr>
             <td><code>calendar.events</code></td>
@@ -445,7 +444,7 @@
           <tr>
             <td><code>gmail.readonly</code><br /><em>(Quyền hạn chế)</em></td>
             <td><strong>CHỈ KHI BẠN BẬT "Quét Gmail":</strong> Đọc người gửi, ngày gửi, tiêu đề và nội dung rút gọn để tìm hạn nộp. Không bao giờ gửi thư, không xoá thư, không đánh dấu đã đọc.</td>
-            <td><strong>Có</strong> (người gửi, tiêu đề, tối đa 1.500 ký tự nội dung sạch gửi cho Gemini/Groq)</td>
+            <td><strong>Có</strong> (người gửi, tiêu đề, tối đa 1.500 ký tự nội dung sạch gửi cho Google Gemini)</td>
           </tr>
           <tr>
             <td><code>drive.readonly</code><br /><em>(Quyền mở rộng thứ 7 tùy chọn)</em></td>
@@ -468,13 +467,12 @@
         </ul>
       </div>
 
-      <h2>4. Xử lý Trí tuệ Nhân tạo (Google Gemini &amp; Groq)</h2>
+      <h2>4. Xử lý Trí tuệ Nhân tạo (Google Gemini)</h2>
       <p>
         StudentOS ứng dụng AI để giúp học sinh tự động phát hiện hạn nộp bài tập từ thư từ của nhà trường:
       </p>
       <ul>
-        <li><strong>AI chính:</strong> Google Gemini API (<code>gemini-flash-latest</code>) qua máy chủ bảo mật của StudentOS.</li>
-        <li><strong>AI dự phòng:</strong> Groq API (Meta Llama 3.3, <code>llama-3.3-70b-versatile</code>) kích hoạt tự động nếu Gemini gặp sự cố kết nối. Bạn có thể tắt tùy chọn này bất cứ lúc nào trong hộp thoại Quyền riêng tư.</li>
+        <li><strong>Nhà cung cấp AI:</strong> Google Gemini API qua máy chủ bảo mật của StudentOS (hoặc khoá Gemini API cá nhân tuỳ chọn của bạn).</li>
         <li><strong>Dữ liệu gửi cho AI:</strong>
           <ul>
             <li><strong>Thư Gmail:</strong> Tên và địa chỉ người gửi, ngày gửi, tiêu đề, và tối đa 1.500 ký tự đầu của nội dung thư (đã cắt bỏ chữ ký và các lượt trích dẫn cũ). Thư quảng cáo và mạng xã hội tự động bị bỏ qua.</li>

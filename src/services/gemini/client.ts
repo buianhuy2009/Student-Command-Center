@@ -5,8 +5,6 @@ import {
   checkDailyQuota,
   incrementQuota,
   getClientGeminiApiKey,
-  callGroqDirect,
-  getClientGroqApiKey,
   GEMINI_DEFAULT_MODEL,
   GEMINI_FALLBACK_MODEL,
   GEMINI_SAFETY_MODELS,
@@ -81,34 +79,11 @@ export async function testGeminiApiKeyDetailed(key: string): Promise<{ ok: boole
   return { ok: false, error: lastError || t('gclient_conn_failed'), model: candidates[0] };
 }
 
-export async function testGroqApiKeyDetailed(key: string): Promise<{ ok: boolean; error?: string }> {
-  const trimmed = (key || '').trim();
-  if (!trimmed) return { ok: false, error: t('gclient_enter_groq_key') };
-  try {
-    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${trimmed}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'llama-3.1-8b-instant', messages: [{ role: 'user', content: 'Respond with "pong".' }], temperature: 0 }),
-    });
-    if (!res.ok) {
-      let detail = res.statusText;
-      try { const data = await res.json(); detail = data?.error?.message || detail; } catch {}
-      if (res.status === 401) return { ok: false, error: t('gclient_groq_401', { detail }).slice(0, 500) };
-      if (res.status === 429) return { ok: false, error: t('gclient_groq_429', { detail }).slice(0, 500) };
-      return { ok: false, error: t('gclient_groq_err', { status: res.status, detail }).slice(0, 500) };
-    }
-    return { ok: true };
-  } catch (err: any) {
-    return { ok: false, error: t('gclient_groq_test_failed', { msg: (err?.message || String(err)).slice(0, 500) }) };
-  }
-}
-
 export async function callGemini(params: {
   contents: any;
   config?: any;
   model?: string;
   candidateModels?: string[];
-  skipGroqFallback?: boolean;
 }): Promise<string> {
   if (!checkDailyQuota()) throw new Error(t('gclient_daily_limit'));
   return rateLimiter.execute(async () => {
@@ -177,19 +152,6 @@ export async function callGemini(params: {
     } catch (e: any) {
       if (!lastErrorMessage) lastErrorMessage = e?.message || String(e);
       console.warn('Server proxy failed:', lastErrorMessage);
-    }
-
-    if (!params.skipGroqFallback && getClientGroqApiKey()) {
-      try {
-        let promptText = '';
-        if (typeof params.contents === 'string') promptText = params.contents;
-        else if (Array.isArray(params.contents)) promptText = params.contents.map((c: any) => (typeof c === 'string' ? c : c.text || '')).join('\n');
-        else if (params.contents?.text) promptText = params.contents.text;
-        const isJson = params.config?.responseMimeType === 'application/json';
-        return await callGroqDirect(promptText || 'Summarize academic task', isJson);
-      } catch (e: any) {
-        lastErrorMessage = e?.message || lastErrorMessage;
-      }
     }
 
     throw new Error(lastErrorMessage || t('gclient_unavailable'));

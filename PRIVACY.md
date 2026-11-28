@@ -27,10 +27,10 @@ StudentOS accesses Google Workspace services solely to aggregate your academic d
 |---|---|---|---|
 | `https://www.googleapis.com/auth/classroom.courses.readonly` | Non-sensitive | Reads course names to categorize tasks by subject. Does not access class rosters or student grades. | **No** |
 | `https://www.googleapis.com/auth/classroom.coursework.me.readonly` | Non-sensitive | Reads assignment titles, descriptions, and teacher-set due dates. | **No** (structured dates are processed directly) |
-| `https://www.googleapis.com/auth/classroom.announcements.readonly` | Non-sensitive | Reads teacher announcements to detect homework and rescheduled deadlines mentioned in announcement text. | **Yes** (announcement text sent to Gemini/Groq to parse dates) |
+| `https://www.googleapis.com/auth/classroom.announcements.readonly` | Non-sensitive | Reads teacher announcements to detect homework and rescheduled deadlines mentioned in announcement text. | **Yes** (announcement text sent to Google Gemini to parse dates) |
 | `https://www.googleapis.com/auth/calendar.events` | Non-sensitive | Reads your schedule to prevent study session clashes and creates study blocks when you tap "Add to Calendar". Never alters or deletes your personal events. | **No** |
 | `https://www.googleapis.com/auth/drive.file` | Non-sensitive | Strictly limited to files created by StudentOS (such as your Master Assignment Tracker Google Sheet) or files you select via Google Picker. Cannot view any other files in your Google Drive. | **No** |
-| `https://www.googleapis.com/auth/gmail.readonly` | **Sensitive / Restricted** | **OPTIONAL:** Only requested if you explicitly turn on "Scan Gmail". Reads email sender, subject, date, and cleaned body snippet to detect homework. Never sends, modifies, or deletes emails. | **Yes** (sender, subject, and max 1,500 chars of cleaned body sent to Gemini/Groq) |
+| `https://www.googleapis.com/auth/gmail.readonly` | **Sensitive / Restricted** | **OPTIONAL:** Only requested if you explicitly turn on "Scan Gmail". Reads email sender, subject, date, and cleaned body snippet to detect homework. Never sends, modifies, or deletes emails. | **Yes** (sender, subject, and max 1,500 chars of cleaned body sent to Google Gemini) |
 | `https://www.googleapis.com/auth/drive.readonly` | **Sensitive (Opt-in 7th Escalation Scope)** | **STRICTLY OPT-IN (Off by default):** Never requested at sign-in or standard sync. Only requested if you explicitly click **"Show all Drive files"** to list non-trashed Drive filenames. | **No** |
 
 ---
@@ -54,8 +54,7 @@ StudentOS accesses Google Workspace services solely to aggregate your academic d
 
 StudentOS utilizes Large Language Models (LLMs) to help students extract deadlines from Vietnamese and English school communications:
 
-- **Primary AI Engine:** Google Gemini API (`gemini-flash-latest`) hosted via StudentOS serverless proxy.
-- **Fallback AI Engine:** Groq API (Meta Llama 3.3, `llama-3.3-70b-versatile`) for fault tolerance when Google Gemini is temporarily unreachable. Users can disable Groq fallback anytime via the **Allow Groq (Llama) fallback** toggle in the Privacy modal.
+- **AI Engine:** Google Gemini API hosted via StudentOS serverless proxy (or your optional personal Gemini API key).
 - **Data Transmitted to AI Endpoints:**
   - **Gmail Scanner:** Sender email and name, subject line, timestamp, and up to 1,500 characters of cleaned body text (headers, quoted historical replies, and email signatures are stripped before transmission). Promotional and social category emails are ignored by default.
   - **Classroom Announcements:** Course title and announcement body text.

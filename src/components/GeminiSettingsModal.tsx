@@ -17,14 +17,9 @@ import {
   getClientGeminiApiKey,
   setClientGeminiApiKey,
   testGeminiApiKeyDetailed,
-  testGroqApiKeyDetailed,
-  getClientGroqApiKey,
-  setClientGroqApiKey,
   maskApiKey,
   getGeminiKeyMeta,
   setGeminiKeyExpiry,
-  getGroqKeyMeta,
-  setGroqKeyExpiry,
   getExpiryStatus,
   getGeminiQuotaStatus,
 } from '../services/gemini';
@@ -41,43 +36,29 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
   onClose,
 }) => {
   const [apiKey, setApiKey] = useState('');
-  const [groqKey, setGroqKey] = useState('');
   const [showKey, setShowKey] = useState(false);
-  const [showGroqKey, setShowGroqKey] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [testStatus, setTestStatus] = useState<'idle' | 'success' | 'failed'>('idle');
   const [statusMessage, setStatusMessage] = useState('');
-  const [isTestingGroq, setIsTestingGroq] = useState(false);
-  const [groqTestStatus, setGroqTestStatus] = useState<'idle' | 'success' | 'failed'>('idle');
-  const [groqStatusMessage, setGroqStatusMessage] = useState('');
   const [vaultPin, setVaultPin] = useState('');
   const [vaultLocked, setVaultLocked] = useState(vaultExists());
   const [sessionOnly, setSessionOnly] = useState(false);
   // Key-manager edit-in-place state (update without re-adding)
   const [editingGemini, setEditingGemini] = useState(false);
   const [editGeminiValue, setEditGeminiValue] = useState('');
-  const [editingGroq, setEditingGroq] = useState(false);
-  const [editGroqValue, setEditGroqValue] = useState('');
   // Optional expiration metadata (stored separately from key values)
   const [geminiExpiry, setGeminiExpiry] = useState('');
-  const [groqExpiry, setGroqExpiry] = useState('');
   const { t } = useT();
 
   const quota = getGeminiQuotaStatus();
   useEffect(() => {
     if (isOpen) {
       const saved = getClientGeminiApiKey();
-      const savedGroq = getClientGroqApiKey();
       setApiKey(saved);
-      setGroqKey(savedGroq);
       setTestStatus(saved ? 'success' : 'idle');
       setStatusMessage(saved ? t('ai_key_plaintext_warn') : '');
-      setGroqTestStatus('idle');
-      setGroqStatusMessage('');
       setEditingGemini(false);
-      setEditingGroq(false);
       setGeminiExpiry(getGeminiKeyMeta().expiresAt || '');
-      setGroqExpiry(getGroqKeyMeta().expiresAt || '');
       try {
         setSessionOnly(!!sessionStorage.getItem('scc_gemini_api_key_session'));
       } catch { setSessionOnly(false); }
@@ -87,7 +68,6 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
   if (!isOpen) return null;
 
   const geminiExpiryStatus = getExpiryStatus(geminiExpiry);
-  const groqExpiryStatus = getExpiryStatus(groqExpiry);
 
   const handleSave = () => {
     setClientGeminiApiKey(apiKey, { sessionOnly });
@@ -97,13 +77,6 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
     setTimeout(() => {
       onClose();
     }, 400);
-  };
-
-  const handleSaveGroq = () => {
-    setClientGroqApiKey(groqKey);
-    if (groqKey.trim() && editingGroq) setEditingGroq(false);
-    setGroqTestStatus('idle');
-    setGroqStatusMessage(groqKey.trim() ? t('ai_key_groq_saved') : t('ai_key_groq_cleared'));
   };
 
   const handleTest = async () => {
@@ -134,42 +107,12 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
     }
   };
 
-  const handleTestGroq = async () => {
-    if (!groqKey.trim()) {
-      setGroqTestStatus('failed');
-      setGroqStatusMessage(t('ai_key_groq_enter_first'));
-      return;
-    }
-    setIsTestingGroq(true);
-    setGroqTestStatus('idle');
-    setGroqStatusMessage(t('ai_key_groq_testing'));
-    const result = await testGroqApiKeyDetailed(groqKey);
-    setIsTestingGroq(false);
-    if (result.ok) {
-      setGroqTestStatus('success');
-      setGroqStatusMessage(t('ai_key_groq_verified'));
-      setClientGroqApiKey(groqKey);
-    } else {
-      setGroqTestStatus('failed');
-      setGroqStatusMessage(result.error || t('ai_key_groq_failed'));
-    }
-  };
-
   const handleClear = () => {
     setApiKey('');
     setClientGeminiApiKey('');
     setEditingGemini(false);
     setTestStatus('idle');
     setStatusMessage(t('ai_key_gemini_cleared'));
-  };
-
-  const handleClearGroq = () => {
-    setGroqKey('');
-    setClientGroqApiKey('');
-    try { localStorage.removeItem('scc_groq_api_key'); } catch {}
-    setEditingGroq(false);
-    setGroqTestStatus('idle');
-    setGroqStatusMessage(t('ai_key_groq_cleared'));
   };
 
   const formatExpiryLabel = (s: ReturnType<typeof getExpiryStatus>) => {
@@ -243,9 +186,9 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
                 {!vaultLocked ? (
                   <button onClick={async()=>{
                     if(vaultPin.length<4){ setStatusMessage(t('ai_key_pin_short')); setTestStatus('failed'); return; }
-                    await vaultSet(vaultPin, { gemini: apiKey, groq: localStorage.getItem('scc_groq_api_key')||'' });
+                    await vaultSet(vaultPin, { gemini: apiKey });
                     setVaultLocked(true); setStatusMessage(t('ai_key_vault_locked_msg')); setTestStatus('success');
-                    localStorage.removeItem('scc_gemini_api_key'); localStorage.removeItem('scc_groq_api_key');
+                    localStorage.removeItem('scc_gemini_api_key');
                   }} className="px-2 py-1 text-xs font-bold bg-emerald-600 text-white rounded-lg">{t('ai_key_vault_lock_btn')}</button>
                 ) : (
                   <>
@@ -253,8 +196,6 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
                       const data = await vaultGet(vaultPin);
                       if(!data){ setStatusMessage(t('ai_key_vault_wrong_pin')); setTestStatus('failed'); return; }
                       if(data.gemini) { setApiKey(data.gemini); setClientGeminiApiKey(data.gemini); }
-                      if(data.groq) try{ localStorage.setItem('scc_groq_api_key', data.groq); }catch{}
-                      if(data.groq) setGroqKey(data.groq);
                       setVaultLocked(false); setStatusMessage(t('ai_key_vault_unlocked_msg')); setTestStatus('success');
                     }} className="px-2 py-1 text-xs font-bold bg-[var(--accent-fill)] text-white rounded-lg">{t('ai_key_vault_unlock_btn')}</button>
                     <button onClick={()=>{ vaultClear(); setVaultLocked(false); setStatusMessage(t('ai_key_vault_cleared')); setTestStatus('idle'); }} className="px-2 py-1 text-xs text-rose-600 border border-rose-200 rounded-lg">{t('ai_key_vault_clear')}</button>
@@ -357,98 +298,6 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
                 </div>
               )}
             </div>
-
-            <div className="h-px bg-[var(--border-default)]" />
-
-            {/* Groq row */}
-            <div className="flex items-start justify-between gap-2 text-xs">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-bold">{t('ai_key_groq_name')}</span>
-                  {groqKey.trim() ? (
-                    <span className="font-mono text-[11px] text-[var(--text-secondary)]">{maskApiKey(groqKey)}</span>
-                  ) : (
-                    <span className="text-[11px] text-[var(--text-muted)]">{t('ai_key_not_configured')}</span>
-                  )}
-                  {expiryBadge(groqExpiryStatus)}
-                </div>
-                {groqExpiryStatus.state === 'expired' && (
-                  <p className="text-[11px] text-[var(--status-warn-text)] mt-1">
-                    {t('ai_key_expired_warn')}
-                  </p>
-                )}
-                {editingGroq ? (
-                  <div className="flex items-center gap-1.5 mt-2">
-                    <input
-                      type={showGroqKey ? 'text' : 'password'}
-                      value={editGroqValue}
-                      onChange={(e) => setEditGroqValue(e.target.value)}
-                      placeholder={t('ai_key_groq_edit_ph')}
-                      className="flex-1 px-2 py-1.5 text-xs font-mono bg-[var(--bg-surface)] border border-[var(--border-default)] text-[var(--text-primary)] rounded-lg focus:outline-none focus:border-[var(--accent-fill)] focus:ring-2 focus:ring-[var(--accent-fill)]/20 text-[var(--text-primary)]"
-                    />
-                    <button
-                      onClick={() => {
-                        if (!editGroqValue.trim()) { setGroqStatusMessage(t('ai_key_need_update')); setGroqTestStatus('failed'); return; }
-                        setGroqKey(editGroqValue.trim());
-                        setClientGroqApiKey(editGroqValue.trim());
-                        setEditingGroq(false);
-                        setGroqTestStatus('idle');
-                        setGroqStatusMessage(t('ai_key_groq_updated'));
-                      }}
-                      className="px-2 py-1.5 text-[11px] font-bold bg-[var(--accent-fill)] text-white rounded-lg"
-                    >
-                      {t('common_save')}
-                    </button>
-                    <button
-                      onClick={() => setEditingGroq(false)}
-                      className="px-2 py-1.5 text-[11px] text-[var(--text-secondary)] border border-[var(--border-default)] rounded-lg"
-                    >
-                      {t('common_cancel')}
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2 mt-2 flex-wrap">
-                    <label className="text-[11px] text-[var(--text-secondary)] flex items-center gap-1">
-                      {t('ai_key_expires_label')}
-                      <input
-                        type="date"
-                        value={groqExpiry}
-                        onChange={(e) => { setGroqExpiry(e.target.value); setGroqKeyExpiry(e.target.value || null); }}
-                        className="px-1.5 py-1 text-[11px] bg-[var(--bg-surface)] border border-[var(--border-default)] text-[var(--text-primary)] rounded-lg"
-                      />
-                    </label>
-                    {groqExpiry && (
-                      <button
-                        onClick={() => { setGroqExpiry(''); setGroqKeyExpiry(null); }}
-                        className="text-[11px] text-[var(--text-muted)] hover:underline"
-                      >
-                        {t('ai_key_clear_date')}
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-              {groqKey.trim() && !editingGroq && (
-                <div className="flex items-center gap-1 shrink-0">
-                  <button
-                    title={t('ai_key_edit_title')}
-                    aria-label={t('ai_key_edit_title')}
-                    onClick={() => { setEditGroqValue(groqKey); setEditingGroq(true); }}
-                    className="p-1.5 text-[var(--text-secondary)] hover:text-[var(--accent-text)] hover:bg-[var(--bg-hover)] rounded-lg border border-transparent hover:border-[var(--border-default)]"
-                  >
-                    <Pencil className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    title={t('ai_key_groq_delete_title')}
-                    aria-label={t('ai_key_groq_delete_title')}
-                    onClick={handleClearGroq}
-                    className="p-1.5 text-[var(--text-secondary)] hover:text-rose-600 hover:bg-[var(--bg-hover)] rounded-lg border border-transparent hover:border-rose-200"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              )}
-            </div>
           </div>
 
           <div>
@@ -473,70 +322,6 @@ export const GeminiSettingsModal: React.FC<GeminiSettingsModalProps> = ({
                 {showKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
               </button>
             </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-[var(--text-primary)] mb-1">
-              {t('ai_key_groq_label')} <span className="font-normal text-[var(--text-muted)]">{t('ai_key_groq_fallback_hint')}</span>
-            </label>
-            <div className="relative">
-              <Key className="w-4 h-4 text-[var(--text-muted)] absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type={showGroqKey ? 'text' : 'password'}
-                value={groqKey}
-                onChange={(e) => setGroqKey(e.target.value)}
-                placeholder="gsk_..."
-                className="w-full pl-9 pr-10 py-2.5 text-xs font-mono bg-[var(--bg-surface)] border border-[var(--border-default)] text-[var(--text-primary)] rounded-xl focus:outline-none focus:border-[var(--accent-fill)] focus:ring-2 focus:ring-[var(--accent-fill)]/20 text-[var(--text-primary)]"
-              />
-              <button
-                type="button"
-                aria-label={showGroqKey ? t('ai_key_hide') : t('ai_key_show')}
-                onClick={() => setShowGroqKey(!showGroqKey)}
-                className="p-1.5 text-[var(--text-muted)] hover:text-[var(--text-primary)] absolute right-2.5 top-1/2 -translate-y-1/2"
-              >
-                {showGroqKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-              </button>
-            </div>
-            <div className="flex items-center gap-2 mt-2">
-              <button
-                onClick={handleTestGroq}
-                disabled={isTestingGroq || !groqKey.trim()}
-                className="px-3 py-1.5 bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] border border-[var(--border-default)] hover:border-[var(--accent-border)] text-[var(--text-primary)] rounded-xl text-[11px] font-bold transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
-              >
-                <RefreshCw className={`w-3 h-3 ${isTestingGroq ? 'animate-spin text-[var(--accent-text)]' : ''}`} />
-                <span>{isTestingGroq ? t('ai_key_verifying') : t('ai_key_groq_test_btn')}</span>
-              </button>
-              <button
-                onClick={handleSaveGroq}
-                className="px-3 py-1.5 bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] border border-[var(--border-default)] hover:border-[var(--accent-border)] text-[var(--text-primary)] rounded-xl text-[11px] font-bold transition-colors cursor-pointer"
-              >
-                {t('ai_key_save_groq_btn')}
-              </button>
-              {groqKey.trim() && (
-                <button
-                  type="button"
-                  onClick={handleClearGroq}
-                  className="text-rose-600 hover:underline font-medium cursor-pointer text-[11px]"
-                >
-                  {t('ai_key_remove')}
-                </button>
-              )}
-            </div>
-            {groqStatusMessage && (
-              <div
-                className={`mt-2 p-2.5 rounded-xl border text-[11px] flex items-center gap-2 ${
-                  groqTestStatus === 'success'
-                    ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300'
-                    : groqTestStatus === 'failed'
-                    ? 'bg-rose-50 dark:bg-rose-950/40 border-rose-300 dark:border-rose-800 text-rose-800 dark:text-rose-300'
-                    : 'bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-300'
-                }`}
-              >
-                {groqTestStatus === 'success' && <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-emerald-600" />}
-                {groqTestStatus === 'failed' && <AlertCircle className="w-3.5 h-3.5 shrink-0 text-rose-600" />}
-                <span className="break-words">{groqStatusMessage}</span>
-              </div>
-            )}
           </div>
 
           {/* Daily quota progress bar — surfaced before error (50/day) */}

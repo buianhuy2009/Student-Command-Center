@@ -2,16 +2,15 @@ import { db } from './db';
 import { getLocaleTag, t } from './i18n';
 import type { AISource, PromptTemplate } from '../types';
 
-/* ---------- BYOK + provider routing (Gemini primary, Groq fallback) ---------- */
+/* ---------- BYOK + provider routing (Google Gemini) ---------- */
 
-export type AIModelId = 'gemini-flash-lite' | 'gemini-flash' | 'gemini-pro' | 'groq-llama';
+export type AIModelId = 'gemini-flash-lite' | 'gemini-flash' | 'gemini-pro';
 export type AITaskKind = 'spam' | 'summarize' | 'essay' | 'code' | 'chat';
 
 export const MODEL_CATALOG: { id: AIModelId; label: string; bestFor: string; cheap: boolean }[] = [
   { id: 'gemini-flash-lite', label: 'Gemini Flash-Lite', bestFor: 'Spam triage, quick labels', cheap: true },
   { id: 'gemini-flash', label: 'Gemini Flash', bestFor: 'Everyday summaries, drafts', cheap: true },
   { id: 'gemini-pro', label: 'Gemini Pro', bestFor: 'Essays, rubrics, hard reasoning', cheap: false },
-  { id: 'groq-llama', label: 'Groq Llama (fallback)', bestFor: 'Overflow when Gemini quota hits', cheap: true },
 ];
 
 /** Per-task default model: cheap for spam, strong for essays. User can override per call. */
@@ -30,15 +29,7 @@ export function getGeminiKey(): string {
     return '';
   }
 }
-export function getGroqKey(): string {
-  try {
-    const local = typeof localStorage !== 'undefined' ? localStorage.getItem('scc_groq_api_key') || '' : '';
-    return local || (import.meta as any).env?.GROQ_API_KEY || (import.meta as any).env?.VITE_GROQ_API_KEY || '';
-  } catch {
-    return '';
-  }
-}
-export function hasAnyAIKey(): boolean { return Boolean(getGeminiKey() || getGroqKey()); }
+export function hasAnyAIKey(): boolean { return Boolean(getGeminiKey()); }
 
 /* ---------- Token usage meter (IndexedDB, per day / model / task) ---------- */
 
@@ -76,7 +67,6 @@ function resolveApiModelName(model: AIModelId): string {
     case 'gemini-pro':
       return 'gemini-3.6-flash';
     case 'gemini-flash':
-    case 'groq-llama':
     default:
       return 'gemini-3-flash-preview';
   }
@@ -104,7 +94,7 @@ async function emitChunkedAnswer(
 
 /**
  * Stream an answer. Uses server `/api/gemini/generate` JSON route when available, else falls back
- * to direct Gemini REST or Groq (BYOK) when configured, strictly rejecting non-JSON HTML responses.
+ * to direct Gemini REST (BYOK) when configured, strictly rejecting non-JSON HTML responses.
  */
 export async function streamAnswerWithSources(
   prompt: string,
@@ -117,38 +107,36 @@ export async function streamAnswerWithSources(
   const apiModel = resolveApiModelName(model);
   let primaryError = '';
 
-  if (model !== 'groq-llama') {
-    try {
-      const res = await fetch('/api/gemini/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents: prompt.slice(0, 12000), model: apiModel }),
-        signal: callbacks.signal,
-      });
-      const contentType = res.headers?.get?.('content-type') || '';
-      if (!contentType.includes('application/json')) {
-        throw new Error(t('airouter_unexpected_res', { status: res.status, contentType: contentType || t('airouter_unknown_type') }));
-      }
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data?.error || t('airouter_route_err', { status: res.status }));
-      }
-      const text = String(data?.text || '').trim();
-      if (!text) {
-        throw new Error(t('airouter_empty_server'));
-      }
-      await emitChunkedAnswer(text, sources, data?.model || model, task, callbacks);
-      return;
-    } catch (e: any) {
-      if (callbacks.signal?.aborted) return;
-      primaryError = e?.message || t('airouter_server_failed');
+  try {
+    const res = await fetch('/api/gemini/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents: prompt.slice(0, 12000), model: apiModel }),
+      signal: callbacks.signal,
+    });
+    const contentType = res.headers?.get?.('content-type') || '';
+    if (!contentType.includes('application/json')) {
+      throw new Error(t('airouter_unexpected_res', { status: res.status, contentType: contentType || t('airouter_unknown_type') }));
     }
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data?.error || t('airouter_route_err', { status: res.status }));
+    }
+    const text = String(data?.text || '').trim();
+    if (!text) {
+      throw new Error(t('airouter_empty_server'));
+    }
+    await emitChunkedAnswer(text, sources, data?.model || model, task, callbacks);
+    return;
+  } catch (e: any) {
+    if (callbacks.signal?.aborted) return;
+    primaryError = e?.message || t('airouter_server_failed');
   }
 
-  // Fallback: direct BYOK Gemini REST or Groq if user configured local API keys
+  // Fallback: direct BYOK Gemini REST if user configured a local API key
   try {
     const geminiKey = getGeminiKey();
-    if (geminiKey && model !== 'groq-llama') {
+    if (geminiKey) {
       const r = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(apiModel)}:generateContent?key=${encodeURIComponent(geminiKey)}`,
         {
@@ -169,32 +157,6 @@ export async function streamAnswerWithSources(
       const text = String(j?.candidates?.[0]?.content?.parts?.map((p: any) => p.text).join('') || '').trim();
       if (!text) throw new Error(t('airouter_gemini_empty'));
       await emitChunkedAnswer(text, sources, model, task, callbacks);
-      return;
-    }
-
-    const groqKey = getGroqKey();
-    if (groqKey) {
-      const gr = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${groqKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'llama-3.3-70b-versatile',
-          messages: [{ role: 'user', content: prompt.slice(0, 12000) }],
-          temperature: 0.3,
-        }),
-        signal: callbacks.signal,
-      });
-      const grType = gr.headers?.get?.('content-type') || '';
-      if (!grType.includes('application/json')) {
-        throw new Error(t('airouter_groq_nonjson', { status: gr.status }));
-      }
-      const gd = await gr.json();
-      if (!gr.ok) {
-        throw new Error(gd?.error?.message || t('airouter_groq_err', { status: gr.status }));
-      }
-      const text = String(gd?.choices?.[0]?.message?.content || '').trim();
-      if (!text) throw new Error(t('airouter_groq_empty'));
-      await emitChunkedAnswer(text, sources, 'groq-llama', task, callbacks);
       return;
     }
 

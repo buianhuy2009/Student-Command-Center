@@ -1,8 +1,6 @@
 export interface StudentPrivacyPrefs {
   /** Allow sending trimmed assignment/schedule/alert summary context to AI Tutor (default: true). */
   shareAcademicContextWithTutor: boolean;
-  /** Allow automatic fallback to Groq (Llama) when Google Gemini is unavailable (default: true). */
-  allowGroqFallback: boolean;
   /** Socratic Hint-Only mode is always enforced for student safety. */
   enforceHintOnlyTutor: true;
 }
@@ -12,7 +10,6 @@ export const PRIVACY_PREFS_EVENT = 'scc-privacy-prefs-updated';
 
 const DEFAULT_PREFS: StudentPrivacyPrefs = {
   shareAcademicContextWithTutor: true,
-  allowGroqFallback: true,
   enforceHintOnlyTutor: true,
 };
 
@@ -35,10 +32,6 @@ export function getPrivacyPrefs(): StudentPrivacyPrefs {
         typeof record.shareAcademicContextWithTutor === 'boolean'
           ? record.shareAcademicContextWithTutor
           : DEFAULT_PREFS.shareAcademicContextWithTutor,
-      allowGroqFallback:
-        typeof record.allowGroqFallback === 'boolean'
-          ? record.allowGroqFallback
-          : DEFAULT_PREFS.allowGroqFallback,
       enforceHintOnlyTutor: true,
     };
   } catch {
@@ -47,7 +40,7 @@ export function getPrivacyPrefs(): StudentPrivacyPrefs {
 }
 
 export function updatePrivacyPrefs(
-  partial: Partial<Pick<StudentPrivacyPrefs, 'shareAcademicContextWithTutor' | 'allowGroqFallback'>>
+  partial: Partial<Pick<StudentPrivacyPrefs, 'shareAcademicContextWithTutor'>>
 ): StudentPrivacyPrefs {
   const current = getPrivacyPrefs();
   const next: StudentPrivacyPrefs = {
@@ -55,10 +48,6 @@ export function updatePrivacyPrefs(
       typeof partial.shareAcademicContextWithTutor === 'boolean'
         ? partial.shareAcademicContextWithTutor
         : current.shareAcademicContextWithTutor,
-    allowGroqFallback:
-      typeof partial.allowGroqFallback === 'boolean'
-        ? partial.allowGroqFallback
-        : current.allowGroqFallback,
     enforceHintOnlyTutor: true,
   };
   if (hasStorage()) {

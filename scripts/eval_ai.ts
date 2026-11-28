@@ -50,10 +50,9 @@ const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..')
 const EVAL = path.join(ROOT, 'eval');
 const OUT = path.join(EVAL, 'results');
 const TODAY = '2026-10-16T15:00:00Z';
-const GROQ_MODELS = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
 
 type RunMode = 'local' | 'remote';
-type ProviderName = 'gemini' | 'groq' | 'remote' | 'offline';
+type ProviderName = 'gemini' | 'remote' | 'offline';
 
 interface CallMeta {
   model: string;
@@ -326,50 +325,6 @@ async function postRemote(route: string, body: Record<string, unknown>, tries = 
   throw lastErr;
 }
 
-async function callGroqLocal(prompt: string, config: GenerateConfig): Promise<GenerateResult> {
-  const key = String(process.env.GROQ_API_KEY || '').trim();
-  if (!key) throw new Error('Missing GROQ_API_KEY for local fallback');
-  let lastErr: unknown;
-  const started = Date.now();
-  for (const model of GROQ_MODELS) {
-    const messages: Array<{ role: string; content: string }> = [];
-    if (config.systemInstruction) {
-      messages.push({ role: 'system', content: config.systemInstruction });
-    }
-    messages.push({ role: 'user', content: prompt });
-    const payload: Record<string, unknown> = {
-      model,
-      messages,
-      temperature: config.temperature ?? 0.2,
-    };
-    if (config.responseMimeType === 'application/json') {
-      payload.response_format = { type: 'json_object' };
-    }
-    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
-      body: JSON.stringify(payload),
-    });
-    if (res.ok) {
-      const data = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
-      const text = String(data?.choices?.[0]?.message?.content || '');
-      if (text) {
-        return {
-          text,
-          meta: {
-            model: `groq/${model}`,
-            provider: 'groq',
-            latencyMs: Date.now() - started,
-            fallbackUsed: true,
-          },
-        };
-      }
-    }
-    lastErr = new Error(`Groq ${model} HTTP ${res.status}`);
-  }
-  throw lastErr || new Error('All Groq local models failed');
-}
-
 async function generateLocal(contents: string, config: GenerateConfig = {}, tries = 4): Promise<GenerateResult> {
   const hasGemini = Boolean(String(process.env.GEMINI_API_KEY || '').trim());
   const candidates = config.candidateModels && config.candidateModels.length > 0 ? config.candidateModels : (SERVER_MODELS as string[]);
@@ -408,11 +363,7 @@ async function generateLocal(contents: string, config: GenerateConfig = {}, trie
     }
   }
 
-  if (String(process.env.GROQ_API_KEY || '').trim()) {
-    await paceCall();
-    return callGroqLocal(contents, config);
-  }
-  throw lastErr || new Error('Local mode requires GEMINI_API_KEY or GROQ_API_KEY');
+  throw lastErr || new Error('Local mode requires GEMINI_API_KEY');
 }
 
 async function generate(contents: string, config: GenerateConfig = {}): Promise<GenerateResult> {

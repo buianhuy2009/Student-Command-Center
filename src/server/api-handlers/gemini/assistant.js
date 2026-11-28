@@ -17,9 +17,6 @@ function truncateForLog(text) {
   return String(text || "").replace(/\s+/g, " ").trim().slice(0, MAX_LOG_PROMPT_CHARS);
 }
 
-const GROQ_CHAT_MODELS = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"];
-const GROQ_VISION_MODELS = ["meta-llama/llama-4-scout-17b-16e-instruct"];
-
 function normalizeMessageImages(images) {
   if (!Array.isArray(images)) return [];
   return images
@@ -29,66 +26,6 @@ function normalizeMessageImages(images) {
       mimeType: typeof img?.mimeType === "string" ? img.mimeType.trim() : "image/jpeg",
     }))
     .filter((img) => img.base64.length > 0 && img.mimeType.startsWith("image/"));
-}
-
-async function callServerGroq(messages, systemInstruction) {
-  const apiKey = String(process.env.GROQ_API_KEY || "").trim();
-  if (!apiKey) {
-    const err = new Error("Quick tier backup uses Groq, which is not configured on this server (missing GROQ_API_KEY).");
-    err.status = 503;
-    throw err;
-  }
-
-  const hasImages = (messages || []).some((m) => normalizeMessageImages(m?.images).length > 0);
-  const models = hasImages ? GROQ_VISION_MODELS : GROQ_CHAT_MODELS;
-
-  const groqMessages = [
-    { role: "system", content: systemInstruction },
-    ...(messages || []).map((m) => {
-      const role = m?.role === "assistant" ? "assistant" : "user";
-      const text = String(m?.content || "");
-      const imgs = role === "user" ? normalizeMessageImages(m?.images) : [];
-      if (hasImages && imgs.length > 0) {
-        return {
-          role,
-          content: [
-            { type: "text", text: text || "Please examine the attached image(s) and help me understand." },
-            ...imgs.map((img) => ({
-              type: "image_url",
-              image_url: { url: `data:${img.mimeType};base64,${img.base64}` },
-            })),
-          ],
-        };
-      }
-      return { role, content: text };
-    }),
-  ];
-
-  let lastErr = null;
-  for (const model of models) {
-    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model,
-        messages: groqMessages,
-        temperature: 0.3,
-      }),
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      const text = String(data?.choices?.[0]?.message?.content || "").trim();
-      if (text) return { text, model };
-    } else {
-      const detail = await response.text().catch(() => "");
-      lastErr = new Error(`Groq ${response.status}: ${detail.slice(0, 180)}`);
-    }
-  }
-  throw lastErr || new Error("Groq did not return a reply.");
 }
 
 function buildFormattedContents(messages) {
@@ -132,7 +69,6 @@ export default async function handler(req, res) {
 
   try {
     const { messages, context, mode: rawMode } = req.body || {};
-    const allowGroqFallback = req.body?.allowGroqFallback !== false;
     const mode = normalizeCoachMode(rawMode);
 
     // Other studio tools (flashcards, outline, brief, summary, study_plan) reuse this endpoint
@@ -179,58 +115,14 @@ ${JSON.stringify(context || {}, null, 2)}`;
         ? [...COACH_MODE_MODELS.reasoning, ...COACH_MODE_MODELS.balanced]
         : mode === "reasoning"
           ? COACH_MODE_MODELS.balanced
-          : COACH_MODE_MODELS.quick;
+          : mode === "quick"
+            ? hasImages
+              ? VISION_CHEAPEST_MODELS
+              : COACH_MODE_MODELS.balanced
+            : COACH_MODE_MODELS.quick;
     const candidateModels = [...new Set([...tierModels, ...crossTierBackup])];
 
     async function generatePrimaryReply() {
-      // Quick tier: Gemma 4 (31B -> 26B) first, then Groq (if allowed), then cheapest Gemini vision backup if images are attached.
-      if (mode === "quick") {
-        let gemmaErr = null;
-        if (process.env.GEMINI_API_KEY) {
-          try {
-            const { response, model } = await generateWithModelFallback({
-              candidateModels: COACH_MODE_MODELS.quick,
-              contents: formattedContents,
-              config: { systemInstruction },
-            });
-            const reply = String(response?.text || "").trim();
-            if (reply) {
-              return { reply, provider: "gemini", model };
-            }
-          } catch (err) {
-            gemmaErr = err;
-          }
-        }
-        let groqErr = null;
-        if (allowGroqFallback) {
-          try {
-            const { text, model } = await callServerGroq(messages, systemInstruction);
-            return { reply: text, provider: "groq", model };
-          } catch (err) {
-            groqErr = err;
-          }
-        }
-        if (hasImages && process.env.GEMINI_API_KEY) {
-          try {
-            const { response, model } = await generateWithModelFallback({
-              candidateModels: VISION_CHEAPEST_MODELS,
-              contents: formattedContents,
-              config: { systemInstruction },
-            });
-            const reply = String(response?.text || "").trim();
-            if (reply) {
-              return { reply, provider: "gemini", model };
-            }
-          } catch {}
-        }
-        if (gemmaErr || groqErr) {
-          throw gemmaErr || groqErr;
-        }
-        const err = new Error("Gemini API key is not configured and Groq fallback is disabled.");
-        err.status = 503;
-        throw err;
-      }
-
       const { response, model } = await generateWithModelFallback({
         candidateModels,
         contents: formattedContents,
@@ -264,13 +156,9 @@ Rewrite into a safe, hint-only Socratic reply in the same language as the studen
 
       let rewritten = "";
       try {
-        if (generated.provider === "groq" && allowGroqFallback) {
-          const resGroq = await callServerGroq([{ role: "user", content: rewritePrompt }], strictRewriteSystem);
-          rewritten = String(resGroq?.text || "").trim();
-        } else if (process.env.GEMINI_API_KEY) {
-          const rewriteModels = mode === "quick" ? COACH_MODE_MODELS.quick : candidateModels;
+        if (process.env.GEMINI_API_KEY) {
           const resGem = await generateWithModelFallback({
-            candidateModels: rewriteModels,
+            candidateModels,
             contents: [{ role: "user", parts: [{ text: rewritePrompt }] }],
             config: { systemInstruction: strictRewriteSystem },
           });

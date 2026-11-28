@@ -11,7 +11,6 @@ export default async function handler(req, res) {
     status: "ok",
     platform: process.env.VERCEL ? "vercel-serverless" : "node-server",
     hasGeminiKey: Boolean(process.env.GEMINI_API_KEY),
-    hasGroqKey: Boolean(process.env.GROQ_API_KEY),
     hasGoogleOAuth,
     models: SERVER_MODELS,
     timestamp: new Date().toISOString(),

@@ -21,5 +21,4 @@ export const STORAGE_KEYS = {
   sidebarExpanded: 'scc_sidebar_expanded',
   pinnedApps: 'scc_pinned_apps_v2',
   geminiKey: 'scc_gemini_api_key',
-  groqKey: 'scc_groq_api_key',
 } as const;

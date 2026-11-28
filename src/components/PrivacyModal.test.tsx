@@ -14,7 +14,7 @@ const EMOJI_RE = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u;
 describe('privacy page', () => {
   beforeEach(() => {
     window.localStorage.clear();
-    updatePrivacyPrefs({ shareAcademicContextWithTutor: true, allowGroqFallback: true });
+    updatePrivacyPrefs({ shareAcademicContextWithTutor: true });
   });
 
   it('explains every scope the app actually requests, in Vietnamese', () => {
@@ -97,17 +97,14 @@ describe('privacy page', () => {
     });
 
     const checkboxes = container.querySelectorAll<HTMLInputElement>('input[type="checkbox"]');
-    expect(checkboxes.length).toBe(2);
+    expect(checkboxes.length).toBe(1);
     expect(checkboxes[0].checked).toBe(true);
-    expect(checkboxes[1].checked).toBe(true);
 
     act(() => {
       checkboxes[0].click();
-      checkboxes[1].click();
     });
 
     expect(getPrivacyPrefs().shareAcademicContextWithTutor).toBe(false);
-    expect(getPrivacyPrefs().allowGroqFallback).toBe(false);
 
     act(() => {
       root.unmount();

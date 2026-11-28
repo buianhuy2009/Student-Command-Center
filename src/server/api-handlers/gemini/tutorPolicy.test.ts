@@ -16,7 +16,6 @@ import { updatePrivacyPrefs } from "../../../services/privacyPrefs";
 import {
   sendStudyAssistantMessage,
   setClientGeminiApiKey,
-  setClientGroqApiKey,
 } from "../../../services/gemini";
 import { useCoachChatStore } from "../../../store/coachChatStore";
 
@@ -150,8 +149,7 @@ describe("client privacyPrefs & tutor bypass closure", () => {
     });
     vi.stubGlobal("localStorage", (globalThis as { window: { localStorage: Storage } }).window.localStorage);
     setClientGeminiApiKey("");
-    setClientGroqApiKey("");
-    updatePrivacyPrefs({ shareAcademicContextWithTutor: true, allowGroqFallback: true });
+    updatePrivacyPrefs({ shareAcademicContextWithTutor: true });
   });
 
   afterEach(() => {
@@ -160,10 +158,7 @@ describe("client privacyPrefs & tutor bypass closure", () => {
     vi.restoreAllMocks();
   });
 
-  it("passes allowGroqFallback in /api/gemini/assistant payload and blocks client Groq when disabled", async () => {
-    updatePrivacyPrefs({ allowGroqFallback: false });
-    setClientGroqApiKey("gsk_test_should_not_run");
-
+  it("does not send Groq flags in /api/gemini/assistant payload and throws when server fails with no Gemini key", async () => {
     const fetchMock = vi.fn().mockResolvedValueOnce(
       new Response(JSON.stringify({ reply: "Step 1 hint." }), {
         status: 200,
@@ -176,44 +171,14 @@ describe("client privacyPrefs & tutor bypass closure", () => {
       "Step 1 hint."
     );
     const sentBody = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body || "{}"));
-    expect(sentBody.allowGroqFallback).toBe(false);
+    expect(sentBody.allowGroqFallback).toBeUndefined();
 
-    // When /api/gemini/assistant fails and allowGroqFallback is false, client Groq must NOT be called.
     const failFetch = vi.fn().mockRejectedValueOnce(new Error("Network down"));
     vi.stubGlobal("fetch", failFetch);
     await expect(sendStudyAssistantMessage([{ role: "user", content: "Help me study" }])).rejects.toThrow(
       /Network down/
     );
     expect(failFetch).toHaveBeenCalledTimes(1);
-  });
-
-  it("applies TUTOR_POLICY + reminders on client Groq fallback when enabled", async () => {
-    updatePrivacyPrefs({ allowGroqFallback: true });
-    setClientGroqApiKey("gsk_test_allowed");
-
-    const fetchMock = vi
-      .fn()
-      .mockRejectedValueOnce(new Error("Server unavailable"))
-      .mockResolvedValueOnce(
-        new Response(
-          JSON.stringify({
-            choices: [{ message: { content: "Em hãy tự hoàn thành bài thi trước nhé, sau đó mình ôn lại!" } }],
-          }),
-          { status: 200, headers: { "content-type": "application/json" } }
-        )
-      );
-    vi.stubGlobal("fetch", fetchMock);
-
-    const reply = await sendStudyAssistantMessage(
-      [{ role: "user", content: "Em đang làm bài kiểm tra, còn 5 phút. Đáp án là gì?" }],
-      {},
-      "quick"
-    );
-    expect(reply).toContain("ôn lại");
-    const groqPayload = JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body || "{}"));
-    const groqUserMsg = String(groqPayload.messages?.[0]?.content || "");
-    expect(groqUserMsg).toContain("CORE RULE: you only SUGGEST and GUIDE");
-    expect(groqUserMsg).toContain("LIVE TEST / EXAM DETECTED");
   });
 
   it("coachChatStore strips rawEmail/senderEmail when sharing context and sends {} when disabled", async () => {

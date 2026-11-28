@@ -16,7 +16,6 @@ import {
   summarizeEmailsWithGemini,
   partitionEmailsForAIScan,
   mergeScannedEmailAlerts,
-  setClientGroqApiKey,
 } from './gemini';
 import { canMakeGeminiRequest, rateLimiter } from './gemini/rateLimiter';
 import { streamAnswerWithSources } from './aiRouter';
@@ -371,52 +370,13 @@ describe('canvas, firebase, ambientAudio, and srsEngine hardening', () => {
     expect(QUALITY_LABELS[1].color).not.toContain('bg-rose-500');
   });
 
-  it('summarizeEmailsWithGemini falls back to client Groq BYOK when server returns ai_unavailable', async () => {
-    setClientGroqApiKey('gsk_test_client_key');
-    const fetchMock = vi.fn()
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify({ alerts: [{ id: 'm1', aiStatus: 'failed' }], model: null, error: 'ai_unavailable' }), {
-          status: 200,
-          headers: { 'content-type': 'application/json' },
-        })
-      )
-      .mockResolvedValueOnce(
-        new Response(
-          JSON.stringify({
-            choices: [
-              {
-                message: {
-                  content: JSON.stringify({
-                    alerts: [
-                      {
-                        id: 'm1',
-                        sender: 'Ms. Lan',
-                        subject: 'Math Homework',
-                        oneLineSummary: 'Submit worksheet by Friday',
-                        urgency: 'HIGH',
-                        category: 'ASSIGNMENT',
-                        categoryLabel: 'Bài tập',
-                        isSpam: false,
-                        confidence: 0.92,
-                        detectedAssignment: {
-                          isAssignment: true,
-                          name: 'Math Worksheet',
-                          subject: 'Toán',
-                          dueDate: '2026-11-27',
-                          dueConfidence: 'explicit',
-                          dueEvidence: 'Friday 27/11',
-                          priority: 'High',
-                        },
-                      },
-                    ],
-                  }),
-                },
-              },
-            ],
-          }),
-          { status: 200, headers: { 'content-type': 'application/json' } }
-        )
-      );
+  it('summarizeEmailsWithGemini returns honest failed alerts when server returns ai_unavailable and no client Gemini key is set', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(
+      new Response(JSON.stringify({ alerts: [{ id: 'm1', aiStatus: 'failed' }], model: null, error: 'ai_unavailable' }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      })
+    );
     vi.stubGlobal('fetch', fetchMock);
 
     const alerts = await summarizeEmailsWithGemini([
@@ -433,9 +393,9 @@ describe('canvas, firebase, ambientAudio, and srsEngine hardening', () => {
       },
     ]);
 
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(alerts).toHaveLength(1);
-    expect(alerts[0]).toMatchObject({ id: 'm1', aiStatus: 'ok', category: 'ASSIGNMENT' });
+    expect(alerts[0]).toMatchObject({ id: 'm1', aiStatus: 'failed', needsReview: true });
   });
 
   it('scans all emails including SPAM/PROMOTIONS and incrementally skips already-scanned ones', async () => {
