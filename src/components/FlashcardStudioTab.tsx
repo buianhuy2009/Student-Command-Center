@@ -253,7 +253,7 @@ Example format:
 ]`,
             },
           ],
-          context: { tool: 'flashcard-generator', topic: genTopic },
+          context: { tool: 'flashcards', topic: genTopic },
         }),
       });
 
