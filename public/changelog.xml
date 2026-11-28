@@ -6,6 +6,12 @@
     <description>Plain-English updates to StudentOS — what changed and why it matters for studying.</description>
     <language>en-us</language>
     <item>
+      <title>v3.6.5 — Full 19 Metrics &amp; 50 Tests Visible on /minh-chung (v2.16.0 vs v3.6)</title>
+      <link>https://sutdent-command-center.vercel.app/?changelog=3.6.5</link>
+      <pubDate>Sat, 28 Nov 2026 03:28:00 GMT</pubDate>
+      <description>StudentOS v3.6.5 explicitly labels Before (v2.16.0) vs After (v3.6) on /minh-chung and renders all 19 accuracy/error metrics, 4 Socratic guardrail layers, and all 50 interactive test cases directly on the page in an airy layout.</description>
+    </item>
+    <item>
       <title>v3.6.4 — Minimalist Before &amp; After Evidence Page (/minh-chung)</title>
       <link>https://sutdent-command-center.vercel.app/?changelog=3.6.4</link>
       <pubDate>Sat, 28 Nov 2026 03:16:00 GMT</pubDate>

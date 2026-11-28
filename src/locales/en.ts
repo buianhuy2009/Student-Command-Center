@@ -3935,6 +3935,11 @@ export const en = {
   changelog_r_3_6_4_h1: 'Spacious, scannable Before vs After story cards with zero clutter or repeated widgets.',
   changelog_r_3_6_4_d1: 'Removed duplicate summary cards and tucked the 19-metric breakdown and 50-case inspector into clean 1-click drawers so judges grasp Before vs After in 10 seconds.',
 
+  // Changelog v3.6.5
+  changelog_r_3_6_5_t: 'Full 19 Metrics & 50 Tests Visible on /minh-chung with v2.16.0 vs v3.6 Labels',
+  changelog_r_3_6_5_h1: 'Explicitly labels Before (v2.16.0) vs After (v3.6) and displays all 19 metrics, 4 Socratic layers, and all 50 test cases directly.',
+  changelog_r_3_6_5_d1: 'Removed collapsed drawers hiding metrics and test cases while keeping the airy, scannable layout.',
+
 } as const;
 
 export type TranslationKey = keyof typeof en;

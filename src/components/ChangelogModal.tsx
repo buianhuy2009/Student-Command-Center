@@ -4,7 +4,7 @@ import { useT, type TranslationKey } from '../services/i18n';
 
 type Batch3Key = TranslationKey;
 
-export const CURRENT_VERSION = '3.6.4';
+export const CURRENT_VERSION = '3.6.5';
 
 interface VersionRelease {
   version: string;
@@ -17,10 +17,17 @@ interface VersionRelease {
 
 const RELEASES: VersionRelease[] = [
   {
+    version: '3.6.5',
+    isoDate: '2026-11-28',
+    titleKey: 'changelog_r_3_6_5_t',
+    badgeKey: 'changelog_latest_badge',
+    highlightKeys: ['changelog_r_3_6_5_h1'],
+    detailKeys: ['changelog_r_3_6_5_d1'],
+  },
+  {
     version: '3.6.4',
     isoDate: '2026-11-28',
     titleKey: 'changelog_r_3_6_4_t',
-    badgeKey: 'changelog_latest_badge',
     highlightKeys: ['changelog_r_3_6_4_h1'],
     detailKeys: ['changelog_r_3_6_4_d1'],
   },

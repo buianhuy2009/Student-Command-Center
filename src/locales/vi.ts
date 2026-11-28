@@ -3927,4 +3927,9 @@ export const vi = {
   changelog_r_3_6_4_h1: 'Bố cục thoáng rộng tập trung vào 3 câu chuyện Trước vs Sau rõ ràng, không còn dồn chữ.',
   changelog_r_3_6_4_d1: 'Bỏ 3 thẻ lặp thừa, gom bảng 19 chỉ số và 50 ca kiểm thử vào mục mở rộng 1 chạm để Ban Giám khảo nắm rõ Trước & Sau trong 10 giây.',
 
+  // Changelog v3.6.5
+  changelog_r_3_6_5_t: 'Hiển thị đầy đủ 19 chỉ số & 50 ca test trên /minh-chung kèm nhãn phiên bản v2.16.0 vs v3.6',
+  changelog_r_3_6_5_h1: 'Ghi rõ phiên bản Trước (v2.16.0) vs Sau (v3.6) và mở sẵn toàn bộ 19 chỉ số, 4 lớp Socratic và 50 ca kiểm thử.',
+  changelog_r_3_6_5_d1: 'Không ẩn bảng chỉ số hay danh sách 50 ca sau mục đóng gọn, đồng thời giữ bố cục thoáng rộng, ngắn gọn dễ đọc.',
+
 } satisfies Record<TranslationKey, string>;
