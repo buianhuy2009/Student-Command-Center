@@ -6,6 +6,12 @@
     <description>Plain-English updates to StudentOS — what changed and why it matters for studying.</description>
     <language>en-us</language>
     <item>
+      <title>v3.6.8 — Cleaner Canvas Settings — Removed Duplicate Reminder</title>
+      <link>https://sutdent-command-center.vercel.app/?changelog=3.6.8</link>
+      <pubDate>Sat, 28 Nov 2026 04:10:00 GMT</pubDate>
+      <description>StudentOS v3.6.8 removes the duplicated Note press Save and Sync in the Canvas tab note from Settings Connections so the Canvas section stays clean.</description>
+    </item>
+    <item>
       <title>v3.6.7 — Search Fixes, Classroom Done List, Chat History &amp; Live PhET Catalog</title>
       <link>https://sutdent-command-center.vercel.app/?changelog=3.6.7</link>
       <pubDate>Sat, 28 Nov 2026 03:39:02 GMT</pubDate>
