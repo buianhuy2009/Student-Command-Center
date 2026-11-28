@@ -3915,4 +3915,11 @@ export const vi = {
   changelog_r_3_6_2_d1: 'Bổ sung trang web minh chứng tương tác public/minh-chung.html gắn đường dẫn /minh-chung đọc trực tiếp dữ liệu thật từ eval/results/summary.json và bộ 50 ca kiểm thử.',
   changelog_r_3_6_2_d2: 'Tích hợp thư viện ảnh chụp màn hình có chế độ phóng to, sơ đồ 6+1 quyền truy cập Google và 4 lớp bảo vệ Gia sư Socratic.',
 
+  // Changelog v3.6.3
+  changelog_r_3_6_3_t: 'Tối ưu trang Minh chứng /minh-chung: cuộn liền mạch & thống nhất thang điểm',
+  changelog_r_3_6_3_h1: 'Cuộn liền mạch không cần bấm chuyển tab, sắp xếp trực quan: Biểu đồ -> Ảnh thực tế -> Quyền & AI -> 50 ca -> Nguồn.',
+  changelog_r_3_6_3_h2: 'Thống nhất toàn trang theo quy ước càng cao càng tốt (100% = 0 lỗi) và định nghĩa rõ Trước vs Sau.',
+  changelog_r_3_6_3_d1: 'Loại bỏ các đoạn văn dài và thanh chuyển tab trên public/minh-chung.html, chuyển sang thẻ ngắn dễ quét mắt trong vài giây.',
+  changelog_r_3_6_3_d2: 'Chuyển toàn bộ thanh so sánh tỷ lệ lỗi sang thang độ chính xác (càng cao càng tốt) kèm nhãn số lỗi cụ thể bên cạnh.',
+
 } satisfies Record<TranslationKey, string>;

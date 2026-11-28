@@ -6,6 +6,12 @@
     <description>Plain-English updates to StudentOS — what changed and why it matters for studying.</description>
     <language>en-us</language>
     <item>
+      <title>v3.6.3 — Streamlined /minh-chung Showcase: Continuous Scroll &amp; Unified Scale</title>
+      <link>https://sutdent-command-center.vercel.app/?changelog=3.6.3</link>
+      <pubDate>Sat, 28 Nov 2026 03:05:00 GMT</pubDate>
+      <description>StudentOS v3.6.3 redesigns /minh-chung into a fast, scroll-first visual showcase (Charts, Screenshots, Permissions &amp; AI, 50 Cases, Sources) with unified higher-is-better comparisons, a clear Before vs After legend, and zero walls of text.</description>
+    </item>
+    <item>
       <title>v3.6.2 — Interactive Evidence Showcase (/minh-chung)</title>
       <link>https://sutdent-command-center.vercel.app/?changelog=3.6.2</link>
       <pubDate>Sat, 28 Nov 2026 02:47:00 GMT</pubDate>

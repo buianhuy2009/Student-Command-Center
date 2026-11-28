@@ -3923,6 +3923,13 @@ export const en = {
   changelog_r_3_6_2_d1: 'Added a standalone interactive evidence hub at /minh-chung generated directly from eval/results/summary.json and the 50 anonymized benchmark runs.',
   changelog_r_3_6_2_d2: 'Includes a 5-screenshot lightbox gallery, 6+1 Google scope cards, AI data-flow split view, and the 4-layer Socratic Tutor architecture.',
 
+  // Changelog v3.6.3
+  changelog_r_3_6_3_t: 'Streamlined /minh-chung Showcase: Continuous Scroll & Unified Scale',
+  changelog_r_3_6_3_h1: 'Replaced tab clicks with continuous scrolling in visual-first order: Charts -> Screenshots -> Permissions & AI -> 50 Cases -> Sources.',
+  changelog_r_3_6_3_h2: 'Unified all metrics to higher-is-better (100% = 0 errors) with a clear Before vs After legend.',
+  changelog_r_3_6_3_d1: 'Eliminated walls of text across public/minh-chung.html using compact badges, micro-labels, and a collapsible 50-case list.',
+  changelog_r_3_6_3_d2: 'Converted every breakdown bar to higher-is-better accuracy while still displaying exact error counts and percentages.',
+
 } as const;
 
 export type TranslationKey = keyof typeof en;
