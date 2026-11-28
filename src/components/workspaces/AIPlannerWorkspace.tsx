@@ -32,6 +32,7 @@ import {
   applyOps,
   buildCommandPrompt,
   describeBlock,
+  detectAmbiguousRequest,
   diffPlans,
   enforceLocks,
   fallbackParse,
@@ -1062,6 +1063,11 @@ export const AIPlannerWorkspace: React.FC<AIPlannerWorkspaceProps> = ({
       }
     }
     if (ops.length === 0) {
+      const clarify = detectAmbiguousRequest(text, base.blocks, lang);
+      if (clarify) {
+        say(clarify);
+        return;
+      }
       if (parsed === null) {
         replanFromText(text); // AI unavailable and no rule matched: old keyword re-plan
       } else {

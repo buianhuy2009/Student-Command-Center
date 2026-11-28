@@ -1,8 +1,11 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { describe, it, expect } from 'vitest';
 import {
   applyOps,
   buildCommandPrompt,
   describeBlock,
+  detectAmbiguousRequest,
   diffPlans,
   enforceLocks,
   fallbackParse,
@@ -216,6 +219,168 @@ describe('parseOpsResponse + prompt', () => {
     expect(p).toContain('Thứ 7 (Saturday) = 2026-10-24');
     expect(p).toContain('LOCKED');
     expect(p).toContain('dời Toán sang thứ 7');
+    expect(p).toContain('môn em yếu');
     expect(describeBlock(BLOCKS[0])).toBe('Toán · Thứ 3 19:00–20:00');
   });
+});
+
+describe('detectAmbiguousRequest', () => {
+  it('catches diacritic and no-diacritic Vietnamese ambiguous subject requests', () => {
+    const q1 = detectAmbiguousRequest('Em muốn học nhiều hơn môn em yếu', BLOCKS, 'vi');
+    expect(q1).toBeTruthy();
+    expect(q1).toContain('?');
+    expect(q1).toContain('Toán');
+    expect(q1).toContain('Ngữ văn');
+
+    const q2 = detectAmbiguousRequest('em muon hoc nhieu hon mon yeu', BLOCKS, 'vi');
+    expect(q2).toBeTruthy();
+    expect(q2).toContain('?');
+
+    const q3 = detectAmbiguousRequest('cho em hoc them mon kho di', BLOCKS, 'vi');
+    expect(q3).toBeTruthy();
+    expect(q3).toContain('?');
+  });
+
+  it('supports English clarifying question and returns null when a concrete subject is named', () => {
+    const qEn = detectAmbiguousRequest('I want to study more on my weak subject', BLOCKS, 'en');
+    expect(qEn).toBeTruthy();
+    expect(qEn).toContain('?');
+    expect(qEn).toContain('Toán');
+
+    expect(detectAmbiguousRequest('Em muốn học nhiều hơn môn Toán', BLOCKS, 'vi')).toBeNull();
+    expect(detectAmbiguousRequest('Dời buổi Toán tối thứ 3 sang sáng thứ 7', BLOCKS, 'vi')).toBeNull();
+    expect(detectAmbiguousRequest('hôm qua trời đẹp quá', BLOCKS, 'vi')).toBeNull();
+  });
+});
+
+describe('eval/schedule-commands.json — all 10 cases offline', () => {
+  interface EvalBaseBlock {
+    id: string;
+    subject: string;
+    title: string;
+    day: string;
+    start: string;
+    end: string;
+    locked: boolean;
+  }
+  interface EvalScheduleCase {
+    id: string;
+    command: string;
+    intent: string;
+    mustChange?: Array<{
+      match?: { id?: string; subject?: string };
+      to?: { day?: string; notDay?: string; period?: 'morning' | 'afternoon' | 'evening'; endBy?: string; maxMinutes?: number; keepDuration?: boolean };
+    }>;
+    mustAdd?: Array<{ subject: string; dayIn?: string[]; minMinutes?: number }>;
+    mustSay?: string[];
+    mustNotChange?: string[];
+  }
+
+  const DAY_IDX: Record<string, number> = { Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 };
+  const PERIOD_BOUNDS: Record<'morning' | 'afternoon' | 'evening', [number, number]> = {
+    morning: [360, 720],
+    afternoon: [720, 1080],
+    evening: [1080, 1380],
+  };
+  const toMin = (hhmmStr: string) => Number(hhmmStr.slice(0, 2)) * 60 + Number(hhmmStr.slice(3, 5));
+  const evalDir = path.resolve(process.cwd(), 'eval');
+  const rawPlan = JSON.parse(fs.readFileSync(path.join(evalDir, 'base-plan.json'), 'utf-8')) as EvalBaseBlock[];
+  const cases = JSON.parse(fs.readFileSync(path.join(evalDir, 'schedule-commands.json'), 'utf-8')) as EvalScheduleCase[];
+
+  const makeBasePlan = (): PlanBlockLite[] =>
+    rawPlan.map((b) => ({
+      id: b.id,
+      taskKey: b.id,
+      title: b.title,
+      subject: b.subject,
+      dayISO: DAYS[DAY_IDX[b.day]],
+      startMin: toMin(b.start),
+      endMin: toMin(b.end),
+      reason: '',
+      kind: 'study' as const,
+      locked: Boolean(b.locked),
+    }));
+
+  for (const c of cases) {
+    it(`${c.id} (${c.intent}): passes offline with zero locked violations and zero overlaps`, () => {
+      const before = makeBasePlan();
+      const ops = fallbackParse(c.command, before, DAYS);
+      let after = before.map((b) => ({ ...b }));
+      let said = '';
+
+      if (ops.length === 0) {
+        said = detectAmbiguousRequest(c.command, before, 'vi') || '';
+      } else {
+        const res = applyOps(before, ops, { days: DAYS, busy: [], lang: 'vi' });
+        after = enforceLocks(before, res.blocks, { days: DAYS, busy: [] });
+        said = [...res.applied, ...res.refused].join(' ');
+      }
+
+      const byId = new Map(after.map((b) => [b.id, b]));
+      const orig = new Map(before.map((b) => [b.id, b]));
+      const sameSlot = (a?: PlanBlockLite, b?: PlanBlockLite) =>
+        Boolean(a && b && a.dayISO === b.dayISO && a.startMin === b.startMin && a.endMin === b.endMin);
+
+      // Zero locked-block violations
+      for (const b of before.filter((x) => x.locked)) {
+        expect(sameSlot(b, byId.get(b.id)), `locked ${b.id} moved`).toBe(true);
+      }
+
+      // Zero overlaps
+      const sorted = [...after].sort((a, b) => a.dayISO.localeCompare(b.dayISO) || a.startMin - b.startMin);
+      for (let i = 1; i < sorted.length; i += 1) {
+        if (sorted[i].dayISO === sorted[i - 1].dayISO) {
+          expect(sorted[i].startMin >= sorted[i - 1].endMin, `overlap ${sorted[i - 1].id}/${sorted[i].id}`).toBe(true);
+        }
+      }
+
+      // mustNotChange
+      for (const id of c.mustNotChange || []) {
+        expect(sameSlot(orig.get(id), byId.get(id)), `${id} unexpectedly changed`).toBe(true);
+      }
+
+      // mustChange
+      for (const m of c.mustChange || []) {
+        const targets = m.match?.id
+          ? [byId.get(m.match.id)].filter((x): x is PlanBlockLite => Boolean(x))
+          : after.filter((b) => !m.match?.subject || fold(b.subject).includes(fold(m.match.subject)));
+        const t = m.to || {};
+        const ok = targets.some((b) => {
+          const o = orig.get(b.id);
+          if (t.day && b.dayISO !== DAYS[DAY_IDX[t.day]]) return false;
+          if (t.notDay && b.dayISO === DAYS[DAY_IDX[t.notDay]]) return false;
+          if (t.period && !(b.startMin >= PERIOD_BOUNDS[t.period][0] && b.endMin <= PERIOD_BOUNDS[t.period][1])) return false;
+          if (t.endBy && b.endMin > toMin(t.endBy)) return false;
+          if (t.maxMinutes && b.endMin - b.startMin > t.maxMinutes) return false;
+          if (t.keepDuration && o && b.endMin - b.startMin !== o.endMin - o.startMin) return false;
+          if (!t.day && !t.notDay && !t.period && !t.endBy && !t.maxMinutes && sameSlot(o, b)) return false;
+          return true;
+        });
+        expect(ok, `expected change on ${m.match?.id || m.match?.subject || '?'} not made`).toBe(true);
+      }
+
+      // mustAdd
+      for (const add of c.mustAdd || []) {
+        const okAdd = after.some((b) => {
+          if (orig.has(b.id) || !fold(b.subject).includes(fold(add.subject))) return false;
+          if (add.dayIn && !add.dayIn.map((d) => DAYS[DAY_IDX[d]]).includes(b.dayISO)) return false;
+          if (add.minMinutes && b.endMin - b.startMin < add.minMinutes) return false;
+          return true;
+        });
+        expect(okAdd, `missing added ${add.subject}`).toBe(true);
+      }
+
+      // mustSay
+      const foldedSaid = fold(said);
+      for (const phrase of c.mustSay || []) {
+        const p = phrase.toLowerCase();
+        if (p.includes('locked')) {
+          expect(foldedSaid.includes('khoa') || foldedSaid.includes('lock'), 'missing lock notice').toBe(true);
+        }
+        if (p.startsWith('asks')) {
+          expect(said.includes('?') || foldedSaid.includes('yeu'), 'missing clarifying question').toBe(true);
+        }
+      }
+    });
+  }
 });

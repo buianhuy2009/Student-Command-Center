@@ -304,7 +304,8 @@ export function buildCommandPrompt(
   lines.push('4. Match subjects loosely: Toán = math; Văn = Ngữ văn; Anh = Tiếng Anh; KHTN = Khoa học tự nhiên; Sử/Địa = Lịch sử và Địa lí.');
   lines.push('5. "bận"/"nghỉ"/"không học"/"busy"/"off" + a day (and optional period) → clear_day.');
   lines.push('6. If you cannot tell which session or which day is meant, return "ops": [], "unclear": true and ask ONE short question in the student\'s language in "question".');
-  lines.push('7. "reply": one short friendly sentence in Vietnamese (English only if the student wrote English) saying what changed.');
+  lines.push('7. If the student mentions an unnamed weak, hard, or vague subject ("môn em yếu", "môn khó", "môn nào đó", "weak subject", or "học nhiều hơn" without naming a subject), NEVER guess a subject or rewrite the week; return "ops": [], "unclear": true and ask in "question" which specific subject from the timetable they want to focus on.');
+  lines.push('8. "reply": one short friendly sentence in Vietnamese (English only if the student wrote English) saying what changed.');
   lines.push('Examples:');
   lines.push('"Dời buổi Toán tối thứ 3 sang sáng thứ 7" → {"ops":[{"op":"move","blockId":"<Toán Tuesday-evening id>","toDayISO":"<Saturday date>","period":"morning"}],"reply":"Mình đã dời buổi Toán sang sáng thứ 7 nhé.","unclear":false,"question":""}');
   lines.push('"tuần này em bận tối thứ 5" → {"ops":[{"op":"clear_day","dayISO":"<Thursday date>","period":"evening"}],"reply":"Mình đã để trống tối thứ 5 cho bạn.","unclear":false,"question":""}');
@@ -1401,6 +1402,31 @@ function parseLatestEnd(plain: string): number | null {
   if (h < 5 && mark !== 'pm' && mark !== 'toi' && mark !== 'dem' && mark !== 'chieu') return null; // "trước 2h" is not a bedtime
   if ((mark === 'pm' || mark === 'toi' || mark === 'dem' || mark === 'chieu' || !mark) && h < 12 && mark !== 'am' && mark !== 'sang') h += 12;
   return clamp(h * 60 + mm, 60, 1440);
+}
+
+const AMBIGUOUS_SUBJECT_RE =
+  /\b(mon em yeu|mon yeu|mon minh yeu|mon nao yeu|mon kho|mon em kho|mon nao do|mon kia|mon nay|mon do|weak subject|weakest subject|hard subject|difficult subject|struggling subject|some subject|hoc nhieu hon|on nhieu hon|tang them buoi|them buoi hoc|study more)\b/;
+
+/**
+ * Detects requests that ask to study a vague or unnamed weak/hard subject
+ * (e.g. "Em muốn học nhiều hơn môn em yếu") when no concrete subject is named.
+ * Returns a localized clarifying question listing available subjects, or null.
+ */
+export function detectAmbiguousRequest(text: string, blocks: PlanBlockLite[], lang: Lang = 'vi'): string | null {
+  const sessions = (blocks || []).filter(isSession);
+  const analysis = analyze(text, []);
+  if (findSubjects(analysis, sessions).length > 0) return null;
+  const plain = fold(text).replace(/[^a-z0-9]+/g, ' ').trim();
+  if (!AMBIGUOUS_SUBJECT_RE.test(plain)) return null;
+  const subjects = Array.from(new Set(sessions.map((b) => b.subject).filter(Boolean)));
+  if (lang === 'en') {
+    return subjects.length > 0
+      ? `Which weak subject would you like to study more? Your current timetable includes: ${subjects.join(', ')}.`
+      : 'Which weak subject would you like to study more?';
+  }
+  return subjects.length > 0
+    ? `Bạn muốn học nhiều hơn môn nào (môn bạn thấy yếu)? Lịch hiện tại của bạn có: ${subjects.join(', ')}.`
+    : 'Bạn muốn học nhiều hơn môn nào (môn bạn thấy yếu)?';
 }
 
 /** Regex/keyword fallback when the AI is unavailable. Returns [] when nothing is understood. */
