@@ -3932,4 +3932,11 @@ export const vi = {
   changelog_r_3_6_5_h1: 'Ghi rõ phiên bản Trước (v2.16.0) vs Sau (v3.6) và mở sẵn toàn bộ 19 chỉ số, 4 lớp Socratic và 50 ca kiểm thử.',
   changelog_r_3_6_5_d1: 'Không ẩn bảng chỉ số hay danh sách 50 ca sau mục đóng gọn, đồng thời giữ bố cục thoáng rộng, ngắn gọn dễ đọc.',
 
+  // Changelog v3.6.6
+  changelog_r_3_6_6_t: 'Giải thích rõ cách kiểm thử & lý do từng ca FAIL trên /minh-chung',
+  changelog_r_3_6_6_h1: 'Hiển thị đầy đủ người gửi, ngày gửi, nội dung email và lý do cụ thể cho mọi ca FAIL (kèm tên mô hình & độ trễ).',
+  changelog_r_3_6_6_h2: 'Bổ sung khung 3 bước giải thích quy trình chạy lệnh kiểm thử thật và quy tắc chấm gắt 6 tiêu chí.',
+  changelog_r_3_6_6_d1: 'Sửa lỗi đọc trường lồng raw.email trên scripts/build_evidence_page.mjs để hiển thị đúng người gửi, thời gian và nội dung email ẩn danh.',
+  changelog_r_3_6_6_d2: 'Tự động liệt kê chính xác tiêu chí lệch (ví dụ: lệch nhãn ưu tiên Med vs High) cho từng ca FAIL trên public/minh-chung.html.',
+
 } satisfies Record<TranslationKey, string>;

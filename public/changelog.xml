@@ -6,6 +6,12 @@
     <description>Plain-English updates to StudentOS — what changed and why it matters for studying.</description>
     <language>en-us</language>
     <item>
+      <title>v3.6.6 — Transparent Test Methodology &amp; Exact Per-Case FAIL Reasons (/minh-chung)</title>
+      <link>https://sutdent-command-center.vercel.app/?changelog=3.6.6</link>
+      <pubDate>Sat, 28 Nov 2026 03:36:00 GMT</pubDate>
+      <description>StudentOS v3.6.6 fixes email sender/date display on /minh-chung, adds exact per-case FAIL explanations with model and latency metadata, and documents the 3-step live evaluation methodology clearly on the page.</description>
+    </item>
+    <item>
       <title>v3.6.5 — Full 19 Metrics &amp; 50 Tests Visible on /minh-chung (v2.16.0 vs v3.6)</title>
       <link>https://sutdent-command-center.vercel.app/?changelog=3.6.5</link>
       <pubDate>Sat, 28 Nov 2026 03:28:00 GMT</pubDate>

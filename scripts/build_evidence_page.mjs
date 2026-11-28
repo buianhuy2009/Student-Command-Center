@@ -1,12 +1,10 @@
 #!/usr/bin/env node
 /**
- * Generates public/minh-chung.html — airy, scannable, scroll-first judge evidence page
- * with ZERO removed tests or hidden sections:
+ * Generates public/minh-chung.html — airy, transparent, scroll-first judge evidence page:
+ * - Fixes email metadata extraction (raw.email.sender, raw.email.date, raw.email.body)
+ * - Displays exact per-case FAIL reasons from checks / fails / judge + model & latency
+ * - Explains clearly HOW the tests were executed and graded (reproducible methodology)
  * - Explicitly labels Before = v2.16.0 (Chặng 1) vs After = v3.6 (Chặng 2)
- * - Unified Higher-is-Better scale (100% = 0 errors) with exact error counts
- * - Scroll order: 1. Before/After & all 19 metrics -> 2. 5 Screenshots
- *                 -> 3. 6+1 Permissions, AI Data & 4 Socratic Layers
- *                 -> 4. All 50 interactive test cases -> 5. Sources & PII Audit
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -28,21 +26,56 @@ const emailBeforeMap = new Map((emailsBefore.rows || []).map((r) => [r.id, r]));
 const schedBeforeMap = new Map((schedBefore.rows || []).map((r) => [r.id, r]));
 const tutorBeforeMap = new Map((tutorBefore.rows || []).map((r) => [r.id, r]));
 
+function computeEmailFailReasons(r) {
+  const reasons = [];
+  const exp = r.expected || {};
+  const got = r.got || {};
+  const c = r.checks || {};
+  if (got.aiStatus && got.aiStatus !== 'ok') {
+    reasons.push(`AI bỏ sót hoặc lỗi xử lý (${got.aiStatus})`);
+  }
+  if (c.notHidden === false) {
+    reasons.push('Bị ẩn nhầm thành quảng cáo/mạng xã hội');
+  }
+  if (c.category === false) {
+    reasons.push(`Sai phân loại: kỳ vọng ${exp.category}, AI trả ${got.category || 'trống'}`);
+  }
+  if (c.isAssignment === false) {
+    reasons.push(`Sai nhận diện bài tập: kỳ vọng ${exp.isAssignment}, AI trả ${String(got.isAssignment)}`);
+  }
+  if (c.dueDate === false) {
+    reasons.push(`Sai hạn nộp: kỳ vọng ${exp.dueDate || 'không có'}, AI trả ${got.dueDate || 'không có'}`);
+  }
+  if (c.subject === false) {
+    reasons.push(`Sai môn học: AI trả "${got.subject || 'trống'}"`);
+  }
+  if (c.priority === false) {
+    reasons.push(`Lệch nhãn ưu tiên: kỳ vọng ${exp.priority}, AI trả ${got.priority || 'trống'} (không ảnh hưởng hạn nộp/bài tập)`);
+  }
+  return reasons;
+}
+
 const dataset = {
+  generatedAt: summary.generatedAt,
   summary,
   emails: (emailsAfter.rows || []).map((r) => {
     const raw = emailRawMap.get(r.id) || {};
+    const em = raw.email || {};
     const bef = emailBeforeMap.get(r.id) || {};
     return {
       id: r.id,
-      subject: r.subject,
-      sender: raw.sender || '',
-      date: raw.date || '',
-      body: (raw.body || '').slice(0, 500),
+      subject: r.subject || em.subject || '',
+      sender: em.sender || '',
+      senderEmail: em.senderEmail || '',
+      date: em.date || '',
+      body: (em.body || '').slice(0, 520),
       expected: r.expected,
       beforePass: Boolean(bef.pass),
       afterPass: Boolean(r.pass),
       afterGot: r.got || null,
+      failReasons: r.pass ? [] : computeEmailFailReasons(r),
+      model: r.meta?.model || '',
+      latencyMs: r.meta?.latencyMs || 0,
     };
   }),
   schedule: (schedAfter.rows || []).map((r) => {
@@ -50,21 +83,29 @@ const dataset = {
     return {
       id: r.id,
       command: r.command,
+      expect: r.expect || '',
       beforePass: Boolean(bef.pass),
       beforeSaid: bef.said || '(Không có phản hồi)',
       afterPass: Boolean(r.pass),
       afterSaid: r.said || '',
+      failReasons: r.fails || [],
+      model: r.meta?.model || '',
+      latencyMs: r.meta?.latencyMs || 0,
     };
   }),
   tutor: (tutorAfter.rows || []).map((r) => {
     const bef = tutorBeforeMap.get(r.id) || {};
     return {
       id: r.id,
+      kind: r.kind || '',
       prompt: r.prompt,
       beforePass: Boolean(bef.pass),
       beforeReply: (bef.reply || '').slice(0, 700),
       afterPass: Boolean(r.pass),
       afterReply: (r.reply || '').slice(0, 700),
+      judgeReason: r.judge?.reason || '',
+      model: r.meta?.model || '',
+      latencyMs: r.meta?.latencyMs || 0,
     };
   }),
 };
@@ -117,7 +158,6 @@ const html = `<!DOCTYPE html>
     a { color: var(--accent-dark); text-decoration: none; }
     a:hover { text-decoration: underline; }
 
-    /* Minimal Sticky Topbar */
     .topbar {
       position: sticky; top: 0; z-index: 40;
       background: rgba(250, 247, 242, 0.93);
@@ -141,11 +181,9 @@ const html = `<!DOCTYPE html>
     .nav a.cta { background: var(--accent); color: #fff; }
     .nav a.cta:hover { background: var(--accent-dark); }
 
-    /* Airy Container */
     .wrap { max-width: 980px; margin: 0 auto; padding: 40px 24px 88px; }
     section { scroll-margin-top: 76px; margin-bottom: 60px; }
 
-    /* Calm Hero */
     .hero { text-align: center; padding: 8px 0 4px; margin-bottom: 44px; }
     .eyebrow {
       display: inline-block; padding: 5px 14px; border-radius: 999px;
@@ -173,7 +211,6 @@ const html = `<!DOCTYPE html>
     .btn.solid { background: var(--accent); border-color: var(--accent); color: #fff; }
     .btn.solid:hover { background: var(--accent-dark); }
 
-    /* Section Header */
     .sec-title {
       display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap;
       margin-bottom: 20px;
@@ -185,7 +222,6 @@ const html = `<!DOCTYPE html>
       padding: 4px 12px; border-radius: 999px;
     }
 
-    /* Spacious Story Cards */
     .stack { display: flex; flex-direction: column; gap: 20px; }
     .card {
       background: var(--surface); border: 1px solid var(--border); border-radius: 20px;
@@ -225,7 +261,6 @@ const html = `<!DOCTYPE html>
     .fill-after.accent { background: var(--accent); }
     .bar-val { width: 46px; text-align: right; font-weight: 800; }
 
-    /* All 19 Metrics (Spacious & Visible!) */
     .m-row {
       display: grid; grid-template-columns: 230px 1fr 130px; align-items: center; gap: 16px;
       padding: 11px 0; border-bottom: 1px dashed var(--border); font-size: 13.5px;
@@ -234,7 +269,6 @@ const html = `<!DOCTYPE html>
     @media (max-width: 700px) { .m-row { grid-template-columns: 1fr; gap: 6px; } }
     .m-err { font-size: 12px; color: var(--muted); text-align: right; font-weight: 600; }
 
-    /* Screenshots */
     .gallery { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
     @media (max-width: 700px) { .gallery { grid-template-columns: 1fr; } }
     .shot {
@@ -245,9 +279,18 @@ const html = `<!DOCTYPE html>
     .shot img { width: 100%; height: 225px; object-fit: cover; object-position: top; display: block; border-bottom: 1px solid var(--border); }
     .shot-cap { padding: 14px 18px; font-size: 14px; font-weight: 700; }
 
-    /* Permissions & Guardrails */
     .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
     @media (max-width: 720px) { .grid-2 { grid-template-columns: 1fr; } }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 18px; }
+    @media (max-width: 760px) { .grid-3 { grid-template-columns: 1fr; } }
+    .method-box {
+      border-radius: 16px; padding: 16px 18px;
+      background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow);
+    }
+    .method-step { font-size: 11px; font-weight: 800; color: var(--accent-dark); text-transform: uppercase; letter-spacing: .04em; }
+    .method-box strong { display: block; font-size: 14.5px; margin: 4px 0; }
+    .method-box span { font-size: 13px; color: var(--muted); }
+
     .chips { display: flex; flex-wrap: wrap; gap: 8px; }
     .chip {
       padding: 7px 12px; border-radius: 10px; font-size: 13px; font-weight: 700;
@@ -266,7 +309,6 @@ const html = `<!DOCTYPE html>
     .layer-box strong { display: block; font-size: 14px; margin-bottom: 2px; }
     .layer-box span { font-size: 13px; color: var(--muted); }
 
-    /* Visible 50-Case Explorer */
     .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; margin-bottom: 14px; }
     .btn-group { display: flex; flex-wrap: wrap; gap: 6px; }
     .fbtn {
@@ -292,8 +334,18 @@ const html = `<!DOCTYPE html>
     .pill.neutral { background: var(--subtle); color: var(--muted); }
     .case-body { display: none; padding: 14px 16px; border-top: 1px solid var(--border); background: #FAF8F5; font-size: 13px; }
     .case-item.open .case-body { display: block; }
+    .fail-box {
+      margin-top: 10px; padding: 10px 12px; border-radius: 10px;
+      background: var(--err-bg); border: 1px solid var(--err-border); color: var(--err);
+      font-size: 12.5px; font-weight: 600;
+    }
+    .ok-box {
+      margin-top: 10px; padding: 10px 12px; border-radius: 10px;
+      background: var(--ok-bg); border: 1px solid var(--ok-border); color: var(--ok);
+      font-size: 12.5px; font-weight: 600;
+    }
+    .meta-line { margin-top: 8px; font-size: 11.5px; color: var(--muted); }
 
-    /* Lightbox */
     .lightbox {
       position: fixed; inset: 0; z-index: 100; background: rgba(20, 18, 16, 0.9);
       display: none; align-items: center; justify-content: center; padding: 24px;
@@ -324,7 +376,7 @@ const html = `<!DOCTYPE html>
         <a href="#truoc-sau">1. Trước &amp; Sau</a>
         <a href="#anh-thuc-te">2. Ảnh thực tế</a>
         <a href="#quyen-rieng-tu">3. Quyền &amp; AI</a>
-        <a href="#bo-50-ca">4. 50 ca test</a>
+        <a href="#bo-50-ca">4. Cách test &amp; 50 ca</a>
         <a href="#nguon">5. Nguồn &amp; PII</a>
         <a class="cta" href="https://sutdent-command-center.vercel.app" target="_blank" rel="noreferrer">Mở StudentOS</a>
       </nav>
@@ -332,7 +384,7 @@ const html = `<!DOCTYPE html>
   </header>
 
   <main class="wrap">
-    <!-- CALM HERO WITH EXPLICIT VERSION COMPARISON -->
+    <!-- CALM HERO -->
     <section class="hero">
       <span class="eyebrow">Minh chứng Cải tiến · Kiểm thử 50 ca AI &amp; Bảo vệ Dữ liệu</span>
       <h1>So sánh Trước &amp; Sau Cải tiến</h1>
@@ -348,7 +400,7 @@ const html = `<!DOCTYPE html>
       </div>
     </section>
 
-    <!-- SECTION 1: BEFORE vs AFTER + ALL 19 METRICS VISIBLE -->
+    <!-- SECTION 1: BEFORE vs AFTER + ALL 19 METRICS -->
     <section id="truoc-sau">
       <div class="sec-title">
         <h2>1. Trước (v2.16.0) vs Sau (v3.6) &amp; Toàn bộ 19 chỉ số</h2>
@@ -356,7 +408,6 @@ const html = `<!DOCTYPE html>
       </div>
 
       <div class="stack">
-        <!-- Tutor Story + 4 Metrics -->
         <article class="card">
           <div class="card-head">
             <h3>Gia sư AI chỉ gợi ý (10 câu hỏi)</h3>
@@ -375,7 +426,6 @@ const html = `<!DOCTYPE html>
           <div id="bars-tutor"></div>
         </article>
 
-        <!-- Schedule Story + 6 Metrics -->
         <article class="card">
           <div class="card-head">
             <h3>Đổi lịch học tiếng Việt (10 câu lệnh)</h3>
@@ -394,7 +444,6 @@ const html = `<!DOCTYPE html>
           <div id="bars-schedule"></div>
         </article>
 
-        <!-- Email Story + 9 Metrics -->
         <article class="card">
           <div class="card-head">
             <h3>Quét 30 Email trường học ẩn danh</h3>
@@ -467,23 +516,43 @@ const html = `<!DOCTYPE html>
       </div>
     </section>
 
-    <!-- SECTION 4: ALL 50 TEST CASES VISIBLE DIRECTLY -->
+    <!-- SECTION 4: HOW TESTS WERE DONE + ALL 50 CASES WITH EXPLICIT FAIL REASONS -->
     <section id="bo-50-ca">
       <div class="sec-title">
-        <h2>4. Toàn bộ 50 ca kiểm thử (bấm dòng bất kỳ để xem Trước vs Sau)</h2>
+        <h2>4. Cách thực hiện kiểm thử &amp; Toàn bộ 50 ca</h2>
+        <span style="font-size:12.5px;color:var(--muted);font-weight:700;">Chạy thật lúc 2026-11-28 02:16 UTC</span>
       </div>
+
+      <div class="grid-3">
+        <div class="method-box">
+          <div class="method-step">Bước 1 · Bộ đề chuẩn hóa</div>
+          <strong>50 tình huống học đường ẩn danh</strong>
+          <span>30 thư (<code>emails.json</code>), 10 lệnh lịch (<code>schedule-commands.json</code> trên 13 buổi), 10 câu gia sư (<code>tutor-prompts.json</code>).</span>
+        </div>
+        <div class="method-box">
+          <div class="method-step">Bước 2 · Chạy mô hình thật</div>
+          <strong><code>npx tsx scripts/eval_ai.ts all --local</code></strong>
+          <span>Gọi trực tiếp Google Gemini thật (<code>gemini-3.5-flash-lite</code>, <code>gemini-3-flash-preview</code>, <code>gemini-3.1-flash-lite</code>), lưu nguyên bản JSON vào <code>eval/results/</code>.</span>
+        </div>
+        <div class="method-box">
+          <div class="method-step">Bước 3 · Chấm gắt tự động</div>
+          <strong>Đúng cả 100% tiêu chí mới PASS</strong>
+          <span>Email phải khớp đồng thời 6 trường (ẩn, loại, bài tập, hạn, môn, ưu tiên). Lệch dù chỉ 1 trường (vd: ưu tiên <code>Med</code> vs <code>High</code>) vẫn ghi <code>FAIL</code> và nêu rõ lý do.</span>
+        </div>
+      </div>
+
       <div class="card">
         <div class="controls">
           <div class="btn-group">
-            <button class="fbtn active" data-suite="tutor">10 Gia sư AI (100%)</button>
+            <button class="fbtn active" data-suite="emails">30 Email (50%)</button>
             <button class="fbtn" data-suite="schedule">10 Đổi lịch (90%)</button>
-            <button class="fbtn" data-suite="emails">30 Email (50%)</button>
+            <button class="fbtn" data-suite="tutor">10 Gia sư AI (100%)</button>
           </div>
           <div class="btn-group">
             <button class="fbtn active" data-filter="all">Tất cả</button>
             <button class="fbtn" data-filter="pass">PASS</button>
             <button class="fbtn" data-filter="fail">FAIL</button>
-            <input id="case-search" class="search-box" type="search" placeholder="Tìm mã (t06, s07, e08)..." />
+            <input id="case-search" class="search-box" type="search" placeholder="Tìm mã (e03, s10, t06)..." />
           </div>
         </div>
         <div id="case-list"></div>
@@ -519,7 +588,7 @@ const html = `<!DOCTYPE html>
     </section>
 
     <footer>
-      <div>StudentOS v3.6.5 · So sánh v2.16.0 (Trước) vs v3.6 (Sau)</div>
+      <div>StudentOS v3.6.6 · So sánh v2.16.0 (Trước) vs v3.6 (Sau)</div>
       <div><a href="/privacy">Quyền riêng tư</a> · <a href="https://github.com/buianhuy2009/Student-Command-Center" target="_blank" rel="noreferrer">GitHub</a></div>
     </footer>
   </main>
@@ -582,8 +651,7 @@ const html = `<!DOCTYPE html>
       ['wrongPriority', 'Khớp nhãn ưu tiên'],
     ]);
 
-    // Visible 50-Case Explorer (ALL cases shown for selected suite)
-    let suite = 'tutor';
+    let suite = 'emails';
     let filter = 'all';
     let query = '';
 
@@ -604,12 +672,17 @@ const html = `<!DOCTYPE html>
         const aftPill = it.afterPass ? '<span class="pill ok">v3.6: PASS</span>' : '<span class="pill err">v3.6: FAIL</span>';
         let body = '';
         if (suite === 'tutor') {
-          body = \`<strong>Trước (v2.16.0):</strong> \${esc(it.beforeReply)}<hr style="border:none;border-top:1px solid var(--border);margin:10px 0;"/><strong>Sau (v3.6 Socratic):</strong> \${esc(it.afterReply)}\`;
+          body = \`<strong>Trước (v2.16.0):</strong> \${esc(it.beforeReply)}<hr style="border:none;border-top:1px solid var(--border);margin:10px 0;"/><strong>Sau (v3.6 Socratic):</strong> \${esc(it.afterReply)}\${it.judgeReason ? '<div class="ok-box">Đánh giá tự động: ' + esc(it.judgeReason) + '</div>' : ''}<div class="meta-line">Mô hình: <code>\${esc(it.model)}</code> · Độ trễ: \${it.latencyMs}ms</div>\`;
         } else if (suite === 'schedule') {
-          body = \`<strong>Trước (v2.16.0):</strong> \${esc(it.beforeSaid)}<br/><br/><strong>Sau (v3.6):</strong> \${esc(it.afterSaid)}\`;
+          const failHtml = it.failReasons?.length ? '<div class="fail-box">Lý do FAIL: ' + esc(it.failReasons.join('; ')) + '</div>' : '<div class="ok-box">Đạt toàn bộ tiêu chí (không vi phạm khóa, không trùng lịch).</div>';
+          body = \`<strong>Trước (v2.16.0):</strong> \${esc(it.beforeSaid)}<br/><br/><strong>Sau (v3.6):</strong> \${esc(it.afterSaid)}\${failHtml}<div class="meta-line">Mô hình: <code>\${esc(it.model)}</code> · Độ trễ: \${it.latencyMs}ms</div>\`;
         } else {
           const g = it.afterGot || {};
-          body = \`<strong>\${esc(it.sender)}</strong> (\${esc(it.date)})<br/>Kỳ vọng: <code>\${esc(it.expected?.category)}</code> · Hạn <code>\${esc(it.expected?.dueDate || 'không')}</code> · Ưu tiên <code>\${esc(it.expected?.priority || 'N/A')}</code><br/>AI v3.6: <code>\${esc(g.category || 'N/A')}</code> · Hạn <code>\${esc(g.dueDate || 'không')}</code> · Môn <code>\${esc(g.subject || 'N/A')}</code> · Ưu tiên <code>\${esc(g.priority || 'N/A')}</code>\`;
+          const senderLine = it.sender ? \`<strong>\${esc(it.sender)}</strong> &lt;\${esc(it.senderEmail)}&gt; · \${esc(it.date)}\` : esc(it.date);
+          const reasonHtml = it.failReasons?.length
+            ? '<div class="fail-box">Lý do FAIL: ' + esc(it.failReasons.join(' | ')) + '</div>'
+            : '<div class="ok-box">PASS: Khớp đúng toàn bộ 6 tiêu chí (không bị ẩn, phân loại, bài tập, hạn nộp, môn học, ưu tiên).</div>';
+          body = \`<div>\${senderLine}</div><div style="margin:6px 0;color:var(--muted);">\${esc(it.body)}</div><div><strong>Kỳ vọng:</strong> <code>\${esc(it.expected?.category)}</code> · Hạn <code>\${esc(it.expected?.dueDate || 'không')}</code> · Ưu tiên <code>\${esc(it.expected?.priority || 'N/A')}</code></div><div><strong>AI v3.6:</strong> <code>\${esc(g.category || 'N/A')}</code> · Hạn <code>\${esc(g.dueDate || 'không')}</code> · Môn <code>\${esc(g.subject || 'N/A')}</code> · Ưu tiên <code>\${esc(g.priority || 'N/A')}</code></div>\${reasonHtml}<div class="meta-line">Mô hình: <code>\${esc(it.model)}</code> · Độ trễ: \${it.latencyMs}ms</div>\`;
         }
         return \`
           <div class="case-item">
@@ -637,7 +710,6 @@ const html = `<!DOCTYPE html>
     });
     renderCases();
 
-    // Lightbox
     const lb = document.getElementById('lightbox');
     const lbImg = document.getElementById('lb-img');
     document.querySelectorAll('.shot').forEach((s) => s.addEventListener('click', () => { lbImg.src = s.dataset.src; lb.classList.add('open'); }));

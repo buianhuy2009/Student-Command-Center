@@ -3940,6 +3940,13 @@ export const en = {
   changelog_r_3_6_5_h1: 'Explicitly labels Before (v2.16.0) vs After (v3.6) and displays all 19 metrics, 4 Socratic layers, and all 50 test cases directly.',
   changelog_r_3_6_5_d1: 'Removed collapsed drawers hiding metrics and test cases while keeping the airy, scannable layout.',
 
+  // Changelog v3.6.6
+  changelog_r_3_6_6_t: 'Transparent Test Methodology & Exact Per-Case FAIL Reasons on /minh-chung',
+  changelog_r_3_6_6_h1: 'Every test row now shows real anonymized sender/date/body, exact FAIL reasons, model name, and latency.',
+  changelog_r_3_6_6_h2: 'Added a 3-step explanation of how the live benchmark was run and strictly graded.',
+  changelog_r_3_6_6_d1: 'Fixed nested raw.email field extraction in scripts/build_evidence_page.mjs so email sender, timestamp, and content render accurately.',
+  changelog_r_3_6_6_d2: 'Surfaced exact per-field failure reasons (such as priority Med vs High) alongside model telemetry in public/minh-chung.html.',
+
 } as const;
 
 export type TranslationKey = keyof typeof en;
