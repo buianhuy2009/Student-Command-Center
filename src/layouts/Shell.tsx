@@ -49,21 +49,28 @@ export const Shell: React.FC<ShellProps> = ({
     const viewport = window.visualViewport;
     if (!viewport) return;
     const root = document.documentElement;
-    const syncHeight = () => {
+    const resetViewport = () => {
+      root.style.removeProperty('--app-viewport-height');
+      root.style.removeProperty('--app-viewport-top');
+    };
+    const syncViewport = () => {
       // iOS changes the visual viewport when the keyboard covers a fixed-height app.
       if (viewport.scale === 1 && window.innerHeight - viewport.height > 80) {
         root.style.setProperty('--app-viewport-height', `${viewport.height}px`);
+        root.style.setProperty('--app-viewport-top', `${viewport.offsetTop}px`);
       } else {
-        root.style.removeProperty('--app-viewport-height');
+        resetViewport();
       }
     };
-    syncHeight();
-    viewport.addEventListener('resize', syncHeight);
-    window.addEventListener('resize', syncHeight);
+    syncViewport();
+    viewport.addEventListener('resize', syncViewport);
+    viewport.addEventListener('scroll', syncViewport);
+    window.addEventListener('resize', syncViewport);
     return () => {
-      viewport.removeEventListener('resize', syncHeight);
-      window.removeEventListener('resize', syncHeight);
-      root.style.removeProperty('--app-viewport-height');
+      viewport.removeEventListener('resize', syncViewport);
+      viewport.removeEventListener('scroll', syncViewport);
+      window.removeEventListener('resize', syncViewport);
+      resetViewport();
     };
   }, []);
 
@@ -103,7 +110,7 @@ export const Shell: React.FC<ShellProps> = ({
             role="dialog"
             aria-modal="true"
             aria-label={t('side_primary_nav')}
-            className="md:hidden fixed inset-x-0 top-0 h-[var(--app-viewport-height,100dvh)] z-40 flex"
+            className="md:hidden fixed app-viewport-overlay z-40 flex"
             onKeyDown={(e) => {
               if (e.key === 'Escape') onMobileNavChange?.(false);
             }}

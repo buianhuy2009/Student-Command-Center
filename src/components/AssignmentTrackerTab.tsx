@@ -1095,7 +1095,7 @@ export const AssignmentTrackerTab: React.FC<AssignmentTrackerTabProps> = ({
 
       {/* Manual Add Assignment Modal */}
       {showAddModal && createPortal(
-        <div className="fixed inset-x-0 top-0 h-[var(--app-viewport-height,100dvh)] bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-3 sm:p-4 animate-in fade-in">
+        <div className="fixed app-viewport-overlay bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-3 sm:p-4 animate-in fade-in">
           <div role="dialog" aria-modal="true" aria-labelledby="tracker-add-title" className="max-h-full overflow-y-auto overscroll-contain bg-[var(--bg-surface)] rounded-3xl max-w-md w-full border border-[var(--border-default)] shadow-2xl p-4 sm:p-6 space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-[var(--border-default)]">
               <h3 id="tracker-add-title" className="text-sm font-bold text-[var(--text-primary)]">{t('tracker_new')}</h3>
@@ -1125,7 +1125,7 @@ export const AssignmentTrackerTab: React.FC<AssignmentTrackerTabProps> = ({
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label htmlFor="assign-subject" className="block font-bold text-[var(--text-primary)] mb-1">{t('subject')}</label>
                   <input
@@ -1144,7 +1144,7 @@ export const AssignmentTrackerTab: React.FC<AssignmentTrackerTabProps> = ({
                     type="date"
                     value={newDueDate}
                     onChange={(e) => setNewDueDate(e.target.value)}
-                    className="w-full min-w-0 px-3 py-2 bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-[var(--accent-fill)]"
+                    className="w-full min-w-0 pointer-coarse:appearance-none px-3 py-2 bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-[var(--accent-fill)]"
                   />
                 </div>
               </div>

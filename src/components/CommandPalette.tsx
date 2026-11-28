@@ -501,7 +501,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       role="dialog"
       aria-modal="true"
       aria-label={t('pal_dialog_label')}
-      className="fixed inset-x-0 top-0 h-[var(--app-viewport-height,100dvh)] z-50 flex items-start justify-center px-3 pb-3 pt-[min(4rem,8dvh)] sm:px-4 bg-black/55 backdrop-blur-xs"
+      className="fixed app-viewport-overlay z-50 flex items-start justify-center px-3 pb-3 pt-[min(4rem,8dvh)] sm:px-4 bg-black/55 backdrop-blur-xs"
       id="command-palette-backdrop"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
