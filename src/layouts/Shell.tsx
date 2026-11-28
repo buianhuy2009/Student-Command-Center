@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useLayoutEffect, useRef } from 'react';
 import { Menu, X, Search } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
 import { Navbar } from '../components/Navbar';
@@ -9,7 +9,9 @@ export interface ShellProps {
   sidebarProps: React.ComponentProps<typeof Sidebar>;
   navbarProps: React.ComponentProps<typeof Navbar> & { hidden?: boolean };
   isZen: boolean;
+  workspaceId: string;
   viewportFit?: boolean;
+  workspaceFlow?: boolean;
   mobileNavOpen?: boolean;
   onMobileNavChange?: (open: boolean) => void;
   topBanner?: React.ReactNode;
@@ -22,7 +24,9 @@ export const Shell: React.FC<ShellProps> = ({
   sidebarProps,
   navbarProps,
   isZen,
+  workspaceId,
   viewportFit = false,
+  workspaceFlow = false,
   mobileNavOpen = false,
   onMobileNavChange,
   topBanner,
@@ -32,9 +36,55 @@ export const Shell: React.FC<ShellProps> = ({
 }) => {
   const { t } = useT();
   const { hidden, ...navRest } = navbarProps;
+  const shellRef = useRef<HTMLDivElement>(null);
+  const mainRef = useRef<HTMLElement>(null);
+  const drawerRef = useRef<HTMLDivElement>(null);
+  const drawerSwipe = useRef<{ x: number; y: number } | null>(null);
+
+  useLayoutEffect(() => {
+    mainRef.current?.scrollTo(0, 0);
+  }, [workspaceId]);
+
+  useEffect(() => {
+    const viewport = window.visualViewport;
+    if (!viewport) return;
+    const root = document.documentElement;
+    const resetViewport = () => {
+      root.style.removeProperty('--app-viewport-height');
+      root.style.removeProperty('--app-viewport-top');
+    };
+    const syncViewport = () => {
+      // iOS changes the visual viewport when the keyboard covers a fixed-height app.
+      if (viewport.scale === 1 && window.innerHeight - viewport.height > 80) {
+        root.style.setProperty('--app-viewport-height', `${viewport.height}px`);
+        root.style.setProperty('--app-viewport-top', `${viewport.offsetTop}px`);
+      } else {
+        resetViewport();
+      }
+    };
+    syncViewport();
+    viewport.addEventListener('resize', syncViewport);
+    viewport.addEventListener('scroll', syncViewport);
+    window.addEventListener('resize', syncViewport);
+    return () => {
+      viewport.removeEventListener('resize', syncViewport);
+      viewport.removeEventListener('scroll', syncViewport);
+      window.removeEventListener('resize', syncViewport);
+      resetViewport();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!mobileNavOpen || isZen) return;
+    const trigger = shellRef.current?.querySelector<HTMLElement>('[aria-controls="mobile-navigation"]');
+    drawerRef.current?.querySelector<HTMLElement>('[data-close-drawer]')?.focus();
+    return () => {
+      if (trigger?.getClientRects().length) trigger.focus({ preventScroll: true });
+    };
+  }, [mobileNavOpen, isZen]);
 
   return (
-    <div className="h-dvh max-h-dvh overflow-hidden bg-[var(--bg-canvas)] text-[var(--text-primary)] flex flex-col font-sans selection:bg-[var(--accent-fill)] selection:text-white">
+    <div ref={shellRef} className="h-[var(--app-viewport-height,100dvh)] overflow-hidden bg-[var(--bg-canvas)] text-[var(--text-primary)] flex flex-col font-sans selection:bg-[var(--accent-fill)] selection:text-white">
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[100] bg-[var(--accent-fill)] text-white px-3 py-1.5 rounded-lg text-xs font-bold border border-[var(--border-strong)]"
@@ -55,27 +105,60 @@ export const Shell: React.FC<ShellProps> = ({
         {/* Mobile Drawer Overlay */}
         {!isZen && mobileNavOpen && (
           <div
-            className="md:hidden fixed inset-0 z-40 flex"
-            onTouchStart={(e) => {
-              (e.currentTarget as any)._sx = e.touches[0].clientX;
-            }}
-            onTouchEnd={(e) => {
-              const sx = (e.currentTarget as any)._sx || 0;
-              const dx = e.changedTouches[0].clientX - sx;
-              if (dx < -60 || dx > 60) onMobileNavChange?.(false);
-            }}
+            ref={drawerRef}
+            id="mobile-navigation"
+            role="dialog"
+            aria-modal="true"
+            aria-label={t('side_primary_nav')}
+            className="md:hidden fixed app-viewport-overlay z-40 flex"
             onKeyDown={(e) => {
               if (e.key === 'Escape') onMobileNavChange?.(false);
             }}
           >
-            <div className="w-60 shrink-0 bg-[var(--bg-subtle)] border-r border-[var(--border-default)] overflow-y-auto">
+            <div
+              className="w-60 max-w-[calc(100%-3rem)] shrink-0 bg-[var(--bg-subtle)] overflow-y-auto overscroll-contain"
+              onTouchStart={(event) => {
+                const touch = event.touches[0];
+                drawerSwipe.current = { x: touch.clientX, y: touch.clientY };
+              }}
+              onTouchCancel={() => { drawerSwipe.current = null; }}
+              onTouchEnd={(event) => {
+                const start = drawerSwipe.current;
+                drawerSwipe.current = null;
+                const touch = event.changedTouches[0];
+                if (start && start.x - touch.clientX > 60 && Math.abs(start.y - touch.clientY) < 40) {
+                  onMobileNavChange?.(false);
+                }
+              }}
+            >
               <Sidebar
                 {...sidebarProps}
                 isExpanded={true}
+                isMobileDrawer
                 onToggleExpand={() => onMobileNavChange?.(false)}
                 onSelectTab={(tab) => {
                   sidebarProps.onSelectTab(tab);
                   onMobileNavChange?.(false);
+                }}
+                onOpenSearch={() => {
+                  onMobileNavChange?.(false);
+                  sidebarProps.onOpenSearch?.();
+                }}
+                onToggleAiChat={() => {
+                  onMobileNavChange?.(false);
+                  sidebarProps.onToggleAiChat?.();
+                }}
+                onOpenSettings={() => {
+                  onMobileNavChange?.(false);
+                  sidebarProps.onOpenSettings();
+                }}
+                onOpenAppStore={() => {
+                  onMobileNavChange?.(false);
+                  sidebarProps.onOpenAppStore();
+                }}
+                onOpenShortcuts={() => {
+                  onMobileNavChange?.(false);
+                  sidebarProps.onOpenShortcuts();
                 }}
               />
             </div>
@@ -84,12 +167,13 @@ export const Shell: React.FC<ShellProps> = ({
               className="flex-1 bg-black/45 backdrop-blur-xs cursor-pointer"
               onClick={() => onMobileNavChange?.(false)}
               aria-label={t('app_close_nav_aria')}
+              tabIndex={-1}
             />
           </div>
         )}
 
         {/* Right Main Column */}
-        <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-[var(--bg-canvas)]">
+        <div inert={!isZen && mobileNavOpen ? true : undefined} className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-[var(--bg-canvas)]">
           {!hidden && !isZen ? (
             <ErrorBoundary
               fallback={
@@ -118,8 +202,9 @@ export const Shell: React.FC<ShellProps> = ({
                     type="button"
                     onClick={() => onMobileNavChange(!mobileNavOpen)}
                     aria-label={t('app_toggle_nav_aria')}
+                    aria-controls="mobile-navigation"
                     aria-expanded={mobileNavOpen}
-                    className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border-default)] text-[var(--text-primary)] cursor-pointer shrink-0"
+                    className="inline-flex items-center justify-center size-11 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border-default)] text-[var(--text-primary)] cursor-pointer shrink-0"
                   >
                     {mobileNavOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
                   </button>
@@ -133,7 +218,7 @@ export const Shell: React.FC<ShellProps> = ({
                   type="button"
                   onClick={navRest.onOpenCommandPalette}
                   aria-label={t('search')}
-                  className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border-hairline)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer shrink-0"
+                  className="inline-flex items-center justify-center size-11 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border-hairline)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer shrink-0"
                 >
                   <Search className="w-4 h-4" />
                 </button>
@@ -149,10 +234,11 @@ export const Shell: React.FC<ShellProps> = ({
             </div>
           ) : (
             <main
+              ref={mainRef}
               id="main-content"
               className={
                 viewportFit
-                  ? 'flex-1 min-h-0 flex flex-col overflow-hidden px-3 sm:px-5 py-3'
+                  ? `flex-1 min-h-0 flex flex-col overflow-hidden px-3 sm:px-5 py-3 ${workspaceFlow ? 'workspace-flow:block workspace-flow:overflow-y-auto' : ''}`
                   : 'flex-1 overflow-y-auto overflow-x-hidden px-3 sm:px-6 lg:px-8 py-4 sm:py-6 min-h-0'
               }
               aria-label={t('shell_content_aria')}

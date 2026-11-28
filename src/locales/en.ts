@@ -3891,18 +3891,21 @@ export const en = {
   changelog_r_3_5_2_d2: 'Connected the compact left-column video player to the shared media ref and saved-lecture media fallback so clicking any timestamp still jumps directly to that moment.',
 
   // Changelog v3.5.3
+  changelog_r_3_5_4_t: 'Better Layouts on iPhone',
+  changelog_r_3_5_4_h1: 'Navigate, search and study comfortably on narrow and foldable iPhone screens.',
+  changelog_r_3_5_4_d1: 'The landing page and mobile menu fit tighter screens, workspaces such as Assignments, Notes and Lectures scroll as a single page on small displays, and Search and New Task adapt when the keyboard opens.',
   changelog_r_3_5_3_t: 'Sharper Installed App Icon',
   changelog_r_3_5_3_h1: 'Spot StudentOS by its white graduation cap on a terracotta background.',
   changelog_r_3_5_3_d1: 'The installed app has a high-resolution icon for your home screen or desktop launcher, with a version sized for Android’s adaptive icon masks.',
 
-  // Changelog v3.5.4
-  changelog_r_3_5_4_t: 'Accurate Canvas Badge and Google Tools in Connected Apps',
-  changelog_r_3_5_4_h1: 'The Canvas number in the sidebar now counts only unfinished assignments.',
-  changelog_r_3_5_4_h2: 'Connect each Google tool from Settings, under Connected Apps, with a clear Not connected status.',
-  changelog_r_3_5_4_h3: 'Settings is simpler: AI keys are now entered only under Connections.',
-  changelog_r_3_5_4_d3: 'The separate Models & AI Keys tab was removed from Settings. Your saved keys are unchanged, and you can still add, edit and save them in Settings > Connections.',
-  changelog_r_3_5_4_d1: 'Assignments already submitted on Canvas are no longer counted in the sidebar badge, so it matches the Unfinished count in the Canvas tab.',
-  changelog_r_3_5_4_d2: 'The individual Google tools list moved from Settings > Connections to Settings > Connected Apps. Each tool you have not connected shows Not connected and a Connect Google button.',
+  // Changelog v3.5.5
+  changelog_r_3_5_5_t: 'Accurate Canvas Badge and Google Tools in Connected Apps',
+  changelog_r_3_5_5_h1: 'The Canvas number in the sidebar now counts only unfinished assignments.',
+  changelog_r_3_5_5_h2: 'Connect each Google tool from Settings, under Connected Apps, with a clear Not connected status.',
+  changelog_r_3_5_5_h3: 'Settings is simpler: AI keys are now entered only under Connections.',
+  changelog_r_3_5_5_d3: 'The separate Models & AI Keys tab was removed from Settings. Your saved keys are unchanged, and you can still add, edit and save them in Settings > Connections.',
+  changelog_r_3_5_5_d1: 'Assignments already submitted on Canvas are no longer counted in the sidebar badge, so it matches the Unfinished count in the Canvas tab.',
+  changelog_r_3_5_5_d2: 'The individual Google tools list moved from Settings > Connections to Settings > Connected Apps. Each tool you have not connected shows Not connected and a Connect Google button.',
 
 } as const;
 

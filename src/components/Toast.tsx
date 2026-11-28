@@ -28,7 +28,7 @@ export const ToastContainer: React.FC<ToastProps & { onUndo?: any; onRetry?: any
   const grouped = groupToasts(toasts);
 
   return (
-    <div className="toast-stack fixed bottom-5 right-5 z-[90] flex flex-col space-y-2 max-w-md w-full pointer-events-none px-4" role="status" aria-live="polite">
+    <div className="toast-stack fixed bottom-3 right-3 sm:bottom-5 sm:right-5 z-[90] flex flex-col space-y-2 max-w-md w-[calc(100%-1.5rem)] sm:w-[calc(100%-2.5rem)] pointer-events-none" role="status" aria-live="polite">
       {grouped.map((toast) => {
         const persistent = (toast as any).persistent === true && toast.type === 'error';
         const toneBorder =

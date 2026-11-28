@@ -3883,17 +3883,20 @@ export const vi = {
   changelog_r_3_5_2_d2: 'Kết nối khung video nhỏ bên trái với tham chiếu phát lại và video đã lưu để khi nhấn vào bất kỳ mốc thời gian nào vẫn tua chính xác tới đoạn đó.',
 
   // Changelog v3.5.3
+  changelog_r_3_5_4_t: 'Bố cục vừa vặn hơn trên iPhone',
+  changelog_r_3_5_4_h1: 'Dễ dàng điều hướng, tìm kiếm và học tập trên iPhone màn hình nhỏ và iPhone gập.',
+  changelog_r_3_5_4_d1: 'Trang giới thiệu và menu vừa với màn hình nhỏ hơn. Bài tập, Ghi chú và Bài giảng cuộn liền mạch, còn Tìm kiếm và Tạo bài tập tự điều chỉnh khi bàn phím mở.',
   changelog_r_3_5_3_t: 'Biểu tượng ứng dụng sắc nét hơn',
   changelog_r_3_5_3_h1: 'Dễ nhận ra StudentOS nhờ chiếc mũ tốt nghiệp màu trắng trên nền cam đất.',
   changelog_r_3_5_3_d1: 'Biểu tượng độ phân giải cao xuất hiện trên màn hình chính hoặc trình khởi chạy trên máy tính, với phiên bản phù hợp với các kiểu cắt biểu tượng của Android.',
 
-  // Changelog v3.5.4
-  changelog_r_3_5_4_t: 'Huy hiệu Canvas chính xác và công cụ Google trong Ứng dụng đã kết nối',
-  changelog_r_3_5_4_h1: 'Con số cạnh Canvas ở thanh bên giờ chỉ đếm các bài tập chưa hoàn thành.',
-  changelog_r_3_5_4_h2: 'Kết nối từng công cụ Google trong Cài đặt, mục Ứng dụng đã kết nối, với trạng thái Chưa kết nối rõ ràng.',
-  changelog_r_3_5_4_h3: 'Cài đặt gọn hơn: khóa AI giờ chỉ nhập trong tab Kết nối.',
-  changelog_r_3_5_4_d3: 'Đã bỏ tab riêng Mô hình & Khóa AI trong Cài đặt. Khóa bạn đã lưu không thay đổi, và bạn vẫn có thể thêm, sửa, lưu khóa tại Cài đặt > Kết nối.',
-  changelog_r_3_5_4_d1: 'Bài tập đã nộp trên Canvas không còn được tính vào huy hiệu ở thanh bên, nên con số này khớp với số bài chưa hoàn thành trong tab Canvas.',
-  changelog_r_3_5_4_d2: 'Danh sách từng công cụ Google đã chuyển từ Cài đặt > Kết nối sang Cài đặt > Ứng dụng đã kết nối. Mỗi công cụ chưa kết nối hiển thị Chưa kết nối và nút Kết nối Google.',
+  // Changelog v3.5.5
+  changelog_r_3_5_5_t: 'Huy hiệu Canvas chính xác và công cụ Google trong Ứng dụng đã kết nối',
+  changelog_r_3_5_5_h1: 'Con số cạnh Canvas ở thanh bên giờ chỉ đếm các bài tập chưa hoàn thành.',
+  changelog_r_3_5_5_h2: 'Kết nối từng công cụ Google trong Cài đặt, mục Ứng dụng đã kết nối, với trạng thái Chưa kết nối rõ ràng.',
+  changelog_r_3_5_5_h3: 'Cài đặt gọn hơn: khóa AI giờ chỉ nhập trong tab Kết nối.',
+  changelog_r_3_5_5_d3: 'Đã bỏ tab riêng Mô hình & Khóa AI trong Cài đặt. Khóa bạn đã lưu không thay đổi, và bạn vẫn có thể thêm, sửa, lưu khóa tại Cài đặt > Kết nối.',
+  changelog_r_3_5_5_d1: 'Bài tập đã nộp trên Canvas không còn được tính vào huy hiệu ở thanh bên, nên con số này khớp với số bài chưa hoàn thành trong tab Canvas.',
+  changelog_r_3_5_5_d2: 'Danh sách từng công cụ Google đã chuyển từ Cài đặt > Kết nối sang Cài đặt > Ứng dụng đã kết nối. Mỗi công cụ chưa kết nối hiển thị Chưa kết nối và nút Kết nối Google.',
 
 } satisfies Record<TranslationKey, string>;

@@ -6,10 +6,16 @@
     <description>Plain-English updates to StudentOS — what changed and why it matters for studying.</description>
     <language>en-us</language>
     <item>
-      <title>v3.5.4 — Accurate Canvas Badge and Google Tools in Connected Apps</title>
+      <title>v3.5.5 — Accurate Canvas Badge and Google Tools in Connected Apps</title>
+      <link>https://sutdent-command-center.vercel.app/?changelog=3.5.5</link>
+      <pubDate>Sat, 28 Nov 2026 02:22:41 GMT</pubDate>
+      <description>StudentOS v3.5.5 makes the Canvas sidebar badge count only unfinished assignments and moves the individual Google tools to Settings, Connected Apps, with a Not connected status and a Connect Google button. The separate Models and AI Keys tab is gone; AI keys stay in Settings, Connections.</description>
+    </item>
+    <item>
+      <title>v3.5.4 — Better Layouts on iPhone</title>
       <link>https://sutdent-command-center.vercel.app/?changelog=3.5.4</link>
-      <pubDate>Sat, 28 Nov 2026 01:47:00 GMT</pubDate>
-      <description>StudentOS v3.5.4 makes the Canvas sidebar badge count only unfinished assignments and moves the individual Google tools to Settings, Connected Apps, with a Not connected status and a Connect Google button. The separate Models and AI Keys tab is gone; AI keys stay in Settings, Connections.</description>
+      <pubDate>Sat, 28 Nov 2026 02:04:00 GMT</pubDate>
+      <description>StudentOS v3.5.4 improves iPhone navigation, makes stacked workspaces easier to scroll, and keeps search and task creation usable when the keyboard opens.</description>
     </item>
     <item>
       <title>v3.5.3 — Sharper Installed App Icon</title>

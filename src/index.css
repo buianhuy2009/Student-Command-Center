@@ -1,6 +1,17 @@
 @import "tailwindcss";
 
 @custom-variant dark (&:where(.dark, .dark *));
+@custom-variant workspace-flow {
+  @media (width < 80rem), (height < 40rem) {
+    @slot;
+  }
+}
+
+@utility app-viewport-overlay {
+  inset-inline: 0;
+  top: var(--app-viewport-top, 0px);
+  height: var(--app-viewport-height, 100dvh);
+}
 
 /* ============================================================================
    StudentOS Design System — Single Semantic Token Layer
@@ -310,7 +321,7 @@
   #root {
     background-color: var(--bg-canvas);
     color: var(--text-primary);
-    min-height: 100vh;
+    min-height: var(--app-viewport-height, 100dvh);
   }
 
   ::selection {
@@ -843,13 +854,15 @@ dialog.landing-dialog::backdrop {
    Accessibility, Forced Colors, Reduced Motion & Print
    ============================================================================ */
 
-@media (max-width: 768px) {
-  html:not([data-density="compact"]) input,
-  html:not([data-density="compact"]) select,
-  html:not([data-density="compact"]) textarea {
-    font-size: max(16px, 0.875rem) !important;
-    touch-action: manipulation;
+@media (pointer: coarse) {
+  input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"]),
+  select,
+  textarea {
+    font-size: max(16px, 1rem) !important;
   }
+}
+
+@media (max-width: 768px) {
   button, a { touch-action: manipulation; }
   :root { --blur-glass-panel: 8px; --blur-glass-card: 6px; --saturate-glass: 125%; }
 }

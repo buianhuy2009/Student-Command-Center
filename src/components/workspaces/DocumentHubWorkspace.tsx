@@ -538,7 +538,7 @@ export const DocumentHubWorkspace: React.FC<DocumentHubWorkspaceProps> = ({
                       value={activeNote.content}
                       onChange={(e) => handleUpdateActiveNote({ content: e.target.value })}
                       placeholder={t('dochub_editor_ph')}
-                      className="flex-1 w-full p-4 text-xs font-mono bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--accent-fill)] text-[var(--text-primary)] resize-none leading-relaxed"
+                      className="flex-1 w-full workspace-flow:min-h-48 p-4 text-xs font-mono bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--accent-fill)] text-[var(--text-primary)] resize-none leading-relaxed"
                     />
                   </div>
 

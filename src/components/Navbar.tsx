@@ -68,8 +68,9 @@ export const Navbar: React.FC<NavbarProps> = ({
             type="button"
             onClick={onToggleMobileNav}
             aria-label={t('app_toggle_nav_aria')}
+            aria-controls="mobile-navigation"
             aria-expanded={mobileNavOpen}
-            className="md:hidden inline-flex items-center justify-center w-9 h-9 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border-default)] text-[var(--text-primary)] hover:border-[var(--border-strong)] cursor-pointer shrink-0"
+            className="md:hidden inline-flex items-center justify-center size-11 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border-default)] text-[var(--text-primary)] hover:border-[var(--border-strong)] cursor-pointer shrink-0"
           >
             {mobileNavOpen ? <X className="w-4 h-4" strokeWidth={1.75} /> : <Menu className="w-4 h-4" strokeWidth={1.75} />}
           </button>
@@ -96,17 +97,17 @@ export const Navbar: React.FC<NavbarProps> = ({
       </div>
 
       {/* CENTER: Command Palette search trigger */}
-      <div className="flex items-center justify-center flex-1 max-w-md px-1 sm:px-3 min-w-0">
+      <div className="flex items-center justify-center ml-auto sm:ml-0 sm:flex-1 max-w-md sm:px-3 min-w-0 shrink-0">
         <button
           type="button"
           onClick={onOpenCommandPalette}
           data-tour="search"
-          className="w-full bg-[var(--bg-subtle)]/75 hover:bg-[var(--bg-subtle)] border border-[var(--border-hairline)] hover:border-[var(--border-default)] rounded-lg py-1.5 px-2.5 sm:px-3 text-xs flex items-center justify-between gap-2 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer group"
+          aria-label={t('search_or_jump')}
+          className="size-11 sm:h-auto sm:w-full bg-[var(--bg-subtle)]/75 hover:bg-[var(--bg-subtle)] border border-[var(--border-hairline)] hover:border-[var(--border-default)] rounded-lg sm:py-1.5 sm:px-3 text-xs flex items-center justify-center sm:justify-between gap-2 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer group"
         >
           <div className="flex items-center gap-2 min-w-0">
             <Search className="w-3.5 h-3.5 text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors shrink-0" strokeWidth={1.75} />
             <span className="hidden sm:inline truncate">{t('search_or_jump')}</span>
-            <span className="sm:hidden truncate">{t('search')}</span>
           </div>
           <kbd className="hidden sm:inline text-[10px] font-mono font-medium bg-[var(--bg-surface)] px-1.5 py-0.5 rounded border border-[var(--border-hairline)] text-[var(--text-muted)] shrink-0">
             {platformKey}
@@ -125,12 +126,13 @@ export const Navbar: React.FC<NavbarProps> = ({
             id="btn-nav-google-sync"
             data-tour="sync"
             onClick={onOpenGoogleSync}
-            className={`px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-colors flex items-center gap-1.5 cursor-pointer ${
+            className={`size-11 sm:size-auto sm:px-2.5 sm:py-1.5 text-xs font-medium rounded-lg border transition-colors flex items-center justify-center gap-1.5 cursor-pointer ${
               isGoogleConnected
                 ? 'bg-[var(--status-ok-bg)] text-[var(--status-ok-text)] border-[var(--status-ok-border)]'
                 : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-hairline)] hover:border-[var(--border-default)] hover:text-[var(--text-primary)]'
             }`}
             title={t('nav_google_connections')}
+            aria-label={t('nav_google_connections')}
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isSyncingGoogle ? 'animate-spin' : ''}`} strokeWidth={1.75} />
             <span className="hidden md:inline text-[11px]">
@@ -145,12 +147,13 @@ export const Navbar: React.FC<NavbarProps> = ({
           data-tour="coach"
           onClick={onToggleAiChat}
           aria-pressed={isAiChatOpen}
-          className={`px-2.5 py-1.5 text-xs font-semibold rounded-lg border transition-colors flex items-center gap-1.5 cursor-pointer ${
+          className={`size-11 sm:size-auto sm:px-2.5 sm:py-1.5 text-xs font-semibold rounded-lg border transition-colors flex items-center justify-center gap-1.5 cursor-pointer ${
             isAiChatOpen
               ? 'bg-[var(--accent-fill)] border-[var(--accent-fill)] text-white'
               : 'bg-[var(--accent-soft)] border-[var(--accent-border)]/70 text-[var(--accent-text)] hover:bg-[var(--accent-fill)] hover:border-[var(--accent-fill)] hover:text-white'
           }`}
           title={t('nav_ai_coach_title')}
+          aria-label={t('nav_ai_coach_title')}
         >
           <Sparkles className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75} />
           <span className="hidden sm:inline text-[11px]">{t('nav_ai_coach')}</span>
