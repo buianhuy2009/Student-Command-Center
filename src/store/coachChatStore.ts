@@ -5,6 +5,7 @@ import {
   type AiCoachMode,
 } from '../services/gemini';
 import { t } from '../services/i18n';
+import { getPrivacyPrefs } from '../services/privacyPrefs';
 import type { Assignment, CalendarEvent, EmailAlert } from '../types';
 import { useAiJobsStore } from './aiJobsStore';
 
@@ -169,13 +170,41 @@ export const useCoachChatStore = create<CoachChatState>((set, get) => ({
     });
 
     try {
-      const cappedAssignments = assignments
-        .slice(0, 30)
-        .map((a) => ({ ...a, notes: (a.notes || '').slice(0, 300) }));
-      const cappedAlerts = alerts
-        .slice(0, 15)
-        .map((a) => ({ ...a, oneLineSummary: a.oneLineSummary.slice(0, 300) }));
-      const cappedEvents = events.slice(0, 20);
+      const { shareAcademicContextWithTutor } = getPrivacyPrefs();
+      const contextPayload = shareAcademicContextWithTutor
+        ? (() => {
+            const cappedAssignments = assignments.slice(0, 30).map((a) => {
+              const { rawEmail: _rawEmail, senderEmail: _senderEmail, ...rest } = a as Assignment & {
+                rawEmail?: unknown;
+                senderEmail?: unknown;
+              };
+              return { ...rest, notes: (a.notes || '').slice(0, 300) };
+            });
+            const cappedAlerts = alerts.slice(0, 15).map((a) => {
+              const { rawEmail: _rawEmail, senderEmail: _senderEmail, ...rest } = a as EmailAlert & {
+                senderEmail?: unknown;
+              };
+              return { ...rest, oneLineSummary: (a.oneLineSummary || '').slice(0, 300) };
+            });
+            const cappedEvents = events.slice(0, 20).map((ev) => {
+              const { rawEmail: _rawEmail, senderEmail: _senderEmail, ...rest } = ev as CalendarEvent & {
+                rawEmail?: unknown;
+                senderEmail?: unknown;
+              };
+              return {
+                ...rest,
+                ...(ev.description ? { description: ev.description.slice(0, 300) } : {}),
+              };
+            });
+            return {
+              assignments: cappedAssignments,
+              events: cappedEvents,
+              alerts: cappedAlerts,
+              sources: cappedAssignments.map((a) => ({ type: 'canvas', id: a.id })),
+              ...(extraContext || {}),
+            };
+          })()
+        : {};
 
       // Only send raw base64 images for the 2 most recent image-bearing user messages to stay under body limits.
       const imageMsgIndices = withUser
@@ -199,13 +228,7 @@ export const useCoachChatStore = create<CoachChatState>((set, get) => ({
               }
             : {}),
         })),
-        {
-          assignments: cappedAssignments,
-          events: cappedEvents,
-          alerts: cappedAlerts,
-          sources: cappedAssignments.map((a) => ({ type: 'canvas', id: a.id })),
-          ...(extraContext || {}),
-        },
+        contextPayload,
         get().coachMode
       );
 

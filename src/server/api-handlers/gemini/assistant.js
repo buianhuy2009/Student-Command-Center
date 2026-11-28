@@ -1,7 +1,21 @@
 import { applyApiCors } from "../cors.js";
 import { generateWithModelFallback, sendAiFailure } from "./generate.js";
 import { COACH_MODE_MODELS, VISION_CHEAPEST_MODELS, normalizeCoachMode } from "./models.js";
-import { TUTOR_POLICY, HOMEWORK_DUMP_REMINDER, isHomeworkDump } from "./tutorPolicy.js";
+import {
+  TUTOR_POLICY,
+  HOMEWORK_DUMP_REMINDER,
+  LIVE_EXAM_REMINDER,
+  ALLOWED_NON_TUTOR_TOOLS,
+  isHomeworkDump,
+  isLiveExamAttempt,
+  detectAnswerLeak,
+  buildSafeSocraticFallback,
+} from "./tutorPolicy.js";
+
+const MAX_LOG_PROMPT_CHARS = 300;
+function truncateForLog(text) {
+  return String(text || "").replace(/\s+/g, " ").trim().slice(0, MAX_LOG_PROMPT_CHARS);
+}
 
 const GROQ_CHAT_MODELS = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"];
 const GROQ_VISION_MODELS = ["meta-llama/llama-4-scout-17b-16e-instruct"];
@@ -118,12 +132,13 @@ export default async function handler(req, res) {
 
   try {
     const { messages, context, mode: rawMode } = req.body || {};
+    const allowGroqFallback = req.body?.allowGroqFallback !== false;
     const mode = normalizeCoachMode(rawMode);
 
-    // Other studio tools (flashcards, outlines, research brief) reuse this endpoint as a
-    // plain generator and identify themselves with context.tool; only the student-facing
-    // tutor chat (no tool) gets the "hints, never the homework" policy.
-    const isTutorChat = !(context && context.tool);
+    // Other studio tools (flashcards, outline, brief, summary, study_plan) reuse this endpoint
+    // and identify themselves with an allowlisted context.tool; spoofed tools fall back to tutor policy.
+    const requestedTool = typeof context?.tool === "string" ? context.tool.trim() : "";
+    const isTutorChat = !(requestedTool && ALLOWED_NON_TUTOR_TOOLS.has(requestedTool));
 
     const modeGuidance =
       mode === "apex"
@@ -142,10 +157,15 @@ Math formatting rules (the client renders with KaTeX): write inline formulas as 
 Current student context:
 ${JSON.stringify(context || {}, null, 2)}`;
 
+    const lastUser = [...(messages || [])].reverse().find((m) => m && m.role !== "assistant");
+    const lastUserText = String(lastUser?.content || "");
+
     if (isTutorChat) {
       systemInstruction = `${TUTOR_POLICY}\n\n${systemInstruction}`;
-      const lastUser = [...(messages || [])].reverse().find((m) => m && m.role !== "assistant");
-      if (lastUser && isHomeworkDump(lastUser.content)) {
+      if (isLiveExamAttempt(lastUserText)) {
+        systemInstruction += `\n\n${LIVE_EXAM_REMINDER}`;
+      }
+      if (isHomeworkDump(lastUserText)) {
         systemInstruction += `\n\n${HOMEWORK_DUMP_REMINDER}`;
       }
     }
@@ -153,46 +173,6 @@ ${JSON.stringify(context || {}, null, 2)}`;
     const formattedContents = buildFormattedContents(messages);
     const hasImages = (messages || []).some((m) => normalizeMessageImages(m?.images).length > 0);
 
-    // Quick tier: Gemma 4 (31B -> 26B) first, then Groq (Llama 4 Scout for images) backup, then cheapest Gemini vision backup if images are attached.
-    if (mode === "quick") {
-      let gemmaErr = null;
-      if (process.env.GEMINI_API_KEY) {
-        try {
-          const { response, model } = await generateWithModelFallback({
-            candidateModels: COACH_MODE_MODELS.quick,
-            contents: formattedContents,
-            config: { systemInstruction },
-          });
-          const reply = String(response?.text || "").trim();
-          if (reply) {
-            return res.status(200).json({ reply, mode, provider: "gemini", model });
-          }
-        } catch (err) {
-          gemmaErr = err;
-        }
-      }
-      try {
-        const { text, model } = await callServerGroq(messages, systemInstruction);
-        return res.status(200).json({ reply: text, mode, provider: "groq", model });
-      } catch (groqErr) {
-        if (hasImages && process.env.GEMINI_API_KEY) {
-          try {
-            const { response, model } = await generateWithModelFallback({
-              candidateModels: VISION_CHEAPEST_MODELS,
-              contents: formattedContents,
-              config: { systemInstruction },
-            });
-            const reply = String(response?.text || "").trim();
-            if (reply) {
-              return res.status(200).json({ reply, mode, provider: "gemini", model });
-            }
-          } catch {}
-        }
-        throw gemmaErr || groqErr;
-      }
-    }
-
-    // Build candidate list for the requested tier, plus graceful cross-tier fallback on limit exhaustion.
     const tierModels = COACH_MODE_MODELS[mode] || COACH_MODE_MODELS.balanced;
     const crossTierBackup =
       mode === "apex"
@@ -202,18 +182,118 @@ ${JSON.stringify(context || {}, null, 2)}`;
           : COACH_MODE_MODELS.quick;
     const candidateModels = [...new Set([...tierModels, ...crossTierBackup])];
 
-    const { response, model } = await generateWithModelFallback({
-      candidateModels,
-      contents: formattedContents,
-      config: { systemInstruction },
-    });
+    async function generatePrimaryReply() {
+      // Quick tier: Gemma 4 (31B -> 26B) first, then Groq (if allowed), then cheapest Gemini vision backup if images are attached.
+      if (mode === "quick") {
+        let gemmaErr = null;
+        if (process.env.GEMINI_API_KEY) {
+          try {
+            const { response, model } = await generateWithModelFallback({
+              candidateModels: COACH_MODE_MODELS.quick,
+              contents: formattedContents,
+              config: { systemInstruction },
+            });
+            const reply = String(response?.text || "").trim();
+            if (reply) {
+              return { reply, provider: "gemini", model };
+            }
+          } catch (err) {
+            gemmaErr = err;
+          }
+        }
+        let groqErr = null;
+        if (allowGroqFallback) {
+          try {
+            const { text, model } = await callServerGroq(messages, systemInstruction);
+            return { reply: text, provider: "groq", model };
+          } catch (err) {
+            groqErr = err;
+          }
+        }
+        if (hasImages && process.env.GEMINI_API_KEY) {
+          try {
+            const { response, model } = await generateWithModelFallback({
+              candidateModels: VISION_CHEAPEST_MODELS,
+              contents: formattedContents,
+              config: { systemInstruction },
+            });
+            const reply = String(response?.text || "").trim();
+            if (reply) {
+              return { reply, provider: "gemini", model };
+            }
+          } catch {}
+        }
+        if (gemmaErr || groqErr) {
+          throw gemmaErr || groqErr;
+        }
+        const err = new Error("Gemini API key is not configured and Groq fallback is disabled.");
+        err.status = 503;
+        throw err;
+      }
 
-    const reply = String(response?.text || "").trim();
-    if (!reply) {
-      throw new Error("Empty reply from AI model");
+      const { response, model } = await generateWithModelFallback({
+        candidateModels,
+        contents: formattedContents,
+        config: { systemInstruction },
+      });
+      const reply = String(response?.text || "").trim();
+      if (!reply) {
+        throw new Error("Empty reply from AI model");
+      }
+      return { reply, provider: "gemini", model };
     }
 
-    return res.status(200).json({ reply, mode, provider: "gemini", model });
+    const generated = await generatePrimaryReply();
+    let finalReply = generated.reply;
+    let guardrailTriggered = false;
+
+    if (isTutorChat && detectAnswerLeak(lastUserText, finalReply)) {
+      guardrailTriggered = true;
+      console.warn("[tutor-guard] Answer leak detected for prompt:", truncateForLog(lastUserText));
+
+      const strictRewriteSystem = `${TUTOR_POLICY}
+
+STRICT REWRITE MANDATE: Your previous draft leaked direct answers, an answer key, multi-part solutions, or a finished essay. Rewrite from scratch as a brief Socratic hint ONLY (under 100 words). Never list answers (no 1. A / 2. B or a) / b) / c) solutions), ask what the student tried, and give at most one first-step hint or a worked example with different numbers.`;
+
+      const rewritePrompt = `Student prompt: ${truncateForLog(lastUserText)}
+
+Previous leaked draft (DO NOT copy answers from this):
+${finalReply.slice(0, 600)}
+
+Rewrite into a safe, hint-only Socratic reply in the same language as the student:`;
+
+      let rewritten = "";
+      try {
+        if (generated.provider === "groq" && allowGroqFallback) {
+          const resGroq = await callServerGroq([{ role: "user", content: rewritePrompt }], strictRewriteSystem);
+          rewritten = String(resGroq?.text || "").trim();
+        } else if (process.env.GEMINI_API_KEY) {
+          const rewriteModels = mode === "quick" ? COACH_MODE_MODELS.quick : candidateModels;
+          const resGem = await generateWithModelFallback({
+            candidateModels: rewriteModels,
+            contents: [{ role: "user", parts: [{ text: rewritePrompt }] }],
+            config: { systemInstruction: strictRewriteSystem },
+          });
+          rewritten = String(resGem?.response?.text || "").trim();
+        }
+      } catch {
+        rewritten = "";
+      }
+
+      finalReply =
+        rewritten && !detectAnswerLeak(lastUserText, rewritten)
+          ? rewritten
+          : buildSafeSocraticFallback(lastUserText);
+    }
+
+    return res.status(200).json({
+      reply: finalReply,
+      mode,
+      provider: generated.provider,
+      model: generated.model,
+      tutorPolicyEnforced: isTutorChat,
+      guardrailTriggered,
+    });
   } catch (err) {
     console.error("Study assistant error:", err);
     return sendAiFailure(res, "Study assistant failed", err);
