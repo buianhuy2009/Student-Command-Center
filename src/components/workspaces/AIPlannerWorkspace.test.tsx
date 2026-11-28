@@ -94,6 +94,13 @@ it('renders, locks, edits, diffs, restores', async () => {
   console.log('phase btn:', btn(/Đang xếp|Tạo lại/)?.textContent, 'calls:', (await import('../../services/gemini') as any).callGemini.mock.calls.length);
   expect(text()).toContain('Bạn muốn dời buổi nào?');
 
+  // Offline ambiguous weak-subject request -> clarifying question naming subjects, no silent replan.
+  geminiReply.value = '';
+  const planBeforeAmbiguous = localStorage.getItem('scc_ai_planner_v1');
+  await send('Em muốn học nhiều hơn môn em yếu');
+  expect(text()).toContain('Bạn muốn học nhiều hơn môn nào');
+  expect(localStorage.getItem('scc_ai_planner_v1')).toBe(planBeforeAmbiguous);
+
   // Manual edit → locked + manual + history "Sửa tay".
   geminiReply.value = '';
   await click(btn(/^Sửa giờ$/));
